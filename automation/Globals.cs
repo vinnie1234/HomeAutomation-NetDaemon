@@ -27,20 +27,34 @@ public static class Globals
         DayOfWeek.Sunday
     };
 
-    public static readonly DayOfWeek[] HomeWorkDays =
-    {
-        DayOfWeek.Monday,
-        DayOfWeek.Tuesday,
-        DayOfWeek.Wednesday
-    };
-
-    public static readonly DayOfWeek[] OfficeDays =
-    {
-        DayOfWeek.Thursday,
-        DayOfWeek.Friday
-    };
-
     #endregion
+
+    public static bool IsHomeWorkDay(IEntities entities, DayOfWeek dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            DayOfWeek.Monday => entities.InputBoolean.OfficedayMonday.IsOff(),
+            DayOfWeek.Tuesday => entities.InputBoolean.OfficedayTuesday.IsOff(),
+            DayOfWeek.Wednesday => entities.InputBoolean.OfficedayWednesday.IsOff(),
+            DayOfWeek.Thursday => entities.InputBoolean.OfficedayThursday.IsOff(),
+            DayOfWeek.Friday => entities.InputBoolean.OfficedayFriday.IsOff(),
+            _ => false
+        };
+    }
+
+
+    public static bool IsOfficeDay(IEntities entities, DayOfWeek dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            DayOfWeek.Monday    => entities.InputBoolean.OfficedayMonday.IsOn(),
+            DayOfWeek.Tuesday   => entities.InputBoolean.OfficedayTuesday.IsOn(),
+            DayOfWeek.Wednesday => entities.InputBoolean.OfficedayWednesday.IsOn(),
+            DayOfWeek.Thursday  => entities.InputBoolean.OfficedayThursday.IsOn(),
+            DayOfWeek.Friday    => entities.InputBoolean.OfficedayFriday.IsOn(),
+            _                   => false
+        };
+    }
 
     public static HouseState GetHouseState(IEntities entities)
     {

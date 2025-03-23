@@ -62,7 +62,7 @@ public class AwayManager : BaseApp
     {
         _backHome = false;
 
-        if (OfficeDays.Contains(DateTimeOffset.Now.DayOfWeek)
+        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek)
             && DateTimeOffset.Now.Hour < 9
             && Entities.InputBoolean.Holliday.IsOff())
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
