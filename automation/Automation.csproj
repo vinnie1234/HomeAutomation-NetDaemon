@@ -39,7 +39,7 @@
         <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="24.52.0" />
         <PackageReference Include="NetDaemon.Extensions.Logging" Version="24.52.0" />
         <PackageReference Include="NetDaemon.Extensions.Tts" Version="24.52.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.4" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="RestSharp" Version="112.1.0" />
