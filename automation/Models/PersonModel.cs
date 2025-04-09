@@ -1,8 +1,9 @@
 ﻿using System.Reactive.Disposables;
 
+namespace Automation.Models;
+
 public class PersonModel
 {
-    private readonly IEntities _entities;
     private readonly IDisposable _subscriptions;
 
     public bool IsSleeping { get; private set; }
@@ -13,17 +14,15 @@ public class PersonModel
 
     public PersonModel(IEntities entities)
     {
-        _entities = entities;
-
         _subscriptions = new CompositeDisposable(
-            _entities.InputBoolean.Sleeping.StateChanges().Subscribe(x => IsSleeping = x.New.IsOn()),
-            _entities.BinarySensor.VincentPhoneAndroidAuto.StateChanges().Subscribe(x => IsDriving = x.New.IsOn()),
-            _entities.InputBoolean.Away.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),
-            _entities.Sensor.ThuisSmS938bDirectionOfTravel.StateChanges().Subscribe(x =>
+            entities.InputBoolean.Sleeping.StateChanges().Subscribe(x => IsSleeping = x.New.IsOn()),
+            entities.BinarySensor.VincentPhoneAndroidAuto.StateChanges().Subscribe(x => IsDriving = x.New.IsOn()),
+            entities.InputBoolean.Away.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),
+            entities.Sensor.ThuisSmS938bDirectionOfTravel.StateChanges().Subscribe(x =>
             {
                 if (x.New?.State != null) DirectionOfTravel = x.New.State;
             }),
-            _entities.Person.VincentMaarschalkerweerd.StateChanges().Subscribe(x => State = x.New?.State)
+            entities.Person.VincentMaarschalkerweerd.StateChanges().Subscribe(x => State = x.New?.State)
         );
     }
 

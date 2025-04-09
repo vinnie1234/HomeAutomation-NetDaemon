@@ -94,7 +94,7 @@ public class Notify : INotify
         SaveNotification(_storage, title, message);
 
         var data = ConstructData(null, true, phoneMessage: message);
-        _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters()
+        _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
             { Message = "TTS", Data = data });
     }
 

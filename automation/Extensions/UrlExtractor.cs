@@ -2,14 +2,12 @@
 
 namespace Automation.Extensions;
 
-public class UrlExtractor
+public static partial class UrlExtractor
 {
     public static List<string> ExtractUrls(string input)
     {
         var urls = new List<string>();
-        // Regex voor URL's
-        var pattern = @"https?://[^\s]+";
-        var matches = Regex.Matches(input, pattern);
+        var matches = UrlRegex().Matches(input);
 
         foreach (Match match in matches)
         {
@@ -19,4 +17,6 @@ public class UrlExtractor
         return urls;
     }
 
+    [GeneratedRegex(@"https?://[^\s]+")]
+    private static partial Regex UrlRegex();
 }

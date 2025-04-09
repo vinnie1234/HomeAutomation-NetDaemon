@@ -31,7 +31,7 @@ public class CocMonitoring : BaseApp
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
-        var request = new RestRequest($"/2/users/{twitterUserId}/tweets", Method.Get);
+        var request = new RestRequest($"/2/users/{twitterUserId}/tweets");
         request.AddHeader("Authorization", $"Bearer {bearerToken}");
         var response = client.Execute(request);
 

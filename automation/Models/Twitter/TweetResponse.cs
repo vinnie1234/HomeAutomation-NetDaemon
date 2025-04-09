@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
-using Automation.Models.Twitter;
+﻿using System.Text.Json.Serialization;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+
+namespace Automation.Models.Twitter;
 
 public class TweetResponse
 {
@@ -11,6 +11,3 @@ public class TweetResponse
     [JsonPropertyName("meta")]
     public Meta? Meta { get; set; }
 }
-
-
-

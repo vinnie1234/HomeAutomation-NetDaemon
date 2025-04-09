@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Automation.Models.Twitter;
 
@@ -8,5 +9,5 @@ public class Meta
     public int? ResultCount { get; set; }
 
     [JsonPropertyName("next_token")]
-    public string? NextToken { get; set; } // Als er meerdere pagina's zijn
+    public string? NextToken { get; set; }
 }

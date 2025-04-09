@@ -1,8 +1,9 @@
 ﻿using System.Text.Json.Serialization;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Automation.Models.Twitter;
 
-public class Tweet
+public abstract class Tweet
 {
     [JsonPropertyName("id")]
     public string? Id { get; set; }
