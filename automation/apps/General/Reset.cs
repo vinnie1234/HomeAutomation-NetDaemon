@@ -32,7 +32,7 @@ public class Reset : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         _storage = storage;
-        LightEntitiesStates = new List<LightStateModel>();
+        LightEntitiesStates = [];
 
         if (Entities.InputBoolean.Disablereset.IsOff())
         {
@@ -121,10 +121,10 @@ public class Reset : BaseApp
             if (oldStateLight.RgbColors != null)
             {
                 // Translate the value from IReadOnlyList<double> to IReadOnlyCollection<int>
-                IReadOnlyCollection<int> lightColorInInt = new[]
-                {
+                IReadOnlyCollection<int> lightColorInInt =
+                [
                     (int)oldStateLight.RgbColors[0], (int)oldStateLight.RgbColors[1], (int)oldStateLight.RgbColors[2]
-                };
+                ];
                 light.TurnOn(
                     rgbColor: lightColorInInt,
                     brightness: Convert.ToInt64(oldStateLight.Brightness)

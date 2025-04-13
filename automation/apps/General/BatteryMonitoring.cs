@@ -56,10 +56,9 @@ public class BatteryMonitoring : BaseApp
             $"Het is tijd om de batterij op te laden van {name}. De batterij is nu op {batterPrc}%",
             false,
             TimeSpan.FromDays(7).Minutes,
-            new List<ActionModel>
-            {
-                new(action: "URI", title: "Ga naar batterij checks",
+            [
+                new ActionModel(action: "URI", title: "Ga naar batterij checks",
                     uri: ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/status-huis")
-            });
+            ]);
     }
 }

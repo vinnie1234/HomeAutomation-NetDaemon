@@ -27,7 +27,7 @@ public class CocMonitoring : BaseApp
     {
         const string twitterUserId = "1671940215013867529";
 
-        var idList = dataRepository.Get<List<string>>("COC_TWEET_ID_LIST") ?? new List<string>();
+        var idList = dataRepository.Get<List<string>>("COC_TWEET_ID_LIST") ?? [];
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
@@ -73,7 +73,7 @@ public class CocMonitoring : BaseApp
                 Urls = url.ToArray()
             };
 
-            Notify.NotifyDiscord("", new[] { discordChannel }, discordModel);
+            Notify.NotifyDiscord("", [discordChannel], discordModel);
         }
     }
 }

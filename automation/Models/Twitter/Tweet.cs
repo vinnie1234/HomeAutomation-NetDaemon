@@ -3,7 +3,7 @@
 
 namespace Automation.Models.Twitter;
 
-public abstract class Tweet
+public class Tweet
 {
     [JsonPropertyName("id")]
     public string? Id { get; set; }

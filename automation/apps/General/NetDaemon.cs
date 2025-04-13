@@ -29,14 +29,14 @@ public class NetDaemon : BaseApp, IDisposable
         if (lightColor != null && lightColor.ToString() != "")
         {
             // Translate the value from IReadOnlyList<double> to IReadOnlyCollection<int>
-            IReadOnlyCollection<int> lightColorInInt = new[] { (int)lightColor[0], (int)lightColor[1], (int)lightColor[2] };
+            IReadOnlyCollection<int> lightColorInInt = [(int)lightColor[0], (int)lightColor[1], (int)lightColor[2]];
             Entities.Light.Koelkast.TurnOn(rgbColor: lightColorInInt);
             storage.Save("NetDaemonRestart", "");
         }
 
         if (!Entities.InputBoolean.Sleeping.IsOn())
             Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
-        Notify.NotifyDiscord("Het huis is opnieuw opgestart", new[] { _discordLogChannel });
+        Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_discordLogChannel]);
 
         Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>
         {
@@ -56,6 +56,6 @@ public class NetDaemon : BaseApp, IDisposable
     public void Dispose()
 #pragma warning restore CA1816
     {
-        Notify.NotifyDiscord("NetDaemon stopped", new[] { _discordLogChannel });
+        Notify.NotifyDiscord("NetDaemon stopped", [_discordLogChannel]);
     }
 }

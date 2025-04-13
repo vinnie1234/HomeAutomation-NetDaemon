@@ -134,10 +134,7 @@ public class AwayManager : BaseApp
         Notify.NotifyPhoneVincent("Welkom thuis Vincent",
             $"De huis status is nu: {houseState}. Je lampen worden voor je ingesteld.",
             true,
-            action: new List<ActionModel>
-            {
-                new(action: "TURNONTV", title: "TV Aanzetten", func: () => { Entities.MediaPlayer.Tv.TurnOn(); })
-            });
+            action: [new ActionModel(action: "TURNONTV", title: "TV Aanzetten", func: () => { Entities.MediaPlayer.Tv.TurnOn(); })]);
     }
     
     /// <summary>

@@ -85,7 +85,7 @@ public class AutoUpdateApp : BaseApp
             }
         };
 
-        Notify.NotifyDiscord("", new[] { _discordUpdateChannel }, discordNotificationModel);
+        Notify.NotifyDiscord("", [_discordUpdateChannel], discordNotificationModel);
     }
     
     /// <summary>
@@ -97,9 +97,10 @@ public class AutoUpdateApp : BaseApp
         Notify.NotifyPhoneVincent("Updates uitgevoerd",
             $"Er zijn {totalUpdates} updates uitgevoerd op de Home Assistant", 
             true,
-            action: new List<ActionModel>
-            {
-                new(action: "REBOOTHOUSE", title: "Huis opnieuw opstarten", func: () => { Services.Homeassistant.Restart(); })
-            });
+            action:
+            [
+                new ActionModel(action: "REBOOTHOUSE", title: "Huis opnieuw opstarten",
+                    func: () => { Services.Homeassistant.Restart(); })
+            ]);
     }
 }

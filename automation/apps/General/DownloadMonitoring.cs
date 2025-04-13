@@ -84,19 +84,19 @@ public partial class DownloadMonitoring : BaseApp
                                      Title = ytsItem.Title,
                                      Url = ytsItem.Link,
                                      Thumbnail = new Location(image),
-                                     Fields = new[]
-                                     {
+                                     Fields =
+                                     [
                                          new Field { Name = "Rating", Value = imbdRating },
                                          new Field { Name = "Genre", Value = genre },
                                          new Field { Name = "Size", Value = size },
                                          new Field { Name = "Runtime", Value = runtime },
                                          new Field { Name = "Direct Download", Value = downloadLink }
-                                     }
+                                     ]
                                  },
-                                 Urls = new[] { downloadLink }
+                                 Urls = [downloadLink]
                              })
                     {
-                        notify.NotifyDiscord("", new[] { discordChannel }, discordModel);
+                        notify.NotifyDiscord("", [discordChannel], discordModel);
                     }
 
                     dataRepository.Save(saveId, items);

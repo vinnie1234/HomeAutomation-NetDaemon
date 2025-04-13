@@ -64,7 +64,7 @@ public class Vacuum : BaseApp
                 {
                     Clean("Kattenbak");
                 }
-                else
+                else if(Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                 {
                     Entities.InputBoolean.Sleeping
                         .StateChanges()
@@ -74,6 +74,8 @@ public class Vacuum : BaseApp
                                 Clean("Kattenbak");
                         });
                 }
+                
+                Entities.InputBoolean.Skipvaccumlitterbox.TurnOn();
             });
     }
 

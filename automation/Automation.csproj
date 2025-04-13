@@ -3,7 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net9.0</TargetFramework>
-        <LangVersion>11.0</LangVersion>
+        <LangVersion>12.0</LangVersion>
         <Nullable>enable</Nullable>
         <RootNamespace>Automation</RootNamespace>
     </PropertyGroup>
@@ -31,14 +31,14 @@
 
     <ItemGroup>
         <PackageReference Include="Discord.Net.Webhook" Version="3.17.2" />
-        <PackageReference Include="NetDaemon.AppModel" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Runtime" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.HassModel" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Client" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.10.0" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.10.0" />
+        <PackageReference Include="NetDaemon.AppModel" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Runtime" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.HassModel" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Client" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.14.0" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.14.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.4" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

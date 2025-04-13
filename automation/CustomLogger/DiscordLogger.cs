@@ -69,7 +69,7 @@ public class DiscordLogger : ILogEventSink
                 var stackTrace = FormatMessage(logEvent.Exception.StackTrace ?? string.Empty, 1024);
                 embedBuilder.AddField("StackTrace:", stackTrace);
 
-                webHook.SendMessageAsync(null, false, new[] { embedBuilder.Build() })
+                webHook.SendMessageAsync(null, false, [embedBuilder.Build()])
                     .GetAwaiter()
                     .GetResult();
             }
@@ -83,7 +83,7 @@ public class DiscordLogger : ILogEventSink
                 embedBuilder.Description = message;
 
                 webHook.SendMessageAsync(
-                        null, false, new[] { embedBuilder.Build() })
+                        null, false, [embedBuilder.Build()])
                     .GetAwaiter()
                     .GetResult();
             }

@@ -63,12 +63,13 @@ public class Alarm : BaseApp
                         "HET IS DRUK OP DE WEG!!!",
                         $"Het kost je momenteeel {Entities.Sensor.HereTravelTimeReistijdInHetVerkeer.State} minuten tot kantoor!",
                         true,
-                        action: new List<ActionModel>
-                        {
-                            new(action: "URI", title: "Ga naar maps",
-                                uri: "https://www.google.nl/maps/dir/Ida+Gerhardtlaan+28,+Veenendaal/Papendorpseweg+99,+3528+BJ+Utrecht,+Nederland/@52.0460841,4.9910623,10z/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x47c6519986b166d3:0x69ceb74bf73a6521!2m2!1d5.5278732!2d52.0275379!1m5!1m1!1s0x47c6659909ea7b8d:0x70525f5d1a86e320!2m2!1d5.0879509!2d52.0640583!3e0?entry=ttu&g_ep=EgoyMDI0MTAxNi4wIKXMDSoASAFQAw%3D%3D"
-                                )
-                        }
+                        action:
+                        [
+                            new ActionModel(action: "URI", title: "Ga naar maps",
+                                uri:
+                                "https://www.google.nl/maps/dir/Ida+Gerhardtlaan+28,+Veenendaal/Papendorpseweg+99,+3528+BJ+Utrecht,+Nederland/@52.0460841,4.9910623,10z/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x47c6519986b166d3:0x69ceb74bf73a6521!2m2!1d5.5278732!2d52.0275379!1m5!1m1!1s0x47c6659909ea7b8d:0x70525f5d1a86e320!2m2!1d5.0879509!2d52.0640583!3e0?entry=ttu&g_ep=EgoyMDI0MTAxNi4wIKXMDSoASAFQAw%3D%3D"
+                            )
+                        ]
                     );
                 }
             }
@@ -103,11 +104,10 @@ public class Alarm : BaseApp
                         $"Energie verbruik is al voor 10 minuten {x.Entity.State}",
                         true,
                         10,
-                        new List<ActionModel>
-                        {
-                            new(action: "URI", title: "Ga naar dashboard",
+                        [
+                            new ActionModel(action: "URI", title: "Ga naar dashboard",
                                 uri: ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/energy")
-                        },
+                        ],
                         channel: "ALARM", vibrationPattern: "100, 1000, 100, 1000, 100");
                 }
             );
@@ -141,8 +141,8 @@ public class Alarm : BaseApp
                     Embed = new Embed
                     {
                         Color = 15548997,
-                        Fields = new[]
-                        {
+                        Fields =
+                        [
                             new Field { Name = "Totaal erros", Value = Entities.Sensor.PetsnowyLitterboxErrors.State! },
                             new Field
                             {
@@ -150,11 +150,11 @@ public class Alarm : BaseApp
                                 Value = Entities.Sensor.PetsnowyLitterboxErrors.EntityState?.LastChanged.ToString() ??
                                         string.Empty
                             }
-                        }
+                        ]
                     }
                 };
 
-                Notify.NotifyDiscord("PetSnowy heeft errors", new[] { _discordLogChannel }, discordNotificationModel);
+                Notify.NotifyDiscord("PetSnowy heeft errors", [_discordLogChannel], discordNotificationModel);
                 Notify.NotifyPhoneVincent("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", false, 10);
             }
@@ -173,7 +173,7 @@ public class Alarm : BaseApp
 
             if (!(entities?.Count > 0))
             {
-                Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", new[] { _discordLogChannel });
+                Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", [_discordLogChannel]);
                 Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
                     "De ping naar HA is helaas niet gelukt!", false, 10);
             }
@@ -191,7 +191,7 @@ public class Alarm : BaseApp
             {
                 if (x.New?.State < -20.00)
                 {
-                    Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", new[] { _discordLogChannel });
+                    Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", [_discordLogChannel]);
                     Notify.NotifyPhoneVincent($"ENERGY IS NEGATIEF - {x.New.State}",
                         "Je energy is negatief, dit kost geld.", false, 10);
                 }
@@ -217,11 +217,11 @@ public class Alarm : BaseApp
                 if (dateTime < DateTime.Now.AddDays(-2))
                     Notify.NotifyDiscord(
                         $"Er is al 2 dagen geen locale backup, laatste backup is van {lastLocalBackString}",
-                        new[] { _discordLogChannel });
+                        [_discordLogChannel]);
             }
             else
             {
-                Notify.NotifyDiscord("Er is geen laatste locale backup", new[] { _discordLogChannel });
+                Notify.NotifyDiscord("Er is geen laatste locale backup", [_discordLogChannel]);
             }
 
             if (!string.IsNullOrEmpty(lastOneDriveBackString))
@@ -230,11 +230,11 @@ public class Alarm : BaseApp
                 if (dateTime < DateTime.Now.AddDays(-2))
                     Notify.NotifyDiscord(
                         $"Er is al 2 dagen geen OneDrive backup, laatste backup is van {lastLocalBackString}",
-                        new[] { _discordLogChannel });
+                        [_discordLogChannel]);
             }
             else
             {
-                Notify.NotifyDiscord("Er is geen laatste OneDrive backup", new[] { _discordLogChannel });
+                Notify.NotifyDiscord("Er is geen laatste OneDrive backup", [_discordLogChannel]);
             }
         });
     }

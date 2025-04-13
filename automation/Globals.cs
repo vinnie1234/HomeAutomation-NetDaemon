@@ -7,25 +7,25 @@ public static class Globals
     #region DayOfWeekConfig
 
     public static readonly DayOfWeek[] WeekdayNightDays =
-    {
+    [
         DayOfWeek.Sunday,
         DayOfWeek.Monday,
         DayOfWeek.Tuesday,
         DayOfWeek.Wednesday,
         DayOfWeek.Thursday
-    };
+    ];
 
     public static readonly DayOfWeek[] WeekendNightDays =
-    {
+    [
         DayOfWeek.Friday,
         DayOfWeek.Saturday
-    };
+    ];
 
     public static readonly DayOfWeek[] WeekendDays =
-    {
+    [
         DayOfWeek.Saturday,
         DayOfWeek.Sunday
-    };
+    ];
 
     #endregion
 

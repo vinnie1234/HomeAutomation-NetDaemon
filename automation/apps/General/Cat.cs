@@ -121,15 +121,15 @@ public class Cat : BaseApp
                             Title = "Pixel heeft handmatig eten gehad",
                             Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/lovelace/2",
                             Thumbnail = new Location("https://cdn.pixabay.com/photo/2016/10/11/18/17/black-cat-1732366_960_720.png"),
-                            Fields = new[]
-                            {
+                            Fields =
+                            [
                                 new Field { Name = "Eten gegeven", Value = Entities.InputNumber.Pixellastamountmanualfeed.State.ToString() ?? "0" },
                                 new Field { Name = "Totaal gehad vandaag", Value = Entities.InputNumber.Pixeltotalamountfeedday.State.ToString() ?? "0" }
-                            }
+                            ]
                         }
                     };
 
-                    Notify.NotifyDiscord("", new[] { _discordPixelChannel }, discordNotificationModel);
+                    Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
                 }
                 );
 
@@ -144,15 +144,15 @@ public class Cat : BaseApp
                         Title = "Pixel heeft eten gehad",
                         Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/status-huis/1",
                         Thumbnail = new Location("https://cdn.pixabay.com/photo/2016/10/11/18/17/black-cat-1732366_960_720.png"),
-                        Fields = new[]
-                        {
+                        Fields =
+                        [
                             new Field { Name = "Eten gegeven", Value = Entities.InputNumber.Pixellastamountautomationfeed.State.ToString() ?? "0" },
                             new Field { Name = "Totaal gehad vandaag", Value = Entities.InputNumber.Pixeltotalamountfeedday.State.ToString() ?? "0" }
-                        }
+                        ]
                     }
                 };
 
-                Notify.NotifyDiscord("", new[] { _discordPixelChannel }, discordNotificationModel);
+                Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
             });
 
 
@@ -215,7 +215,7 @@ public class Cat : BaseApp
                     Title = "PIXEL ZIJN FOUNTAIN STAAT UIT!!!!"
                 }
             };
-            Notify.NotifyDiscord("", new[] { _discordPixelChannel }, discordNotificationModel);
+            Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
         }, 600);
 
         Entities.Switch.PetsnowyLitterboxAutoClean.WhenTurnsOff(_ =>
@@ -227,7 +227,7 @@ public class Cat : BaseApp
                     Title = "DE KATTENBAK STAAT UIT!!!!"
                 }
             };
-            Notify.NotifyDiscord("", new[] { _discordPixelChannel }, discordNotificationModel);
+            Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
         }, 600);
     }
 
