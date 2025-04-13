@@ -6,7 +6,6 @@ using Automation.Models.Twitter;
 using RestSharp;
 
 namespace Automation.apps.General;
-[Focus]
 [NetDaemonApp(Id = nameof(CocMonitoring))]
 public class CocMonitoring : BaseApp
 {
