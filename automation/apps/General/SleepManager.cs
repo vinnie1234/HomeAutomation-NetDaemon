@@ -47,6 +47,12 @@ public class SleepManager : BaseApp
     private void WakeUp()
     {
         Logger.LogDebug("Wake up Routine");
+        if (DateTime.Now.Hour < 7 && Entities.InputBoolean.Onvacation.IsOff())
+        {
+            Entities.InputBoolean.Sleeping.TurnOn();
+            return;
+        }
+        
         if (((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek))
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
         else if (Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition < 100) 
