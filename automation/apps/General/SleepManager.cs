@@ -52,9 +52,12 @@ public class SleepManager : BaseApp
             Entities.InputBoolean.Sleeping.TurnOn();
             return;
         }
-        
+
         if (((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek))
+        {
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
+            Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);
+        }
         else if (Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition < 100) 
             Entities.Cover.Rollerblind0003.SetCoverPosition(45);
 
