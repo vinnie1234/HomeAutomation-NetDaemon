@@ -75,7 +75,7 @@ public class Vacuum : BaseApp
                         });
                 }
                 
-                Entities.InputBoolean.Skipvaccumlitterbox.TurnOn();
+                Entities.InputBoolean.Skipvaccumlitterbox.TurnOff();
             });
     }
 
