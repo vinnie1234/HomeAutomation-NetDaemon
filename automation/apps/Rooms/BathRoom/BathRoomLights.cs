@@ -100,8 +100,12 @@ public class BathRoomLights : BaseApp
         }
         else
         {
-            Entities.Light.BadkamerSpiegel.TurnOff();
-            Entities.Light.PlafondBadkamer.TurnOff();
+            Scheduler.Schedule(TimeSpan.FromMinutes(3), () =>
+            {
+                Entities.Light.BadkamerSpiegel.TurnOff();
+                Entities.Light.PlafondBadkamer.TurnOff();
+            });
+
             Entities.Cover.Rollerblind0003.OpenCover();
             Entities.Light.Plafond.TurnOn();
             Entities.MediaPlayer.Googlehome0351.MediaPause();
