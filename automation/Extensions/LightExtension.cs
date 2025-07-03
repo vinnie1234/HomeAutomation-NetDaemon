@@ -26,23 +26,23 @@ public static class LightExtension
     /// <param name="scheduler">The scheduler to use for timing operations.</param>
     public static void TurnOnLightsWoonkamer(IEntities entities, IScheduler scheduler)
     {
-        entities.Light.HueFilamentBulb2.TurnOn(brightnessPct: 100, kelvin: GetColorTemp(entities));
+        entities.Light.HueFilamentBulb2.TurnOn(brightnessPct: 100, colorTempKelvin: GetColorTemp(entities));
         entities.Light.HueFilamentBulb2
             .StateChanges()
             .Where(x => x.Old.IsOff())
             .Throttle(TimeSpan.FromMilliseconds(50))
-            .Subscribe(_ => { entities.Light.PlafondWoonkamer.TurnOn(brightnessPct: 100, kelvin: GetColorTemp(entities)); });
+            .Subscribe(_ => { entities.Light.PlafondWoonkamer.TurnOn(brightnessPct: 100, colorTempKelvin: GetColorTemp(entities)); });
         entities.Light.PlafondWoonkamer
             .StateChanges()
             .Where(x => x.Old.IsOff())
             .Throttle(TimeSpan.FromMilliseconds(50))
-            .Subscribe(_ => { entities.Light.HueFilamentBulb1.TurnOn(brightnessPct: 100, kelvin: GetColorTemp(entities)); });
+            .Subscribe(_ => { entities.Light.HueFilamentBulb1.TurnOn(brightnessPct: 100, colorTempKelvin: GetColorTemp(entities)); });
 
         scheduler.Schedule(TimeSpan.FromMilliseconds(200), () =>
         {
-            entities.Light.HueFilamentBulb2.TurnOn(kelvin: GetColorTemp(entities));
-            entities.Light.PlafondWoonkamer.TurnOn(kelvin: GetColorTemp(entities));
-            entities.Light.HueFilamentBulb1.TurnOn(kelvin: GetColorTemp(entities));
+            entities.Light.HueFilamentBulb2.TurnOn(colorTempKelvin: GetColorTemp(entities));
+            entities.Light.PlafondWoonkamer.TurnOn(colorTempKelvin: GetColorTemp(entities));
+            entities.Light.HueFilamentBulb1.TurnOn(colorTempKelvin: GetColorTemp(entities));
         });
     }
 
