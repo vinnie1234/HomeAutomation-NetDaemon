@@ -57,13 +57,13 @@ public class BathRoomLights : BaseApp
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
             .WhenStateIsFor(x => x.IsOff(),
-                TimeSpan.FromMinutes((int)Entities.InputNumber.Bathroomlightnighttime.State!), Scheduler)
+                TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightnighttime.State ?? 0)), Scheduler)
             .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && Vincent.IsSleeping)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
-            .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes((int)Entities.InputNumber.Bathroomlightdaytime.State!),
+            .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightdaytime.State ?? 0)),
                 Scheduler)
             .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !Vincent.IsSleeping)
             .Subscribe(_ => ChangeLight(false));

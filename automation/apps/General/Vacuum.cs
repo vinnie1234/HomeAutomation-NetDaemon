@@ -18,7 +18,7 @@ public class Vacuum : BaseApp
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     public Vacuum(
         IHaContext ha,
-        ILogger<Alarm> logger,
+        ILogger<Vacuum> logger,
         INotify notify,
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)

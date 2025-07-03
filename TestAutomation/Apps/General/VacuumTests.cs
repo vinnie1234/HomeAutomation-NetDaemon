@@ -11,13 +11,13 @@ public class VacuumTests
     private readonly AppTestContext _ctx = AppTestContext.New();
 
     [Fact]
-    public void ShouldCleanKitchenWhenButtonPressed()
+    public void ShouldCleanBankWhenButtonPressed()
     {
         // Arrange
         _ = _ctx.InitApp<Vacuum>();
 
         // Act
-        _ctx.ChangeStateFor("input_button.vacuumcleankitchen")
+        _ctx.ChangeStateFor("input_button.vacuumcleanbank")
             .FromState("2024-01-01 12:00:00")
             .ToState("2024-01-01 12:00:01");
 
@@ -34,7 +34,7 @@ public class VacuumTests
         _ = _ctx.InitApp<Vacuum>();
 
         // Act
-        _ctx.ChangeStateFor("input_button.vacuumcleanlivingroom")
+        _ctx.ChangeStateFor("input_button.vacuumcleanwoonkamer")
             .FromState("2024-01-01 12:00:00")
             .ToState("2024-01-01 12:00:01");
 
@@ -51,7 +51,7 @@ public class VacuumTests
         _ = _ctx.InitApp<Vacuum>();
 
         // Act
-        _ctx.ChangeStateFor("input_button.vacuumcleanbedroom")
+        _ctx.ChangeStateFor("input_button.vacuumcleanslaapkamer")
             .FromState("2024-01-01 12:00:00")
             .ToState("2024-01-01 12:00:01");
 
@@ -65,13 +65,14 @@ public class VacuumTests
     public void ShouldCleanLitterBoxAreaAfterCatUsage()
     {
         // Arrange
-        _ctx.WithEntityState("input_boolean.sleeping", "off");
+        _ctx.WithEntityState("input_boolean.sleeping", "off")
+            .WithEntityState("input_boolean.skipvaccumlitterbox", "off");
         _ = _ctx.InitApp<Vacuum>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
             .FromState("idle")
-            .ToState("pet_into");
+            .ToState("cleaning");
 
         // Assert — should trigger litter box area cleaning when not sleeping.
         _ctx.HaContext.Received().CallService("vacuum", "send_command", 
@@ -83,13 +84,14 @@ public class VacuumTests
     public void ShouldNotCleanWhenSleeping()
     {
         // Arrange
-        _ctx.WithEntityState("input_boolean.sleeping", "on");
+        _ctx.WithEntityState("input_boolean.sleeping", "on")
+            .WithEntityState("input_boolean.skipvaccumlitterbox", "off");
         _ = _ctx.InitApp<Vacuum>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
             .FromState("idle")
-            .ToState("pet_into");
+            .ToState("cleaning");
 
         // Assert — should not clean when sleeping.
         _ctx.HaContext.DidNotReceive().CallService("vacuum", "send_command", 
