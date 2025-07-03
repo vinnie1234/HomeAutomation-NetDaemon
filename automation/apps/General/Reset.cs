@@ -62,8 +62,7 @@ public class Reset : BaseApp
                          .TrueForAll(alarmStateModel => alarmStateModel?.AlarmId != alarm?.AlarmId)))
             if (alarm is { EntityId: not null, AlarmId: not null })
             {
-                Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} word verwijderd", true);
-                Services.GoogleHome.DeleteAlarm(alarm.EntityId, alarm.AlarmId);
+                Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} wordt verwijderd", true);
             }
     }
 
