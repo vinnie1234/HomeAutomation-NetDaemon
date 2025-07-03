@@ -23,7 +23,7 @@ public class AutoUpdateApp : BaseApp
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     public AutoUpdateApp(
         IHaContext ha,
-        ILogger<Alarm> logger,
+        ILogger<AutoUpdateApp> logger,
         INotify notify,
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)
