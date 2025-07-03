@@ -2,7 +2,6 @@
 using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;
 using NetDaemonApps.Tests.Helpers;
-using Newtonsoft.Json;
 using NSubstitute;
 using JsonElement = System.Text.Json.JsonElement;
 

@@ -94,9 +94,12 @@ public class HouseStateManagerTests
     [Fact]
     public void ShouldSetHouseStateToNightOnWeekendAtNighttimeWeekends()
     {
+        var friday = DateTime.Today.AddDays(((int)DayOfWeek.Saturday - (int)DateTime.Today.DayOfWeek + 7) % 7);
+        _ctx.SetCurrentTime(friday.AddHours(00).AddMinutes(29).AddSeconds(59));
         _ctx.InitApp<HouseStateManager>();
-        _ctx.SetCurrentTime(DateTime.Parse("00:30:00"));
-
+        
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
         _ctx.VerifyInputSelect_SelectOption("input_select.housemodeselect", "Night");
     }
 }
