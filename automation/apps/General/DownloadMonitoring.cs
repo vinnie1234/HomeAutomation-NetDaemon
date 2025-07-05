@@ -28,17 +28,17 @@ public partial class DownloadMonitoring : BaseApp
         IDataRepository dataRepository)
         : base(haContext, logger, notify, scheduler)
     {
-       YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
+       _ = YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
 
        Entities.Sensor.YtsFeed1080.StateChanges()
-           .Subscribe(_ =>
+           .Subscribe(async _ =>
            {
-               YtsMonitoring(notify, dataRepository, "yts1080", Entities.Sensor.YtsFeed1080);
+               await YtsMonitoring(notify, dataRepository, "yts1080", Entities.Sensor.YtsFeed1080);
            });
        Entities.Sensor.YtsFeed2160p.StateChanges()
-           .Subscribe(_ =>
+           .Subscribe(async _ =>
            {
-               YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
+               await YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
            });
     }
 
@@ -49,7 +49,7 @@ public partial class DownloadMonitoring : BaseApp
     /// <param name="dataRepository">The data repository for storing and retrieving data.</param>
     /// <param name="saveId">The identifier for saving data.</param>
     /// <param name="feed">The sensor entity representing the YTS feed.</param>
-    private static void YtsMonitoring(INotify notify, IDataRepository dataRepository, string saveId, SensorEntity feed )
+    private static async Task YtsMonitoring(INotify notify, IDataRepository dataRepository, string saveId, SensorEntity feed )
     {
             if (feed.Attributes?.Entries != null)
             {
@@ -63,7 +63,7 @@ public partial class DownloadMonitoring : BaseApp
 
                 if (items != null)
                 {
-                    var oldList = dataRepository.Get<List<Yts>>(saveId);
+                    var oldList = await dataRepository.GetAsync<List<Yts>>(saveId);
 
                     foreach (var discordModel in from ytsItem in items
                              where ytsItem != null
@@ -99,7 +99,7 @@ public partial class DownloadMonitoring : BaseApp
                         notify.NotifyDiscord("", [discordChannel], discordModel);
                     }
 
-                    dataRepository.Save(saveId, items);
+                    await dataRepository.SaveAsync(saveId, items);
                 }
             }
     }

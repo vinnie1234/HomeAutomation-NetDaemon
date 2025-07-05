@@ -14,19 +14,19 @@ public class CocMonitoring : BaseApp
         var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "COC") ?? "";
         var bearerToken = ConfigManager.GetValueFromConfigNested("Twitter", "BearerToken") ?? "";
 
-        GetTweets(bearerToken, discordChannel, dataRepository); 
+        _ = GetTweets(bearerToken, discordChannel, dataRepository); 
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
-            () => { GetTweets(bearerToken, discordChannel, dataRepository); });        
+            async () => { await GetTweets(bearerToken, discordChannel, dataRepository); });        
         Scheduler.RunDaily(TimeSpan.Parse("19:00:00", new CultureInfo("nl-Nl")),
-            () => { GetTweets(bearerToken, discordChannel, dataRepository); });
+            async () => { await GetTweets(bearerToken, discordChannel, dataRepository); });
     }
 
-    private void GetTweets(string bearerToken, string discordChannel, IDataRepository dataRepository)
+    private async Task GetTweets(string bearerToken, string discordChannel, IDataRepository dataRepository)
     {
         const string twitterUserId = "1671940215013867529";
 
-        var idList = dataRepository.Get<List<string>>("COC_TWEET_ID_LIST") ?? [];
+        var idList = await dataRepository.GetAsync<List<string>>("COC_TWEET_ID_LIST") ?? [];
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
@@ -49,7 +49,7 @@ public class CocMonitoring : BaseApp
                         }
                     }
             }
-            dataRepository.Save("COC_TWEET_ID_LIST", idList);
+            await dataRepository.SaveAsync("COC_TWEET_ID_LIST", idList);
         }
     }
 

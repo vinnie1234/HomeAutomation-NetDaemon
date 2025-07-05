@@ -4,9 +4,9 @@ namespace Automation.Interfaces;
 
 public interface INotify
 {
-    void NotifyHouse(string title, string message, bool canAlwaysSendNotification, double? sendAfterMinutes = null);
+    Task NotifyHouse(string title, string message, bool canAlwaysSendNotification, double? sendAfterMinutes = null);
 
-    void NotifyPhoneVincent(
+    Task NotifyPhoneVincent(
         string title,
         string message,
         bool canAlwaysSendNotification,
@@ -17,9 +17,9 @@ public interface INotify
         string? vibrationPattern = null);
 
     // ReSharper disable once UnusedMember.Global
-    void NotifyPhoneVincentTts(string title, string message, bool canAlwaysSendNotification, double? sendAfterMinutes = null);
+    Task NotifyPhoneVincentTts(string title, string message, bool canAlwaysSendNotification, double? sendAfterMinutes = null);
 
-    void ResetNotificationHistoryForNotificationTitle(string title);
+    Task ResetNotificationHistoryForNotificationTitle(string title);
 
     void NotifyDiscord(string message, string[] target, DiscordNotificationModel? data = null);
 

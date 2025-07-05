@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automation.Repository;
 
@@ -22,12 +23,12 @@ public class DataRepository : IDataRepository
     }
 
     /// <summary>
-    /// Retrieves data of type <typeparamref name="T"/> from storage.
+    /// Retrieves data of type <typeparamref name="T"/> from storage asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of data to retrieve.</typeparam>
     /// <param name="id">The identifier of the data to retrieve.</param>
     /// <returns>The retrieved data, or null if the data does not exist.</returns>
-    public T? Get<T>(string id) where T : class
+    public async Task<T?> GetAsync<T>(string id) where T : class
     {
         try
         {
@@ -36,9 +37,9 @@ public class DataRepository : IDataRepository
             if (!File.Exists(storageJsonFile))
                 return null;
 
-            using var jsonStream = File.OpenRead(storageJsonFile);
+            await using var jsonStream = File.OpenRead(storageJsonFile);
 
-            return JsonSerializer.Deserialize<T>(jsonStream);
+            return await JsonSerializer.DeserializeAsync<T>(jsonStream);
         }
         catch (Exception ex)
         {
@@ -49,29 +50,25 @@ public class DataRepository : IDataRepository
     }
 
     /// <summary>
-    /// Saves data of type <typeparamref name="T"/> to storage.
+    /// Saves data of type <typeparamref name="T"/> to storage asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of data to save.</typeparam>
     /// <param name="id">The identifier of the data to save.</param>
     /// <param name="data">The data to save.</param>
-    public void Save<T>(string id, T data)
+    public async Task SaveAsync<T>(string id, T data)
     {
-        SaveInternal(id, data);
-    }
+        try
+        {
+            var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
+            Directory.CreateDirectory(_dataStoragePath);
 
-    /// <summary>
-    /// Saves data of type <typeparamref name="T"/> to storage.
-    /// </summary>
-    /// <typeparam name="T">The type of data to save.</typeparam>
-    /// <param name="id">The identifier of the data to save.</param>
-    /// <param name="data">The data to save.</param>
-    private void SaveInternal<T>(string id, T data)
-    {
-        var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
-        Directory.CreateDirectory(_dataStoragePath);
+            await using var jsonStream = File.Open(storageJsonFile, FileMode.Create, FileAccess.Write);
 
-        using var jsonStream = File.Open(storageJsonFile, FileMode.Create, FileAccess.Write);
-
-        JsonSerializer.Serialize(jsonStream, data);
+            await JsonSerializer.SerializeAsync(jsonStream, data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error saving storage file {Id}, error message: {Error}", id, ex.Message);
+        }
     }
 }

@@ -6,7 +6,7 @@ namespace Automation.apps.General;
 /// Represents an application that saves the state of lights and alarms.
 /// </summary>
 [NetDaemonApp(Id = nameof(SaveInState))]
-public class SaveInState : BaseApp
+public class SaveInState : BaseApp, IAsyncInitializable
 {
     private readonly IDataRepository _storage;
     private List<LightStateModel> LightEntitiesStates { get; }
@@ -29,14 +29,17 @@ public class SaveInState : BaseApp
     {
         _storage = storage;
         LightEntitiesStates = new List<LightStateModel>();
+    }
 
-        SetInitialStates();
+    public async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        await SetInitialStates();
     }
 
     /// <summary>
     /// Sets the initial states of lights and alarms and saves them to storage.
     /// </summary>
-    private void SetInitialStates()
+    private async Task SetInitialStates()
     {
         var properties = Entities.Light.GetType().GetProperties();
 
@@ -47,9 +50,9 @@ public class SaveInState : BaseApp
                 SetLightEntityState((LightEntity)light);
         }
 
-        _storage.Save("LightState", LightEntitiesStates);
+        await _storage.SaveAsync("LightState", LightEntitiesStates);
 
-        _storage.Save("AlarmState", SetAlarmState());
+        await _storage.SaveAsync("AlarmState", SetAlarmState());
 
         Logger.LogDebug("Save state");
     }

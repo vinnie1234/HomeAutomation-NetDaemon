@@ -1,6 +1,8 @@
 // Common using for NetDaemon apps
 
 global using System;
+global using System.Threading;
+global using System.Threading.Tasks;
 global using System.Reactive.Linq;
 global using Microsoft.Extensions.Logging;
 global using NetDaemon.AppModel;

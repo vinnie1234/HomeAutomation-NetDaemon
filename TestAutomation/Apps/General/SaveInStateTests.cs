@@ -23,7 +23,7 @@ public class SaveInStateTests
         _ = _ctx.InitApp<SaveInState>(_storage);
 
         // Assert — should save light states to storage.
-        _storage.Received().Save("LightState", Arg.Any<List<LightStateModel>>());
+        _storage.Received().SaveAsync("LightState", Arg.Any<List<LightStateModel>>());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class SaveInStateTests
         _ = _ctx.InitApp<SaveInState>(_storage);
 
         // Assert — should save alarm states to storage.
-        _storage.Received().Save("AlarmState", Arg.Any<List<AlarmStateModel?>>());
+        _storage.Received().SaveAsync("AlarmState", Arg.Any<List<AlarmStateModel?>>());
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class SaveInStateTests
         _ = _ctx.InitApp<SaveInState>(_storage);
 
         // Assert — should create light state with correct properties.
-        _storage.Received().Save("LightState", Arg.Is<List<LightStateModel>>(
+        _storage.Received().SaveAsync("LightState", Arg.Is<List<LightStateModel>>(
             states => states.Any(s => s.EntityId == "light.bureau" && s.IsOn == true)));
     }
 
@@ -70,7 +70,7 @@ public class SaveInStateTests
         _ = _ctx.InitApp<SaveInState>(_storage);
 
         // Assert — should save all light entities.
-        _storage.Received().Save("LightState", Arg.Is<List<LightStateModel>>(
+        _storage.Received().SaveAsync("LightState", Arg.Is<List<LightStateModel>>(
             states => states.Count >= 3));
     }
 
@@ -89,6 +89,6 @@ public class SaveInStateTests
         _ = _ctx.InitApp<SaveInState>(_storage);
 
         // Assert — should set entity ID for alarm states.
-        _storage.Received().Save("AlarmState", Arg.Any<List<AlarmStateModel?>>());
+        _storage.Received().SaveAsync("AlarmState", Arg.Any<List<AlarmStateModel?>>());
     }
 }

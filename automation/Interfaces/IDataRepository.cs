@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
+
 namespace Automation.Interfaces;
 
 public interface IDataRepository
 {
-    void Save<T>(string id, T data);
-    T? Get<T>(string id) where T : class;
+    Task SaveAsync<T>(string id, T data);
+    Task<T?> GetAsync<T>(string id) where T : class;
 }
