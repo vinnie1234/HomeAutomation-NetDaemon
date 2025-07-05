@@ -4,54 +4,73 @@ using NetDaemon.HassModel.Entities;
 using NetDaemonApps.Tests.Helpers;
 using NSubstitute;
 using JsonElement = System.Text.Json.JsonElement;
+using System.Runtime.CompilerServices;
 
 namespace TestAutomation.Helpers;
 
 public static class AppTestContextExtensions
 {
-    public static void VerifyInputSelect_SelectOption(this AppTestContext ctx, string entityId, string option)
+    public static void VerifyInputSelect_SelectOption(this AppTestContext ctx, string entityId, string option, [CallerMemberName] string testName = "")
     {
-        ctx.HaContext.Received(1).CallService("input_select", "select_option",
-            Arg.Is<ServiceTarget>(x
-                => x.EntityIds != null && x.EntityIds.First() == entityId),
-            Arg.Is<InputSelectSelectOptionParameters>(x
-                => x.Option == option));
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_select", "select_option",
+                Arg.Is<ServiceTarget>(x
+                    => x.EntityIds != null && x.EntityIds.First() == entityId),
+                Arg.Is<InputSelectSelectOptionParameters>(x
+                    => x.Option == option));
+        }, testName);
     }
 
-    public static void VerifyInputSelect_SelectOption_NotChanged(this AppTestContext ctx, string entityId)
+    public static void VerifyInputSelect_SelectOption_NotChanged(this AppTestContext ctx, string entityId, [CallerMemberName] string testName = "")
     {
-        ctx.HaContext.DidNotReceive().CallService("input_select", "select_option",
-            Arg.Is<ServiceTarget>(x
-                => x.EntityIds != null && x.EntityIds.First() == entityId),
-            Arg.Any<InputSelectSelectOptionParameters>());
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("input_select", "select_option",
+                Arg.Is<ServiceTarget>(x
+                    => x.EntityIds != null && x.EntityIds.First() == entityId),
+                Arg.Any<InputSelectSelectOptionParameters>());
+        }, testName);
     }
 
-    public static void VerifyCallService(this AppTestContext ctx, string domain, string service, string entityId, int times = 1)
+    public static void VerifyCallService(this AppTestContext ctx, string domain, string service, string entityId, int times = 1, [CallerMemberName] string testName = "")
     {
-        ctx.HaContext.Received(times)
-            .CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<object?>());
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.Received(times)
+                .CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<object?>());
+        }, testName);
     }    
     
-    public static void VerifyCallNotify(this AppTestContext ctx, string domain, string service, int times = 1)
+    public static void VerifyCallNotify(this AppTestContext ctx, string domain, string service, int times = 1, [CallerMemberName] string testName = "")
     {
-        ctx.HaContext.Received(times)
-            .CallService(domain, service, null, Arg.Any<object?>());
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.Received(times)
+                .CallService(domain, service, null, Arg.Any<object?>());
+        }, testName);
     }
 
-    public static void VerifyNotCallService(this AppTestContext ctx, string serviceCall)
+    public static void VerifyNotCallService(this AppTestContext ctx, string serviceCall, [CallerMemberName] string testName = "")
     {
         var domain = serviceCall[..serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase)];
         var service = serviceCall[(serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase) + 1)..];
         
-        ctx.HaContext.Received(0)
-            .CallService(domain, service, Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.Received(0)
+                .CallService(domain, service, Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+        }, testName);
     }
 
-    public static void VerifyCallServiceWithData<T>(this AppTestContext ctx, string domain, string service, string entityId, T? data, int times = 1) where T : class
+    public static void VerifyCallServiceWithData<T>(this AppTestContext ctx, string domain, string service, string entityId, T? data, int times = 1, [CallerMemberName] string testName = "") where T : class
     {
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.Received(times).CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<T>());
+        }, testName);
+        
         T? calledData = null;
-
-        ctx.HaContext.Received(times).CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<T>());
         var sp = ctx.HaContext.ReceivedCalls().Where(x => x.GetMethodInfo().Name == "CallService").ToList();
         foreach (var s in sp)
         {

@@ -25,9 +25,12 @@ public class BatteryMonitoringTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromHours(10).Ticks);
 
         // Assert — should send notification for low battery.
-        _ctx.HaContext.Received(1).CallService("notify", Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("notify", Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldSendNotificationWhenBatteryIsLow));
     }
 
     [Fact]
@@ -42,9 +45,12 @@ public class BatteryMonitoringTests
             .ToState("80");
 
         // Assert — should not send notification for high battery.
-        _ctx.HaContext.DidNotReceive().CallService("notify", Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("notify", Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotSendNotificationForHighBattery));
     }
 
     [Fact]
@@ -68,9 +74,12 @@ public class BatteryMonitoringTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromHours(10).Ticks);
 
         // Assert — should throttle notifications within 7 days.
-        _ctx.HaContext.Received(1).CallService("notify", Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("notify", Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldThrottleNotificationsForSameDevice));
     }
 
     [Fact]
@@ -99,8 +108,11 @@ public class BatteryMonitoringTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromHours(10).Ticks);
 
         // Assert — should send notification again after full charge reset.
-        _ctx.HaContext.Received(2).CallService("notify", Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(2).CallService("notify", Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldResetThrottlingWhenBatteryIsFullyCharged));
     }
 }

@@ -23,12 +23,18 @@ public class GamingTests
             .ToState("home");
 
         // Assert — should turn on TV and soundbar for gaming.
-        _ctx.HaContext.Received().CallService("media_player", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("media_player", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.av_soundbar")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldSetupGamingEnvironmentWhenSonyDeviceTurnsOn));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.av_soundbar")), 
+                Arg.Any<object>());
+        }, nameof(ShouldSetupGamingEnvironmentWhenSonyDeviceTurnsOn));
     }
 
     [Fact]
@@ -44,9 +50,12 @@ public class GamingTests
             .ToState("home");
 
         // Assert — should select HDMI2 source on TV.
-        _ctx.HaContext.Received().CallService("media_player", "select_source", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "select_source", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldSelectCorrectTvSourceWhenGaming));
     }
 
     [Fact]
@@ -62,12 +71,18 @@ public class GamingTests
             .ToState("home");
 
         // Assert — should turn off living room lights for gaming ambiance.
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond_woonkamer")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond_woonkamer")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLivingRoomLightsWhenGaming));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLivingRoomLightsWhenGaming));
     }
 
     [Fact]
@@ -83,9 +98,12 @@ public class GamingTests
             .ToState("home");
 
         // Assert — should set TV volume to gaming level.
-        _ctx.HaContext.Received().CallService("media_player", "volume_set", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "volume_set", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldSetTvVolumeWhenGaming));
     }
 
     [Fact]
@@ -101,8 +119,11 @@ public class GamingTests
             .ToState("home");
 
         // Assert — should not setup gaming when light automation is disabled.
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_off", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_off", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotSetupGamingWhenLightAutomationDisabled));
     }
 }

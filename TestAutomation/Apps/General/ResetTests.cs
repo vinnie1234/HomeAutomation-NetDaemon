@@ -24,7 +24,10 @@ public class ResetTests
         _ = _ctx.InitApp<Reset>(_storage);
 
         // Assert — should not call storage when reset is disabled.
-        _storage.DidNotReceive().Get<List<LightStateModel>>("LightState");
+        TestDebugHelper.AssertCallWithDebug(_storage, storage =>
+        {
+            storage.DidNotReceive().Get<List<LightStateModel>>("LightState");
+        }, nameof(ShouldSkipResetWhenDisabled));
     }
 
     [Fact]
@@ -43,9 +46,12 @@ public class ResetTests
         _ = _ctx.InitApp<Reset>(_storage);
 
         // Assert — should restore light states from storage.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldRestoreLightStateWhenEnabled));
     }
 
     [Fact]
@@ -64,9 +70,12 @@ public class ResetTests
         _ = _ctx.InitApp<Reset>(_storage);
 
         // Assert — should turn off light when previous state was off.
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightWhenPreviousStateWasOff));
     }
 
     [Fact]
@@ -85,9 +94,12 @@ public class ResetTests
         _ = _ctx.InitApp<Reset>(_storage);
 
         // Assert — should restore color temperature for compatible lights.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldRestoreColorTempForCompatibleLights));
     }
 
     [Fact]
@@ -105,6 +117,9 @@ public class ResetTests
         _ = _ctx.InitApp<Reset>(_storage);
 
         // Assert — should check for alarm differences.
-        _storage.Received().Get<List<AlarmStateModel?>>("LightState");
+        TestDebugHelper.AssertCallWithDebug(_storage, storage =>
+        {
+            storage.Received().Get<List<AlarmStateModel?>>("LightState");
+        }, nameof(ShouldNotifyAboutDeletedAlarms));
     }
 }

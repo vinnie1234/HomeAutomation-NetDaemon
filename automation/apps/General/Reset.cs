@@ -80,7 +80,8 @@ public class Reset : BaseApp
 
         foreach (var property in properties)
         {
-            var light = (LightEntity)property.GetValue(Entities.Light, null)!;
+            var lightObject = property.GetValue(Entities.Light, null);
+            if (lightObject is not LightEntity light) continue;
 
             var oldStateLight = LightEntitiesStates?
                 .Find(lightStateModel => lightStateModel.EntityId == light.EntityId);

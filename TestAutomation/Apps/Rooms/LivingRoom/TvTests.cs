@@ -23,9 +23,12 @@ public class TvTests
             .ToState("on");
 
         // Assert — should activate movie scene.
-        _ctx.HaContext.Received(1).CallService("scene", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("scene", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldActivateMovieModeWhenTvTurnsOn));
     }
 
     [Fact]
@@ -40,9 +43,12 @@ public class TvTests
             .ToState("off");
 
         // Assert — should restore normal lighting.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldRestoreLightingWhenTvTurnsOff));
     }
 
     [Fact]

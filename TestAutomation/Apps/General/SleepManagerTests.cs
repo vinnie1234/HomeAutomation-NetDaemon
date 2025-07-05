@@ -23,9 +23,12 @@ public class SleepManagerTests
             .ToState("on");
 
         // Assert — should turn off all lights when going to sleep.
-        _ctx.HaContext.Received().CallService("light", "turn_all_off", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_all_off", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffAllLightsWhenGoingToSleep));
     }
 
     [Fact]
@@ -40,12 +43,19 @@ public class SleepManagerTests
             .ToState("on");
 
         // Assert — should turn off TV and close roller blind.
-        _ctx.HaContext.Received().CallService("media_player", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("cover", "set_cover_position", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("cover.rollerblind_0003")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffTvAndCloseBlindWhenGoingToSleep));
+        
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("cover", "set_cover_position", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("cover.rollerblind_0003")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffTvAndCloseBlindWhenGoingToSleep));
     }
 
     [Fact]
@@ -78,9 +88,12 @@ public class SleepManagerTests
             .ToState("off");
 
         // Assert — should open blind fully on weekend.
-        _ctx.HaContext.Received().CallService("cover", "set_cover_position", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("cover.rollerblind_0003")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("cover", "set_cover_position", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("cover.rollerblind_0003")), 
+                Arg.Any<object>());
+        }, nameof(ShouldOpenBlindOnWeekendWakeUp));
     }
 
     [Fact]
@@ -113,9 +126,12 @@ public class SleepManagerTests
             .ToState("on");
 
         // Assert — should turn off sleeping when TV turns on.
-        _ctx.HaContext.Received().CallService("input_boolean", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("input_boolean.sleeping")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_boolean", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("input_boolean.sleeping")), 
+                Arg.Any<object>());
+        }, nameof(ShouldWakeUpOnTvTurnOn));
     }
 
     [Fact]
@@ -131,8 +147,11 @@ public class SleepManagerTests
             .ToState("on");
 
         // Assert — should turn off sleeping when bureau light turns on.
-        _ctx.HaContext.Received().CallService("input_boolean", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("input_boolean.sleeping")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_boolean", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("input_boolean.sleeping")), 
+                Arg.Any<object>());
+        }, nameof(ShouldWakeUpOnBureauLightTurnOn));
     }
 }

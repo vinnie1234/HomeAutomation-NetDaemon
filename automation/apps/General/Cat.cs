@@ -166,7 +166,7 @@ public class Cat : BaseApp
     {
         foreach (var autoFeed in
                  Collections.GetFeedTimes(Entities).Where(autoFeed => autoFeed.Key.State != null))
-            Scheduler.RunDaily(TimeSpan.Parse(autoFeed.Key.State!, new CultureInfo("nl-Nl")), () =>
+            Scheduler.RunDaily(TimeSpan.Parse(autoFeed.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")), () =>
             {
                 if (Entities.InputBoolean.Pixelskipnextautofeed.IsOff())
                 {
@@ -242,7 +242,7 @@ public class Cat : BaseApp
                 .GetFeedTimes(Entities)
                 .MinBy(pair =>
                     Math.Abs(
-                        (DateTimeOffset.Parse(pair.Key.State ?? throw new InvalidOperationException(), new CultureInfo("nl-Nl")) - DateTimeOffset.Now)
+                        (DateTimeOffset.Parse(pair.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")) - DateTimeOffset.Now)
                         .Ticks));
         return closestFeed;
     }

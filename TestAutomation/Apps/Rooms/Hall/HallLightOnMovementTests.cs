@@ -40,13 +40,19 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldEnableLightsHallWhenStartFriends));
             
-        _ctx.HaContext.Received(1).CallService("switch", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("switch", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
+                Arg.Any<object>());
+        }, nameof(ShouldEnableLightsHallWhenStartFriends));
     }
 
     [Fact]
@@ -65,13 +71,19 @@ public class HallLightOnMovementTests
             .ToState("on");
 
         // Assert — should turn on both lights with full brightness when not sleeping
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Is<LightTurnOnParameters>(p => p.BrightnessPct != null && Math.Abs((double)p.BrightnessPct - 100.0) < 0.01 && p.Transition != null && Math.Abs((double)p.Transition - 15.0) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Is<LightTurnOnParameters>(p => p.BrightnessPct != null && Math.Abs((double)p.BrightnessPct - 100.0) < 0.01 && p.Transition != null && Math.Abs((double)p.Transition - 15.0) < 0.01));
+        }, nameof(ShouldTurnOnLightWhenMotionDetectedAndNotSleeping));
             
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightWhenMotionDetectedAndNotSleeping));
     }
 
     [Fact]
@@ -90,14 +102,20 @@ public class HallLightOnMovementTests
             .ToState("on");
 
         // Assert — should turn on hal2 only with low brightness when sleeping
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Is<LightTurnOnParameters>(p => p.BrightnessPct != null && Math.Abs((double)p.BrightnessPct - 5.0) < 0.01 && p.Transition != null && Math.Abs((double)p.Transition - 15.0) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Is<LightTurnOnParameters>(p => p.BrightnessPct != null && Math.Abs((double)p.BrightnessPct - 5.0) < 0.01 && p.Transition != null && Math.Abs((double)p.Transition - 15.0) < 0.01));
+        }, nameof(ShouldTurnOnLightWithLowBrightnessWhenMotionDetectedAndSleeping));
             
         // Should not turn on hal light when sleeping
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightWithLowBrightnessWhenMotionDetectedAndSleeping));
     }
 
     [Fact]
@@ -114,9 +132,12 @@ public class HallLightOnMovementTests
             .ToState("on");
 
         // Assert — no lights should turn on when automation is disabled
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotTurnOnLightWhenMotionDetectedButAutomationDisabled));
     }
 
     [Fact]
@@ -138,13 +159,19 @@ public class HallLightOnMovementTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromMinutes(5).Ticks);
 
         // Assert — both lights should turn off
-        _ctx.HaContext.Received(1).CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightsAfterMotionTimeoutWhenNotSleeping));
             
-        _ctx.HaContext.Received(1).CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightsAfterMotionTimeoutWhenNotSleeping));
     }
 
     [Fact]
@@ -166,13 +193,19 @@ public class HallLightOnMovementTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromMinutes(2).Ticks);
 
         // Assert — both lights should turn off
-        _ctx.HaContext.Received(1).CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightsAfterMotionTimeoutWhenSleeping));
             
-        _ctx.HaContext.Received(1).CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightsAfterMotionTimeoutWhenSleeping));
     }
 
     [Fact]
@@ -199,9 +232,12 @@ public class HallLightOnMovementTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromMinutes(5).Ticks);
 
         // Assert — lights should not turn off when automation is disabled
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_off", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_off", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotTurnOffLightsIfAutomationDisabledDuringTimeout));
     }
 
     [Fact]
@@ -225,9 +261,12 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should turn on away mode when Vincent is home
-        _ctx.HaContext.Received(1).CallService("input_boolean", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.away"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_boolean", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.away"), 
+                Arg.Any<object>());
+        }, nameof(ShouldToggleAwayStateWhenHueButton1PressedAndVincentHome));
     }
 
     [Fact]
@@ -251,9 +290,12 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should turn off away mode when Vincent is not home
-        _ctx.HaContext.Received(1).CallService("input_boolean", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.away"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_boolean", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.away"), 
+                Arg.Any<object>());
+        }, nameof(ShouldToggleAwayStateWhenHueButton1PressedAndVincentAway));
     }
 
     [Fact]
@@ -273,9 +315,12 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should increase brightness by 10%
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Is<LightTurnOnParameters>(p => p.BrightnessStepPct != null && Math.Abs((double)p.BrightnessStepPct - 10.0) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Is<LightTurnOnParameters>(p => p.BrightnessStepPct != null && Math.Abs((double)p.BrightnessStepPct - 10.0) < 0.01));
+        }, nameof(ShouldIncreaseBrightnessWhenHueButton2Pressed));
     }
 
     [Fact]
@@ -295,9 +340,12 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should decrease brightness by 10%
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Is<LightTurnOnParameters>(p => p.BrightnessStepPct != null && Math.Abs((double)p.BrightnessStepPct - (-10.0)) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Is<LightTurnOnParameters>(p => p.BrightnessStepPct != null && Math.Abs((double)p.BrightnessStepPct - (-10.0)) < 0.01));
+        }, nameof(ShouldDecreaseBrightnessWhenHueButton3Pressed));
     }
 
     [Fact]
@@ -317,21 +365,33 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should set volume, turn on lights, turn off hal2, and play music
-        _ctx.HaContext.Received(1).CallService("media_player", "volume_set", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "media_player.friends_speakers"), 
-            Arg.Is<MediaPlayerVolumeSetParameters>(p => p.VolumeLevel != null && Math.Abs((double)p.VolumeLevel - 0.5) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("media_player", "volume_set", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "media_player.friends_speakers"), 
+                Arg.Is<MediaPlayerVolumeSetParameters>(p => p.VolumeLevel != null && Math.Abs((double)p.VolumeLevel - 0.5) < 0.01));
+        }, nameof(ShouldStartFriendsThemeWhenHueButton4Pressed));
             
-        _ctx.HaContext.Received(1).CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal"), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartFriendsThemeWhenHueButton4Pressed));
             
-        _ctx.HaContext.Received(1).CallService("switch", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("switch", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartFriendsThemeWhenHueButton4Pressed));
             
-        _ctx.HaContext.Received(1).CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "light.hal2"), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartFriendsThemeWhenHueButton4Pressed));
     }
 
     [Fact]
@@ -351,8 +411,11 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should not react to events from other devices
-        _ctx.HaContext.DidNotReceive().CallService(Arg.Any<string>(), Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService(Arg.Any<string>(), Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        }, nameof(ShouldIgnoreHueEventsFromOtherDevices));
     }
 
     [Fact]
@@ -372,8 +435,11 @@ public class HallLightOnMovementTests
         TriggerHueEvent(eventModel);
 
         // Assert — should not react to non-initial_press events
-        _ctx.HaContext.DidNotReceive().CallService(Arg.Any<string>(), Arg.Any<string>(), 
-            Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService(Arg.Any<string>(), Arg.Any<string>(), 
+                Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        }, nameof(ShouldIgnoreNonInitialPressHueEvents));
     }
 
     [Fact]
@@ -393,8 +459,11 @@ public class HallLightOnMovementTests
             .ToState("on");
 
         // Assert — should turn on bot switch when hal light is off
-        _ctx.HaContext.Received(1).CallService("switch", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("switch", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "switch.bot29ff"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnBotSwitchWhenHalLightIsOffAndNotSleeping));
     }
 }

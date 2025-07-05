@@ -198,7 +198,7 @@ public class Notify : INotify
             foreach (var action in actions.Where(action => action.Func != null))
             {
                 action.Action = $"{action.Action}-{Guid.NewGuid().ToString()}";
-                SubscribeToNotificationAction(action.Func!, action.Action);
+                if (action.Func != null) SubscribeToNotificationAction(action.Func, action.Action);
                 action.Func = null;
             }
 

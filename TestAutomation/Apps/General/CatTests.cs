@@ -28,17 +28,26 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", 
-            null, 
-            Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3 && p.Value != null && p.Value.Equals(5)));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("localtuya", "set_dp", 
+                null, 
+                Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3 && p.Value != null && p.Value.Equals(5)));
+        }, nameof(ShouldFeedCatWhenFeedButtonIsPressed));
 
-        _ctx.HaContext.Received(1).CallService("input_number", "set_value",
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedday"),
-            Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 15.0)) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_number", "set_value",
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedday"),
+                Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 15.0)) < 0.01));
+        }, nameof(ShouldFeedCatWhenFeedButtonIsPressed));
             
-        _ctx.HaContext.Received(1).CallService("input_number", "set_value", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedalltime"), 
-            Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 105.0)) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_number", "set_value", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedalltime"), 
+                Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 105.0)) < 0.01));
+        }, nameof(ShouldFeedCatWhenFeedButtonIsPressed));
     }
 
     [Fact]
@@ -56,9 +65,12 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("input_number", "set_value", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixellastamountmanualfeed"), 
-            Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 5.0)) < 0.01)); // 3 + 2
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_number", "set_value", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixellastamountmanualfeed"), 
+                Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 5.0)) < 0.01)); // 3 + 2
+        }, nameof(ShouldUpdateFeedCountersWhenManualFeedingOccurs));
     }
 
     [Fact]
@@ -76,9 +88,12 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("input_datetime", "set_datetime", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_datetime.pixellastmanualfeed"), 
-            Arg.Any<InputDatetimeSetDatetimeParameters>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_datetime", "set_datetime", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_datetime.pixellastmanualfeed"), 
+                Arg.Any<InputDatetimeSetDatetimeParameters>());
+        }, nameof(ShouldUpdateLastManualFeedDateTimeWhenFeeding));
     }
 
     [Fact]
@@ -93,9 +108,12 @@ public class CatTests
             .ToState("pet_into");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("counter", "increment", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylitterboxpixelinit"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("counter", "increment", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylitterboxpixelinit"), 
+                Arg.Any<object>());
+        }, nameof(ShouldIncrementPixelInitCounterWhenCatEntersLitterBox));
     }
 
     [Fact]
@@ -110,9 +128,12 @@ public class CatTests
             .ToState("cleaning");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("counter", "increment", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylittleboxcleaning"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("counter", "increment", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylittleboxcleaning"), 
+                Arg.Any<object>());
+        }, nameof(ShouldIncrementCleaningCounterWhenLitterBoxIsCleaning));
     }
 
     [Fact]
@@ -127,9 +148,12 @@ public class CatTests
             .ToState("emptying");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("counter", "increment", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylitterboxemptying"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("counter", "increment", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "counter.petsnowylitterboxemptying"), 
+                Arg.Any<object>());
+        }, nameof(ShouldIncrementEmptyingCounterWhenLitterBoxIsEmptying));
     }
 
     [Fact]
@@ -144,8 +168,11 @@ public class CatTests
             .ToState("unknown_state");
 
         // Assert
-        _ctx.HaContext.DidNotReceive().CallService("counter", "increment", 
-            Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("counter", "increment", 
+                Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        }, nameof(ShouldNotIncrementCounterForUnknownLitterBoxStatus));
     }
 
     [Fact]
@@ -165,13 +192,19 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("input_boolean", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.pixelskipnextautofeed"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_boolean", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.First() == "input_boolean.pixelskipnextautofeed"), 
+                Arg.Any<object>());
+        }, nameof(ShouldGiveNextFeedEarlyWhenButtonIsPressed));
             
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", 
-            null, 
-            Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("localtuya", "set_dp", 
+                null, 
+                Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3));
+        }, nameof(ShouldGiveNextFeedEarlyWhenButtonIsPressed));
     }
 
     [Fact]
@@ -186,9 +219,12 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", 
-            null, 
-            Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 9 && p.Value != null && p.Value.Equals("true")));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("localtuya", "set_dp", 
+                null, 
+                Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 9 && p.Value != null && p.Value.Equals("true")));
+        }, nameof(ShouldCleanPetSnowyWhenCleanButtonIsPressed));
     }
 
     [Fact]
@@ -203,9 +239,12 @@ public class CatTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", 
-            null, 
-            Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 109 && p.Value != null && p.Value.Equals("true")));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("localtuya", "set_dp", 
+                null, 
+                Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 109 && p.Value != null && p.Value.Equals("true")));
+        }, nameof(ShouldEmptyPetSnowyWhenEmptyButtonIsPressed));
     }
 
     [Fact]
@@ -223,9 +262,12 @@ public class CatTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(600).Ticks);
 
         // Assert — notification should be sent after delay
-        _ctx.HaContext.Received(1).CallService("notify", "discord_homeassistant", 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("notify", "discord_homeassistant", 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendDiscordNotificationWhenFountainTurnsOff));
     }
 
     [Fact]
@@ -243,9 +285,12 @@ public class CatTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(600).Ticks);
 
         // Assert — notification should be sent after delay
-        _ctx.HaContext.Received(1).CallService("notify", "discord_homeassistant", 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("notify", "discord_homeassistant", 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendDiscordNotificationWhenLitterBoxAutoCleanTurnsOff));
     }
 
     [Fact]
@@ -271,9 +316,12 @@ public class CatTests
         _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(600).Ticks);
 
         // Assert — notification should not be sent
-        _ctx.HaContext.DidNotReceive().CallService("notify", "discord", 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("notify", "discord", 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldNotSendNotificationIfFountainTurnsOnBeforeDelay));
     }
 
     [Fact]
@@ -286,9 +334,12 @@ public class CatTests
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddDays(1).Ticks);
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("input_number", "set_value", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedday"), 
-            Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 0.0)) < 0.01));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_number", "set_value", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_number.pixeltotalamountfeedday"), 
+                Arg.Is<InputNumberSetValueParameters>(p => p.Value != null && Math.Abs((double)(p.Value - 0.0)) < 0.01));
+        }, nameof(ShouldResetDailyFeedCounterAtMidnight));
     }
 
     [Fact]
@@ -305,9 +356,12 @@ public class CatTests
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddHours(8).Ticks);
 
         // Assert — feeding should not occur
-        _ctx.HaContext.DidNotReceive().CallService("localtuya", "set_dp", 
-            null, 
-            Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("localtuya", "set_dp", 
+                null, 
+                Arg.Is<LocaltuyaSetDpParameters>(p => p.Dp != null && (int)p.Dp == 3));
+        }, nameof(ShouldSkipAutomaticFeedingWhenSkipFlagIsOn));
     }
 
     [Fact]
@@ -324,8 +378,11 @@ public class CatTests
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddHours(8).Ticks);
 
         // Assert — skip flag should be turned off
-        _ctx.HaContext.Received(1).CallService("input_boolean", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.pixelskipnextautofeed"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("input_boolean", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.pixelskipnextautofeed"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffSkipFlagAfterScheduledFeedingTime));
     }
 }

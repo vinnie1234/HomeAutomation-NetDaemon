@@ -22,9 +22,12 @@ public class VacuumTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("vacuum", "send_command", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("vacuum", "send_command", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldCleanBankWhenButtonPressed));
     }
 
     [Fact]
@@ -39,9 +42,12 @@ public class VacuumTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("vacuum", "send_command", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("vacuum", "send_command", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldCleanLivingRoomWhenButtonPressed));
     }
 
     [Fact]
@@ -56,9 +62,12 @@ public class VacuumTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert
-        _ctx.HaContext.Received(1).CallService("vacuum", "send_command", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received(1).CallService("vacuum", "send_command", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldCleanBedroomWhenButtonPressed));
     }
 
     [Fact]
@@ -75,9 +84,12 @@ public class VacuumTests
             .ToState("cleaning");
 
         // Assert — should trigger litter box area cleaning when not sleeping.
-        _ctx.HaContext.Received().CallService("vacuum", "send_command", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("vacuum", "send_command", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldCleanLitterBoxAreaAfterCatUsage));
     }
 
     [Fact]
@@ -94,8 +106,11 @@ public class VacuumTests
             .ToState("cleaning");
 
         // Assert — should not clean when sleeping.
-        _ctx.HaContext.DidNotReceive().CallService("vacuum", "send_command", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("vacuum", "send_command", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotCleanWhenSleeping));
     }
 }

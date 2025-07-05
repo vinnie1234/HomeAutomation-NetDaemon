@@ -49,9 +49,12 @@ public class NetDaemonTests
         _ = _ctx.InitApp<Automation.apps.General.NetDaemon>(_storage);
 
         // Assert — should restore light color from storage.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldRestoreLightColorFromStorageOnRestart));
     }
 
     [Fact]
@@ -70,9 +73,12 @@ public class NetDaemonTests
 
         // Assert — should save light color and restart addon.
         _storage.Received().Save("NetDaemonRestart", Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("hassio", "addon_restart", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("hassio", "addon_restart", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldHandleRestartButtonPress));
     }
 
     [Fact]
@@ -87,8 +93,11 @@ public class NetDaemonTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn light red before restart.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnLightRedOnRestartRequest));
     }
 }

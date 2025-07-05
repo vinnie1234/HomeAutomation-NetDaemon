@@ -42,12 +42,19 @@ public class BathRoomLightsTests
             .ToState("on");
 
         // Assert — should turn on bathroom lights when motion is detected.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.plafond_badkamer")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.badkamer_spiegel")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.plafond_badkamer")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenMotionDetected));
+        
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.badkamer_spiegel")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenMotionDetected));
     }
 
     [Fact]
@@ -63,9 +70,12 @@ public class BathRoomLightsTests
             .ToState("on");
 
         // Assert — should not turn on lights when automation is disabled.
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotTurnOnLightsWhenAutomationDisabled));
     }
 
     [Fact]
@@ -80,12 +90,19 @@ public class BathRoomLightsTests
             .ToState("on");
 
         // Assert — should start shower automation with media and lights.
-        _ctx.HaContext.Received().CallService("media_player", "volume_set", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.badkamer_spiegel")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "volume_set", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartShowerAutomationWhenDoubchenTurnsOn));
+        
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("light.badkamer_spiegel")), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartShowerAutomationWhenDoubchenTurnsOn));
     }
 
     [Fact]
@@ -100,12 +117,19 @@ public class BathRoomLightsTests
             .ToState("off");
 
         // Assert — should stop shower automation and open cover.
-        _ctx.HaContext.Received().CallService("cover", "open_cover", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("cover.rollerblind_0003")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("media_player", "media_pause", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("cover", "open_cover", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("cover.rollerblind_0003")), 
+                Arg.Any<object>());
+        }, nameof(ShouldStopShowerAutomationWhenDoubchenTurnsOff));
+        
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "media_pause", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
+                Arg.Any<object>());
+        }, nameof(ShouldStopShowerAutomationWhenDoubchenTurnsOff));
     }
 
     [Fact]
@@ -121,9 +145,12 @@ public class BathRoomLightsTests
             .ToState("running");
 
         // Assert — should start music when toothbrush becomes active.
-        _ctx.HaContext.Received().CallService("media_player", "volume_set", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "volume_set", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("media_player.googlehome0351")), 
+                Arg.Any<object>());
+        }, nameof(ShouldStartMusicWhenToothbrushBecomesActive));
     }
 
     [Fact]
@@ -137,8 +164,11 @@ public class BathRoomLightsTests
         TriggerHueEvent("3dcab87acc97379282b359fdf3557a52", "initial_press", 4);
 
         // Assert — should toggle shower mode on button 4 press.
-        _ctx.HaContext.Received().CallService("input_boolean", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("input_boolean.douchen")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_boolean", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds != null && t.EntityIds.Contains("input_boolean.douchen")), 
+                Arg.Any<object>());
+        }, nameof(ShouldToggleShowerModeOnHueButtonPress));
     }
 }

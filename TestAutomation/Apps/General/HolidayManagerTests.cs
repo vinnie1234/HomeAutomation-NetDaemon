@@ -22,9 +22,12 @@ public class HolidayManagerTests
             .ToState("on");
 
         // Assert — should send alarm reminder notification.
-        _ctx.HaContext.Received().CallService("notify", Arg.Any<string>(), 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("notify", Arg.Any<string>(), 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendAlarmReminderWhenHolidayStarts));
     }
 
     [Fact]
@@ -39,9 +42,12 @@ public class HolidayManagerTests
             .ToState("off");
 
         // Assert — should send alarm setup reminder notification.
-        _ctx.HaContext.Received().CallService("notify", Arg.Any<string>(), 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("notify", Arg.Any<string>(), 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendAlarmReminderWhenHolidayEnds));
     }
 
     [Fact]
@@ -70,9 +76,12 @@ public class HolidayManagerTests
             .ToState("Holiday vacation weekend");
 
         // Assert — should automatically enable holiday mode.
-        _ctx.HaContext.Received().CallService("input_boolean", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.holliday"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_boolean", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.holliday"), 
+                Arg.Any<object>());
+        }, nameof(ShouldDetectHolidayFromCalendarEvents));
     }
 
     [Fact]
@@ -87,8 +96,11 @@ public class HolidayManagerTests
             .ToState("Doctor appointment");
 
         // Assert — should not enable holiday mode for regular events.
-        _ctx.HaContext.DidNotReceive().CallService("input_boolean", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.holliday"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("input_boolean", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_boolean.holliday"), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotTriggerForNonHolidayCalendarEvents));
     }
 }

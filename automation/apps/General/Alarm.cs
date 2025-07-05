@@ -143,7 +143,7 @@ public class Alarm : BaseApp
                         Color = 15548997,
                         Fields =
                         [
-                            new Field { Name = "Totaal erros", Value = Entities.Sensor.PetsnowyLitterboxErrors.State! },
+                            new Field { Name = "Totaal erros", Value = Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0" },
                             new Field
                             {
                                 Name = "Laatste error",

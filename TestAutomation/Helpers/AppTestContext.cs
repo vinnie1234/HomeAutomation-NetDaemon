@@ -8,21 +8,27 @@ namespace TestAutomation.Helpers;
 
 public class AppTestContext
 {
-    public HaContextMock HaContextMock { get; } = new();
+    public TestScheduler Scheduler { get; } = new();
+    public HaContextMock HaContextMock { get; }
     public IHaContext HaContext => HaContextMock.HaContext;
-    public TestScheduler Scheduler { get; } =  new ();
     public INotify Notify { get; }
     private IDataRepository DataRepository { get; } = Substitute.For<IDataRepository>();
 
-    private AppTestContext()
+    private AppTestContext(bool useSchedulerForReactive = false)
     {
         Scheduler.AdvanceTo(DateTimeOffset.Now.ToUnixTimeMilliseconds());
+        HaContextMock = new HaContextMock(useSchedulerForReactive ? Scheduler : null);
         Notify = new Notify(HaContext, DataRepository);
     }
     
     public static AppTestContext New()
     {
         return new AppTestContext();
+    }
+    
+    public static AppTestContext NewWithScheduler()
+    {
+        return new AppTestContext(useSchedulerForReactive: true);
     }
     
     public void AdvanceTimeTo(long absoluteTime)

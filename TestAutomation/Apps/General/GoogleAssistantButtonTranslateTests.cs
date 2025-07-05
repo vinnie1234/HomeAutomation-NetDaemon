@@ -22,9 +22,12 @@ public class GoogleAssistantButtonTranslateTests
             .ToState("on");
 
         // Assert — should trigger corresponding input_button.
-        _ctx.HaContext.Received().CallService("input_button", "press", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.feedcat"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_button", "press", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.feedcat"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTranslateInputBooleanToInputButton));
     }
 
     [Fact]
@@ -39,9 +42,12 @@ public class GoogleAssistantButtonTranslateTests
             .ToState("on");
 
         // Assert — should trigger vacuum cleaning button.
-        _ctx.HaContext.Received().CallService("input_button", "press", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.vacuumcleankitchen"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_button", "press", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.vacuumcleankitchen"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTranslateVacuumCleaningCommands));
     }
 
     [Fact]
@@ -56,9 +62,12 @@ public class GoogleAssistantButtonTranslateTests
             .ToState("on");
 
         // Assert — should trigger litter box cleaning button.
-        _ctx.HaContext.Received().CallService("input_button", "press", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.cleanpetsnowy"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_button", "press", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.cleanpetsnowy"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTranslateCatCareCommands));
     }
 
     [Fact]
@@ -73,9 +82,12 @@ public class GoogleAssistantButtonTranslateTests
             .ToState("on");
 
         // Assert — should trigger Friends theme button.
-        _ctx.HaContext.Received().CallService("input_button", "press", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.start_friends"), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("input_button", "press", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.First() == "input_button.start_friends"), 
+                Arg.Any<object>());
+        }, nameof(ShouldTranslateEntertainmentCommands));
     }
 
     [Fact]
@@ -90,8 +102,11 @@ public class GoogleAssistantButtonTranslateTests
             .ToState("on");
 
         // Assert — should not trigger any button press.
-        _ctx.HaContext.DidNotReceive().CallService("input_button", "press", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("input_button", "press", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldIgnoreInputBooleanWithoutCorrespondingButton));
     }
 }

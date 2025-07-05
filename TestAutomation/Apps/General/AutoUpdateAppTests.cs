@@ -33,9 +33,12 @@ public class AutoUpdateAppTests
             .ToState("on");
         
         // Assert — should trigger update installation.
-        _ctx.HaContext.Received().CallService("update", "install", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("update", "install", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldProcessAvailableUpdates));
     }
 
     [Fact]
@@ -50,9 +53,12 @@ public class AutoUpdateAppTests
             .ToState("on");
 
         // Assert — should send Discord notification.
-        _ctx.HaContext.Received().CallService("notify", "discord", 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("notify", "discord", 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendDiscordNotificationForUpdates));
     }
 
     [Fact]
@@ -67,9 +73,12 @@ public class AutoUpdateAppTests
             .ToState("off");
 
         // Assert — should send phone notification with restart option.
-        _ctx.HaContext.Received().CallService("notify", Arg.Any<string>(), 
-            null, 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("notify", Arg.Any<string>(), 
+                null, 
+                Arg.Any<object>());
+        }, nameof(ShouldSendPhoneNotificationWithRestartOption));
     }
 
     [Fact]

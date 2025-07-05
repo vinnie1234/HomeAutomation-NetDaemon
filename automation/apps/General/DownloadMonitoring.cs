@@ -55,7 +55,7 @@ public partial class DownloadMonitoring : BaseApp
             {
                 var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "Yts") ?? "";
 
-                var items = feed.Attributes?.Entries!.Cast<JsonElement>()
+                var items = feed.Attributes?.Entries?.Cast<JsonElement>()
                     .Select(o => o.Deserialize<Yts>()).ToList();
 
                 var thisYear = DateTimeOffset.Now.Year;

@@ -40,9 +40,12 @@ public class LivingRoomLightsTests
         TriggerHueEvent("b4784a8e43cc6f5aabfb6895f3a8dbac", "initial_press", 1);
 
         // Assert — should turn on living room lights when wall switch is pressed and lights are off.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenHueFilamentBulbIsOffAndWallSwitchPressed));
     }
 
     [Fact]
@@ -56,9 +59,12 @@ public class LivingRoomLightsTests
         TriggerHueEvent("b4784a8e43cc6f5aabfb6895f3a8dbac", "initial_press", 1);
 
         // Assert — should turn off living room lights when wall switch is pressed and lights are on.
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffLightsWhenHueFilamentBulbIsOnAndWallSwitchPressed));
     }
 
     [Fact]
@@ -74,9 +80,12 @@ public class LivingRoomLightsTests
             .ToState("Evening");
 
         // Assert — should trigger light automation when house mode changes and filament bulb is on.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldTriggerLightAutomationOnHouseModeChange));
     }
 
     [Fact]
@@ -92,9 +101,12 @@ public class LivingRoomLightsTests
             .ToState("Evening");
 
         // Assert — should not trigger light automation when filament bulb is off.
-        _ctx.HaContext.DidNotReceive().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldNotTriggerLightAutomationWhenFilamentBulbIsOff));
     }
 
     [Fact]
@@ -109,8 +121,11 @@ public class LivingRoomLightsTests
             .ToState("on");
 
         // Assert — should fix light colors after filament bulb turns on by scheduling delayed action.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Any<ServiceTarget>(), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Any<ServiceTarget>(), 
+                Arg.Any<object>());
+        }, nameof(ShouldFixLightColorsAfterFilamentBulbTurnsOn));
     }
 }

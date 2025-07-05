@@ -22,12 +22,18 @@ public class PcManagerTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn on bureau and plafond lights.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.bureau")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.bureau")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenStartPcButtonPressed));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenStartPcButtonPressed));
     }
 
     [Fact]
@@ -42,9 +48,12 @@ public class PcManagerTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn off nachtkastje light.
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.nachtkastje")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.nachtkastje")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffNachtkastjeWhenStartPcButtonPressed));
     }
 
     [Fact]
@@ -59,9 +68,12 @@ public class PcManagerTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn off TV.
-        _ctx.HaContext.Received().CallService("media_player", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffTvWhenStartPcButtonPressed));
     }
 
     [Fact]
@@ -76,12 +88,18 @@ public class PcManagerTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn on bureau and plafond lights.
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.bureau")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("light", "turn_on", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.bureau")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenPcLastStartedSensorChanges));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_on", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOnLightsWhenPcLastStartedSensorChanges));
     }
 
     [Fact]
@@ -96,11 +114,17 @@ public class PcManagerTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should turn off nachtkastje light and TV.
-        _ctx.HaContext.Received().CallService("light", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.nachtkastje")), 
-            Arg.Any<object>());
-        _ctx.HaContext.Received().CallService("media_player", "turn_off", 
-            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
-            Arg.Any<object>());
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("light", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.nachtkastje")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffDevicesWhenPcLastStartedSensorChanges));
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService("media_player", "turn_off", 
+                Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("media_player.tv")), 
+                Arg.Any<object>());
+        }, nameof(ShouldTurnOffDevicesWhenPcLastStartedSensorChanges));
     }
 }
