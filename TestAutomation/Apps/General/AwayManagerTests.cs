@@ -42,7 +42,11 @@ public class AwayManagerTests
 
         TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
         {
-            haContext.ReceivedWithAnyArgs().CallService(default, default, default, default);
+            haContext.Received().CallService(
+                Arg.Is<string>(s => s.Contains("notify")),
+                Arg.Any<string>(),
+                Arg.Any<ServiceTarget?>(),
+                Arg.Any<NotifyMobileAppVincentPhoneParameters>());
         }, nameof(ShouldSendNotificationWhenAwayStateIsActivated));
         
         // The debug output will show us call #11 which proves the notify call works:
