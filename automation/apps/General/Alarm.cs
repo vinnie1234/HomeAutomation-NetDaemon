@@ -167,14 +167,14 @@ public class Alarm : BaseApp
     /// <param name="homeAssistantConnection">The Home Assistant connection.</param>
     private void HaChecks(IHomeAssistantConnection homeAssistantConnection)
     {
-        Scheduler.RunEvery(TimeSpan.FromSeconds(30), DateTimeOffset.Now, () =>
+        Scheduler.RunEvery(TimeSpan.FromSeconds(30), DateTimeOffset.Now, async () =>
         {
-            var entities = homeAssistantConnection.GetEntitiesAsync(new CancellationToken()).Result;
+            var entities = await homeAssistantConnection.GetEntitiesAsync(new CancellationToken());
 
             if (!(entities?.Count > 0))
             {
                 Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", [_discordLogChannel]);
-                Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
+                _ = Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
                     "De ping naar HA is helaas niet gelukt!", false, 10);
             }
         });

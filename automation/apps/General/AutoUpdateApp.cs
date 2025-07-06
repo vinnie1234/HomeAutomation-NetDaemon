@@ -29,13 +29,13 @@ public class AutoUpdateApp : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         _updates = Entities.Update;
-        scheduler.ScheduleCron("0 3 * * *", AutoUpdate);
+        scheduler.ScheduleCron("0 3 * * *", () => _ = AutoUpdate());
     }
 
     /// <summary>
     /// Automatically updates the entities that need updates and sends notifications.
     /// </summary>
-    private async void AutoUpdate()
+    private async Task AutoUpdate()
     {
         try
         {

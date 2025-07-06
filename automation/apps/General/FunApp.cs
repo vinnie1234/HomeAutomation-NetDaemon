@@ -77,7 +77,7 @@ public class FunApp : BaseApp
             Entities.MediaPlayer.HeleHuis.VolumeSet(0.9);
         }, true);
 
-        Scheduler.ScheduleCron("00 00 01 01 *", ChristmasFirework);
+        Scheduler.ScheduleCron("00 00 01 01 *", () => _ = ChristmasFirework());
     }
 
     /// <summary>
@@ -87,19 +87,19 @@ public class FunApp : BaseApp
     {
         StartNewYearOnNewYear();
 
-        Entities.InputButton.Startnewyear.StateChanges().Subscribe(_ =>
+        Entities.InputButton.Startnewyear.StateChanges().Subscribe(async _ =>
         {
             Notify.SendMusicToHome("http://192.168.50.189:8123/local/HappyNewYear.mp3", 0.4);
-            Thread.Sleep(TimeSpan.FromSeconds(49));
+            await Task.Delay(TimeSpan.FromSeconds(49));
             Entities.MediaPlayer.HeleHuis.VolumeSet(0.9);
-            ChristmasFirework();
+            await ChristmasFirework();
         });
     }
 
     /// <summary>
     /// Simulates a Christmas firework display by changing the colors of the lights.
     /// </summary>
-    private void ChristmasFirework()
+    private async Task ChristmasFirework()
     {
         var rnd = new Random();
         var s = new Stopwatch();
@@ -148,7 +148,7 @@ public class FunApp : BaseApp
                     break;
             }
 
-            Thread.Sleep(TimeSpan.FromSeconds(0.5));
+            await Task.Delay(TimeSpan.FromSeconds(0.5));
         } while (s.Elapsed < TimeSpan.FromMinutes(4));
 
         Entities.MediaPlayer.HeleHuis.VolumeSet(0.4);

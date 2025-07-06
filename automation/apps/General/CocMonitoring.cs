@@ -32,7 +32,7 @@ public class CocMonitoring : BaseApp
         var client = new RestClient(options);
         var request = new RestRequest($"/2/users/{twitterUserId}/tweets");
         request.AddHeader("Authorization", $"Bearer {bearerToken}");
-        var response = client.Execute(request);
+        var response = await client.ExecuteAsync(request);
 
         if (response.IsSuccessful)
         {

@@ -51,7 +51,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
             Entities.Light.Koelkast.TurnOn(colorName: "red");
             await Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
 
-            Thread.Sleep(TimeSpan.FromSeconds(5));
+            await Task.Delay(TimeSpan.FromSeconds(5));
             Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
         });
     }

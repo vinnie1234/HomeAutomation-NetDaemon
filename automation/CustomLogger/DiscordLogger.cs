@@ -40,14 +40,14 @@ public class DiscordLogger : ILogEventSink
     /// <param name="logEvent">The log event to emit.</param>
     public void Emit(LogEvent logEvent)
     {
-        SendMessage(logEvent);
+        _ = Task.Run(async () => await SendMessageAsync(logEvent));
     }
 
     /// <summary>
     /// Sends a log event message to the Discord channel.
     /// </summary>
     /// <param name="logEvent">The log event to send.</param>
-    private void SendMessage(LogEvent logEvent)
+    private async Task SendMessageAsync(LogEvent logEvent)
     {
         if (!ShouldLogMessage(_restrictedToMinimumLevel, logEvent.Level))
             return;
@@ -69,9 +69,7 @@ public class DiscordLogger : ILogEventSink
                 var stackTrace = FormatMessage(logEvent.Exception.StackTrace ?? string.Empty, 1024);
                 embedBuilder.AddField("StackTrace:", stackTrace);
 
-                webHook.SendMessageAsync(null, false, [embedBuilder.Build()])
-                    .GetAwaiter()
-                    .GetResult();
+                await webHook.SendMessageAsync(null, false, [embedBuilder.Build()]);
             }
             else
             {
@@ -82,19 +80,15 @@ public class DiscordLogger : ILogEventSink
                 SpecifyEmbedLevel(logEvent.Level, embedBuilder);
                 embedBuilder.Description = message;
 
-                webHook.SendMessageAsync(
-                        null, false, [embedBuilder.Build()])
-                    .GetAwaiter()
-                    .GetResult();
+                await webHook.SendMessageAsync(
+                        null, false, [embedBuilder.Build()]);
             }
         }
         catch (Exception ex)
         {
             var webHook = new DiscordWebhookClient(GetWebhookUrl());
-            webHook.SendMessageAsync(
-                    $"ooo snap, {ex.Message}")
-                .GetAwaiter()
-                .GetResult();
+            await webHook.SendMessageAsync(
+                    $"ooo snap, {ex.Message}");
         }
     }
 
