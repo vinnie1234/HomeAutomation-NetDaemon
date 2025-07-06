@@ -1,4 +1,5 @@
 ﻿using Automation.apps.General;
+using Automation.Enum;
 using HomeAssistantGenerated;
 using TestAutomation.Helpers;
 using Xunit;
@@ -9,7 +10,7 @@ namespace TestAutomation.Apps.General;
 
 public class AwayManagerTests
 {
-    private readonly AppTestContext _ctx = AppTestContext.New();
+    private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
 
     [Fact]
     public void ShouldTurnOffAwayWhenVincentComesHome()
@@ -97,15 +98,17 @@ public class AwayManagerTests
             .WithEntityState("sensor.zedar_food_storage_status", "full");
         _ctx.InitApp<AwayManager>();
         
-        // Simulate away state turning off (sets _backHome = true)
+        // Simulate away state turning off (sets to Returning state)
         _ctx.ChangeStateFor("input_boolean.away")
             .FromState("on")
             .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
             
         // Act - Trigger motion detection (which calls WelcomeHome)
         _ctx.ChangeStateFor("binary_sensor.gang_motion")
             .FromState("off")
             .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
 
         // Assert - Should get house state (showing that WelcomeHome logic is triggered)
         TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
@@ -122,15 +125,17 @@ public class AwayManagerTests
             .WithEntityState("sensor.zedar_food_storage_status", "full");
         _ctx.InitApp<AwayManager>();
         
-        // Simulate away state turning off (sets _backHome = true)
+        // Simulate away state turning off (sets to Returning state)
         _ctx.ChangeStateFor("input_boolean.away")
             .FromState("on")
             .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
             
         // Act - Trigger motion detection (which calls WelcomeHome -> NotifyVincentPhone)
         _ctx.ChangeStateFor("binary_sensor.gang_motion")
             .FromState("off")
             .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
 
         // Small delay for reactive operations
         Task.Delay(50).Wait();
@@ -145,6 +150,171 @@ public class AwayManagerTests
                 Arg.Is<NotifyMobileAppVincentPhoneParameters>(p => 
                     p.Title == "Thuis" && p.Message == "Goedenavond Vincent!"));
         }, nameof(ShouldSendContextAwareNotificationWhenComingHome));
+    }
+
+    [Fact]
+    public void ShouldInitializeInHomeState()
+    {
+        // Arrange & Act
+        var app = _ctx.InitApp<AwayManager>();
+        
+        // Assert - Should start in Home state
+        Assert.Equal(HomePresenceState.Home, app.CurrentState);
+    }
+
+    [Fact]
+    public void ShouldTransitionToAwayStateWhenAwayActivated()
+    {
+        // Arrange
+        var app = _ctx.InitApp<AwayManager>();
+        Assert.Equal(HomePresenceState.Home, app.CurrentState);
+        
+        // Act
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("off")
+            .ToState("on");
+        
+        // Advance scheduler to process throttled callbacks
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Assert
+        Assert.Equal(HomePresenceState.Away, app.CurrentState);
+    }
+
+    [Fact]
+    public void ShouldTransitionToReturningStateWhenAwayDeactivated()
+    {
+        // Arrange
+        var app = _ctx.InitApp<AwayManager>();
+        
+        // Set to Away first
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        Assert.Equal(HomePresenceState.Away, app.CurrentState);
+        
+        // Act - Away is turned off
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("on")
+            .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Assert
+        Assert.Equal(HomePresenceState.Returning, app.CurrentState);
+    }
+
+    [Fact]
+    public async Task ShouldTransitionToWelcomingHomeOnMotionWhenReturning()
+    {
+        // Arrange
+        _ctx.WithEntityState("input_select.housemodeselect", "Day")
+            .WithEntityState("sensor.zedar_food_storage_status", "full");
+            
+        var app = _ctx.InitApp<AwayManager>();
+        
+        // Set to Returning state
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("on")
+            .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        Assert.Equal(HomePresenceState.Returning, app.CurrentState);
+        
+        // Act - Motion detected
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Small delay to allow async transition
+        await Task.Delay(10);
+        
+        // Assert - Should be in WelcomingHome or Home state (depending on timing)
+        Assert.True(app.CurrentState == HomePresenceState.WelcomingHome || 
+                   app.CurrentState == HomePresenceState.Home);
+    }
+
+    [Fact]
+    public void ShouldIgnoreMotionWhenInHomeState()
+    {
+        // Arrange
+        var app = _ctx.InitApp<AwayManager>();
+        Assert.Equal(HomePresenceState.Home, app.CurrentState);
+        
+        // Act - Motion detected while in Home state
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Assert - Should remain in Home state
+        Assert.Equal(HomePresenceState.Home, app.CurrentState);
+    }
+
+    [Fact]
+    public void ShouldIgnoreMotionWhenInAwayState()
+    {
+        // Arrange
+        var app = _ctx.InitApp<AwayManager>();
+        
+        // Set to Away state
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        Assert.Equal(HomePresenceState.Away, app.CurrentState);
+        
+        // Act - Motion detected while Away
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Assert - Should remain in Away state
+        Assert.Equal(HomePresenceState.Away, app.CurrentState);
+    }
+
+    [Fact]
+    public void ShouldPreventRaceConditionWithMultipleMotionEvents()
+    {
+        // Arrange
+        _ctx.WithEntityState("input_select.housemodeselect", "Day")
+            .WithEntityState("sensor.zedar_food_storage_status", "full");
+            
+        var app = _ctx.InitApp<AwayManager>();
+        
+        // Set to Returning state
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("on")
+            .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        Assert.Equal(HomePresenceState.Returning, app.CurrentState);
+        
+        // Act - Multiple rapid motion events
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("on")
+            .ToState("off");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+        _ctx.Scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks);
+        
+        // Assert - Should only trigger once and be in WelcomingHome or Home
+        Assert.True(app.CurrentState == HomePresenceState.WelcomingHome || 
+                   app.CurrentState == HomePresenceState.Home);
     }
 
     // [Fact]
