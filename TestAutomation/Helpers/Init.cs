@@ -1,6 +1,9 @@
 ﻿using Automation.apps;
 using Automation.Interfaces;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NetDaemon.AppModel;
+using NetDaemon.Extensions.Scheduler;
 using NSubstitute;
 
 namespace TestAutomation.Helpers;
@@ -20,5 +23,12 @@ public static class Init
         var dataRepository = Substitute.For<IDataRepository>();
         var parameters = new object[] { ctx.HaContext, logger, ctx.Notify, ctx.Scheduler, dataRepository }.Concat(additionalParams).ToArray();
         return (T)Activator.CreateInstance(typeof(T), parameters)!;
+    }
+    
+    public static async Task<T> InitAppAsync<T>(this AppTestContext ctx, params object[] additionalParams) where T : BaseApp, IAsyncInitializable
+    {
+        var app = ctx.InitApp<T>(additionalParams);
+        await app.InitializeAsync(CancellationToken.None);
+        return app;
     }
 }

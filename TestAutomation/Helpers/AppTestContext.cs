@@ -1,5 +1,6 @@
 ﻿using Automation.apps;
 using Automation.Interfaces;
+using Microsoft.Extensions.Logging;
 using Microsoft.Reactive.Testing;
 using NetDaemon.HassModel;
 using NSubstitute;
@@ -18,7 +19,7 @@ public class AppTestContext
     {
         Scheduler.AdvanceTo(DateTimeOffset.Now.ToUnixTimeMilliseconds());
         HaContextMock = new HaContextMock(useSchedulerForReactive ? Scheduler : null);
-        Notify = new Notify(HaContext, DataRepository);
+        Notify = new Notify(HaContext, DataRepository, Substitute.For<ILogger<Notify>>());
     }
     
     public static AppTestContext New()

@@ -221,36 +221,6 @@ catch (Exception ex)
 - **Logic Errors**: Unexpected application behavior
 - **External Errors**: Third-party service failures
 
-## Debugging & Troubleshooting
-
-### Debug Mode Features
-When running in debug mode, additional logging includes:
-- **Detailed State Changes**: Full entity state information
-- **Service Call Parameters**: Complete parameter sets for service calls
-- **Timing Information**: Execution duration for operations
-- **Memory Snapshots**: Periodic memory usage reports
-
-### Log Analysis Tools
-
-#### Structured Logging Benefits
-```json
-{
-    "@timestamp": "2025-07-06T10:30:00.000Z",
-    "level": "Information",
-    "message": "Motion detected in hallway",
-    "properties": {
-        "Room": "hallway",
-        "Sensor": "binary_sensor.hall_motion",
-        "Action": "lights_activated",
-        "Duration": "PT15M"
-    }
-}
-```
-
-#### Query Examples
-- **Find all battery warnings**: `level:Warning AND message:*battery*`
-- **Track specific device**: `properties.Entity:light.living_room`
-- **Error analysis**: `level:Error AND @timestamp:[now-1h TO now]`
 
 ## Operational Procedures
 

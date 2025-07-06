@@ -128,15 +128,21 @@ public class AwayManager : BaseApp
     }
 
     /// <summary>
-    /// Sends a notification to Vincent when he comes home.
+    /// Sends a context-aware notification to Vincent when he comes home.
     /// </summary>
     /// <param name="houseState">The current state of the house.</param>
     private void NotifyVincentPhone(HouseState houseState)
     {
-        Notify.NotifyPhoneVincent("Welkom thuis Vincent",
-            $"De huis status is nu: {houseState}. Je lampen worden voor je ingesteld.",
-            true,
-            action: [new ActionModel(action: "TURNONTV", title: "TV Aanzetten", func: () => { Entities.MediaPlayer.Tv.TurnOn(); })]);
+        var greeting = houseState switch
+        {
+            HouseState.Morning => "Goedemorgen Vincent!",
+            HouseState.Day => "Welkom thuis!",
+            HouseState.Evening => "Goedenavond Vincent!",
+            HouseState.Night => "Welkom thuis (stil aan, het is laat!)",
+            _ => "Welkom thuis Vincent!"
+        };
+        
+        Notify.NotifyPhoneVincent("Thuis", greeting, canAlwaysSendNotification: true);
     }
     
     /// <summary>

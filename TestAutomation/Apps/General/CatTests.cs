@@ -12,7 +12,7 @@ public class CatTests
     private readonly AppTestContext _ctx = AppTestContext.New();
 
     [Fact]
-    public void ShouldFeedCatWhenFeedButtonIsPressed()
+    public async Task ShouldFeedCatWhenFeedButtonIsPressed()
     {
         // Arrange
         _ctx.WithEntityState("input_number.pixelnumberofmanualfood", 5.0)
@@ -20,7 +20,7 @@ public class CatTests
             .WithEntityState("input_number.pixeltotalamountfeedday", 10.0)
             .WithEntityState("input_number.pixeltotalamountfeedalltime", 100.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.feedcat")
@@ -51,13 +51,13 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldUpdateFeedCountersWhenManualFeedingOccurs()
+    public async Task ShouldUpdateFeedCountersWhenManualFeedingOccurs()
     {
         // Arrange
         _ctx.WithEntityState("input_number.pixelnumberofmanualfood", 3.0)
             .WithEntityState("input_number.pixellastamountmanualfeed", 2.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.feedcat")
@@ -74,13 +74,13 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldUpdateLastManualFeedDateTimeWhenFeeding()
+    public async Task ShouldUpdateLastManualFeedDateTimeWhenFeeding()
     {
         // Arrange
         _ctx.WithEntityState("input_number.pixelnumberofmanualfood", 2.0)
             .WithEntityState("input_number.pixellastamountmanualfeed", 0.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.feedcat")
@@ -97,10 +97,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldIncrementPixelInitCounterWhenCatEntersLitterBox()
+    public async Task ShouldIncrementPixelInitCounterWhenCatEntersLitterBox()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
@@ -117,10 +117,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldIncrementCleaningCounterWhenLitterBoxIsCleaning()
+    public async Task ShouldIncrementCleaningCounterWhenLitterBoxIsCleaning()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
@@ -137,10 +137,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldIncrementEmptyingCounterWhenLitterBoxIsEmptying()
+    public async Task ShouldIncrementEmptyingCounterWhenLitterBoxIsEmptying()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
@@ -157,10 +157,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldNotIncrementCounterForUnknownLitterBoxStatus()
+    public async Task ShouldNotIncrementCounterForUnknownLitterBoxStatus()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status")
@@ -176,7 +176,7 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldGiveNextFeedEarlyWhenButtonIsPressed()
+    public async Task ShouldGiveNextFeedEarlyWhenButtonIsPressed()
     {
         // Arrange
         _ctx.WithEntityState("input_datetime.pixelfeedfirsttime", "08:00:00")
@@ -184,7 +184,7 @@ public class CatTests
             .WithEntityState("input_datetime.pixelfeedsecondtime", "18:00:00")
             .WithEntityState("input_number.pixelfeedsecondamount", 7.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.pixelgivenextfeedeary")
@@ -208,10 +208,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldCleanPetSnowyWhenCleanButtonIsPressed()
+    public async Task ShouldCleanPetSnowyWhenCleanButtonIsPressed()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.cleanpetsnowy")
@@ -228,10 +228,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldEmptyPetSnowyWhenEmptyButtonIsPressed()
+    public async Task ShouldEmptyPetSnowyWhenEmptyButtonIsPressed()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("input_button.emptypetsnowy")
@@ -248,10 +248,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldSendDiscordNotificationWhenFountainTurnsOff()
+    public async Task ShouldSendDiscordNotificationWhenFountainTurnsOff()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("switch.petsnowy_fountain_ison")
@@ -271,10 +271,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldSendDiscordNotificationWhenLitterBoxAutoCleanTurnsOff()
+    public async Task ShouldSendDiscordNotificationWhenLitterBoxAutoCleanTurnsOff()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("switch.petsnowy_litterbox_auto_clean")
@@ -294,10 +294,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldNotSendNotificationIfFountainTurnsOnBeforeDelay()
+    public async Task ShouldNotSendNotificationIfFountainTurnsOnBeforeDelay()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act
         _ctx.ChangeStateFor("switch.petsnowy_fountain_ison")
@@ -325,10 +325,10 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldResetDailyFeedCounterAtMidnight()
+    public async Task ShouldResetDailyFeedCounterAtMidnight()
     {
         // Arrange
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act - simulate scheduled task firing at midnight
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddDays(1).Ticks);
@@ -343,14 +343,14 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldSkipAutomaticFeedingWhenSkipFlagIsOn()
+    public async Task ShouldSkipAutomaticFeedingWhenSkipFlagIsOn()
     {
         // Arrange
         _ctx.WithEntityState("input_boolean.pixelskipnextautofeed", "on")
             .WithEntityState("input_datetime.pixelfeedfirsttime", "08:00:00")
             .WithEntityState("input_number.pixelfeedfirstamount", 5.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act - simulate scheduled feeding time
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddHours(8).Ticks);
@@ -365,14 +365,14 @@ public class CatTests
     }
 
     [Fact]
-    public void ShouldTurnOffSkipFlagAfterScheduledFeedingTime()
+    public async Task ShouldTurnOffSkipFlagAfterScheduledFeedingTime()
     {
         // Arrange
         _ctx.WithEntityState("input_boolean.pixelskipnextautofeed", "on")
             .WithEntityState("input_datetime.pixelfeedfirsttime", "08:00:00")
             .WithEntityState("input_number.pixelfeedfirstamount", 5.0);
 
-        _ = _ctx.InitApp<Cat>();
+        _ = await _ctx.InitAppAsync<Cat>();
 
         // Act - simulate scheduled feeding time
         _ctx.Scheduler.AdvanceTo(DateTime.Today.AddHours(8).Ticks);

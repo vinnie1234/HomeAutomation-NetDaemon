@@ -44,15 +44,24 @@ The complete documentation is split into different sections:
 Each automation app has its own detailed documentation:
 
 #### 🏠 General Apps
-- **[Alarm](docs/apps/alarm.md)** - Alarm clock management and automatic wake-up routines
-- **[AwayManager](docs/apps/away-manager.md)** - Home/away detection and related automations
-- **[BatteryMonitoring](docs/apps/battery-monitoring.md)** - Battery status monitoring for all devices
-- **[Cat](docs/apps/cat.md)** - Automatic cat feeding and litter box monitoring
-- **[HouseStateManager](docs/apps/house-state-manager.md)** - Central management of house states (day/evening/night)
-- **[SleepManager](docs/apps/sleep-manager.md)** - Sleep routines and energy price notifications
-- **[Vacuum](docs/apps/vacuum.md)** - Robot vacuum automation
-- **[HolidayManager](docs/apps/holiday-manager.md)** - Holiday detection and special automation modes
-- **[Other Apps](docs/apps/general-apps.md)** - Smaller utility apps and monitoring systems
+- **[Alarm System](docs/apps/alarm.md)** - Home security monitoring and alerting system
+- **[Alarm Clock](docs/apps/alarm-clock.md)** - Wake-up routines and alarm management
+- **[Auto Update](docs/apps/auto-update.md)** - System update monitoring and management
+- **[Away Manager](docs/apps/away-manager.md)** - Home/away detection and related automations
+- **[Battery Monitoring](docs/apps/battery-monitoring.md)** - Battery status monitoring for all devices
+- **[Cat Care](docs/apps/cat.md)** - Automatic cat feeding and litter box monitoring
+- **[CoC Monitoring](docs/apps/coc-monitoring.md)** - Clash of Clans activity monitoring via social media
+- **[Download Monitoring](docs/apps/download-monitoring.md)** - Download completion notifications and file management
+- **[Fun App](docs/apps/fun.md)** - Entertainment and special occasion automations
+- **[Google Assistant Translate](docs/apps/google-assistant-translate.md)** - Voice command translation and automation
+- **[Holiday Manager](docs/apps/holiday-manager.md)** - Holiday detection and special automation modes
+- **[House State Manager](docs/apps/house-state-manager.md)** - Central management of house states (Morning/Day/Evening/Night)
+- **[NetDaemon System](docs/apps/netdaemon-system.md)** - System monitoring and lifecycle management
+- **[PC Manager](docs/apps/pc-manager.md)** - PC-related automations and device control
+- **[Reset App](docs/apps/reset.md)** - System reset and restoration capabilities
+- **[Save In State](docs/apps/save-in-state.md)** - Device state management and restoration
+- **[Sleep Manager](docs/apps/sleep-manager.md)** - Sleep routines and energy price notifications
+- **[Vacuum](docs/apps/vacuum.md)** - Robot vacuum automation and room-specific cleaning
 
 #### 🚪 Room-specific Apps  
 - **[Bathroom](docs/apps/bathroom-lights.md)** - Motion detection, shower mode, music automation

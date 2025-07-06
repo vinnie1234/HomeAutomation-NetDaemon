@@ -222,22 +222,4 @@ var discordNotification = new DiscordNotificationModel
 - **Weekly Trends**: Feeding pattern analysis
 - **Device Health**: Regular status updates for all pet devices
 
-## Troubleshooting
-
-### Feeding Issues
-1. **Check Zedar Device**: Verify device ID and connectivity
-2. **Food Level**: Ensure feeder has adequate food supply
-3. **Power Status**: Confirm feeder is powered and online
-4. **Schedule Check**: Verify feeding times are correctly configured
-
-### Litter Box Problems
-1. **PetSnowy Connection**: Check device connectivity and power
-2. **Error Codes**: Monitor error sensor for specific issues
-3. **Manual Override**: Use manual cleaning if automatic fails
-4. **Maintenance**: Regular emptying and cleaning required
-
-### Notification Issues
-1. **Discord Webhook**: Verify webhook URL is correct and accessible
-2. **Network Connectivity**: Ensure internet connection is stable
-3. **Channel Permissions**: Confirm Discord channel allows webhook messages
 

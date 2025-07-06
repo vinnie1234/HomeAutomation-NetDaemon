@@ -114,6 +114,39 @@ public class AwayManagerTests
         }, nameof(ShouldGetHouseStateWhenMotionDetected));
     }
 
+    [Fact]
+    public void ShouldSendContextAwareNotificationWhenComingHome()
+    {
+        // Arrange - Set up evening house state and coming home scenario
+        _ctx.WithEntityState("input_select.housemodeselect", "Evening")
+            .WithEntityState("sensor.zedar_food_storage_status", "full");
+        _ctx.InitApp<AwayManager>();
+        
+        // Simulate away state turning off (sets _backHome = true)
+        _ctx.ChangeStateFor("input_boolean.away")
+            .FromState("on")
+            .ToState("off");
+            
+        // Act - Trigger motion detection (which calls WelcomeHome -> NotifyVincentPhone)
+        _ctx.ChangeStateFor("binary_sensor.gang_motion")
+            .FromState("off")
+            .ToState("on");
+
+        // Small delay for reactive operations
+        Task.Delay(50).Wait();
+
+        // Assert - Should receive context-aware notification through service call
+        TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
+        {
+            haContext.Received().CallService(
+                Arg.Is<string>(s => s.Contains("notify")),
+                Arg.Any<string>(),
+                Arg.Any<ServiceTarget?>(),
+                Arg.Is<NotifyMobileAppVincentPhoneParameters>(p => 
+                    p.Title == "Thuis" && p.Message == "Goedenavond Vincent!"));
+        }, nameof(ShouldSendContextAwareNotificationWhenComingHome));
+    }
+
     // [Fact]
     // public void ShouldActivateAwayStateWhenVincentIsFarAwayForLong()
     // {
