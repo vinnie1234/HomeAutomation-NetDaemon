@@ -56,7 +56,7 @@ public class HolidayManager : BaseApp
         if (Entities.Sensor.HubVincentAlarms.Attributes is { NextAlarmStatus: "set", Alarms: not null })
         {
             var alarmList = new List<AlarmStateModel?>();
-            var jsonList = Entities.Sensor.HubVincentAlarms.Attributes.Alarms;
+            var jsonList = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
 
             if (jsonList != null)
                 alarmList.AddRange(

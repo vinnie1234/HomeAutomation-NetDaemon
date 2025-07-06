@@ -58,7 +58,7 @@ public static class Globals
 
     public static HouseState GetHouseState(IEntities entities)
     {
-        return entities.InputSelect.Housemodeselect.State
+        return (entities.InputSelect.Housemodeselect.State ?? "Day")
             switch
             {
                 "Morning" => HouseState.Morning,
@@ -71,6 +71,6 @@ public static class Globals
 
     public static bool AmIHomeCheck(Entities entities)
     {
-        return entities.Person.VincentMaarschalkerweerd.State != "home" || entities.InputBoolean.Onvacation.IsOn() && entities.Person.Timo.State != "home";
+        return (entities.Person.VincentMaarschalkerweerd.State ?? "not_home") != "home" || entities.InputBoolean.Onvacation.IsOn() && (entities.Person.Timo.State ?? "not_home") != "home";
     }
 }

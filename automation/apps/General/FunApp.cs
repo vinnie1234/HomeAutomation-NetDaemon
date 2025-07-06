@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using System.Threading;
 using Automation.Enum;
 
@@ -9,6 +10,7 @@ namespace Automation.apps.General;
 // ReSharper disable once UnusedType.Global
 public class FunApp : BaseApp
 {
+    private readonly AppConfiguration _config = new();
     /// <summary>
     /// Initializes a new instance of the <see cref="FunApp"/> class.
     /// </summary>
@@ -90,7 +92,7 @@ public class FunApp : BaseApp
         Entities.InputButton.Startnewyear.StateChanges().Subscribe(async _ =>
         {
             Notify.SendMusicToHome("http://192.168.50.189:8123/local/HappyNewYear.mp3", 0.4);
-            await Task.Delay(TimeSpan.FromSeconds(49));
+            await Task.Delay(_config.Timing.NewYearMusicDelay);
             Entities.MediaPlayer.HeleHuis.VolumeSet(0.9);
             await ChristmasFirework();
         });
@@ -148,7 +150,7 @@ public class FunApp : BaseApp
                     break;
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(0.5));
+            await Task.Delay(_config.Timing.ShortDelay);
         } while (s.Elapsed < TimeSpan.FromMinutes(4));
 
         Entities.MediaPlayer.HeleHuis.VolumeSet(0.4);

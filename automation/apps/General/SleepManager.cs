@@ -58,7 +58,7 @@ public class SleepManager : BaseApp
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);
         }
-        else if (Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition < 100) 
+        else if ((Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition ?? 0) < 100) 
             Entities.Cover.Rollerblind0003.SetCoverPosition(45);
 
         SendBatteryWarning();
@@ -104,10 +104,10 @@ public class SleepManager : BaseApp
     /// </summary>
     private void SendBatteryWarning()
     {
-        if (Entities.Sensor.VincentPhoneBatteryLevel.State < 30 && Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
+        if ((Entities.Sensor.VincentPhoneBatteryLevel.State ?? 0) < 30 && Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
             Notify.NotifyPhoneVincent("Telefoon bijna leeg", "Je moet je telefoon opladen", true);
 
-        if (Entities.Sensor.SmT860BatteryLevel.State < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
+        if ((Entities.Sensor.SmT860BatteryLevel.State ?? 0) < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
             Notify.NotifyPhoneVincent("Tabled bijna leeg", "Je moet je tabled opladen", true);
     }
 
@@ -125,34 +125,69 @@ public class SleepManager : BaseApp
     /// </summary>
     private void EnergyPriceCheck()
     {
-        var priceList = Entities.Sensor.EpexSpotNlNetPrice
-            .Attributes?.Data;
-
+        var priceList = GetEnergyPriceList();
         if (priceList == null) return;
-
-        foreach (JsonElement price in priceList)
+        
+        var priceModels = ParseEnergyPrices(priceList);
+        
+        foreach (var model in priceModels)
         {
-            var model = price.ToObject<EnergyPriceModel>();
-
-            if (model != null)
-            {
-                switch (model.PricePerKwh)
-                {
-                    case <= 0 and > -15:
-                        Notify.NotifyPhoneVincent("Morgen is het stroom bijna gratis, maar belasting verpest het!",
-                            $"Stroom kost morgen om {model.StartTime} {model.PricePerKwh} cent!", true);
-                        break;
-                    case <= -15:
-                        Notify.NotifyPhoneVincent("Morgen is het stroom gratis",
-                            $"Stroom kost morgen om {model.StartTime} {model.PricePerKwh} cent!", true);
-                        break;
-                    case > 45:
-                        Notify.NotifyPhoneVincent("Morgen is het stroom duur!",
-                            $"Stroom kost morgen om {model.StartTime} {model.PricePerKwh} cent!", true);
-                        break;
-                }
-            }
+            ProcessEnergyPriceNotification(model);
         }
+    }
+
+    /// <summary>
+    /// Gets the energy price list from the sensor.
+    /// </summary>
+    /// <returns>The energy price data or null if not available.</returns>
+    private IReadOnlyList<object>? GetEnergyPriceList()
+    {
+        return Entities.Sensor.EpexSpotNlNetPrice.Attributes?.Data;
+    }
+
+    /// <summary>
+    /// Parses energy price data into models.
+    /// </summary>
+    /// <param name="priceList">The raw price data.</param>
+    /// <returns>Collection of energy price models.</returns>
+    private IEnumerable<EnergyPriceModel> ParseEnergyPrices(IReadOnlyList<object> priceList)
+    {
+        return priceList
+            .Cast<JsonElement>()
+            .Select(price => price.ToObject<EnergyPriceModel>())
+            .Where(model => model != null)
+            .Cast<EnergyPriceModel>();
+    }
+
+    /// <summary>
+    /// Processes and sends notifications for energy price alerts.
+    /// </summary>
+    /// <param name="model">The energy price model.</param>
+    private void ProcessEnergyPriceNotification(EnergyPriceModel model)
+    {
+        var (title, message) = GetPriceNotificationContent(model);
+        if (!string.IsNullOrEmpty(title))
+        {
+            Notify.NotifyPhoneVincent(title, message, true);
+        }
+    }
+
+    /// <summary>
+    /// Gets notification content based on energy price.
+    /// </summary>
+    /// <param name="model">The energy price model.</param>
+    /// <returns>Tuple of title and message, or empty strings if no notification needed.</returns>
+    private (string title, string message) GetPriceNotificationContent(EnergyPriceModel model)
+    {
+        var baseMessage = $"Stroom kost morgen om {model.StartTime} {model.PricePerKwh} cent!";
+        
+        return model.PricePerKwh switch
+        {
+            <= 0 and > -15 => ("Morgen is het stroom bijna gratis, maar belasting verpest het!", baseMessage),
+            <= -15 => ("Morgen is het stroom gratis", baseMessage),
+            > 45 => ("Morgen is het stroom duur!", baseMessage),
+            _ => ("", "")
+        };
     }
 
     /// <summary>

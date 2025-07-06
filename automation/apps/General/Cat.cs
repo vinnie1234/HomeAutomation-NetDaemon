@@ -76,10 +76,10 @@ public class Cat : BaseApp
             .Subscribe(_ =>
             {
                 // Convert the input number to an integer and feed the cat
-                FeedCat(Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0.0));
+                FeedCat(Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0));
                 Entities.InputNumber.Pixellastamountmanualfeed.SetValue(Convert.ToInt32(
-                    Entities.InputNumber.Pixelnumberofmanualfood.State +
-                    Convert.ToInt32(Entities.InputNumber.Pixellastamountmanualfeed.State ?? 0.0)));
+                    (Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0) +
+                    Convert.ToInt32(Entities.InputNumber.Pixellastamountmanualfeed.State ?? 0)));
                 Entities.InputDatetime.Pixellastmanualfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
                 {
                     Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
@@ -93,10 +93,10 @@ public class Cat : BaseApp
     /// <param name="amount">The amount of food to give to the cat.</param>
     private void FeedCat(int amount)
     {
-        var amountToday = Convert.ToInt32(Entities.InputNumber.Pixeltotalamountfeedday.State + amount ?? 0);
+        var amountToday = Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedday.State ?? 0) + amount);
         Entities.InputNumber.Pixeltotalamountfeedday.SetValue(amountToday);
         Entities.InputNumber.Pixeltotalamountfeedalltime.SetValue(
-            Convert.ToInt32(Entities.InputNumber.Pixeltotalamountfeedalltime.State + amount ?? 0));
+            Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedalltime.State ?? 0) + amount));
 
         Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {

@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Enum;
 using static Automation.Globals;
 
@@ -10,6 +11,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(AwayManager))]
 public class AwayManager : BaseApp
 {
+    private readonly AppConfiguration _config = new();
     private bool _backHome;
 
     /// <summary>
@@ -89,7 +91,7 @@ public class AwayManager : BaseApp
 
             _backHome = false;
 
-            Scheduler.Schedule(TimeSpan.FromSeconds(15), () =>
+            Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
                 var message = "Welkom thuis Vincent!";
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")

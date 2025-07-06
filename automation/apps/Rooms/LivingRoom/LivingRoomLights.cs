@@ -1,10 +1,12 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 
 namespace Automation.apps.Rooms.LivingRoom;
 
 [NetDaemonApp(Id = nameof(LivingRoomLights))]
 public class LivingRoomLights : BaseApp
 {
+    private readonly AppConfiguration _config = new();
     /// <summary>
     /// Initializes a new instance of the <see cref="LivingRoomLights"/> class.
     /// </summary>
@@ -42,9 +44,9 @@ public class LivingRoomLights : BaseApp
     /// <param name="eventModel">The event model containing the switch event data.</param>
     private void TurnOnPlafond(EventModel eventModel)
     {
-        const string hueWallLivingRoomId = "b4784a8e43cc6f5aabfb6895f3a8dbac";
+        var hueWallLivingRoomId = _config.Lights.DeviceIds["HueWallLivingRoom"];
 
-        if (eventModel is { DeviceId: hueWallLivingRoomId, Type: "initial_press" })
+        if (eventModel is { DeviceId: { } deviceId, Type: "initial_press" } && deviceId == hueWallLivingRoomId)
         {
             if (Entities.Light.HueFilamentBulb2.IsOff())
             {

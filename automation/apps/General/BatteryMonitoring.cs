@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Helpers;
+using Automation.Configuration;
 
 namespace Automation.apps.General;
 
@@ -9,7 +10,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(BatteryMonitoring))]
 public class BatteryMonitoring : BaseApp
 {
-    private const int BatteryWarningLevel = 20;
+    private readonly AppConfiguration _config = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatteryMonitoring"/> class.
@@ -33,7 +34,7 @@ public class BatteryMonitoring : BaseApp
         {
             battySensor
                 .StateChanges()
-                .WhenStateIsFor(x => x?.State is <= BatteryWarningLevel, TimeSpan.FromHours(10), Scheduler)
+                .WhenStateIsFor(x => x?.State <= _config.Battery.WarningLevel, _config.Battery.CheckInterval, Scheduler)
                 .Subscribe(x => SendNotification(battySensor.Attributes?.FriendlyName ?? "", x.Entity.State ?? 0));
 
             battySensor
