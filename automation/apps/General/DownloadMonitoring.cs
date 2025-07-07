@@ -28,17 +28,17 @@ public partial class DownloadMonitoring : BaseApp
         IDataRepository dataRepository)
         : base(haContext, logger, notify, scheduler)
     {
-       _ = YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
+       YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
 
        Entities.Sensor.YtsFeed1080.StateChanges()
-           .Subscribe(async _ =>
+           .Subscribe(_ =>
            {
-               await YtsMonitoring(notify, dataRepository, "yts1080", Entities.Sensor.YtsFeed1080);
+               YtsMonitoring(notify, dataRepository, "yts1080", Entities.Sensor.YtsFeed1080);
            });
        Entities.Sensor.YtsFeed2160p.StateChanges()
-           .Subscribe(async _ =>
+           .Subscribe(_ =>
            {
-               await YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
+               YtsMonitoring(notify, dataRepository, "yts2160p", Entities.Sensor.YtsFeed2160p);
            });
     }
 
@@ -49,59 +49,59 @@ public partial class DownloadMonitoring : BaseApp
     /// <param name="dataRepository">The data repository for storing and retrieving data.</param>
     /// <param name="saveId">The identifier for saving data.</param>
     /// <param name="feed">The sensor entity representing the YTS feed.</param>
-    private static async Task YtsMonitoring(INotify notify, IDataRepository dataRepository, string saveId, SensorEntity feed )
+    private static void YtsMonitoring(INotify notify, IDataRepository dataRepository, string saveId, SensorEntity feed )
     {
-            if (feed.Attributes?.Entries != null)
+        if (feed.Attributes?.Entries != null)
+        {
+            var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "Yts") ?? "";
+
+            var items = feed.Attributes?.Entries?.Cast<JsonElement>()
+                .Select(o => o.Deserialize<Yts>()).ToList();
+
+            var thisYear = DateTimeOffset.Now.Year;
+            var lastYear = DateTimeOffset.Now.AddYears(-1).Year;
+
+            if (items != null)
             {
-                var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "Yts") ?? "";
+                var oldList = dataRepository.Get<List<Yts>>(saveId);
 
-                var items = feed.Attributes?.Entries?.Cast<JsonElement>()
-                    .Select(o => o.Deserialize<Yts>()).ToList();
-
-                var thisYear = DateTimeOffset.Now.Year;
-                var lastYear = DateTimeOffset.Now.AddYears(-1).Year;
-
-                if (items != null)
-                {
-                    var oldList = await dataRepository.GetAsync<List<Yts>>(saveId);
-
-                    foreach (var discordModel in from ytsItem in items
-                             where ytsItem != null
-                             where oldList == null || oldList.TrueForAll(yts => yts.Id != ytsItem.Id)
-                             where ytsItem.Title.Contains(thisYear.ToString()) ||
-                                   ytsItem.Title.Contains(lastYear.ToString())
-                             let downloadLink = ytsItem.Links.First(link => link.Type == "application/x-bittorrent")
-                                 .Href
-                             let image = GetTextFromHtmlRegex(ytsItem.Summary, ImgRegex())
-                             let imbdRating = GetTextFromHtmlRegex(ytsItem.Summary, ImdbRatingRegex())
-                             let genre = GetTextFromHtmlRegex(ytsItem.Summary, GenreRegex())
-                             let size = GetTextFromHtmlRegex(ytsItem.Summary, SizeRegex())
-                             let runtime = GetTextFromHtmlRegex(ytsItem.Summary, RuntimeRegex())
-                             select new DiscordNotificationModel
+                foreach (var discordModel in from ytsItem in items
+                         where ytsItem != null
+                         where oldList == null || oldList.TrueForAll(yts => yts.Id != ytsItem.Id)
+                         where ytsItem.Title.Contains(thisYear.ToString()) ||
+                               ytsItem.Title.Contains(lastYear.ToString())
+                         let downloadLink = ytsItem.Links.First(link => link.Type == "application/x-bittorrent")
+                             .Href
+                         let image = GetTextFromHtmlRegex(ytsItem.Summary, ImgRegex())
+                         let imbdRating = GetTextFromHtmlRegex(ytsItem.Summary, ImdbRatingRegex())
+                         let genre = GetTextFromHtmlRegex(ytsItem.Summary, GenreRegex())
+                         let size = GetTextFromHtmlRegex(ytsItem.Summary, SizeRegex())
+                         let runtime = GetTextFromHtmlRegex(ytsItem.Summary, RuntimeRegex())
+                         select new DiscordNotificationModel
+                         {
+                             Embed = new Embed
                              {
-                                 Embed = new Embed
-                                 {
-                                     Title = ytsItem.Title,
-                                     Url = ytsItem.Link,
-                                     Thumbnail = new Location(image),
-                                     Fields =
-                                     [
-                                         new Field { Name = "Rating", Value = imbdRating },
-                                         new Field { Name = "Genre", Value = genre },
-                                         new Field { Name = "Size", Value = size },
-                                         new Field { Name = "Runtime", Value = runtime },
-                                         new Field { Name = "Direct Download", Value = downloadLink }
-                                     ]
-                                 },
-                                 Urls = [downloadLink]
-                             })
-                    {
-                        notify.NotifyDiscord("", [discordChannel], discordModel);
-                    }
-
-                    await dataRepository.SaveAsync(saveId, items);
+                                 Title = ytsItem.Title,
+                                 Url = ytsItem.Link,
+                                 Thumbnail = new Location(image),
+                                 Fields =
+                                 [
+                                     new Field { Name = "Rating", Value = imbdRating },
+                                     new Field { Name = "Genre", Value = genre },
+                                     new Field { Name = "Size", Value = size },
+                                     new Field { Name = "Runtime", Value = runtime },
+                                     new Field { Name = "Direct Download", Value = downloadLink }
+                                 ]
+                             },
+                             Urls = [downloadLink]
+                         })
+                {
+                    notify.NotifyDiscord("", [discordChannel], discordModel);
                 }
+
+                dataRepository.Save(saveId, items);
             }
+        }
     }
 
     /// <summary>

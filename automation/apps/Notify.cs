@@ -14,7 +14,7 @@ namespace Automation.apps;
 public class Notify : INotify
 {
     private readonly Entities _entities;
-    private readonly Services _services;
+    private readonly IServices _services;
     private readonly IHaContext _ha;
     private readonly IDataRepository _storage;
     private readonly ILogger<Notify> _logger;
@@ -43,13 +43,13 @@ public class Notify : INotify
     /// <param name="message">The message of the notification.</param>
     /// <param name="canAlwaysSendNotification">Indicates whether the notification can always be sent.</param>
     /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
-    public async Task NotifyHouse(string title, string message, bool canAlwaysSendNotification,
+    public void NotifyHouse(string title, string message, bool canAlwaysSendNotification,
         double? sendAfterMinutes = null)
     {
-        var canSendNotification = await CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
-        await SaveNotification(_storage, title, message);
+        SaveNotification(_storage, title, message);
 
         _entities.MediaPlayer.HeleHuis.VolumeSet(0.4);
 
@@ -67,7 +67,7 @@ public class Notify : INotify
     /// <param name="image">The image URL for the notification.</param>
     /// <param name="channel">The notification channel.</param>
     /// <param name="vibrationPattern">The vibration pattern for the notification.</param>
-    public async Task NotifyPhoneVincent(
+    public void NotifyPhoneVincent(
         string title,
         string message,
         bool canAlwaysSendNotification,
@@ -77,10 +77,10 @@ public class Notify : INotify
         string? channel = null,
         string? vibrationPattern = null)
     {
-        var canSendNotification = await CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
-        await SaveNotification(_storage, title, message);
+        SaveNotification(_storage, title, message);
 
         var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern);
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
@@ -94,13 +94,13 @@ public class Notify : INotify
     /// <param name="message">The message of the notification.</param>
     /// <param name="canAlwaysSendNotification">Indicates whether the notification can always be sent.</param>
     /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
-    public async Task NotifyPhoneVincentTts(string title, string message, bool canAlwaysSendNotification,
+    public void NotifyPhoneVincentTts(string title, string message, bool canAlwaysSendNotification,
         double? sendAfterMinutes = null)
     {
-        var canSendNotification = await CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
-        await SaveNotification(_storage, title, message);
+        SaveNotification(_storage, title, message);
 
         var data = ConstructData(null, true, phoneMessage: message);
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
@@ -111,13 +111,13 @@ public class Notify : INotify
     /// Resets the notification history for a specific notification title.
     /// </summary>
     /// <param name="title">The title of the notification to reset.</param>
-    public async Task ResetNotificationHistoryForNotificationTitle(string title)
+    public void ResetNotificationHistoryForNotificationTitle(string title)
     {
-        var oldData = await _storage.GetAsync<List<NotificationModel>>("notificationHistory") ?? [];
+        var oldData = _storage.Get<List<NotificationModel>>("notificationHistory") ?? [];
         var data = oldData.Find(x => x.Name == title);
         if (data != null) oldData.Remove(data);
 
-        await _storage.SaveAsync("notificationHistory", oldData);
+        _storage.Save("notificationHistory", oldData);
     }
 
     /// <summary>
@@ -307,12 +307,12 @@ public class Notify : INotify
     /// <param name="title">The title of the notification.</param>
     /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
     /// <returns>True if the notification can be sent; otherwise, false.</returns>
-    private static async Task<bool> CanSendNotification(IDataRepository storage, bool canAlwaysSend, string title,
+    private static bool CanSendNotification(IDataRepository storage, bool canAlwaysSend, string title,
         double? sendAfterMinutes)
     {
         if (canAlwaysSend) return true;
 
-        var notification = await GetLastNotification(storage, title);
+        var notification = GetLastNotification(storage, title);
 
         sendAfterMinutes ??= 60;
         return DateTimeOffset.Now.AddMinutes((double)sendAfterMinutes) >= (notification?.LastSendNotification ?? DateTime.Now.AddDays(-1000));
@@ -324,16 +324,16 @@ public class Notify : INotify
     /// <param name="storage">The data repository for storing notification history.</param>
     /// <param name="title">The title of the notification.</param>
     /// <param name="message">The message of the notification.</param>
-    private static async Task SaveNotification(IDataRepository storage, string title, string message)
+    private static void SaveNotification(IDataRepository storage, string title, string message)
     {
-        var oldData = await storage.GetAsync<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
+        var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
         var data = oldData.Find(x => x.Name == title);
         if (data != null)
             data.Value = message;
         else
             oldData.Add(new NotificationModel(name: title, value: message, lastSendNotification: DateTimeOffset.Now));
 
-        await storage.SaveAsync("notificationHistory", oldData);
+        storage.Save("notificationHistory", oldData);
     }
 
     /// <summary>
@@ -342,9 +342,9 @@ public class Notify : INotify
     /// <param name="storage">The data repository for storing notification history.</param>
     /// <param name="title">The title of the notification.</param>
     /// <returns>The last notification model for the specified title.</returns>
-    private static async Task<NotificationModel?> GetLastNotification(IDataRepository storage, string title)
+    private static NotificationModel? GetLastNotification(IDataRepository storage, string title)
     {
-        var oldData = await storage.GetAsync<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
+        var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
         return oldData.Find(x => x.Name == title);
     }
 }

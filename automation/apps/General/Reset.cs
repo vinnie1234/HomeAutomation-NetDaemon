@@ -6,7 +6,7 @@ namespace Automation.apps.General;
 /// Represents an application that handles the reset logic for alarms and lights.
 /// </summary>
 [NetDaemonApp(Id = nameof(Reset))]
-public class Reset : BaseApp, IAsyncInitializable
+public class Reset : BaseApp
 {
     private readonly IDataRepository _storage;
 
@@ -33,28 +33,21 @@ public class Reset : BaseApp, IAsyncInitializable
     {
         _storage = storage;
         LightEntitiesStates = [];
-    }
-
-    /// <summary>
-    /// Initializes the application asynchronously.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
-    {
+        
         if (Entities.InputBoolean.Disablereset.IsOff())
         {
-            await ResetAlarmAsync();
-            await ResetLightsAsync();
+            ResetAlarmAsync();
+            ResetLightsAsync();
         }
     }
 
     /// <summary>
     /// Resets the alarms by comparing the current active alarms with the stored alarms.
     /// </summary>
-    private async Task ResetAlarmAsync()
+    private void ResetAlarmAsync()
     {
         //todo TTP steps!
-        var oldAlarms = await _storage.GetAsync<List<AlarmStateModel?>>("LightState");
+        var oldAlarms = _storage.Get<List<AlarmStateModel?>>("LightState");
         if (oldAlarms == null) return;
 
         var activeAlarmsHub = new List<AlarmStateModel?>();
@@ -69,17 +62,17 @@ public class Reset : BaseApp, IAsyncInitializable
                          .TrueForAll(alarmStateModel => alarmStateModel?.AlarmId != alarm?.AlarmId)))
             if (alarm is { EntityId: not null, AlarmId: not null })
             {
-                await Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} wordt verwijderd", true);
+                Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} wordt verwijderd", true);
             }
     }
 
     /// <summary>
     /// Resets the lights to their previous states.
     /// </summary>
-    private async Task ResetLightsAsync()
+    private void ResetLightsAsync()
     {
         //todo TTP steps!
-        LightEntitiesStates = await _storage.GetAsync<List<LightStateModel>>("LightState");
+        LightEntitiesStates = _storage.Get<List<LightStateModel>>("LightState");
 
         Logger.LogDebug("Get {Count} light states", LightEntitiesStates?.Count);
 

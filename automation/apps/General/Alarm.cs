@@ -174,7 +174,7 @@ public class Alarm : BaseApp
             if (!(entities?.Count > 0))
             {
                 Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", [_discordLogChannel]);
-                _ = Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
+                Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
                     "De ping naar HA is helaas niet gelukt!", false, 10);
             }
         });

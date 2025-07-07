@@ -1,5 +1,4 @@
 using System.IO;
-using System.Threading.Tasks;
 
 namespace Automation.Repository;
 
@@ -23,12 +22,12 @@ public class DataRepository : IDataRepository
     }
 
     /// <summary>
-    /// Retrieves data of type <typeparamref name="T"/> from storage asynchronously.
+    /// Retrieves data of type <typeparamref name="T"/> from storage.
     /// </summary>
     /// <typeparam name="T">The type of data to retrieve.</typeparam>
     /// <param name="id">The identifier of the data to retrieve.</param>
     /// <returns>The retrieved data, or null if the data does not exist.</returns>
-    public async Task<T?> GetAsync<T>(string id) where T : class
+    public T? Get<T>(string id) where T : class
     {
         try
         {
@@ -37,9 +36,8 @@ public class DataRepository : IDataRepository
             if (!File.Exists(storageJsonFile))
                 return null;
 
-            await using var jsonStream = File.OpenRead(storageJsonFile);
-
-            return await JsonSerializer.DeserializeAsync<T>(jsonStream);
+            var jsonContent = File.ReadAllText(storageJsonFile);
+            return JsonSerializer.Deserialize<T>(jsonContent);
         }
         catch (Exception ex)
         {
@@ -50,21 +48,20 @@ public class DataRepository : IDataRepository
     }
 
     /// <summary>
-    /// Saves data of type <typeparamref name="T"/> to storage asynchronously.
+    /// Saves data of type <typeparamref name="T"/> to storage.
     /// </summary>
     /// <typeparam name="T">The type of data to save.</typeparam>
     /// <param name="id">The identifier of the data to save.</param>
     /// <param name="data">The data to save.</param>
-    public async Task SaveAsync<T>(string id, T data)
+    public void Save<T>(string id, T data)
     {
         try
         {
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
             Directory.CreateDirectory(_dataStoragePath);
 
-            await using var jsonStream = File.Open(storageJsonFile, FileMode.Create, FileAccess.Write);
-
-            await JsonSerializer.SerializeAsync(jsonStream, data);
+            var jsonContent = JsonSerializer.Serialize(data);
+            File.WriteAllText(storageJsonFile, jsonContent);
         }
         catch (Exception ex)
         {
