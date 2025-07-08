@@ -92,9 +92,21 @@
               stroke_width: 3
               show:
                 legend_value: false
+            - entity: sensor.badkamer_2_battery_days_remaining
+              name: Badkamer Switch
+              color: '#4a90e2'
+              stroke_width: 3
+              show:
+                legend_value: false
             - entity: sensor.gang_battery_days_remaining
               name: Gang Motion  
               color: '#ff7f0e'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.gang_2_battery_days_remaining
+              name: Gang Switch
+              color: '#ff9f50'
               stroke_width: 3
               show:
                 legend_value: false
@@ -107,6 +119,54 @@
             - entity: sensor.berging_battery_days_remaining
               name: Berging Motion
               color: '#d62728'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.woonkamer_battery_days_remaining
+              name: Woonkamer Switch
+              color: '#9467bd'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.woonkamer_2_battery_days_remaining
+              name: Woonkamer Switch 2
+              color: '#c5b0d5'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.hal_battery_days_remaining
+              name: Hal Motion
+              color: '#8c564b'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.switch_badkamer_spiegel_battery_days_remaining
+              name: Badkamer Spiegel
+              color: '#e377c2'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.switch_slaapkamer_battery_days_remaining
+              name: Slaapkamer Switch Alt
+              color: '#7f7f7f'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.keuken_afstandbediening_battery_days_remaining
+              name: Keuken Remote
+              color: '#bcbd22'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.jaap_battery_days_remaining
+              name: Jaap Device
+              color: '#17becf'
+              stroke_width: 3
+              show:
+                legend_value: false
+            - entity: sensor.voordeur_battery_days_remaining
+              name: Voordeur
+              color: '#ff6b6b'
               stroke_width: 3
               show:
                 legend_value: false
@@ -161,12 +221,20 @@
             end: day
           series:
             - entity: sensor.badkamer_battery_discharge_rate
-              name: Badkamer
+              name: Badkamer Motion
               color: '#1f77b4'
               stroke_width: 3
+            - entity: sensor.badkamer_2_battery_discharge_rate
+              name: Badkamer Switch
+              color: '#4a90e2'
+              stroke_width: 3
             - entity: sensor.gang_battery_discharge_rate  
-              name: Gang
+              name: Gang Motion
               color: '#ff7f0e'
+              stroke_width: 3
+            - entity: sensor.gang_2_battery_discharge_rate
+              name: Gang Switch
+              color: '#ff9f50'
               stroke_width: 3
             - entity: sensor.slaapkamer_battery_discharge_rate
               name: Slaapkamer
@@ -175,6 +243,38 @@
             - entity: sensor.berging_battery_discharge_rate
               name: Berging
               color: '#d62728'
+              stroke_width: 3
+            - entity: sensor.woonkamer_battery_discharge_rate
+              name: Woonkamer
+              color: '#9467bd'
+              stroke_width: 3
+            - entity: sensor.woonkamer_2_battery_discharge_rate
+              name: Woonkamer 2
+              color: '#c5b0d5'
+              stroke_width: 3
+            - entity: sensor.hal_battery_discharge_rate
+              name: Hal
+              color: '#8c564b'
+              stroke_width: 3
+            - entity: sensor.switch_badkamer_spiegel_battery_discharge_rate
+              name: Badkamer Spiegel
+              color: '#e377c2'
+              stroke_width: 3
+            - entity: sensor.switch_slaapkamer_battery_discharge_rate
+              name: Slaapkamer Alt
+              color: '#7f7f7f'
+              stroke_width: 3
+            - entity: sensor.keuken_afstandbediening_battery_discharge_rate
+              name: Keuken Remote
+              color: '#bcbd22'
+              stroke_width: 3
+            - entity: sensor.jaap_battery_discharge_rate
+              name: Jaap
+              color: '#17becf'
+              stroke_width: 3
+            - entity: sensor.voordeur_battery_discharge_rate
+              name: Voordeur
+              color: '#ff6b6b'
               stroke_width: 3
           apex_config:
             chart:
@@ -202,13 +302,13 @@
             - entity: sensor.badkamer_battery_health_status
               name: 'Badkamer Motion'
               secondary_info: last-updated
-            - entity: sensor.badkamer_battery_2_health_status  
+            - entity: sensor.badkamer_2_battery_health_status  
               name: 'Badkamer Switch'
               secondary_info: last-updated
             - entity: sensor.gang_battery_health_status
               name: 'Gang Motion'
               secondary_info: last-updated
-            - entity: sensor.gang_battery_2_health_status
+            - entity: sensor.gang_2_battery_health_status
               name: 'Gang Switch'  
               secondary_info: last-updated
             - entity: sensor.berging_battery_health_status
@@ -219,6 +319,27 @@
               secondary_info: last-updated
             - entity: sensor.woonkamer_battery_health_status
               name: 'Woonkamer Switch'
+              secondary_info: last-updated
+            - entity: sensor.woonkamer_2_battery_health_status
+              name: 'Woonkamer Switch 2'
+              secondary_info: last-updated
+            - entity: sensor.hal_battery_health_status
+              name: 'Hal Motion'
+              secondary_info: last-updated
+            - entity: sensor.switch_badkamer_spiegel_battery_health_status
+              name: 'Badkamer Spiegel Switch'
+              secondary_info: last-updated
+            - entity: sensor.switch_slaapkamer_battery_health_status
+              name: 'Slaapkamer Switch Alt'
+              secondary_info: last-updated
+            - entity: sensor.keuken_afstandbediening_battery_health_status
+              name: 'Keuken Afstandbediening'
+              secondary_info: last-updated
+            - entity: sensor.jaap_battery_health_status
+              name: 'Jaap Device'
+              secondary_info: last-updated
+            - entity: sensor.voordeur_battery_health_status
+              name: 'Voordeur'
               secondary_info: last-updated
           state_color: true
 
@@ -240,20 +361,60 @@
               }
           series:
             - entity: sensor.badkamer_battery_age_days
-              name: Badkamer (AA)
+              name: Badkamer Motion
               color: '#1f77b4'
               stroke_width: 4
+            - entity: sensor.badkamer_2_battery_age_days
+              name: Badkamer Switch
+              color: '#4a90e2'
+              stroke_width: 4
             - entity: sensor.gang_battery_age_days
-              name: Gang (AA)
+              name: Gang Motion
               color: '#ff7f0e'  
               stroke_width: 4
+            - entity: sensor.gang_2_battery_age_days
+              name: Gang Switch
+              color: '#ff9f50'
+              stroke_width: 4
             - entity: sensor.slaapkamer_battery_age_days
-              name: Slaapkamer (CR2032)
+              name: Slaapkamer Switch
               color: '#2ca02c'
               stroke_width: 4
             - entity: sensor.berging_battery_age_days
-              name: Berging (AA)
+              name: Berging Motion
               color: '#d62728'
+              stroke_width: 4
+            - entity: sensor.woonkamer_battery_age_days
+              name: Woonkamer Switch
+              color: '#9467bd'
+              stroke_width: 4
+            - entity: sensor.woonkamer_2_battery_age_days
+              name: Woonkamer Switch 2
+              color: '#c5b0d5'
+              stroke_width: 4
+            - entity: sensor.hal_battery_age_days
+              name: Hal Motion
+              color: '#8c564b'
+              stroke_width: 4
+            - entity: sensor.switch_badkamer_spiegel_battery_age_days
+              name: Badkamer Spiegel
+              color: '#e377c2'
+              stroke_width: 4
+            - entity: sensor.switch_slaapkamer_battery_age_days
+              name: Slaapkamer Alt
+              color: '#7f7f7f'
+              stroke_width: 4
+            - entity: sensor.keuken_afstandbediening_battery_age_days
+              name: Keuken Remote
+              color: '#bcbd22'
+              stroke_width: 4
+            - entity: sensor.jaap_battery_age_days
+              name: Jaap Device
+              color: '#17becf'
+              stroke_width: 4
+            - entity: sensor.voordeur_battery_age_days
+              name: Voordeur
+              color: '#ff6b6b'
               stroke_width: 4
           apex_config:
             chart:
@@ -310,20 +471,86 @@
             start: day
           series:
             - entity: sensor.badkamer_battery_replacement_date
-              name: Badkamer
+              name: Badkamer Motion
               color: '#1f77b4'
               stroke_width: 0
               show:
                 legend_value: false
+            - entity: sensor.badkamer_2_battery_replacement_date
+              name: Badkamer Switch
+              color: '#4a90e2'
+              stroke_width: 0
+              show:
+                legend_value: false
             - entity: sensor.gang_battery_replacement_date
-              name: Gang
+              name: Gang Motion
               color: '#ff7f0e'
               stroke_width: 0
               show:
                 legend_value: false
+            - entity: sensor.gang_2_battery_replacement_date
+              name: Gang Switch
+              color: '#ff9f50'
+              stroke_width: 0
+              show:
+                legend_value: false
             - entity: sensor.slaapkamer_battery_replacement_date
-              name: Slaapkamer  
+              name: Slaapkamer Switch
               color: '#2ca02c'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.berging_battery_replacement_date
+              name: Berging Motion
+              color: '#d62728'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.woonkamer_battery_replacement_date
+              name: Woonkamer Switch
+              color: '#9467bd'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.woonkamer_2_battery_replacement_date
+              name: Woonkamer Switch 2
+              color: '#c5b0d5'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.hal_battery_replacement_date
+              name: Hal Motion
+              color: '#8c564b'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.switch_badkamer_spiegel_battery_replacement_date
+              name: Badkamer Spiegel
+              color: '#e377c2'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.switch_slaapkamer_battery_replacement_date
+              name: Slaapkamer Alt
+              color: '#7f7f7f'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.keuken_afstandbediening_battery_replacement_date
+              name: Keuken Remote
+              color: '#bcbd22'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.jaap_battery_replacement_date
+              name: Jaap Device
+              color: '#17becf'
+              stroke_width: 0
+              show:
+                legend_value: false
+            - entity: sensor.voordeur_battery_replacement_date
+              name: Voordeur
+              color: '#ff6b6b'
               stroke_width: 0
               show:
                 legend_value: false
