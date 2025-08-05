@@ -43,7 +43,7 @@ public class NetDaemonTests
     {
         // Arrange
         var lightColor = new List<double> { 255.0, 128.0, 64.0 };
-        _storage.GetAsync<IReadOnlyList<double>>("NetDaemonRestart").Returns(lightColor);
+        _storage.Get<IReadOnlyList<double>>("NetDaemonRestart").Returns(lightColor);
         
         // Act
         _ = _ctx.InitApp<Automation.apps.General.NetDaemon>(_storage);
@@ -72,7 +72,7 @@ public class NetDaemonTests
             .ToState("2024-01-01 12:00:01");
 
         // Assert — should save light color and restart addon.
-        _storage.Received().SaveAsync("NetDaemonRestart", Arg.Any<object>());
+        _storage.Received().Save("NetDaemonRestart", Arg.Any<object>());
         TestDebugHelper.AssertCallWithDebug(_ctx.HaContext, haContext =>
         {
             haContext.Received().CallService("hassio", "addon_restart", 

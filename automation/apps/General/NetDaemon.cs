@@ -29,31 +29,33 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
         _storage = storage;
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken)
+    public Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var lightColor = await _storage.GetAsync<IReadOnlyList<double>>("NetDaemonRestart");
+        var lightColor = _storage.Get<IReadOnlyList<double>>("NetDaemonRestart");
 
         if (lightColor != null && lightColor.ToString() != "")
         {
             // Translate the value from IReadOnlyList<double> to IReadOnlyCollection<int>
             IReadOnlyCollection<int> lightColorInInt = [(int)lightColor[0], (int)lightColor[1], (int)lightColor[2]];
             Entities.Light.Koelkast.TurnOn(rgbColor: lightColorInInt);
-            await _storage.SaveAsync("NetDaemonRestart", "");
+            _storage.Save("NetDaemonRestart", "");
         }
 
         if (!Entities.InputBoolean.Sleeping.IsOn())
-            _ = Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
+            Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
         Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_discordLogChannel]);
 
-        Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(async _ =>
+        Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>
         {
-            await _storage.SaveAsync("NetDaemonRestart", Entities.Light.Koelkast.Attributes?.RgbColor);
+            _storage.Save("NetDaemonRestart", Entities.Light.Koelkast.Attributes?.RgbColor);
             Entities.Light.Koelkast.TurnOn(colorName: "red");
-            await Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
+            Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
 
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            Thread.Sleep(TimeSpan.FromSeconds(5));
             Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
         });
+        
+        return Task.CompletedTask;
     }
 
     /// <summary>

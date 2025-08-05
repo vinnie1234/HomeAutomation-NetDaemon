@@ -184,7 +184,7 @@ public class AwayManager : BaseApp
     /// <summary>
     /// Executes the complete welcome home sequence asynchronously.
     /// </summary>
-    private async Task ExecuteWelcomeHomeSequenceAsync()
+    private Task ExecuteWelcomeHomeSequenceAsync()
     {
         try
         {
@@ -196,13 +196,13 @@ public class AwayManager : BaseApp
             NotifyVincentPhone(houseState);
             SetLightScene(houseState);
             
-            Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, async () =>
+            Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
                 var message = "Welkom thuis Vincent!";
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")
                     message += " Het eten van Pixel is bijna op!";
 
-                await Notify.NotifyHouse("welcomeHome", message, true);
+                Notify.NotifyHouse("welcomeHome", message, true);
             
                 // Transition to final Home state
                 TransitionToState(HomePresenceState.Home);
@@ -210,7 +210,7 @@ public class AwayManager : BaseApp
                 Logger.LogInformation("Welcome home sequence completed");
             });
             
-       
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -222,6 +222,7 @@ public class AwayManager : BaseApp
                 _currentState = HomePresenceState.Home;
                 Logger.LogWarning("Reset to Home state due to error");
             }
+            return Task.CompletedTask;
         }
     }
 

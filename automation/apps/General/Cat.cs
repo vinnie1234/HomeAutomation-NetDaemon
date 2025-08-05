@@ -181,14 +181,14 @@ public class Cat : BaseApp, IAsyncInitializable
     /// </summary>
     /// <param name="amount">The amount that failed to be dispensed.</param>
     /// <returns>A task representing the notification operation.</returns>
-    private async Task NotifyManualFeedingRequired(int amount)
+    private Task NotifyManualFeedingRequired(int amount)
     {
         var message = $"Automatische voeding van {amount}g is mislukt. Voer Pixel handmatig of check de Zedar feeder.";
         
         // Try to notify via phone first, then Discord as secondary
         try
         {
-            await Notify.NotifyPhoneVincent(
+            Notify.NotifyPhoneVincent(
                 "Kat voeding gefaald", 
                 message,
                 true);
@@ -203,6 +203,7 @@ public class Cat : BaseApp, IAsyncInitializable
         }
         
         Logger.LogWarning("Cat feeding failed - manual intervention required for {Amount}g", amount);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -392,13 +393,13 @@ public class Cat : BaseApp, IAsyncInitializable
     /// Fallback notification when automatic litter box cleaning fails.
     /// </summary>
     /// <returns>A task representing the notification operation.</returns>
-    private async Task NotifyManualCleaningRequired()
+    private Task NotifyManualCleaningRequired()
     {
         const string message = "Automatische reiniging van de kattenbak is mislukt. Start handmatig de reinigingscyclus of controleer de PetSnowy verbinding.";
         
         try
         {
-            await Notify.NotifyPhoneVincent(
+            Notify.NotifyPhoneVincent(
                 "Kattenbak reiniging gefaald", 
                 message,
                 true);
@@ -413,6 +414,7 @@ public class Cat : BaseApp, IAsyncInitializable
         }
         
         Logger.LogWarning("PetSnowy litter box cleaning failed - manual intervention required");
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -420,7 +422,7 @@ public class Cat : BaseApp, IAsyncInitializable
     /// </summary>
     private async Task EmptyPetSnowy()
     {
-        await ExecuteWithFallbackAsync(
+       await ExecuteWithFallbackAsync(
             EmptyPetSnowyViaTuya,
             NotifyManualEmptyingRequired,
             "EmptyPetSnowy"
@@ -450,13 +452,13 @@ public class Cat : BaseApp, IAsyncInitializable
     /// Fallback notification when automatic litter box emptying fails.
     /// </summary>
     /// <returns>A task representing the notification operation.</returns>
-    private async Task NotifyManualEmptyingRequired()
+    private Task NotifyManualEmptyingRequired()
     {
         const string message = "Automatische lediging van de kattenbak is mislukt. Leeg handmatig de kattenbak of controleer de PetSnowy verbinding.";
         
         try
         {
-            await Notify.NotifyPhoneVincent(
+            Notify.NotifyPhoneVincent(
                 "Kattenbak lediging gefaald", 
                 message,
                 true);
@@ -471,5 +473,7 @@ public class Cat : BaseApp, IAsyncInitializable
         }
         
         Logger.LogWarning("PetSnowy litter box emptying failed - manual intervention required");
+        
+        return Task.CompletedTask;
     }
 }

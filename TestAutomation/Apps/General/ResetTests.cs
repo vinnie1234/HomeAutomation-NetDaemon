@@ -26,7 +26,7 @@ public class ResetTests
         // Assert — should not call storage when reset is disabled.
         TestDebugHelper.AssertCallWithDebug(_storage, storage =>
         {
-            storage.DidNotReceive().GetAsync<List<LightStateModel>>("LightState");
+            storage.DidNotReceive().Get<List<LightStateModel>>("LightState");
         }, nameof(ShouldSkipResetWhenDisabled));
     }
 
@@ -40,7 +40,7 @@ public class ResetTests
             new(entityId: "light.bureau", rgbColors: new List<double> { 255, 128, 64 }, 
                 brightness: 200, colorTemp: null, isOn: true, supportedColorModes: new[] { "xy" })
         };
-        _storage.GetAsync<List<LightStateModel>>("LightState").Returns(lightStates);
+        _storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
         _ = _ctx.InitApp<Reset>(_storage);
@@ -64,7 +64,7 @@ public class ResetTests
             new(entityId: "light.bureau", rgbColors: null, 
                 brightness: 0, colorTemp: null, isOn: false, supportedColorModes: new[] { "onoff" })
         };
-        _storage.GetAsync<List<LightStateModel>>("LightState").Returns(lightStates);
+        _storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
         _ = _ctx.InitApp<Reset>(_storage);
@@ -88,7 +88,7 @@ public class ResetTests
             new(entityId: "light.bureau", rgbColors: null, 
                 brightness: 150, colorTemp: JsonSerializer.SerializeToElement(4000), isOn: true, supportedColorModes: new[] { "color_temp" })
         };
-        _storage.GetAsync<List<LightStateModel>>("LightState").Returns(lightStates);
+        _storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
         _ = _ctx.InitApp<Reset>(_storage);
@@ -111,7 +111,7 @@ public class ResetTests
         {
             new() { AlarmId = "alarm1", Status = "set", LocalTime = "08:00", EntityId = "hub.vincent_alarms" }
         };
-        _storage.GetAsync<List<AlarmStateModel?>>("LightState").Returns(oldAlarms);
+        _storage.Get<List<AlarmStateModel?>>("LightState").Returns(oldAlarms);
 
         // Act
         _ = _ctx.InitApp<Reset>(_storage);
@@ -119,7 +119,7 @@ public class ResetTests
         // Assert — should check for alarm differences.
         TestDebugHelper.AssertCallWithDebug(_storage, storage =>
         {
-            storage.Received().GetAsync<List<AlarmStateModel?>>("LightState");
+            storage.Received().Get<List<AlarmStateModel?>>("LightState");
         }, nameof(ShouldNotifyAboutDeletedAlarms));
     }
 }
