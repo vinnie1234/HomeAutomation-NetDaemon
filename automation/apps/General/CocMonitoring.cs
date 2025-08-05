@@ -8,7 +8,6 @@ using RestSharp;
 
 namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
-[Focus]
 public class CocMonitoring : BaseApp
 {
     public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository) : base(haContext, logger, notify, scheduler)
@@ -39,11 +38,11 @@ public class CocMonitoring : BaseApp
             {
                 // If we already ran at 07:00 and current time is before 19:00, skip
                 case 7 when currentHour < 19:
-                    Logger.LogInformation("GetTweets already executed today at 07:00, skipping until 19:00");
+                    Logger.LogDebug("GetTweets already executed today at 07:00, skipping until 19:00");
                     return;
                 // If we already ran at 19:00 today, skip
                 case 19:
-                    Logger.LogInformation("GetTweets already executed today at 19:00, skipping until tomorrow");
+                    Logger.LogDebug("GetTweets already executed today at 19:00, skipping until tomorrow");
                     return;
             }
         }
