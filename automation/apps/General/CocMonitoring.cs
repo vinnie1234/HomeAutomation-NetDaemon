@@ -1,12 +1,14 @@
 ﻿using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Helpers;
+using Automation.Models.COC;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Twitter;
 using RestSharp;
 
 namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
+[Focus]
 public class CocMonitoring : BaseApp
 {
     public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository) : base(haContext, logger, notify, scheduler)
@@ -24,9 +26,40 @@ public class CocMonitoring : BaseApp
 
     private void GetTweets(string bearerToken, string discordChannel, IDataRepository dataRepository)
     {
+        // Check if this function has already run today at allowed times (07:00 or 19:00)
+        var lastRunTime = dataRepository.Get<string>("COC_LAST_RUN_TIME");
+        var now = DateTime.Now;
+        
+        if (!string.IsNullOrEmpty(lastRunTime) && DateTime.TryParse(lastRunTime, out var lastRun) && lastRun.Date == now.Date)
+        {
+            var currentHour = now.Hour;
+            var lastRunHour = lastRun.Hour;
+
+            switch (lastRunHour)
+            {
+                // If we already ran at 07:00 and current time is before 19:00, skip
+                case 7 when currentHour < 19:
+                    Logger.LogInformation("GetTweets already executed today at 07:00, skipping until 19:00");
+                    return;
+                // If we already ran at 19:00 today, skip
+                case 19:
+                    Logger.LogInformation("GetTweets already executed today at 19:00, skipping until tomorrow");
+                    return;
+            }
+        }
+        
+        // Only allow execution at 07:00 (6-8) or 19:00 (18-20) hour ranges
+        var currentTime = now.TimeOfDay;
+        if (!(currentTime >= TimeSpan.FromHours(6) && currentTime < TimeSpan.FromHours(8)) &&
+            !(currentTime >= TimeSpan.FromHours(18) && currentTime < TimeSpan.FromHours(20)))
+        {
+            Logger.LogWarning("GetTweets can only run between 06:00-08:00 or 18:00-20:00, current time: {Time}", now.ToString("HH:mm:ss"));
+            return;
+        }
+
         const string twitterUserId = "1671940215013867529";
 
-        var idList = dataRepository.Get<List<string>>("COC_TWEET_ID_LIST") ?? [];
+        var idListModel = dataRepository.Get<List<COCModel>>("COC_TWEET_ID_LIST") ?? [];
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
@@ -42,15 +75,22 @@ public class CocMonitoring : BaseApp
                 if (twitterModel?.Data != null)
                     foreach (var tweet in twitterModel.Data)
                     {
-                        if (tweet.Id != null && !idList.Contains(tweet.Id))
+                        if (tweet.Id != null && idListModel.All(x => x.Id != tweet.Id))
                         {
                             SendToDiscord(discordChannel, tweet);
-                            idList.Add(tweet.Id);
+                            idListModel.Add(new COCModel
+                            {
+                                Id = tweet.Id,
+                                InertDate = DateTime.Now
+                            });
                         }
                     }
             }
-            dataRepository.Save("COC_TWEET_ID_LIST", idList);
+            dataRepository.Save("COC_TWEET_ID_LIST", idListModel);
         }
+        
+        // Save the current execution time
+        dataRepository.Save("COC_LAST_RUN_TIME", now.ToString("yyyy-MM-dd HH:mm:ss"));
     }
 
 
