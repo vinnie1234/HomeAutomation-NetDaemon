@@ -3,6 +3,7 @@ using Automation;
 using Automation.CustomLogger;
 using Microsoft.Extensions.Hosting;
 using NetDaemon.Extensions.Tts;
+using NetDaemon.Extensions.MqttEntityManager;
 using NetDaemon.Runtime;
 
 #pragma warning disable CA1812
@@ -20,6 +21,7 @@ try
         .UseNetDaemonAppSettings()
         .UseNetDaemonRuntime()
         .UseNetDaemonTextToSpeech()
+        .UseNetDaemonMqttEntityManagement()
         .AddAppServices()
         .ConfigureServices((_, services) =>
             services

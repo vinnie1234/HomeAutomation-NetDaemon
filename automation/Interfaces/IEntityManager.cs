@@ -10,7 +10,7 @@ public interface IEntityManager
     /// </summary>
     /// <param name="entityId">The entity ID to create.</param>
     /// <param name="options">Entity creation options.</param>
-    void Create(string entityId, EntityCreationOptions options);
+    Task Create(string entityId, EntityCreationOptions options);
 
     /// <summary>
     /// Sets the state of an entity.

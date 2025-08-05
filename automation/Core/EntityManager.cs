@@ -1,16 +1,18 @@
+using MQTTnet.Internal;
+using NetDaemon.Extensions.MqttEntityManager;
+using EntityCreationOptions = Automation.Interfaces.EntityCreationOptions;
+
 namespace Automation.Core;
 
 /// <summary>
-/// Service for managing Home Assistant entities.
+/// Service for managing Home Assistant entities using MQTT Entity Manager.
 /// </summary>
-public class EntityManager(IHaContext haContext, ILogger<EntityManager> logger) : IEntityManager
+public class EntityManager(IMqttEntityManager mqttEntityManager, IHaContext haContext, ILogger<EntityManager> logger) : IEntityManager
 {
     /// <summary>
-    /// Creates an entity in Home Assistant using input helpers.
-    /// For now, this is a simple implementation that logs the creation intent.
-    /// In the future, this could be extended to actually create entities via API.
+    /// Creates an entity in Home Assistant using MQTT Entity Manager.
     /// </summary>
-    public void Create(string entityId, EntityCreationOptions options)
+    public async Task Create(string entityId, EntityCreationOptions options)
     {
         try
         {
@@ -21,56 +23,72 @@ public class EntityManager(IHaContext haContext, ILogger<EntityManager> logger) 
                 return;
             }
 
-            // Create the entity by setting initial state with attributes
-            var initialState = "unknown";
-            var entityAttributes = new
+            // Create sensor entity using MQTT Entity Manager
+            var creationOptions = new NetDaemon.Extensions.MqttEntityManager.EntityCreationOptions
             {
-                friendly_name = options.Name,
-                device_class = options.DeviceClass,
+                Name = options.Name,
+                DeviceClass = options.DeviceClass
+            };
+            
+            // Create attributes object for additional properties
+            var attributes = new
+            {
                 unit_of_measurement = options.UnitOfMeasurement,
                 icon = options.Icon
             };
 
-            var serviceData = new
+            try
             {
-                entity_id = entityId,
-                state = initialState,
-                attributes = entityAttributes
-            };
-
-            haContext.CallService("homeassistant", "set_state", data: serviceData);
-            logger.LogInformation("Created entity {EntityId} with name '{Name}'", entityId, options.Name);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await mqttEntityManager.CreateAsync(entityId, creationOptions, attributes)
+                    .WaitAsync(cts.Token);
+                logger.LogInformation("Created entity {EntityId} with name '{Name}'", entityId, options.Name);
+            }
+            catch (TimeoutException)
+            {
+                logger.LogWarning("MQTT entity creation timed out for {EntityId}, but entity may still be created", entityId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to create entity {EntityId} via MQTT", entityId);
+            }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to create entity {EntityId}", entityId);
-            throw;
+            // Don't throw - allow app to continue
         }
     }
 
     /// <summary>
-    /// Sets the state of an entity by calling the appropriate service.
+    /// Sets the state of an entity using MQTT Entity Manager.
     /// </summary>
     public void SetState(string entityId, object state, object? attributes = null)
     {
         try
         {
-            // Use the set_state service to update entity state
-            var serviceData = new
+            // Use async method in fire-and-forget manner
+            _ = Task.Run(async () =>
             {
-                entity_id = entityId,
-                state = state.ToString(),
-                attributes = attributes
-            };
-
-            haContext.CallService("homeassistant", "set_state", data: serviceData);
-            
-            logger.LogDebug("Set state for {EntityId} to {State}", entityId, state);
+                try
+                {
+                    await mqttEntityManager.SetStateAsync(entityId, state.ToString()!);
+                    if (attributes != null)
+                    {
+                        await mqttEntityManager.SetAttributesAsync(entityId, attributes);
+                    }
+                    logger.LogDebug("Set state for {EntityId} to {State}", entityId, state);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to set state for entity {EntityId} via MQTT", entityId);
+                }
+            });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to set state for entity {EntityId}", entityId);
-            throw;
+            // Don't throw - allow app to continue
         }
     }
 

@@ -200,28 +200,41 @@ public class Alarm : BaseApp
             ("textiel", "Textiel")
         };
 
-        foreach (var (key, displayName) in garbageTypes)
+        // Use fire-and-forget async for entity initialization
+        _ = Task.Run(async () =>
         {
-            var entityId = $"sensor.garbage_placed_{key}";
-            
-            if (!_entityManager.EntityExists(entityId))
+            foreach (var (key, displayName) in garbageTypes)
             {
-                _entityManager.Create(entityId, new EntityCreationOptions
-                {
-                    Name = $"{displayName} keer buiten gezet",
-                    Icon = "mdi:trash-can",
-                    UnitOfMeasurement = "keer"
-                });
+                var entityId = $"sensor.garbage_placed_{key}";
                 
-                // Initialize with 0
-                _entityManager.SetState(entityId, 0, new
+                if (!_entityManager.EntityExists(entityId))
                 {
-                    last_placed = "Nog nooit",
-                    garbage_type = displayName,
-                    friendly_name = $"{displayName} keer buiten gezet"
-                });
+                    try
+                    {
+                        await _entityManager.Create(entityId, new EntityCreationOptions
+                        {
+                            Name = $"{displayName} keer buiten gezet",
+                            Icon = "mdi:trash-can",
+                            UnitOfMeasurement = "keer"
+                        });
+                        
+                        // Initialize with 0
+                        _entityManager.SetState(entityId, 0, new
+                        {
+                            last_placed = "Nog nooit",
+                            garbage_type = displayName,
+                            friendly_name = $"{displayName} keer buiten gezet"
+                        });
+                        
+                        Logger.LogInformation("Initialized garbage counter for {GarbageType}", displayName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Failed to initialize garbage counter for {GarbageType}", displayName);
+                    }
+                }
             }
-        }
+        });
     }
 
     /// <summary>

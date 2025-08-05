@@ -5,6 +5,7 @@ using Automation.Repository;
 using Automation.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NetDaemon.Extensions.MqttEntityManager;
 
 namespace Automation;
 
@@ -22,7 +23,10 @@ internal static class AppServicesExtension
                 .AddSingleton<INotify>(provider =>
                     new Notify(GenericHelpers.GetHaContext(provider), provider.GetRequiredService<IDataRepository>(), provider.GetRequiredService<ILogger<Notify>>()))
                 .AddSingleton<IEntityManager>(provider =>
-                    new EntityManager(GenericHelpers.GetHaContext(provider), provider.GetRequiredService<ILogger<EntityManager>>()));
+                    new EntityManager(
+                        provider.GetRequiredService<IMqttEntityManager>(),
+                        GenericHelpers.GetHaContext(provider), 
+                        provider.GetRequiredService<ILogger<EntityManager>>()));
         });
     }
 }
