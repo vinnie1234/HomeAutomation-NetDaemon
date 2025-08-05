@@ -8,7 +8,6 @@ using RestSharp;
 
 namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
-[Focus]
 public class CocMonitoring : BaseApp
 {
     public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository) : base(haContext, logger, notify, scheduler)
