@@ -83,7 +83,7 @@ public class DownloadMonitoringTests
         // Arrange
         var mockDataRepository = Substitute.For<IDataRepository>();
         var existingItems = new List<string> { "sample-movie-2024", "another-movie-2024" };
-        mockDataRepository.GetAsync<List<string>>("YTS_ITEMS").Returns(existingItems);
+        mockDataRepository.Get<List<string>>("YTS_ITEMS").Returns(existingItems);
 
         var app = _ctx.InitAppWithStorage<DownloadMonitoring>();
 
@@ -97,7 +97,7 @@ public class DownloadMonitoringTests
     {
         // Arrange
         var mockDataRepository = Substitute.For<IDataRepository>();
-        mockDataRepository.GetAsync<List<string>>("YTS_ITEMS").Returns(new List<string>());
+        mockDataRepository.Get<List<string>>("YTS_ITEMS").Returns(new List<string>());
 
         var app = _ctx.InitAppWithStorage<DownloadMonitoring>();
 

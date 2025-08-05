@@ -31,15 +31,16 @@ public class SaveInState : BaseApp, IAsyncInitializable
         LightEntitiesStates = new List<LightStateModel>();
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken)
+    public Task InitializeAsync(CancellationToken cancellationToken)
     {
-        await SetInitialStates();
+        SetInitialStates();
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Sets the initial states of lights and alarms and saves them to storage.
     /// </summary>
-    private async Task SetInitialStates()
+    private void SetInitialStates()
     {
         var properties = Entities.Light.GetType().GetProperties();
 
@@ -50,9 +51,9 @@ public class SaveInState : BaseApp, IAsyncInitializable
                 SetLightEntityState((LightEntity)light);
         }
 
-        await _storage.SaveAsync("LightState", LightEntitiesStates);
+        _storage.Save("LightState", LightEntitiesStates);
 
-        await _storage.SaveAsync("AlarmState", SetAlarmState());
+        _storage.Save("AlarmState", SetAlarmState());
 
         Logger.LogDebug("Save state");
     }

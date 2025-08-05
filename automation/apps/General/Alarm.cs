@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using System.Threading;
 using Automation.Helpers;
+using Automation.Models;
 using Automation.Models.DiscordNotificationModels;
 using NetDaemon.Client;
 using NetDaemon.Client.HomeAssistant.Extensions;
@@ -15,6 +16,8 @@ public class Alarm : BaseApp
 {
     private readonly string _discordLogChannel = ConfigManager.GetValueFromConfigNested("Discord", "Logs") ?? "";
 
+    private readonly IEntityManager _entityManager;
+    
     /// <summary>
     /// Initializes a new instance of the <see cref="Alarm"/> class.
     /// </summary>
@@ -23,14 +26,19 @@ public class Alarm : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for timed tasks.</param>
     /// <param name="homeAssistantConnection">The Home Assistant connection.</param>
+    /// <param name="entityManager">The entity manager for creating and managing entities.</param>
     public Alarm(
         IHaContext ha,
         ILogger<Alarm> logger,
         INotify notify,
         IScheduler scheduler,
-        IHomeAssistantConnection homeAssistantConnection)
+        IHomeAssistantConnection homeAssistantConnection,
+        IEntityManager entityManager)
         : base(ha, logger, notify, scheduler)
     {
+        _entityManager = entityManager;
+        InitializeGarbageCounterEntities();
+        
         TemperatureCheck();
         EnergyCheck();
         GarbageCheck();
@@ -114,16 +122,118 @@ public class Alarm : BaseApp
     }
 
     /// <summary>
-    /// Schedules a daily check for garbage collection and sends a reminder notification.
+    /// Schedules a daily check for garbage collection and sends a reminder notification with action button.
     /// </summary>
     private void GarbageCheck()
     {
         Scheduler.ScheduleCron("00 22 * * *", () =>
         {
             var message = Entities.Sensor.AfvalMorgen.State;
-            if (message != "Geen")
+            if (message != "Geen" && !string.IsNullOrEmpty(message))
+            {
+                var garbageType = message.ToLower().Replace(" ", "_");
+                
                 Notify.NotifyPhoneVincent("Vergeet het afval niet",
-                    $"Vergeet je niet op {message} buiten te zetten?", true);
+                    $"Vergeet je niet op {message} buiten te zetten?", true,
+                    action: 
+                    [
+                        new ActionModel(
+                            action: $"garbage_placed_{garbageType}",
+                            title: "Buiten gezet",
+                            func: () => HandleGarbagePlaced(garbageType, message)
+                        )
+                    ]);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles the action when garbage is placed outside.
+    /// </summary>
+    /// <param name="garbageType">The type of garbage (normalized).</param>
+    /// <param name="originalMessage">The original message from the sensor.</param>
+    private void HandleGarbagePlaced(string garbageType, string originalMessage)
+    {
+        var entityId = $"sensor.garbage_placed_{garbageType}";
+        
+        // Get current count and increment
+        var currentCount = 0;
+        if (_entityManager.EntityExists(entityId))
+        {
+            var currentState = HaContext.GetState(entityId);
+            if (currentState?.State != null && int.TryParse(currentState.State.ToString(), out var count))
+            {
+                currentCount = count;
+            }
+        }
+        
+        currentCount++;
+        
+        // Update the entity with new count
+        _entityManager.SetState(entityId, currentCount, new
+        {
+            last_placed = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            garbage_type = originalMessage,
+            friendly_name = $"{originalMessage} keer buiten gezet"
+        });
+        
+        // Send confirmation notification
+        Notify.NotifyPhoneVincent("Afval bevestiging",
+            $"{originalMessage} is gemarkeerd als buiten gezet. Totaal: {currentCount} keer", true);
+        
+        Logger.LogInformation("Garbage placed: {GarbageType} - Total count: {Count}", originalMessage, currentCount);
+    }
+
+    /// <summary>
+    /// Initializes the garbage counter entities for different garbage types.
+    /// </summary>
+    private void InitializeGarbageCounterEntities()
+    {
+        var garbageTypes = new[]
+        {
+            ("gft", "GFT"),
+            ("restafval", "Restafval"),
+            ("pmd", "PMD"),
+            ("papier", "Papier"),
+            ("karton", "Karton"),
+            ("glas", "Glas"),
+            ("textiel", "Textiel")
+        };
+
+        // Use fire-and-forget async for entity initialization
+        _ = Task.Run(async () =>
+        {
+            foreach (var (key, displayName) in garbageTypes)
+            {
+                var entityId = $"sensor.garbage_placed_{key}";
+                
+                if (!_entityManager.EntityExists(entityId))
+                {
+                    try
+                    {
+                        await _entityManager.Create(entityId, new EntityCreationOptions
+                        {
+                            Name = $"{displayName} keer buiten gezet",
+                            Icon = "mdi:trash-can",
+                            UnitOfMeasurement = "keer"
+                        });
+                        
+                        // Initialize with 0
+                        _entityManager.SetState(entityId, 0, new
+                        {
+                            last_placed = "Nog nooit",
+                            garbage_type = displayName,
+                            friendly_name = $"{displayName} keer buiten gezet"
+                        });
+                        
+                        Logger.LogInformation("Initialized garbage counter for {GarbageType}", displayName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Failed to initialize garbage counter for {GarbageType}", displayName);
+                    }
+                }
+            }
         });
     }
 
@@ -174,7 +284,7 @@ public class Alarm : BaseApp
             if (!(entities?.Count > 0))
             {
                 Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", [_discordLogChannel]);
-                _ = Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
+                Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
                     "De ping naar HA is helaas niet gelukt!", false, 10);
             }
         });

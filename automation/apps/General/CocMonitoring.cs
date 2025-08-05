@@ -14,25 +14,25 @@ public class CocMonitoring : BaseApp
         var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "COC") ?? "";
         var bearerToken = ConfigManager.GetValueFromConfigNested("Twitter", "BearerToken") ?? "";
 
-        _ = GetTweets(bearerToken, discordChannel, dataRepository); 
+        GetTweets(bearerToken, discordChannel, dataRepository); 
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
-            async () => { await GetTweets(bearerToken, discordChannel, dataRepository); });        
+            () => { GetTweets(bearerToken, discordChannel, dataRepository); });        
         Scheduler.RunDaily(TimeSpan.Parse("19:00:00", new CultureInfo("nl-Nl")),
-            async () => { await GetTweets(bearerToken, discordChannel, dataRepository); });
+            () => { GetTweets(bearerToken, discordChannel, dataRepository); });
     }
 
-    private async Task GetTweets(string bearerToken, string discordChannel, IDataRepository dataRepository)
+    private void GetTweets(string bearerToken, string discordChannel, IDataRepository dataRepository)
     {
         const string twitterUserId = "1671940215013867529";
 
-        var idList = await dataRepository.GetAsync<List<string>>("COC_TWEET_ID_LIST") ?? [];
+        var idList = dataRepository.Get<List<string>>("COC_TWEET_ID_LIST") ?? [];
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
         var request = new RestRequest($"/2/users/{twitterUserId}/tweets");
         request.AddHeader("Authorization", $"Bearer {bearerToken}");
-        var response = await client.ExecuteAsync(request);
+        var response = client.Execute(request);
 
         if (response.IsSuccessful)
         {
@@ -49,7 +49,7 @@ public class CocMonitoring : BaseApp
                         }
                     }
             }
-            await dataRepository.SaveAsync("COC_TWEET_ID_LIST", idList);
+            dataRepository.Save("COC_TWEET_ID_LIST", idList);
         }
     }
 
