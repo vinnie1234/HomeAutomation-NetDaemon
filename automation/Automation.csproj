@@ -30,7 +30,7 @@
     </Target>
 
     <ItemGroup>
-        <PackageReference Include="Discord.Net.Webhook" Version="3.17.4" />
+        <PackageReference Include="Discord.Net.Webhook" Version="3.18.0" />
         <PackageReference Include="NetDaemon.AppModel" Version="25.18.1" />
         <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.18.1" />
         <PackageReference Include="NetDaemon.Runtime" Version="25.18.1" />
