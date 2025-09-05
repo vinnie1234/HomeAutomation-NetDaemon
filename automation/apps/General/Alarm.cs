@@ -46,8 +46,7 @@ public class Alarm : BaseApp
         HaChecks(homeAssistantConnection);
         EnergyNegativeCheck();
         BackUpCheck();
-        TrafficToWorkCheck();
-
+        
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ =>
         {
             if (Globals.AmIHomeCheck(Entities) && !Vincent.IsHome)
@@ -56,34 +55,7 @@ public class Alarm : BaseApp
         });
     }
 
-    /// <summary>
-    /// Checks the traffic to work and sends a notification if the travel time exceeds the threshold.
-    /// </summary>
-    private void TrafficToWorkCheck()
-    {
-        Scheduler.ScheduleCron("50 7 * * 4,5", () =>
-        {
-            if (Entities.InputBoolean.Holliday.IsOff())
-            {
-                if (Entities.Sensor.HereTravelTimeReistijdInHetVerkeer.State > 40)
-                {
-                    Notify.NotifyPhoneVincent(
-                        "HET IS DRUK OP DE WEG!!!",
-                        $"Het kost je momenteeel {Entities.Sensor.HereTravelTimeReistijdInHetVerkeer.State} minuten tot kantoor!",
-                        true,
-                        action:
-                        [
-                            new ActionModel(action: "URI", title: "Ga naar maps",
-                                uri:
-                                "https://www.google.nl/maps/dir/Ida+Gerhardtlaan+28,+Veenendaal/Papendorpseweg+99,+3528+BJ+Utrecht,+Nederland/@52.0460841,4.9910623,10z/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x47c6519986b166d3:0x69ceb74bf73a6521!2m2!1d5.5278732!2d52.0275379!1m5!1m1!1s0x47c6659909ea7b8d:0x70525f5d1a86e320!2m2!1d5.0879509!2d52.0640583!3e0?entry=ttu&g_ep=EgoyMDI0MTAxNi4wIKXMDSoASAFQAw%3D%3D"
-                            )
-                        ]
-                    );
-                }
-            }
-        });
-    }
-
+    
     /// <summary>
     /// Checks the temperature and sends a notification if it exceeds the threshold.
     /// </summary>

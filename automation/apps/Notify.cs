@@ -169,8 +169,8 @@ public class Notify : INotify
     {
         _entities.MediaPlayer.HeleHuis.PlayMedia(new MediaPlayerPlayMediaParameters
         {
-            MediaContentId = mediaContentId,
-            MediaContentType = "music"
+            Media = mediaContentId,
+            Announce = false
         });
 
         _entities.MediaPlayer.HeleHuis.VolumeSet(volume);
