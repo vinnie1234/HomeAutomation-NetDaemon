@@ -14,8 +14,6 @@ public class CocMonitoring : BaseApp
     {
         var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "COC") ?? "";
         var bearerToken = ConfigManager.GetValueFromConfigNested("Twitter", "BearerToken") ?? "";
-
-        GetTweets(bearerToken, discordChannel, dataRepository); 
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
             () => { GetTweets(bearerToken, discordChannel, dataRepository); });        

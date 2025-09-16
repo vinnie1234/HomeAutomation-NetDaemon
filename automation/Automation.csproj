@@ -31,14 +31,14 @@
 
     <ItemGroup>
         <PackageReference Include="Discord.Net.Webhook" Version="3.18.0" />
-        <PackageReference Include="NetDaemon.AppModel" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Runtime" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.HassModel" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Client" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.18.1" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.18.1" />
+        <PackageReference Include="NetDaemon.AppModel" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Runtime" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.HassModel" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Client" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.36.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.9" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
