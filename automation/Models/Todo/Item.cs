@@ -5,11 +5,11 @@ namespace Automation.Models.Todo;
 public class Item
 {
     [JsonPropertyName("summary")]
-    public string Summary { get; set; }
+    public required string Summary { get; set; }
 
     [JsonPropertyName("uid")]
-    public string Uid { get; set; }
+    public required string Uid { get; set; }
 
     [JsonPropertyName("status")]
-    public string Status { get; set; }
+    public required string Status { get; set; }
 }

@@ -5,5 +5,5 @@ namespace Automation.Models.Todo;
 public class TodoModel
 {
     [JsonPropertyName("todo.dagelijks")]
-    public TodoDagelijks TodoDagelijks { get; set; }
+    public required TodoDagelijks TodoDagelijks { get; init; }
 }
