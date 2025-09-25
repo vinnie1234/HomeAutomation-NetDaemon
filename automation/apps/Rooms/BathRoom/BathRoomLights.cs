@@ -39,6 +39,11 @@ public class BathRoomLights : BaseApp
             var eventModel = x.DataElement?.ToObject<EventModel>();
             if (eventModel != null) OverwriteSwitch(eventModel);
         });
+        
+        Entities.BinarySensor.WaterSensorDouche
+            .StateChanges()
+            .Where(x => x.Old.IsOff() && !IsDouching)
+            .Subscribe(x => Entities.InputBoolean.Douchen.TurnOn());
 
         InitializeLights();
         ToothbrushHandler();
