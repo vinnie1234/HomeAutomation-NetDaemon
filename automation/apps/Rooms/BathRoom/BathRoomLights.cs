@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Automation.Helpers;
 
 namespace Automation.apps.Rooms.BathRoom;
 
@@ -9,6 +10,8 @@ public class BathRoomLights : BaseApp
     /// Gets a value indicating whether it is nighttime.
     /// </summary>
     private bool IsNighttime => Entities.InputSelect.Housemodeselect.State == "Night";
+    
+    private readonly string _spotifyUrl = ConfigManager.GetValueFromConfig("SpotifyRadioNlUrl") ?? "";
     
     /// <summary>
     /// Gets a value indicating whether light automations are disabled.
@@ -87,7 +90,7 @@ public class BathRoomLights : BaseApp
         if (isOn)
         {
             Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-            Services.Spotcast.Start(entityId: Entities.MediaPlayer.Googlehome0351.EntityId, startVolume: 50);
+            Services.Spotcast.PlayMedia(_spotifyUrl, Entities.MediaPlayer.Googlehome0351.EntityId);
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
             Entities.Cover.Rollerblind0003.CloseCover();
@@ -198,7 +201,7 @@ public class BathRoomLights : BaseApp
                 if (!IsDouching)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.15);
-                    Services.Spotcast.Start(entityId: Entities.MediaPlayer.Googlehome0351.EntityId, startVolume: 50);
+                    Services.Spotcast.PlayMedia(_spotifyUrl, Entities.MediaPlayer.Googlehome0351.EntityId);
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
             });
