@@ -90,7 +90,7 @@ public class BathRoomLights : BaseApp
         if (isOn)
         {
             Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-            Services.Spotcast.PlayMedia(_spotifyUrl, Entities.MediaPlayer.Googlehome0351.EntityId);
+            PlaySpotify();
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
             Entities.Cover.Rollerblind0003.CloseCover();
@@ -200,8 +200,8 @@ public class BathRoomLights : BaseApp
             {
                 if (!IsDouching)
                 {
-                    Entities.MediaPlayer.Googlehome0351.VolumeSet(0.15);
-                    Services.Spotcast.PlayMedia(_spotifyUrl, Entities.MediaPlayer.Googlehome0351.EntityId);
+                    Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
+                    PlaySpotify();
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
             });
@@ -218,5 +218,22 @@ public class BathRoomLights : BaseApp
                     Entities.Light.Slaapkamer.TurnOn();
                 }
             });
+    }
+    
+    private void PlaySpotify()
+    {
+        
+        var serviceData = new Dictionary<string, object>
+        {
+            { "media_player", new Dictionary<string, object> {
+                { "device_id", "309ee6387cb746b2824da39628eb374f" }
+            }},
+            { "spotify_uri", _spotifyUrl },
+            { "data", new Dictionary<string, object> {
+                { "shuffle", true }
+            }}
+        };
+
+        HaContext.CallService("spotcast", "play_media", null, serviceData);
     }
 }
