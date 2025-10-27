@@ -1,7 +1,6 @@
 ﻿using Automation.apps.General;
 using TestAutomation.Helpers;
 using Xunit;
-using FluentAssertions;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 

@@ -1,10 +1,7 @@
 using System.Reactive.Concurrency;
-using System.Threading;
 using Automation.Helpers;
-using Automation.Models;
 using Automation.Models.DiscordNotificationModels;
 using NetDaemon.Client;
-using NetDaemon.Client.HomeAssistant.Extensions;
 
 namespace Automation.apps.General;
 
@@ -43,7 +40,6 @@ public class Alarm : BaseApp
         EnergyCheck();
         GarbageCheck();
         PetSnowyCheck();
-        HaChecks(homeAssistantConnection);
         EnergyNegativeCheck();
         BackUpCheck();
         
@@ -239,25 +235,6 @@ public class Alarm : BaseApp
                 Notify.NotifyDiscord("PetSnowy heeft errors", [_discordLogChannel], discordNotificationModel);
                 Notify.NotifyPhoneVincent("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", false, 10);
-            }
-        });
-    }
-
-    /// <summary>
-    /// Checks the connection to Home Assistant and sends a notification if the connection is lost.
-    /// </summary>
-    /// <param name="homeAssistantConnection">The Home Assistant connection.</param>
-    private void HaChecks(IHomeAssistantConnection homeAssistantConnection)
-    {
-        Scheduler.RunEvery(TimeSpan.FromSeconds(30), DateTimeOffset.Now, async () =>
-        {
-            var entities = await homeAssistantConnection.GetEntitiesAsync(new CancellationToken());
-
-            if (!(entities?.Count > 0))
-            {
-                Notify.NotifyDiscord("NetDeamon heeft geen verbinding meer met HA", [_discordLogChannel]);
-                Notify.NotifyPhoneVincent("NetDeamon heeft geen verbinding meer met HA",
-                    "De ping naar HA is helaas niet gelukt!", false, 10);
             }
         });
     }

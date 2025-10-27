@@ -1,5 +1,4 @@
 ﻿using System.Reactive.Concurrency;
-using System.Threading.Tasks;
 using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
 
@@ -29,7 +28,7 @@ public class AutoUpdateApp : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         _updates = Entities.Update;
-        scheduler.ScheduleCron("0 3 * * *", () => _ = AutoUpdate());
+        scheduler.ScheduleCron("0 11 30 * *", () => _ = AutoUpdate());
     }
 
     /// <summary>

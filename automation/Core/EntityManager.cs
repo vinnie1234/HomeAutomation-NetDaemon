@@ -1,4 +1,3 @@
-using MQTTnet.Internal;
 using NetDaemon.Extensions.MqttEntityManager;
 using EntityCreationOptions = Automation.Interfaces.EntityCreationOptions;
 

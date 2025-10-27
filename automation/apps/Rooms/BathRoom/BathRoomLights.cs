@@ -42,8 +42,8 @@ public class BathRoomLights : BaseApp
         
         Entities.BinarySensor.WaterSensorDouche
             .StateChanges()
-            .Where(x => x.Old.IsOff() && !IsDouching)
-            .Subscribe(x => Entities.InputBoolean.Douchen.TurnOn());
+            .Where(x => x.Old.IsOff() && !IsDouching && !Vincent.IsSleeping)
+            .Subscribe(_ => Entities.InputBoolean.Douchen.TurnOn());
 
         InitializeLights();
         ToothbrushHandler();

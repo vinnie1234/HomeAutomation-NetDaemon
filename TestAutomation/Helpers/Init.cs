@@ -1,9 +1,7 @@
 ﻿using Automation.apps;
 using Automation.Interfaces;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetDaemon.AppModel;
-using NetDaemon.Extensions.Scheduler;
 using NSubstitute;
 
 namespace TestAutomation.Helpers;

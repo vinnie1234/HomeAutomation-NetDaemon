@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
-using NSubstitute.Core;
 using NSubstitute.Exceptions;
-using System.Reflection;
 using NetDaemon.HassModel;
 using NetDaemon.HassModel.Entities;
 

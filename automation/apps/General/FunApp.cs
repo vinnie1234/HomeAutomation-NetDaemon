@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
-using System.Threading;
 using Automation.Enum;
 
 namespace Automation.apps.General;
@@ -79,7 +78,7 @@ public class FunApp : BaseApp
             Entities.MediaPlayer.HeleHuis.VolumeSet(0.9);
         }, true);
 
-        Scheduler.ScheduleCron("00 00 01 01 *", () => _ = ChristmasFirework());
+        Scheduler.ScheduleCron("00 00 01 01 *", ChristmasFirework);
     }
 
     /// <summary>
@@ -89,19 +88,19 @@ public class FunApp : BaseApp
     {
         StartNewYearOnNewYear();
 
-        Entities.InputButton.Startnewyear.StateChanges().Subscribe(async _ =>
+        Entities.InputButton.Startnewyear.StateChanges().Subscribe( _ =>
         {
             Notify.SendMusicToHome("http://192.168.50.189:8123/local/HappyNewYear.mp3", 0.4);
-            await Task.Delay(_config.Timing.NewYearMusicDelay);
+            Thread.Sleep(_config.Timing.NewYearMusicDelay);
             Entities.MediaPlayer.HeleHuis.VolumeSet(0.9);
-            await ChristmasFirework();
+            ChristmasFirework();
         });
     }
 
     /// <summary>
     /// Simulates a Christmas firework display by changing the colors of the lights.
     /// </summary>
-    private async Task ChristmasFirework()
+    private void ChristmasFirework()
     {
         var rnd = new Random();
         var s = new Stopwatch();
@@ -150,7 +149,7 @@ public class FunApp : BaseApp
                     break;
             }
 
-            await Task.Delay(_config.Timing.ShortDelay);
+            Thread.Sleep(_config.Timing.ShortDelay);
         } while (s.Elapsed < TimeSpan.FromMinutes(4));
 
         Entities.MediaPlayer.HeleHuis.VolumeSet(0.4);
