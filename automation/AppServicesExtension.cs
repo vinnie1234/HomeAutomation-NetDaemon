@@ -22,6 +22,7 @@ internal static class AppServicesExtension
                     provider.GetRequiredService<ILogger<DataRepository>>()))
                 .AddSingleton<INotify>(provider =>
                     new Notify(GenericHelpers.GetHaContext(provider), provider.GetRequiredService<IDataRepository>(), provider.GetRequiredService<ILogger<Notify>>()))
+                .AddSingleton<ISpotcast>(provider => new Spotcast(GenericHelpers.GetHaContext(provider)))
                 .AddSingleton<IEntityManager>(provider =>
                     new EntityManager(
                         provider.GetRequiredService<IMqttEntityManager>(),

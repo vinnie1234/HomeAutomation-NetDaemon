@@ -10,7 +10,8 @@ public class BathRoomLights : BaseApp
     /// Gets a value indicating whether it is nighttime.
     /// </summary>
     private bool IsNighttime => Entities.InputSelect.Housemodeselect.State == "Night";
-    
+
+    private ISpotcast _spotcast;
     private readonly string _spotifyUrl = ConfigManager.GetValueFromConfig("SpotifyRadioNlUrl") ?? "";
     
     /// <summary>
@@ -29,14 +30,18 @@ public class BathRoomLights : BaseApp
     /// <param name="ha">The Home Assistant context.</param>
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
+    /// <param name="spotcast">The spotcast service</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     public BathRoomLights(
         IHaContext ha,
         ILogger<BathRoomLights> logger,
         INotify notify,
+        ISpotcast spotcast,
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)
     {
+        _spotcast = spotcast;
+        
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>
         {
             var eventModel = x.DataElement?.ToObject<EventModel>();
@@ -90,7 +95,7 @@ public class BathRoomLights : BaseApp
         if (isOn)
         {
             Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-            PlaySpotify();
+            _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
             Entities.Cover.Rollerblind0003.CloseCover();
@@ -201,7 +206,7 @@ public class BathRoomLights : BaseApp
                 if (!IsDouching)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
-                    PlaySpotify();
+                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
             });
@@ -218,22 +223,5 @@ public class BathRoomLights : BaseApp
                     Entities.Light.Slaapkamer.TurnOn();
                 }
             });
-    }
-    
-    private void PlaySpotify()
-    {
-        
-        var serviceData = new Dictionary<string, object>
-        {
-            { "media_player", new Dictionary<string, object> {
-                { "device_id", "309ee6387cb746b2824da39628eb374f" }
-            }},
-            { "spotify_uri", _spotifyUrl },
-            { "data", new Dictionary<string, object> {
-                { "shuffle", true }
-            }}
-        };
-
-        HaContext.CallService("spotcast", "play_media", null, serviceData);
     }
 }
