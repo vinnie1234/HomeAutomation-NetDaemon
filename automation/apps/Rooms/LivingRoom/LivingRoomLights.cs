@@ -27,6 +27,21 @@ public class LivingRoomLights : BaseApp
             if (eventModel != null) TurnOnPlafond(eventModel);
         });
 
+        Entities.BinarySensor.Motionwoonkamer.StateChanges().Subscribe(x =>
+        {
+            if (Entities.Light.Woonkamer.IsOn() && x.New.IsOff())
+            {
+                if (Vincent.IsSleeping)
+                {
+                    Entities.Light.Woonkamer.TurnOff();
+                }
+            }else if (Entities.Light.Woonkamer.IsOff() && x.New.IsOn())
+            {
+                if(!Vincent.IsSleeping)
+                    LightExtension.SetLightSceneWoonkamer(Entities);
+            }
+        });
+
         Entities.InputSelect.Housemodeselect
             .StateChanges()
             .Where(_ => Entities.Light.HueFilamentBulb2.IsOn())

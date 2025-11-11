@@ -16,20 +16,6 @@ public class AwayManager : BaseApp
     private readonly object _stateLock = new();
 
     /// <summary>
-    /// Gets the current home presence state. Useful for debugging and testing.
-    /// </summary>
-    public HomePresenceState CurrentState 
-    { 
-        get 
-        { 
-            lock (_stateLock) 
-            { 
-                return _currentState; 
-            } 
-        } 
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="AwayManager"/> class.
     /// </summary>
     /// <param name="ha">The Home Assistant context.</param>
@@ -194,7 +180,7 @@ public class AwayManager : BaseApp
             
             // Immediate actions
             NotifyVincentPhone(houseState);
-            SetLightScene(houseState);
+            LightExtension.SetLightSceneWoonkamer(Entities);
             
             Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
@@ -223,31 +209,6 @@ public class AwayManager : BaseApp
                 Logger.LogWarning("Reset to Home state due to error");
             }
             return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// Sets the light scene based on the current house state.
-    /// </summary>
-    /// <param name="houseState">The current state of the house.</param>
-    private void SetLightScene(HouseState houseState)
-    {
-        switch (houseState)
-        {
-            case HouseState.Morning:
-                Entities.Scene.Woonkamermorning.TurnOn();
-                break;
-            case HouseState.Day:
-                Entities.Scene.Woonkamerday.TurnOn();
-                break;
-            case HouseState.Evening:
-                Entities.Scene.Woonkamerevening.TurnOn();
-                break;
-            case HouseState.Night:
-                Entities.Scene.Woonkamernight.TurnOn();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(houseState), $"{houseState} is not a valid house state!");
         }
     }
 

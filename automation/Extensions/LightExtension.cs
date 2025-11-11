@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using Automation.Enum;
 using Automation.Configuration;
+using static Automation.Globals;
 
 namespace Automation.Extensions;
 
@@ -102,5 +103,32 @@ public static class LightExtension
                 HouseState.Evening or HouseState.Night => warmColor,  // Warm Color
                 _                                              => someColor   // Some Color
             };
+    }
+
+    /// <summary>
+    /// Sets the light scene based on the current house state.
+    /// </summary>
+    /// <param name="entities"> The entities to control.</param>
+    public static void SetLightSceneWoonkamer(IEntities entities)
+    {
+        var houseState = GetHouseState(entities);
+        
+        switch (houseState)
+        {
+            case HouseState.Morning:
+                entities.Scene.Woonkamermorning.TurnOn();
+                break;
+            case HouseState.Day:
+                entities.Scene.Woonkamerday.TurnOn();
+                break;
+            case HouseState.Evening:
+                entities.Scene.Woonkamerevening.TurnOn();
+                break;
+            case HouseState.Night:
+                entities.Scene.Woonkamernight.TurnOn();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(houseState), $"{houseState} is not a valid house state!");
+        }
     }
 }
