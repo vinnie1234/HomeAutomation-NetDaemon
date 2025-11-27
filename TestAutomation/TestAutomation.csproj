@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="FluentAssertions" Version="8.8.0" />
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
         <PackageReference Include="NetDaemon.AppModel" Version="25.42.0" />
         <PackageReference Include="NetDaemon.Client" Version="25.42.0" />
         <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.42.0" />
