@@ -9,7 +9,7 @@ namespace Automation.apps.General;
 /// Represents an application that manages various cat-related automations and notifications.
 /// </summary>
 [NetDaemonApp(Id = nameof(Cat))]
-public class Cat : BaseApp, IAsyncInitializable
+public class Cat : BaseApp
 {
     private readonly string _discordPixelChannel = ConfigManager.GetValueFromConfigNested("Discord", "Pixel") ?? "";
 
@@ -27,15 +27,6 @@ public class Cat : BaseApp, IAsyncInitializable
         IScheduler scheduler)
         : base(haContext, logger, notify, scheduler)
     {
-    }
-
-    /// <summary>
-    /// Initializes the Cat application asynchronously.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task representing the initialization operation.</returns>
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
-    {
         ButtonFeedCat();
         PetSnowyStatusMonitoring();
         AutoFeedCat();
@@ -43,11 +34,11 @@ public class Cat : BaseApp, IAsyncInitializable
         SendAlarmWhenStuffIsOff();
 
         Entities.InputButton.Pixelgivenextfeedeary.StateChanges()
-            .Subscribe(async void (_) =>
+            .Subscribe(_ =>
             {
                 try
                 {
-                    await GiveNextFeedEarly();
+                    GiveNextFeedEarly();
                 }
                 catch (Exception ex)
                 {
@@ -56,11 +47,11 @@ public class Cat : BaseApp, IAsyncInitializable
             });
 
         Entities.InputButton.Cleanpetsnowy.StateChanges()
-            .Subscribe(async void (_) =>
+            .Subscribe( _ =>
             {
                 try
                 {
-                    await CleanPetSnowy();
+                    CleanPetSnowy();
                 }
                 catch (Exception ex)
                 {
@@ -69,20 +60,19 @@ public class Cat : BaseApp, IAsyncInitializable
             });
 
         Entities.InputButton.Emptypetsnowy.StateChanges()
-            .Subscribe(async void (_) =>
+            .Subscribe(_ =>
             {
                 try
                 {
-                    await EmptyPetSnowy();
+                    EmptyPetSnowy();
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error during PetSnowy emptying");
                 }
             });
-        
-        await Task.CompletedTask;
     }
+    
 
     /// <summary>
     /// Monitors the status of the Pet Snowy litter box and updates counters based on its state.
@@ -114,11 +104,11 @@ public class Cat : BaseApp, IAsyncInitializable
     private void ButtonFeedCat()
     {
         Entities.InputButton.Feedcat.StateChanges()
-            .Subscribe(async void (_) =>
+            .Subscribe(_ =>
             {
                 try
                 {
-                    await FeedCat(Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0));
+                    FeedCat(Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0));
                     
                     Entities.InputNumber.Pixellastamountmanualfeed.SetValue(Convert.ToInt32(
                         (Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0) +
@@ -140,7 +130,7 @@ public class Cat : BaseApp, IAsyncInitializable
     /// Feeds the cat with the specified amount of food.
     /// </summary>
     /// <param name="amount">The amount of food to give to the cat.</param>
-    private async Task FeedCat(int amount)
+    private void FeedCat(int amount)
     {
         // Update counters immediately (local state)
         var amountToday = Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedday.State ?? 0) + amount);
@@ -148,12 +138,13 @@ public class Cat : BaseApp, IAsyncInitializable
         Entities.InputNumber.Pixeltotalamountfeedalltime.SetValue(
             Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedalltime.State ?? 0) + amount));
 
-        // Feed the cat with resilience and fallback
-        await ExecuteWithFallbackAsync(
-            () => FeedCatViaTuya(amount),
-            () => NotifyManualFeedingRequired(amount),
-            $"FeedCat-{amount}g"
-        );
+        try
+        {
+            FeedCatViaTuya(amount);
+        }catch(Exception ex)
+        {
+            NotifyManualFeedingRequired(amount);
+        }
     }
 
     /// <summary>
@@ -161,16 +152,13 @@ public class Cat : BaseApp, IAsyncInitializable
     /// </summary>
     /// <param name="amount">The amount of food to dispense.</param>
     /// <returns>A task representing the feeding operation.</returns>
-    private async Task FeedCatViaTuya(int amount)
+    private void FeedCatViaTuya(int amount)
     {
-        await Task.Run(() =>
+        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-            {
-                DeviceId = ConfigManager.GetValueFromConfig("ZedarDeviceId"),
-                Dp = 3,
-                Value = amount
-            });
+            DeviceId = ConfigManager.GetValueFromConfig("ZedarDeviceId"),
+            Dp = 3,
+            Value = amount
         });
         
         Logger.LogInformation("Successfully fed cat {Amount}g via Zedar feeder", amount);
@@ -181,7 +169,7 @@ public class Cat : BaseApp, IAsyncInitializable
     /// </summary>
     /// <param name="amount">The amount that failed to be dispensed.</param>
     /// <returns>A task representing the notification operation.</returns>
-    private Task NotifyManualFeedingRequired(int amount)
+    private void NotifyManualFeedingRequired(int amount)
     {
         var message = $"Automatische voeding van {amount}g is mislukt. Voer Pixel handmatig of check de Zedar feeder.";
         
@@ -203,7 +191,6 @@ public class Cat : BaseApp, IAsyncInitializable
         }
         
         Logger.LogWarning("Cat feeding failed - manual intervention required for {Amount}g", amount);
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -270,17 +257,7 @@ public class Cat : BaseApp, IAsyncInitializable
             {
                 if (Entities.InputBoolean.Pixelskipnextautofeed.IsOff())
                 {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await FeedCat(Convert.ToInt32(autoFeed.Value.State));
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogError(ex, "Error during automatic cat feeding");
-                        }
-                    });
+                    FeedCat(Convert.ToInt32(autoFeed.Value.State));
 
                     Entities.InputNumber.Pixellastamountautomationfeed.SetValue(Convert.ToInt32(autoFeed.Value.State));
                     Entities.InputDatetime.Pixellastautomatedfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
@@ -296,12 +273,12 @@ public class Cat : BaseApp, IAsyncInitializable
     /// <summary>
     /// Feeds the cat the next scheduled feed early.
     /// </summary>
-    private async Task GiveNextFeedEarly()
+    private void GiveNextFeedEarly()
     {
         var closestFeed = GetClosestFeed();
 
         Entities.InputBoolean.Pixelskipnextautofeed.TurnOn();
-        await FeedCat(Convert.ToInt32(closestFeed.Value.State));
+        FeedCat(Convert.ToInt32(closestFeed.Value.State));
 
         Entities.InputNumber.Pixellastamountmanualfeed.SetValue(Convert.ToInt32(closestFeed.Value.State));
 
@@ -361,119 +338,26 @@ public class Cat : BaseApp, IAsyncInitializable
     /// <summary>
     /// Sends a command to clean the Pet Snowy litter box.
     /// </summary>
-    private async Task CleanPetSnowy()
+    private void CleanPetSnowy()
     {
-        await ExecuteWithFallbackAsync(
-            CleanPetSnowyViaTuya,
-            NotifyManualCleaningRequired,
-            "CleanPetSnowy"
-        );
-    }
-
-    /// <summary>
-    /// Cleans the Pet Snowy litter box via LocalTuya integration.
-    /// </summary>
-    /// <returns>A task representing the cleaning operation.</returns>
-    private async Task CleanPetSnowyViaTuya()
-    {
-        await Task.Run(() =>
+        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-            {
-                DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
-                Dp = 9,
-                Value = "true"
-            });
+            DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
+            Dp = 9,
+            Value = "true"
         });
-        
-        Logger.LogInformation("Successfully initiated PetSnowy litter box cleaning cycle");
-    }
-
-    /// <summary>
-    /// Fallback notification when automatic litter box cleaning fails.
-    /// </summary>
-    /// <returns>A task representing the notification operation.</returns>
-    private Task NotifyManualCleaningRequired()
-    {
-        const string message = "Automatische reiniging van de kattenbak is mislukt. Start handmatig de reinigingscyclus of controleer de PetSnowy verbinding.";
-        
-        try
-        {
-            Notify.NotifyPhoneVincent(
-                "Kattenbak reiniging gefaald", 
-                message,
-                true);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to send phone notification, trying Discord");
-            
-            Notify.NotifyDiscord(
-                $"🐱🧹❌ **Litter Box Cleaning Failed**\n{message}", 
-                [_discordPixelChannel]);
-        }
-        
-        Logger.LogWarning("PetSnowy litter box cleaning failed - manual intervention required");
-        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Sends a command to empty the Pet Snowy litter box.
     /// </summary>
-    private async Task EmptyPetSnowy()
+    private void EmptyPetSnowy()
     {
-       await ExecuteWithFallbackAsync(
-            EmptyPetSnowyViaTuya,
-            NotifyManualEmptyingRequired,
-            "EmptyPetSnowy"
-        );
-    }
-
-    /// <summary>
-    /// Empties the Pet Snowy litter box via LocalTuya integration.
-    /// </summary>
-    /// <returns>A task representing the emptying operation.</returns>
-    private async Task EmptyPetSnowyViaTuya()
-    {
-        await Task.Run(() =>
+        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-            {
-                DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
-                Dp = 109,
-                Value = "true"
-            });
+            DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
+            Dp = 109,
+            Value = "true"
         });
-        
-        Logger.LogInformation("Successfully initiated PetSnowy litter box emptying cycle");
-    }
-
-    /// <summary>
-    /// Fallback notification when automatic litter box emptying fails.
-    /// </summary>
-    /// <returns>A task representing the notification operation.</returns>
-    private Task NotifyManualEmptyingRequired()
-    {
-        const string message = "Automatische lediging van de kattenbak is mislukt. Leeg handmatig de kattenbak of controleer de PetSnowy verbinding.";
-        
-        try
-        {
-            Notify.NotifyPhoneVincent(
-                "Kattenbak lediging gefaald", 
-                message,
-                true);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to send phone notification, trying Discord");
-            
-            Notify.NotifyDiscord(
-                $"🐱🗑️❌ **Litter Box Emptying Failed**\n{message}", 
-                [_discordPixelChannel]);
-        }
-        
-        Logger.LogWarning("PetSnowy litter box emptying failed - manual intervention required");
-        
-        return Task.CompletedTask;
     }
 }
