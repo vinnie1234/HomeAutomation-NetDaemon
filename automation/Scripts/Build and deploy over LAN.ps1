@@ -8,7 +8,7 @@ $solutionPath = "D:\Projects\HomeAutomation-NetDaemon\automation"
 $solutionFilename = "Automation.csproj"
 
 # ND folder served up by a samba addon in HA
-$buildPath = "\\192.168.50.189\config\netdaemon5"
+$buildPath = "\\192.168.50.189\config\netdaemon6"
 
 # Step 1: Run dotnet build
 Set-Location $solutionPath
@@ -36,7 +36,7 @@ Write-Host "Built and deployed, now restarting ND addon"
 
 # You will unfortunately need to turn off protected mode on the "terminal & ssh” addon for this line to work:
 # Replace options in below line with your correct user, host, private key path, port, and addon ID
-ssh vinnie1234@192.168.50.189 -i "C:\Users\Vince\.ssh\id_ed25519" -m hmac-sha2-512-etm@openssh.com 'sudo docker restart addon_c6a2317c_netdaemon5'
+ssh vinnie1234@192.168.50.189 -i "C:\Users\Vince\.ssh\id_ed25519" -m hmac-sha2-512-etm@openssh.com 'sudo docker restart addon_c6a2317c_netdaemon6'
 
 Write-Host "ND addon restarted - Script execution completed."
 Write-Host ""
@@ -46,7 +46,7 @@ $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
 
 if ($key.Character -eq 'y')
 {	
-	explorer "\\192.168.50.189\config\netdaemon5\logs"
+	explorer "\\192.168.50.189\config\netdaemon6\logs"
 }
 
 Set-Location "D:\Projects\HomeAutomation-NetDaemon\automation\Scripts"
