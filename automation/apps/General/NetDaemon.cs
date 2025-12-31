@@ -1,4 +1,4 @@
-using System.Reactive.Concurrency;
+﻿using System.Reactive.Concurrency;
 using Automation.Helpers;
 
 namespace Automation.apps.General;
@@ -30,29 +30,8 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
 
     public Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var lightColor = _storage.Get<IReadOnlyList<double>>("NetDaemonRestart");
+        Notify.NotifyDiscord("Het huis is opnieuw opgestart net 9 test", [_discordLogChannel]);
 
-        if (lightColor != null && lightColor.ToString() != "")
-        {
-            // Translate the value from IReadOnlyList<double> to IReadOnlyCollection<int>
-            IReadOnlyCollection<int> lightColorInInt = [(int)lightColor[0], (int)lightColor[1], (int)lightColor[2]];
-            Entities.Light.Koelkast.TurnOn(rgbColor: lightColorInInt);
-            _storage.Save("NetDaemonRestart", "");
-        }
-
-        if (!Entities.InputBoolean.Sleeping.IsOn())
-            Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
-        Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_discordLogChannel]);
-
-        Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>
-        {
-            _storage.Save("NetDaemonRestart", Entities.Light.Koelkast.Attributes?.RgbColor);
-            Entities.Light.Koelkast.TurnOn(colorName: "red");
-            Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
-
-            Thread.Sleep(TimeSpan.FromSeconds(5));
-            Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
-        });
         
         return Task.CompletedTask;
     }
