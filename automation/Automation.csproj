@@ -35,7 +35,7 @@
         <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.48.0" />
         <PackageReference Include="NetDaemon.Runtime" Version="25.48.0" />
         <PackageReference Include="NetDaemon.HassModel" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Client" Version="25.48.0" />
+        <PackageReference Include="NetDaemon.Client" Version="26.3.0" />
         <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.48.0" />
         <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.48.0" />
         <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.48.0" />
