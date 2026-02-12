@@ -9,6 +9,7 @@ namespace Automation.apps.General;
 /// Represents the Alarm application that monitors various sensors and triggers notifications based on specific conditions.
 /// </summary>
 [NetDaemonApp(Id = nameof(Alarm))]
+[Focus]
 public class Alarm : BaseApp
 {
     private readonly string _discordLogChannel = ConfigManager.GetValueFromConfigNested("Discord", "Logs") ?? "";
@@ -264,36 +265,20 @@ public class Alarm : BaseApp
     {
         Scheduler.ScheduleCron("00 22 * * *", () =>
         {
-            var lastLocalBackString = Entities.Sensor.Onedrivebackup
-                .Attributes?.LastLocalbackupdate;
-
-            var lastOneDriveBackString = Entities.Sensor.Onedrivebackup
-                .Attributes?.LastOneDrivebackupdate;
+            var lastLocalBackString = Entities.Sensor.BackupLastAttemptedAutomaticBackup.State;
+            
 
             if (!string.IsNullOrEmpty(lastLocalBackString))
             {
                 var dateTime = DateTime.Parse(lastLocalBackString);
                 if (dateTime < DateTime.Now.AddDays(-2))
                     Notify.NotifyDiscord(
-                        $"Er is al 2 dagen geen locale backup, laatste backup is van {lastLocalBackString}",
+                        $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",
                         [_discordLogChannel]);
             }
             else
             {
-                Notify.NotifyDiscord("Er is geen laatste locale backup", [_discordLogChannel]);
-            }
-
-            if (!string.IsNullOrEmpty(lastOneDriveBackString))
-            {
-                var dateTime = DateTime.Parse(lastOneDriveBackString);
-                if (dateTime < DateTime.Now.AddDays(-2))
-                    Notify.NotifyDiscord(
-                        $"Er is al 2 dagen geen OneDrive backup, laatste backup is van {lastLocalBackString}",
-                        [_discordLogChannel]);
-            }
-            else
-            {
-                Notify.NotifyDiscord("Er is geen laatste OneDrive backup", [_discordLogChannel]);
+                Notify.NotifyDiscord("Er is geen  backup", [_discordLogChannel]);
             }
         });
     }

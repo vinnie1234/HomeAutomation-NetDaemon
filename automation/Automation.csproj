@@ -31,18 +31,18 @@
 
     <ItemGroup>
         <PackageReference Include="Discord.Net.Webhook" Version="3.18.0" />
-        <PackageReference Include="NetDaemon.AppModel" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Runtime" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.HassModel" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Client" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="25.48.0" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="25.48.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
+        <PackageReference Include="NetDaemon.AppModel" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Runtime" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.HassModel" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Client" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.3.0" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.3.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-        <PackageReference Include="RestSharp" Version="113.0.0" />
+        <PackageReference Include="RestSharp" Version="113.1.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="System.Reactive" Version="6.1.0" />
         <PackageReference Include="Polly" Version="8.6.5" />
