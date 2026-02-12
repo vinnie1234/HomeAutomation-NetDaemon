@@ -9,7 +9,6 @@ namespace Automation.apps.General;
 /// Represents the Alarm application that monitors various sensors and triggers notifications based on specific conditions.
 /// </summary>
 [NetDaemonApp(Id = nameof(Alarm))]
-[Focus]
 public class Alarm : BaseApp
 {
     private readonly string _discordLogChannel = ConfigManager.GetValueFromConfigNested("Discord", "Logs") ?? "";
