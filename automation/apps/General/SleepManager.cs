@@ -28,7 +28,6 @@ public class SleepManager : BaseApp
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)
     {
-        EnergyPriceCheck();
         AwakeExtraChecks();
 
         Entities.InputBoolean.Sleeping.WhenTurnsOff(_ => WakeUp());
@@ -119,77 +118,7 @@ public class SleepManager : BaseApp
         if (!DisableLightAutomations) 
             Entities.Light.TurnAllOff();
     }
-
-    /// <summary>
-    /// Checks the energy prices and sends notifications based on the prices.
-    /// </summary>
-    private void EnergyPriceCheck()
-    {
-        var priceList = GetEnergyPriceList();
-        if (priceList == null) return;
-        
-        var priceModels = ParseEnergyPrices(priceList);
-        
-        foreach (var model in priceModels)
-        {
-            ProcessEnergyPriceNotification(model);
-        }
-    }
-
-    /// <summary>
-    /// Gets the energy price list from the sensor.
-    /// </summary>
-    /// <returns>The energy price data or null if not available.</returns>
-    private IReadOnlyList<object>? GetEnergyPriceList()
-    {
-        return Entities.Sensor.EpexSpotNlNetPrice.Attributes?.Data;
-    }
-
-    /// <summary>
-    /// Parses energy price data into models.
-    /// </summary>
-    /// <param name="priceList">The raw price data.</param>
-    /// <returns>Collection of energy price models.</returns>
-    private IEnumerable<EnergyPriceModel> ParseEnergyPrices(IReadOnlyList<object> priceList)
-    {
-        return priceList
-            .Cast<JsonElement>()
-            .Select(price => price.ToObject<EnergyPriceModel>())
-            .Where(model => model != null)
-            .Cast<EnergyPriceModel>();
-    }
-
-    /// <summary>
-    /// Processes and sends notifications for energy price alerts.
-    /// </summary>
-    /// <param name="model">The energy price model.</param>
-    private void ProcessEnergyPriceNotification(EnergyPriceModel model)
-    {
-        var (title, message) = GetPriceNotificationContent(model);
-        if (!string.IsNullOrEmpty(title))
-        {
-            Notify.NotifyPhoneVincent(title, message, true);
-        }
-    }
-
-    /// <summary>
-    /// Gets notification content based on energy price.
-    /// </summary>
-    /// <param name="model">The energy price model.</param>
-    /// <returns>Tuple of title and message, or empty strings if no notification needed.</returns>
-    private (string title, string message) GetPriceNotificationContent(EnergyPriceModel model)
-    {
-        var baseMessage = $"Stroom kost morgen om {model.StartTime} {model.PricePerKwh} cent!";
-        
-        return model.PricePerKwh switch
-        {
-            <= 0 and > -15 => ("Morgen is het stroom bijna gratis, maar belasting verpest het!", baseMessage),
-            <= -15 => ("Morgen is het stroom gratis", baseMessage),
-            > 45 => ("Morgen is het stroom duur!", baseMessage),
-            _ => ("", "")
-        };
-    }
-
+    
     /// <summary>
     /// Performs extra checks when the system is awake.
     /// </summary>
