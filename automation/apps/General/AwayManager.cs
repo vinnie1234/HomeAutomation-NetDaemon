@@ -185,6 +185,12 @@ public class AwayManager : BaseApp
             Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
                 var message = "Welkom thuis Vincent!";
+                
+                if (Entities.DeviceTracker.A54VanCarleen.State == "home")
+                {
+                    message += " En welkom terug Carleen!";
+                }
+                
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")
                     message += " Het eten van Pixel is bijna op!";
 

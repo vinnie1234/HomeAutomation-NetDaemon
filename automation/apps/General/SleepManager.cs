@@ -35,7 +35,7 @@ public class SleepManager : BaseApp
 
         Scheduler.ScheduleCron("00 10 * * *", () =>
         {
-            if (!((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek) && Entities.InputBoolean.Sleeping.IsOn() && Entities.InputBoolean.Holliday.IsOff())
+            if (!((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek) && Entities.InputBoolean.Sleeping.IsOn() && Entities.InputBoolean.Holliday.IsOff() && Entities.InputBoolean.Datenight.IsOff())
                 Entities.InputBoolean.Sleeping.TurnOff();
         });
     }

@@ -18,6 +18,8 @@ public class TodoManager : BaseApp
 
     private void HandleTodoList()
     {
+        if(Entities.InputBoolean.Disablereset.IsOn()) return;
+        
        var notCompleteList = new List<Item>();
 
         var response = Entities.Todo.Dagelijks.GetItemsAsync().Result;

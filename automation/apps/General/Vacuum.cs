@@ -60,6 +60,8 @@ public class Vacuum : BaseApp
             .Where(x => x.New?.State == "cleaning")
             .Subscribe(_ =>
             {
+                if(Entities.InputBoolean.Disablereset.IsOn()) return;
+                
                 if (Entities.InputBoolean.Sleeping.IsOff() && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                 {
                     Clean("Kattenbak");
