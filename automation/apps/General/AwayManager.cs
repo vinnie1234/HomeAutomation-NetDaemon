@@ -14,6 +14,7 @@ public class AwayManager : BaseApp
     private readonly AppConfiguration _config = new();
     private HomePresenceState _currentState = HomePresenceState.Home;
     private readonly object _stateLock = new();
+    private bool commingHomeTriggerd = false;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AwayManager"/> class.
@@ -44,7 +45,14 @@ public class AwayManager : BaseApp
             .StateChanges()
             .Where(x => x.Old?.State != "home" &&
                         x.New?.State == "home" &&
-                        !Vincent.IsHome)
+                        !Vincent.IsHome && !Carleen.IsHome && Entities.InputBoolean.Away.IsOn())
+            .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
+        
+        Entities.Person.Carleen
+            .StateChanges()
+            .Where(x => x.Old?.State != "home" &&
+                        x.New?.State == "home" &&
+                        !Vincent.IsHome && !Carleen.IsHome && Entities.InputBoolean.Away.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
     }
 
@@ -64,6 +72,7 @@ public class AwayManager : BaseApp
     /// <param name="newState">The target state to transition to.</param>
     private void TransitionToState(HomePresenceState newState)
     {
+     
         lock (_stateLock)
         {
             var oldState = _currentState;
@@ -184,11 +193,17 @@ public class AwayManager : BaseApp
             
             Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
-                var message = "Welkom thuis Vincent!";
+                var message = "";
                 
-                if (Entities.DeviceTracker.A54VanCarleen.State == "home")
+                if ( Entities.Person.VincentMaarschalkerweerd.State == "home" && Entities.Person.Carleen.State  == "home")
                 {
-                    message += " En welkom terug Carleen!";
+                    message += "Welkom thuis Vincent en Carleen!";
+                }else if ( Entities.Person.Carleen.State  == "home")
+                {
+                    message += "Welkom thuis Carleen!";
+                } else
+                {
+                    message = "Welkom thuis Vincent!";
                 }
                 
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")

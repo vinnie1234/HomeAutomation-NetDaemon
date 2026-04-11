@@ -140,7 +140,7 @@ public class Reset : BaseApp
                 light.TurnOn();
             else
                 light.TurnOn(
-                    colorTemp: oldStateLight.ColorTemp,
+                    colorTempKelvin: oldStateLight.ColorTemp,
                     brightness: Convert.ToInt64(oldStateLight.Brightness)
                 );
         }

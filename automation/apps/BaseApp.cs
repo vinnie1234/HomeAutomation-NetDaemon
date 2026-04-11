@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Reactive.Concurrency;
+using Automation.Models.Persons;
 using Polly;
 using Polly.CircuitBreaker;
 
@@ -41,7 +42,8 @@ public class BaseApp
     /// </summary>
     internal readonly IHaContext HaContext;
 
-    internal readonly PersonModel Vincent;
+    internal readonly VincentModel Vincent;
+    internal readonly CarleenModel Carleen;
 
 
 
@@ -65,7 +67,8 @@ public class BaseApp
         Entities = new Entities(haContext);
         Services = new Services(haContext);
 
-        Vincent = new PersonModel(Entities);
+        Vincent = new VincentModel(Entities);
+        Carleen = new CarleenModel(Entities);
 
     }
     
