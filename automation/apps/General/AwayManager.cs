@@ -194,14 +194,18 @@ public class AwayManager : BaseApp
             Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
                 var message = "";
+
+                var vincentHome = Entities.Person.VincentMaarschalkerweerd.State == "home";
+                var carleenHome = Entities.Person.Carleen.State == "home" ||
+                                  Entities.DeviceTracker.CarleenMobiel.State == "home";
                 
-                if ( Entities.Person.VincentMaarschalkerweerd.State == "home" && Entities.Person.Carleen.State  == "home")
+                if (vincentHome && carleenHome)
                 {
                     message += "Welkom thuis Vincent en Carleen!";
-                }else if ( Entities.Person.Carleen.State  == "home")
+                }else if (carleenHome)
                 {
                     message += "Welkom thuis Carleen!";
-                } else
+                }else
                 {
                     message = "Welkom thuis Vincent!";
                 }
