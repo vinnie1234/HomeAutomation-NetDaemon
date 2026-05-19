@@ -5,7 +5,7 @@ namespace Automation.Models;
 
 public class LightStateModel
 {
-    public LightStateModel(string entityId, IReadOnlyList<double>? rgbColors, double? brightness, JsonElement? colorTemp, bool isOn, IReadOnlyList<string>? supportedColorModes)
+    public LightStateModel(string entityId, IReadOnlyList<double>? rgbColors, double? brightness, double? colorTemp, bool isOn, IReadOnlyList<string>? supportedColorModes)
     {
         EntityId = entityId;
         RgbColors = rgbColors;
@@ -18,7 +18,7 @@ public class LightStateModel
     public string EntityId { get; }
     public IReadOnlyList<double>? RgbColors { get; }
     public double? Brightness { get; }
-    public JsonElement? ColorTemp { get; }
+    public double? ColorTemp { get; }
 
     public bool IsOn { get; }
 

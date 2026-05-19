@@ -78,23 +78,23 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void SetSleepingOffFromAlarm()
     {
-        Scheduler.ScheduleCron("00 00 * * *", () =>
-        {
-            var alarmsHubJson = JsonConvert.SerializeObject(Entities.Sensor.HubVincentAlarms.Attributes?.Alarms);
-            var alarmsHub = JsonConvert.DeserializeObject<List<AlarmStateModel>>(alarmsHubJson);
-            var alarmToday =
-                alarmsHub?.Find(alarmStateModel =>
-                    !string.IsNullOrEmpty(alarmStateModel.LocalTime) &&
-                    DateTimeOffset.Parse(alarmStateModel.LocalTime, new CultureInfo("nl-Nl")).Date == DateTimeOffset.Now.Date);
-
-            if (alarmToday is { LocalTime: not null })
-                Scheduler.Schedule(DateTimeOffset.Parse(alarmToday.LocalTime, new CultureInfo("nl-Nl")), () =>
-                {
-                    Logger.LogDebug("Setting schedular for {Time}. Sleeping off from alarm",
-                        alarmToday.LocalTime);
-                    Entities.InputBoolean.Sleeping.TurnOff();
-                });
-        });
+        // Scheduler.ScheduleCron("00 00 * * *", () =>
+        // {
+        //     var alarmsHubJson = JsonConvert.SerializeObject(Entities.Sensor.HubVincentAlarms.Attributes?.Alarms);
+        //     var alarmsHub = JsonConvert.DeserializeObject<List<AlarmStateModel>>(alarmsHubJson);
+        //     var alarmToday =
+        //         alarmsHub?.Find(alarmStateModel =>
+        //             !string.IsNullOrEmpty(alarmStateModel.LocalTime) &&
+        //             DateTimeOffset.Parse(alarmStateModel.LocalTime, new CultureInfo("nl-Nl")).Date == DateTimeOffset.Now.Date);
+        //
+        //     if (alarmToday is { LocalTime: not null })
+        //         Scheduler.Schedule(DateTimeOffset.Parse(alarmToday.LocalTime, new CultureInfo("nl-Nl")), () =>
+        //         {
+        //             Logger.LogDebug("Setting schedular for {Time}. Sleeping off from alarm",
+        //                 alarmToday.LocalTime);
+        //             Entities.InputBoolean.Sleeping.TurnOff();
+        //         });
+        // });
     }
 
     /// <summary>
@@ -150,7 +150,8 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void SetNightTime()
     {
-        Entities.InputBoolean.Sleeping.WhenTurnsOn(_ => SetHouseState(HouseState.Night));
+        Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => SetHouseState(HouseState.Night));
+        Entities.InputBoolean.Sleepingcarleen.WhenTurnsOn(_ => SetHouseState(HouseState.Night));
 
         Scheduler.RunDaily(_nighttimeWeekdays, () =>
         {

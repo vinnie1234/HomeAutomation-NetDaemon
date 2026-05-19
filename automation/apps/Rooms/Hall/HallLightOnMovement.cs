@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using static Automation.Globals;
 
 namespace Automation.apps.Rooms.Hall;
 
@@ -56,7 +57,11 @@ public class HallLightOnMovement : BaseApp
     /// <returns>The brightness level.</returns>
     private int GetBrightness()
     {
-        return Vincent.IsSleeping switch
+        // On office days Vincent needs full brightness regardless of Carleen sleeping
+        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
+            return 100;
+
+        return IsNightMode switch
         {
             true => 5,
             false => 100
@@ -69,7 +74,7 @@ public class HallLightOnMovement : BaseApp
     /// <returns>The state time in minutes.</returns>
     private int GetStateTime()
     {
-        return Vincent.IsSleeping switch
+        return IsNightMode switch
         {
             true => Convert.ToInt32(Entities.InputNumber.Halllightnighttime.State),
             false => Convert.ToInt32(Entities.InputNumber.Halllightdaytime.State)
@@ -87,7 +92,7 @@ public class HallLightOnMovement : BaseApp
         {
             case true:
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 15);
-                if (!Vincent.IsSleeping)
+                if (!IsNightMode || (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping))
                 {
                     Entities.Light.Hal.TurnOn();
                     if (Entities.Light.Hal.IsOff())
@@ -115,16 +120,10 @@ public class HallLightOnMovement : BaseApp
             {
                 //button one
                 case 1:
-                    switch (Vincent.IsHome)
-                    {
-                        case true:
-                            Entities.InputBoolean.Away.TurnOn();
-                            break;
-                        case false:
-                            Entities.InputBoolean.Away.TurnOff();
-                            break;
-                    }
-
+                    if (Vincent.IsHome && !Carleen.IsHome)
+                        Entities.InputBoolean.Away.TurnOn();
+                    else if (!Vincent.IsHome)
+                        Entities.InputBoolean.Away.TurnOff();
                     break;
                 //button two
                 case 2:

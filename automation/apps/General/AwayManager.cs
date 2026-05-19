@@ -15,6 +15,7 @@ public class AwayManager : BaseApp
     private HomePresenceState _currentState = HomePresenceState.Home;
     private readonly object _stateLock = new();
     private bool commingHomeTriggerd = false;
+    private IDisposable? _carleenWakeUpSchedule;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AwayManager"/> class.
@@ -37,23 +38,33 @@ public class AwayManager : BaseApp
 
 
     /// <summary>
-    /// Handles the event when Vincent comes home.
+    /// Handles the event when Vincent or Carleen comes or goes home.
     /// </summary>
     private void VincentHomeHandler()
     {
+        // Either person arriving home turns off Away
         Entities.Person.VincentMaarschalkerweerd
             .StateChanges()
             .Where(x => x.Old?.State != "home" &&
                         x.New?.State == "home" &&
-                        !Vincent.IsHome && !Carleen.IsHome && Entities.InputBoolean.Away.IsOn())
+                        Entities.InputBoolean.Away.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
-        
+
         Entities.Person.Carleen
             .StateChanges()
             .Where(x => x.Old?.State != "home" &&
                         x.New?.State == "home" &&
-                        !Vincent.IsHome && !Carleen.IsHome && Entities.InputBoolean.Away.IsOn())
+                        Entities.InputBoolean.Away.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
+
+        // Carleen leaves as last person → turn on Away
+        Entities.Person.Carleen
+            .StateChanges()
+            .Where(x => x.Old?.State == "home" &&
+                        x.New?.State != "home" &&
+                        Entities.Person.VincentMaarschalkerweerd.State != "home" &&
+                        Entities.InputBoolean.Away.IsOff())
+            .Subscribe(_ => Entities.InputBoolean.Away.TurnOn());
     }
 
     /// <summary>
@@ -62,7 +73,16 @@ public class AwayManager : BaseApp
     private void TriggersHandler()
     {
         Entities.InputBoolean.Away.WhenTurnsOn(_ => TransitionToState(HomePresenceState.Away));
-        Entities.InputBoolean.Away.WhenTurnsOff(_ => TransitionToState(HomePresenceState.Returning));
+        Entities.InputBoolean.Away.WhenTurnsOff(_ =>
+        {
+            // If Away was suppressed because Carleen is home sleeping, don't start welcome-home sequence
+            if (!Vincent.IsHome)
+            {
+                Logger.LogInformation("Away turned off but Vincent is not home (Carleen home scenario) — skipping Returning state");
+                return;
+            }
+            TransitionToState(HomePresenceState.Returning);
+        });
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ => HandleMotionDetected());
     }
 
@@ -161,9 +181,19 @@ public class AwayManager : BaseApp
 
     /// <summary>
     /// Executes the away actions when leaving home.
+    /// When Carleen is home and sleeping (Vincent left for office), Away is immediately
+    /// cancelled and a 09:00 wake-up timer is scheduled for Carleen instead.
     /// </summary>
     private void ExecuteAwayActions()
     {
+        if (Carleen.IsHome && Carleen.IsSleeping)
+        {
+            Logger.LogInformation("Away triggered but Carleen is home and sleeping — suppressing away actions");
+            Entities.InputBoolean.Away.TurnOff();
+            ScheduleCarleenWakeUp();
+            return;
+        }
+
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek)
             && DateTimeOffset.Now.Hour < 9
             && Entities.InputBoolean.Holliday.IsOff())
@@ -171,9 +201,38 @@ public class AwayManager : BaseApp
         else
             Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
 
-        Entities.Light.TurnAllOff();
-        Entities.MediaPlayer.Tv.TurnOff();
-        Entities.MediaPlayer.AvSoundbar.TurnOff();
+        if (!Carleen.IsHome)
+        {
+            Entities.Light.TurnAllOff();
+            Entities.MediaPlayer.Tv.TurnOff();
+            Entities.MediaPlayer.AvSoundbar.TurnOff();
+        }
+    }
+
+    /// <summary>
+    /// Schedules Carleen's sleeping boolean to turn off at 09:00.
+    /// Cancels any previously scheduled wake-up.
+    /// </summary>
+    private void ScheduleCarleenWakeUp()
+    {
+        _carleenWakeUpSchedule?.Dispose();
+
+        var now = DateTimeOffset.Now;
+        var wakeUpTime = now.Date.AddHours(9);
+        if (wakeUpTime <= now)
+            wakeUpTime = wakeUpTime.AddDays(1);
+
+        var delay = wakeUpTime - now;
+        _carleenWakeUpSchedule = Scheduler.Schedule(delay, () =>
+        {
+            if (Carleen.IsHome && Carleen.IsSleeping)
+            {
+                Logger.LogInformation("Scheduled 09:00 wake-up: setting Carleen sleeping off");
+                Entities.InputBoolean.Sleepingcarleen.TurnOff();
+            }
+        });
+
+        Logger.LogInformation("Scheduled Carleen wake-up at 09:00 (in {Delay})", delay);
     }
 
     /// <summary>
@@ -257,6 +316,7 @@ public class AwayManager : BaseApp
     
     /// <summary>
     /// Automatically sets the "away" state based on Vincent's phone distance and direction of travel.
+    /// Skipped when Carleen is home.
     /// </summary>
     private void AutoAway()
     {
@@ -265,7 +325,9 @@ public class AwayManager : BaseApp
             .Subscribe(_ =>
             {
                 if (Vincent.DirectionOfTravel is "away_from" or "stationary" &&
-                    Entities.InputBoolean.Away.IsOff() && Entities.Zone.Boodschappen.IsOff()) 
+                    Entities.InputBoolean.Away.IsOff() &&
+                    Entities.Zone.Boodschappen.IsOff() &&
+                    !Carleen.IsHome)
                     Entities.InputBoolean.Away.TurnOn();
             });
     }

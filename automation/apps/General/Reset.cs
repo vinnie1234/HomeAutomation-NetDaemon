@@ -46,24 +46,24 @@ public class Reset : BaseApp
     /// </summary>
     private void ResetAlarmAsync()
     {
-        //todo TTP steps!
-        var oldAlarms = _storage.Get<List<AlarmStateModel?>>("LightState");
-        if (oldAlarms == null) return;
-
-        var activeAlarmsHub = new List<AlarmStateModel?>();
-        var activeAlarmsHubJson = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
-        if (activeAlarmsHubJson != null)
-            activeAlarmsHub.AddRange(activeAlarmsHubJson.Cast<JsonElement>()
-                .Select(o => o.Deserialize<AlarmStateModel>()));
-
-        foreach (var alarm in activeAlarmsHub
-                     .Where(alarm => alarm?.Status == "set")
-                     .Where(alarm => oldAlarms
-                         .TrueForAll(alarmStateModel => alarmStateModel?.AlarmId != alarm?.AlarmId)))
-            if (alarm is { EntityId: not null, AlarmId: not null })
-            {
-                Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} wordt verwijderd", true);
-            }
+        // //todo TTP steps!
+        // var oldAlarms = _storage.Get<List<AlarmStateModel?>>("LightState");
+        // if (oldAlarms == null) return;
+        //
+        // var activeAlarmsHub = new List<AlarmStateModel?>();
+        // var activeAlarmsHubJson = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
+        // if (activeAlarmsHubJson != null)
+        //     activeAlarmsHub.AddRange(activeAlarmsHubJson.Cast<JsonElement>()
+        //         .Select(o => o.Deserialize<AlarmStateModel>()));
+        //
+        // foreach (var alarm in activeAlarmsHub
+        //              .Where(alarm => alarm?.Status == "set")
+        //              .Where(alarm => oldAlarms
+        //                  .TrueForAll(alarmStateModel => alarmStateModel?.AlarmId != alarm?.AlarmId)))
+        //     if (alarm is { EntityId: not null, AlarmId: not null })
+        //     {
+        //         Notify.NotifyHouse("deleteAlarm", $"Alarm van {alarm.LocalTime} wordt verwijderd", true);
+        //     }
     }
 
     /// <summary>

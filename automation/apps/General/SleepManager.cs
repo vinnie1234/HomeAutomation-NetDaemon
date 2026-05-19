@@ -30,37 +30,60 @@ public class SleepManager : BaseApp
     {
         AwakeExtraChecks();
 
-        Entities.InputBoolean.Sleeping.WhenTurnsOff(_ => WakeUp());
-        Entities.InputBoolean.Sleeping.WhenTurnsOn(_ => Sleeping());
+        Entities.InputBoolean.Sleepingvincent.WhenTurnsOff(_ => WakeUp());
+        Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => Sleeping());
+        Entities.InputBoolean.Sleepingcarleen.WhenTurnsOff(_ => CarleenWokeUp());
 
         Scheduler.ScheduleCron("00 10 * * *", () =>
         {
-            if (!((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek) && Entities.InputBoolean.Sleeping.IsOn() && Entities.InputBoolean.Holliday.IsOff() && Entities.InputBoolean.Datenight.IsOff())
-                Entities.InputBoolean.Sleeping.TurnOff();
+            if (!((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Holliday.IsOff() && Entities.InputBoolean.Datenight.IsOff())
+                Entities.InputBoolean.Sleepingvincent.TurnOff();
         });
     }
 
     /// <summary>
-    /// Executes the wake-up routine.
+    /// Executes the wake-up routine for Vincent.
+    /// Rollerblind is skipped if Carleen is still home and sleeping.
     /// </summary>
     private void WakeUp()
     {
         Logger.LogDebug("Wake up Routine");
         if (DateTime.Now.Hour < 7 && Entities.InputBoolean.Onvacation.IsOff())
         {
-            Entities.InputBoolean.Sleeping.TurnOn();
+            Entities.InputBoolean.Sleepingvincent.TurnOn();
             return;
         }
 
+        var carleenStillSleeping = Carleen.IsHome && Carleen.IsSleeping;
+
+        if (!carleenStillSleeping)
+            OpenRollerblind();
+
+        SendBatteryWarning();
+    }
+
+    /// <summary>
+    /// Opens the rollerblind at the appropriate position based on the day of week.
+    /// </summary>
+    private void OpenRollerblind()
+    {
         if (((IList)Globals.WeekendDays).Contains(DateTimeOffset.Now.DayOfWeek))
         {
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);
         }
-        else if ((Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition ?? 0) < 100) 
+        else if ((Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition ?? 0) < 100)
             Entities.Cover.Rollerblind0003.SetCoverPosition(45);
+    }
 
-        SendBatteryWarning();
+    /// <summary>
+    /// Called when Carleen wakes up. Opens the rollerblind if Vincent is already awake.
+    /// </summary>
+    private void CarleenWokeUp()
+    {
+        if (!Carleen.IsHome) return;
+        if (!Vincent.IsSleeping)
+            OpenRollerblind();
     }
 
     /// <summary>
@@ -69,6 +92,9 @@ public class SleepManager : BaseApp
     private void Sleeping()
     {
         Logger.LogDebug("Sleep Routine started");
+
+        if (Carleen.IsHome)
+            Entities.InputBoolean.Sleepingcarleen.TurnOn();
 
         ChangeRelevantHouseState();
         TurnAllLightsOut();
@@ -126,14 +152,20 @@ public class SleepManager : BaseApp
     {
         Entities.MediaPlayer.Tv.WhenTurnsOn(_ =>
         {
-            if (Entities.InputBoolean.Sleeping.IsOn()) 
-                Entities.InputBoolean.Sleeping.TurnOff();
+            if (Entities.InputBoolean.Sleepingvincent.IsOn()) 
+                Entities.InputBoolean.Sleepingvincent.TurnOff();
+            
+            if (Entities.InputBoolean.Sleepingcarleen.IsOn()) 
+                Entities.InputBoolean.Sleepingcarleen.TurnOff();
         });
 
         Entities.Light.Bureau.WhenTurnsOn(_ =>
         {
-            if (Entities.InputBoolean.Sleeping.IsOn()) 
-                Entities.InputBoolean.Sleeping.TurnOff();
+            if (Entities.InputBoolean.Sleepingvincent.IsOn()) 
+                Entities.InputBoolean.Sleepingvincent.TurnOff();            
+            
+            if (Entities.InputBoolean.Sleepingcarleen.IsOn()) 
+                Entities.InputBoolean.Sleepingcarleen.TurnOff();
         });
     }
 }

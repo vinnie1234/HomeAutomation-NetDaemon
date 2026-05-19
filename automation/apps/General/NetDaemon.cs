@@ -40,7 +40,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
             _storage.Save("NetDaemonRestart", "");
         }
 
-        if (!Entities.InputBoolean.Sleeping.IsOn())
+        if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn())
             Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
         Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_discordLogChannel]);
 

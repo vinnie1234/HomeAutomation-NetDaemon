@@ -4,6 +4,7 @@ using System.Reactive.Concurrency;
 using Automation.Models.Persons;
 using Polly;
 using Polly.CircuitBreaker;
+using static Automation.Globals;
 
 namespace Automation.apps;
 
@@ -44,6 +45,12 @@ public class BaseApp
 
     internal readonly VincentModel Vincent;
     internal readonly CarleenModel Carleen;
+
+    /// <summary>
+    /// True when the house should behave in night/quiet mode.
+    /// This is when Vincent is sleeping, OR when Carleen is home and sleeping.
+    /// </summary>
+    protected bool IsNightMode => Vincent.IsSleeping || (Carleen.IsHome && Carleen.IsSleeping);
 
 
 

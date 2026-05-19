@@ -62,17 +62,27 @@ public class Vacuum : BaseApp
             {
                 if(Entities.InputBoolean.Disablereset.IsOn()) return;
                 
-                if (Entities.InputBoolean.Sleeping.IsOff() && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                 {
                     Clean("Kattenbak");
                 }
-                else if(Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                else if (Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                 {
-                    Entities.InputBoolean.Sleeping
+                    // Wait until nobody is sleeping anymore before cleaning
+                    Entities.InputBoolean.Sleepingvincent
                         .StateChanges()
-                        .Where(x => x.New.IsOff()).Subscribe(_ =>
+                        .Where(x => x.New.IsOff())
+                        .Subscribe(_ =>
                         {
-                            if(Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                                Clean("Kattenbak");
+                        });
+                    Entities.InputBoolean.Sleepingcarleen
+                        .StateChanges()
+                        .Where(x => x.New.IsOff())
+                        .Subscribe(_ =>
+                        {
+                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                                 Clean("Kattenbak");
                         });
                 }

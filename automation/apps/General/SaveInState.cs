@@ -64,17 +64,19 @@ public class SaveInState : BaseApp, IAsyncInitializable
     /// <returns>A list of active alarm states.</returns>
     private List<AlarmStateModel?> SetAlarmState()
     {
-        var activeAlarmsHub = new List<AlarmStateModel?>();
-        var activeAlarmsHubJson = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
-        if (activeAlarmsHubJson != null)
-            activeAlarmsHub
-                .AddRange(activeAlarmsHubJson.Cast<JsonElement>().Select(o => o.Deserialize<AlarmStateModel>()));
+        // var activeAlarmsHub = new List<AlarmStateModel?>();
+        // var activeAlarmsHubJson = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
+        // if (activeAlarmsHubJson != null)
+        //     activeAlarmsHub
+        //         .AddRange(activeAlarmsHubJson.Cast<JsonElement>().Select(o => o.Deserialize<AlarmStateModel>()));
+        //
+        // foreach (var alarmState in activeAlarmsHub.Where(alarmState => alarmState != null))
+        //     if (alarmState != null)
+        //         alarmState.EntityId = Entities.Sensor.HubVincentAlarms.EntityId;
+        //
+        // return activeAlarmsHub;
 
-        foreach (var alarmState in activeAlarmsHub.Where(alarmState => alarmState != null))
-            if (alarmState != null)
-                alarmState.EntityId = Entities.Sensor.HubVincentAlarms.EntityId;
-
-        return activeAlarmsHub;
+        return new List<AlarmStateModel?>();
     }
 
     /// <summary>
@@ -88,7 +90,7 @@ public class SaveInState : BaseApp, IAsyncInitializable
         if (oldEntity != null) LightEntitiesStates.Remove(oldEntity);
 
         LightEntitiesStates.Add(new LightStateModel(entityId: entity.EntityId, rgbColors: entity.Attributes?.RgbColor,
-            brightness: entity.Attributes?.Brightness, colorTemp: (JsonElement?)entity.Attributes?.ColorTemp, isOn: entity.IsOn(),
+            brightness: entity.Attributes?.Brightness, colorTemp: entity.Attributes?.ColorTemp, isOn: entity.IsOn(),
             supportedColorModes: entity.Attributes?.SupportedColorModes));
     }
 }

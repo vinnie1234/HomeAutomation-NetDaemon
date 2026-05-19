@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Helpers;
+using static Automation.Globals;
 
 namespace Automation.apps.Rooms.BathRoom;
 
@@ -50,7 +51,7 @@ public class BathRoomLights : BaseApp
         
         Entities.BinarySensor.WaterSensorDouche
             .StateChanges()
-            .Where(x => x.Old.IsOff() && !IsDouching && !Vincent.IsSleeping)
+            .Where(x => x.Old.IsOff() && !IsDouching && !IsNightMode)
             .Subscribe(_ => Entities.InputBoolean.Douchen.TurnOn());
 
         InitializeLights();
@@ -71,14 +72,14 @@ public class BathRoomLights : BaseApp
             .StateChanges()
             .WhenStateIsFor(x => x.IsOff(),
                 TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightnighttime.State ?? 0)), Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && Vincent.IsSleeping)
+            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && IsNightMode)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
             .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightdaytime.State ?? 0)),
                 Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !Vincent.IsSleeping)
+            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !IsNightMode)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.InputBoolean.Douchen
@@ -94,8 +95,11 @@ public class BathRoomLights : BaseApp
     {
         if (isOn)
         {
-            Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-            _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
+            if (!IsNightMode)
+            {
+                Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
+                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
+            }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
             Entities.Cover.Rollerblind0003.CloseCover();
@@ -132,7 +136,11 @@ public class BathRoomLights : BaseApp
     /// <returns>The brightness level.</returns>
     private int GetBrightness()
     {
-        return Vincent.IsSleeping switch
+        // On office days Vincent needs full brightness regardless of Carleen sleeping
+        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
+            return 100;
+
+        return IsNightMode switch
         {
             true  => 5,
             false => 100
@@ -203,7 +211,7 @@ public class BathRoomLights : BaseApp
             .Where(x => x.New?.State != "idle" && x.Old?.State == "idle")
             .Subscribe(_ =>
             {
-                if (!IsDouching)
+                if (!IsDouching && !IsNightMode)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
                     _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
