@@ -120,7 +120,10 @@ public class SleepManager : BaseApp
     /// </summary>
     private void ChangeRelevantHouseState()
     {
-        Entities.InputBoolean.Away.TurnOff();
+        // Going to sleep means being home: clear per-person away so the derived "away" follows.
+        Entities.InputBoolean.Awayvincent.TurnOff();
+        if (Carleen.IsHome)
+            Entities.InputBoolean.Awaycarleen.TurnOff();
         Entities.InputBoolean.Douchen.TurnOff();
     }
 

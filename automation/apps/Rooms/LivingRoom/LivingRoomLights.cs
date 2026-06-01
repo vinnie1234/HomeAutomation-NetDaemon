@@ -31,13 +31,13 @@ public class LivingRoomLights : BaseApp
         {
             if (Entities.Light.Woonkamer.IsOn() && x.New.IsOff())
             {
-                if (IsNightMode)
+                if (IsVincentNightMode)
                 {
                     Entities.Light.Woonkamer.TurnOff();
                 }
             }else if (Entities.Light.Woonkamer.IsOff() && x.New.IsOn())
             {
-                if (!IsNightMode)
+                if (!IsVincentNightMode)
                     LightExtension.SetLightSceneWoonkamer(Entities);
             }
         });

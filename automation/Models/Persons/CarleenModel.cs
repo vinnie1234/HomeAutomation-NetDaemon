@@ -17,7 +17,7 @@ public class CarleenModel: IPerson
     {
         _subscriptions = new CompositeDisposable(
             entities.InputBoolean.Sleepingcarleen.StateChanges().Subscribe(x => IsSleeping = x.New.IsOn()),
-            entities.Person.Carleen.StateChanges().Subscribe(x => IsHome = x.New?.State == "home"),
+            entities.InputBoolean.Awaycarleen.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),
             entities.Person.Carleen.StateChanges().Subscribe(x => State = x.New?.State)
         );
     }
