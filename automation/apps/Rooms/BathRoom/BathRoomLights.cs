@@ -216,7 +216,7 @@ public class BathRoomLights : BaseApp
 
         Entities.Sensor.SmartSeries400097aeToothbrushState
             .StateChanges()
-            .WhenStateIsFor(x => x?.State == "idle" && Vincent.IsHome,
+            .WhenStateIsFor(x => x?.State == "idle" && (Vincent.IsHome || Carleen.IsHome),
                 TimeSpan.FromSeconds(30), Scheduler)
             .Subscribe(_ =>
             {

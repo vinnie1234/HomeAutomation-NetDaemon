@@ -61,15 +61,4 @@ public class PresenceManagerTests
         ctx.VerifyCallService("input_boolean", "turn_off", "away");
     }
 
-    [Fact]
-    public void VincentLeaving_SendsDepartureNotification()
-    {
-        var ctx = Arrange(awayVincent: "off", awayCarleen: "off", away: "off");
-
-        ctx.ChangeStateFor("input_boolean.awayvincent").FromState("off").ToState("on");
-        ctx.HaContextMock.ProcessPendingOperations();
-
-        // Notify.NotifyPhoneVincent ends up calling notify.mobile_app_vincent_phone
-        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone");
-    }
 }

@@ -68,9 +68,4 @@ public static class Globals
                 _         => HouseState.Day
             };
     }
-
-    public static bool AmIHomeCheck(Entities entities)
-    {
-        return (entities.Person.VincentMaarschalkerweerd.State ?? "not_home") != "home" || entities.InputBoolean.Onvacation.IsOn() && (entities.Person.Timo.State ?? "not_home") != "home";
-    }
 }
