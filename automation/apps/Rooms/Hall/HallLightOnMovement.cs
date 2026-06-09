@@ -118,12 +118,18 @@ public class HallLightOnMovement : BaseApp
         if (eventModel is { DeviceId: hueSwitchBathroomId, Type: "initial_press" })
             switch (eventModel.Subtype)
             {
-                //button one
+                //button one: toggle "everybody away"
                 case 1:
-                    if (Vincent.IsHome && !Carleen.IsHome)
-                        Entities.InputBoolean.Away.TurnOn();
-                    else if (!Vincent.IsHome)
-                        Entities.InputBoolean.Away.TurnOff();
+                    if (Vincent.IsHome || Carleen.IsHome)
+                    {
+                        Entities.InputBoolean.Awayvincent.TurnOn();
+                        Entities.InputBoolean.Awaycarleen.TurnOn();
+                    }
+                    else
+                    {
+                        Entities.InputBoolean.Awayvincent.TurnOff();
+                        Entities.InputBoolean.Awaycarleen.TurnOff();
+                    }
                     break;
                 //button two
                 case 2:

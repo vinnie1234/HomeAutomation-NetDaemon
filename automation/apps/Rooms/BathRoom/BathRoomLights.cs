@@ -48,11 +48,6 @@ public class BathRoomLights : BaseApp
             var eventModel = x.DataElement?.ToObject<EventModel>();
             if (eventModel != null) OverwriteSwitch(eventModel);
         });
-        
-        Entities.BinarySensor.WaterSensorDouche
-            .StateChanges()
-            .Where(x => x.Old.IsOff() && !IsDouching && !IsNightMode)
-            .Subscribe(_ => Entities.InputBoolean.Douchen.TurnOn());
 
         InitializeLights();
         ToothbrushHandler();
@@ -221,7 +216,7 @@ public class BathRoomLights : BaseApp
 
         Entities.Sensor.SmartSeries400097aeToothbrushState
             .StateChanges()
-            .WhenStateIsFor(x => x?.State == "idle" && Vincent.IsHome,
+            .WhenStateIsFor(x => x?.State == "idle" && (Vincent.IsHome || Carleen.IsHome),
                 TimeSpan.FromSeconds(30), Scheduler)
             .Subscribe(_ =>
             {

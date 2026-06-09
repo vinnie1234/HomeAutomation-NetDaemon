@@ -6,7 +6,11 @@ using static Automation.Globals;
 namespace Automation.apps.General;
 
 /// <summary>
-/// Represents an application that manages the "away" state and related notifications using a state machine pattern.
+/// Manages the welcome-home sequence using a state machine pattern, driven off the house-wide
+/// <c>input_boolean.away</c> boolean (which is derived by <see cref="PresenceManager"/>).
+///
+/// Per-person presence and the "both away" actions (lights/TV off, departure notification) live
+/// in <see cref="PresenceManager"/>; this app only handles the transition back home.
 /// </summary>
 [NetDaemonApp(Id = nameof(AwayManager))]
 public class AwayManager : BaseApp
@@ -14,8 +18,6 @@ public class AwayManager : BaseApp
     private readonly AppConfiguration _config = new();
     private HomePresenceState _currentState = HomePresenceState.Home;
     private readonly object _stateLock = new();
-    private bool commingHomeTriggerd = false;
-    private IDisposable? _carleenWakeUpSchedule;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AwayManager"/> class.
@@ -32,39 +34,6 @@ public class AwayManager : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         TriggersHandler();
-        VincentHomeHandler();
-        AutoAway();
-    }
-
-
-    /// <summary>
-    /// Handles the event when Vincent or Carleen comes or goes home.
-    /// </summary>
-    private void VincentHomeHandler()
-    {
-        // Either person arriving home turns off Away
-        Entities.Person.VincentMaarschalkerweerd
-            .StateChanges()
-            .Where(x => x.Old?.State != "home" &&
-                        x.New?.State == "home" &&
-                        Entities.InputBoolean.Away.IsOn())
-            .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
-
-        Entities.Person.Carleen
-            .StateChanges()
-            .Where(x => x.Old?.State != "home" &&
-                        x.New?.State == "home" &&
-                        Entities.InputBoolean.Away.IsOn())
-            .Subscribe(_ => Entities.InputBoolean.Away.TurnOff());
-
-        // Carleen leaves as last person → turn on Away
-        Entities.Person.Carleen
-            .StateChanges()
-            .Where(x => x.Old?.State == "home" &&
-                        x.New?.State != "home" &&
-                        Entities.Person.VincentMaarschalkerweerd.State != "home" &&
-                        Entities.InputBoolean.Away.IsOff())
-            .Subscribe(_ => Entities.InputBoolean.Away.TurnOn());
     }
 
     /// <summary>
@@ -73,16 +42,7 @@ public class AwayManager : BaseApp
     private void TriggersHandler()
     {
         Entities.InputBoolean.Away.WhenTurnsOn(_ => TransitionToState(HomePresenceState.Away));
-        Entities.InputBoolean.Away.WhenTurnsOff(_ =>
-        {
-            // If Away was suppressed because Carleen is home sleeping, don't start welcome-home sequence
-            if (!Vincent.IsHome)
-            {
-                Logger.LogInformation("Away turned off but Vincent is not home (Carleen home scenario) — skipping Returning state");
-                return;
-            }
-            TransitionToState(HomePresenceState.Returning);
-        });
+        Entities.InputBoolean.Away.WhenTurnsOff(_ => TransitionToState(HomePresenceState.Returning));
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ => HandleMotionDetected());
     }
 
@@ -92,11 +52,10 @@ public class AwayManager : BaseApp
     /// <param name="newState">The target state to transition to.</param>
     private void TransitionToState(HomePresenceState newState)
     {
-     
         lock (_stateLock)
         {
             var oldState = _currentState;
-            
+
             // Validate state transition
             if (!IsValidStateTransition(oldState, newState))
             {
@@ -106,7 +65,7 @@ public class AwayManager : BaseApp
 
             _currentState = newState;
             Logger.LogInformation("State transition: {OldState} → {NewState}", oldState, newState);
-            
+
             // Execute state-specific actions
             ExecuteStateActions(newState);
         }
@@ -143,17 +102,17 @@ public class AwayManager : BaseApp
         switch (state)
         {
             case HomePresenceState.Away:
-                ExecuteAwayActions();
+                Logger.LogInformation("House is away, away automation active");
                 break;
             case HomePresenceState.Returning:
-                Logger.LogInformation("Vincent is returning home, waiting for motion detection");
+                Logger.LogInformation("Someone is returning home, waiting for motion detection");
                 break;
             case HomePresenceState.WelcomingHome:
                 // Start welcome home sequence asynchronously
                 _ = Task.Run(ExecuteWelcomeHomeSequenceAsync);
                 break;
             case HomePresenceState.Home:
-                Logger.LogInformation("Vincent is home, normal automation active");
+                Logger.LogInformation("Home, normal automation active");
                 break;
         }
     }
@@ -180,62 +139,6 @@ public class AwayManager : BaseApp
     }
 
     /// <summary>
-    /// Executes the away actions when leaving home.
-    /// When Carleen is home and sleeping (Vincent left for office), Away is immediately
-    /// cancelled and a 09:00 wake-up timer is scheduled for Carleen instead.
-    /// </summary>
-    private void ExecuteAwayActions()
-    {
-        if (Carleen.IsHome && Carleen.IsSleeping)
-        {
-            Logger.LogInformation("Away triggered but Carleen is home and sleeping — suppressing away actions");
-            Entities.InputBoolean.Away.TurnOff();
-            ScheduleCarleenWakeUp();
-            return;
-        }
-
-        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek)
-            && DateTimeOffset.Now.Hour < 9
-            && Entities.InputBoolean.Holliday.IsOff())
-            Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
-        else
-            Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
-
-        if (!Carleen.IsHome)
-        {
-            Entities.Light.TurnAllOff();
-            Entities.MediaPlayer.Tv.TurnOff();
-            Entities.MediaPlayer.AvSoundbar.TurnOff();
-        }
-    }
-
-    /// <summary>
-    /// Schedules Carleen's sleeping boolean to turn off at 09:00.
-    /// Cancels any previously scheduled wake-up.
-    /// </summary>
-    private void ScheduleCarleenWakeUp()
-    {
-        _carleenWakeUpSchedule?.Dispose();
-
-        var now = DateTimeOffset.Now;
-        var wakeUpTime = now.Date.AddHours(9);
-        if (wakeUpTime <= now)
-            wakeUpTime = wakeUpTime.AddDays(1);
-
-        var delay = wakeUpTime - now;
-        _carleenWakeUpSchedule = Scheduler.Schedule(delay, () =>
-        {
-            if (Carleen.IsHome && Carleen.IsSleeping)
-            {
-                Logger.LogInformation("Scheduled 09:00 wake-up: setting Carleen sleeping off");
-                Entities.InputBoolean.Sleepingcarleen.TurnOff();
-            }
-        });
-
-        Logger.LogInformation("Scheduled Carleen wake-up at 09:00 (in {Delay})", delay);
-    }
-
-    /// <summary>
     /// Executes the complete welcome home sequence asynchronously.
     /// </summary>
     private Task ExecuteWelcomeHomeSequenceAsync()
@@ -243,13 +146,13 @@ public class AwayManager : BaseApp
         try
         {
             Logger.LogInformation("Starting welcome home sequence");
-            
+
             var houseState = GetHouseState(Entities);
-            
+
             // Immediate actions
             NotifyVincentPhone(houseState);
             LightExtension.SetLightSceneWoonkamer(Entities);
-            
+
             Scheduler.Schedule(_config.Timing.WelcomeHomeDelay, () =>
             {
                 var message = "";
@@ -257,7 +160,7 @@ public class AwayManager : BaseApp
                 var vincentHome = Entities.Person.VincentMaarschalkerweerd.State == "home";
                 var carleenHome = Entities.Person.Carleen.State == "home" ||
                                   Entities.DeviceTracker.CarleenMobiel.State == "home";
-                
+
                 if (vincentHome && carleenHome)
                 {
                     message += "Welkom thuis Vincent en Carleen!";
@@ -268,24 +171,24 @@ public class AwayManager : BaseApp
                 {
                     message = "Welkom thuis Vincent!";
                 }
-                
+
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")
                     message += " Het eten van Pixel is bijna op!";
 
                 Notify.NotifyHouse("welcomeHome", message, true);
-            
+
                 // Transition to final Home state
                 TransitionToState(HomePresenceState.Home);
-            
+
                 Logger.LogInformation("Welcome home sequence completed");
             });
-            
+
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during welcome home sequence");
-            
+
             // Reset to safe state on error
             lock (_stateLock)
             {
@@ -310,25 +213,7 @@ public class AwayManager : BaseApp
             HouseState.Night => "Welkom thuis (stil aan, het is laat!)",
             _ => "Welkom thuis Vincent!"
         };
-        
+
         Notify.NotifyPhoneVincent("Thuis", greeting, canAlwaysSendNotification: true);
-    }
-    
-    /// <summary>
-    /// Automatically sets the "away" state based on Vincent's phone distance and direction of travel.
-    /// Skipped when Carleen is home.
-    /// </summary>
-    private void AutoAway()
-    {
-        Entities.Sensor.ThuisSmS938bDistance.StateChanges()
-            .WhenStateIsFor(x => x?.State > 300, TimeSpan.FromMinutes(5), Scheduler)
-            .Subscribe(_ =>
-            {
-                if (Vincent.DirectionOfTravel is "away_from" or "stationary" &&
-                    Entities.InputBoolean.Away.IsOff() &&
-                    Entities.Zone.Boodschappen.IsOff() &&
-                    !Carleen.IsHome)
-                    Entities.InputBoolean.Away.TurnOn();
-            });
     }
 }

@@ -17,7 +17,7 @@ public class VincentModel: IPerson
         _subscriptions = new CompositeDisposable(
             entities.InputBoolean.Sleepingvincent.StateChanges().Subscribe(x => IsSleeping = x.New.IsOn()),
             entities.BinarySensor.VincentPhoneAndroidAuto.StateChanges().Subscribe(x => IsDriving = x.New.IsOn()),
-            entities.InputBoolean.Away.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),
+            entities.InputBoolean.Awayvincent.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),
             entities.Sensor.ThuisSmS938bDirectionOfTravel.StateChanges().Subscribe(x =>
             {
                 if (x.New?.State != null) DirectionOfTravel = x.New.State;

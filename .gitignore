@@ -1,4 +1,5 @@
 /automation/appsettings.json
+/automation/config.json
 /automation/bin
 /automation/obj
 /automation/.config
@@ -8,4 +9,6 @@
 /automation/Dockerfile
 /automation/NetDaemonCodegen
 /automation/Release
+/TestAutomation/bin
+/TestAutomation/obj
 .idea
