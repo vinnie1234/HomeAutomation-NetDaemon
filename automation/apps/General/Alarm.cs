@@ -46,7 +46,7 @@ public class Alarm : BaseApp
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ =>
         {
             // Only alarm when nobody is home (neither Vincent nor Carleen).
-            if (!Vincent.IsHome && !Carleen.IsHome)
+            if (Entities.InputBoolean.Away.IsOn())
                 Notify.NotifyPhoneVincent("ALARM", "Beweging gedetecteerd", false, 5, channel: "ALARM",
                     vibrationPattern: "100, 1000, 100, 1000, 100");
         });
