@@ -60,7 +60,7 @@ public class Vacuum : BaseApp
             .Where(x => x.New?.State == "cleaning")
             .Subscribe(_ =>
             {
-                if(Entities.InputBoolean.Disablereset.IsOn()) return;
+                if(Entities.InputBoolean.Datenight.IsOn()) return;
                 
                 if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                 {
@@ -74,17 +74,25 @@ public class Vacuum : BaseApp
                         .Where(x => x.New.IsOff())
                         .Subscribe(_ =>
                         {
-                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                                Clean("Kattenbak");
+                            switch (IsNightMode)
+                            {
+                                case false when Entities.InputBoolean.Skipvaccumlitterbox.IsOff() && Entities.InputBoolean.Sleepingcarleen.IsOff():
+                                    Clean("Kattenbak");
+                                    break;
+                                case false when Entities.InputBoolean.Skipvaccumlitterbox.IsOff() && Entities.InputBoolean.Sleepingcarleen.IsOn():
+                                    Entities.InputBoolean.Sleepingcarleen
+                                        .StateChanges()
+                                        .Where(x => x.New.IsOff())
+                                        .Subscribe(_ =>
+                                        {
+                                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                                                Clean("Kattenbak");
+                                        });
+                                    break;
+                            }
                         });
-                    Entities.InputBoolean.Sleepingcarleen
-                        .StateChanges()
-                        .Where(x => x.New.IsOff())
-                        .Subscribe(_ =>
-                        {
-                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                                Clean("Kattenbak");
-                        });
+                    
+                   
                 }
                 
                 Entities.InputBoolean.Skipvaccumlitterbox.TurnOff();
