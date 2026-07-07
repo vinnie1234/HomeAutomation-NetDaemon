@@ -72,14 +72,24 @@ public class PresenceManager : BaseApp
     /// </summary>
     private void AutoAway()
     {
-        Entities.Sensor.ThuisSmS938bDistance.StateChanges()
-            .WhenStateIsFor(x => x?.State > 300, TimeSpan.FromMinutes(5), Scheduler)
-            .Subscribe(_ =>
+        Entities.Person.VincentMaarschalkerweerd.StateChanges()
+            .WhenStateIsFor(x => 
+                x.State != "Home" 
+                && Entities.Zone.Boodschappen.IsOff()
+                && Entities.InputBoolean.Awayvincent.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
+            .Subscribe(x =>
             {
-                if (Vincent.DirectionOfTravel is "away_from" or "stationary" &&
-                    Entities.InputBoolean.Awayvincent.IsOff() &&
-                    Entities.Zone.Boodschappen.IsOff())
-                    Entities.InputBoolean.Awayvincent.TurnOn();
+                Entities.InputBoolean.Awayvincent.TurnOn();
+            });
+        
+        Entities.Person.Carleen.StateChanges()
+            .WhenStateIsFor(x => 
+                x.State != "Home" 
+                && Entities.Zone.Boodschappen.IsOff()
+                && Entities.InputBoolean.Awayvincent.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
+            .Subscribe(x =>
+            {
+                Entities.InputBoolean.Awaycarleen.TurnOn();
             });
     }
 
