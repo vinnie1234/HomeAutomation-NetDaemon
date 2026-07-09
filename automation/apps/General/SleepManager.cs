@@ -29,7 +29,8 @@ public class SleepManager : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         AwakeExtraChecks();
-
+        ScheduleCarleenWakeUp();
+        
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOff(_ => WakeUp());
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => Sleeping());
         Entities.InputBoolean.Sleepingcarleen.WhenTurnsOff(_ => CarleenWokeUp());
@@ -166,9 +167,21 @@ public class SleepManager : BaseApp
         {
             if (Entities.InputBoolean.Sleepingvincent.IsOn()) 
                 Entities.InputBoolean.Sleepingvincent.TurnOff();            
-            
-            if (Entities.InputBoolean.Sleepingcarleen.IsOn()) 
+        });
+    }
+    
+    /// <summary>
+    /// Schedules Carleen's sleeping boolean to turn off at 09:00. Cancels any previous schedule.
+    /// </summary>
+    private void ScheduleCarleenWakeUp()
+    {
+        Scheduler.ScheduleCron("00 10 * * *", () =>
+        {
+            if (Carleen.IsHome && Carleen.IsSleeping)
+            {
+                Logger.LogInformation("Scheduled 10:00 wake-up: setting Carleen sleeping off");
                 Entities.InputBoolean.Sleepingcarleen.TurnOff();
+            }
         });
     }
 }

@@ -22,8 +22,6 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(PresenceManager))]
 public class PresenceManager : BaseApp
 {
-    private IDisposable? _carleenWakeUpSchedule;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="PresenceManager"/> class.
     /// </summary>
@@ -141,9 +139,6 @@ public class PresenceManager : BaseApp
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
         else
             Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
-
-        if (Carleen.IsHome && Carleen.IsSleeping)
-            ScheduleCarleenWakeUp();
     }
 
     /// <summary>
@@ -157,30 +152,7 @@ public class PresenceManager : BaseApp
         Entities.MediaPlayer.AvSoundbar.TurnOff();
     }
 
-    /// <summary>
-    /// Schedules Carleen's sleeping boolean to turn off at 09:00. Cancels any previous schedule.
-    /// </summary>
-    private void ScheduleCarleenWakeUp()
-    {
-        _carleenWakeUpSchedule?.Dispose();
-
-        var now = DateTimeOffset.Now;
-        var wakeUpTime = now.Date.AddHours(9);
-        if (wakeUpTime <= now)
-            wakeUpTime = wakeUpTime.AddDays(1);
-
-        var delay = wakeUpTime - now;
-        _carleenWakeUpSchedule = Scheduler.Schedule(delay, () =>
-        {
-            if (Carleen.IsHome && Carleen.IsSleeping)
-            {
-                Logger.LogInformation("Scheduled 09:00 wake-up: setting Carleen sleeping off");
-                Entities.InputBoolean.Sleepingcarleen.TurnOff();
-            }
-        });
-
-        Logger.LogInformation("Scheduled Carleen wake-up at 09:00 (in {Delay})", delay);
-    }
+    
 
     /// <summary>
     /// Determines the current presence scenario from the per-person away booleans.
