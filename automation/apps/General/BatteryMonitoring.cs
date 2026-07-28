@@ -1,6 +1,6 @@
 using System.Reactive.Concurrency;
-using Automation.Helpers;
 using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -10,7 +10,8 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(BatteryMonitoring))]
 public class BatteryMonitoring : BaseApp
 {
-    private readonly AppConfiguration _config = new();
+    private readonly AppConfiguration _appConfiguration;
+    private readonly AppConfig _config;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatteryMonitoring"/> class.
@@ -23,18 +24,23 @@ public class BatteryMonitoring : BaseApp
         IHaContext ha, 
         ILogger<BatteryMonitoring> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config,
+        IOptions<AppConfiguration> appConfiguration)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
+        _appConfiguration = appConfiguration.Value;
 
         var batterySensors = Entities.Sensor.
             EnumerateAllNumeric().Where(x => x.Attributes?.DeviceClass == "battery");
         
+        Console.WriteLine($"Found {batterySensors.Count()} battery sensors");
         foreach (var battySensor in batterySensors)
         {
             battySensor
                 .StateChanges()
-                .WhenStateIsFor(x => x?.State <= _config.Battery.WarningLevel, _config.Battery.CheckInterval, Scheduler)
+                .WhenStateIsFor(x => x?.State <= _appConfiguration.Battery.WarningLevel, _appConfiguration.Battery.CheckInterval, Scheduler)
                 .Subscribe(x => SendNotification(battySensor.Attributes?.FriendlyName ?? "", x.Entity.State ?? 0));
 
             battySensor
@@ -59,7 +65,7 @@ public class BatteryMonitoring : BaseApp
             TimeSpan.FromDays(7).Minutes,
             [
                 new ActionModel(action: "URI", title: "Ga naar batterij checks",
-                    uri: ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/status-huis")
+                    uri: _config.BaseUrlHomeAssistant + "/status-huis")
             ]);
     }
 }

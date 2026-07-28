@@ -1,4 +1,4 @@
-﻿using Automation.apps;
+using Automation.apps;
 using Automation.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Reactive.Testing;
@@ -7,7 +7,7 @@ using NSubstitute;
 
 namespace TestAutomation.Helpers;
 
-public class AppTestContext
+public class AppTestContext : IDisposable
 {
     public TestScheduler Scheduler { get; } = new();
     public HaContextMock HaContextMock { get; }
@@ -45,5 +45,9 @@ public class AppTestContext
     public void SetCurrentTime(DateTime time)
     {
         AdvanceTimeTo(time.Ticks);
+    }
+    
+    public void Dispose()
+    {
     }
 }

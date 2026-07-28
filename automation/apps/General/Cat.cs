@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -11,7 +13,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(Cat))]
 public class Cat : BaseApp
 {
-    private readonly string _discordPixelChannel = ConfigManager.GetValueFromConfigNested("Discord", "Pixel") ?? "";
+    private readonly AppConfig _config;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Cat"/> class.
@@ -24,9 +26,11 @@ public class Cat : BaseApp
         IHaContext haContext,
         ILogger<Cat> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
         : base(haContext, logger, notify, scheduler)
     {
+        _config = config.Value;
         ButtonFeedCat();
         PetSnowyStatusMonitoring();
         AutoFeedCat();
@@ -156,7 +160,7 @@ public class Cat : BaseApp
     {
         Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            DeviceId = ConfigManager.GetValueFromConfig("ZedarDeviceId"),
+            DeviceId = _config.ZedarDeviceId,
             Dp = 3,
             Value = amount
         });
@@ -187,7 +191,7 @@ public class Cat : BaseApp
             
             Notify.NotifyDiscord(
                 $"🐱❌ **Feeding Failed**\n{message}", 
-                [_discordPixelChannel]);
+                [_config.Discord.Pixel]);
         }
         
         Logger.LogWarning("Cat feeding failed - manual intervention required for {Amount}g", amount);
@@ -206,7 +210,7 @@ public class Cat : BaseApp
                         Embed = new Embed
                         {
                             Title = "Pixel heeft handmatig eten gehad",
-                            Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/lovelace/2",
+                            Url = _config.BaseUrlHomeAssistant + "/lovelace/2",
                             Thumbnail = new Location("https://cdn.pixabay.com/photo/2016/10/11/18/17/black-cat-1732366_960_720.png"),
                             Fields =
                             [
@@ -216,7 +220,7 @@ public class Cat : BaseApp
                         }
                     };
 
-                    Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
+                    Notify.NotifyDiscord("", [_config.Discord.Pixel], discordNotificationModel);
                 }
                 );
 
@@ -229,7 +233,7 @@ public class Cat : BaseApp
                     Embed = new Embed
                     {
                         Title = "Pixel heeft eten gehad",
-                        Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/status-huis/1",
+                        Url = _config.BaseUrlHomeAssistant + "/status-huis/1",
                         Thumbnail = new Location("https://cdn.pixabay.com/photo/2016/10/11/18/17/black-cat-1732366_960_720.png"),
                         Fields =
                         [
@@ -239,7 +243,7 @@ public class Cat : BaseApp
                     }
                 };
 
-                Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
+                Notify.NotifyDiscord("", [_config.Discord.Pixel], discordNotificationModel);
             });
 
 
@@ -302,8 +306,8 @@ public class Cat : BaseApp
                     Title = "PIXEL ZIJN FOUNTAIN STAAT UIT!!!!"
                 }
             };
-            Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
-        }, 600);
+            Notify.NotifyDiscord("", [_config.Discord.Pixel], discordNotificationModel);
+        }, 600, Scheduler);
 
         Entities.Switch.PetsnowyLitterboxAutoClean.WhenTurnsOff(_ =>
         {
@@ -314,8 +318,8 @@ public class Cat : BaseApp
                     Title = "DE KATTENBAK STAAT UIT!!!!"
                 }
             };
-            Notify.NotifyDiscord("", [_discordPixelChannel], discordNotificationModel);
-        }, 600);
+            Notify.NotifyDiscord("", [_config.Discord.Pixel], discordNotificationModel);
+        }, 600, Scheduler);
     }
 
     /// <summary>
@@ -342,7 +346,7 @@ public class Cat : BaseApp
     {
         Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
+            DeviceId = _config.PetSnowyDeviceId,
             Dp = 9,
             Value = "true"
         });
@@ -355,7 +359,7 @@ public class Cat : BaseApp
     {
         Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
         {
-            DeviceId = ConfigManager.GetValueFromConfig("PetSnowyDeviceId"),
+            DeviceId = _config.PetSnowyDeviceId,
             Dp = 109,
             Value = "true"
         });

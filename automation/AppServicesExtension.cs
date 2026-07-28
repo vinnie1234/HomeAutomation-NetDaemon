@@ -1,6 +1,5 @@
 using System.IO;
 using Automation.apps;
-using Automation.Helpers;
 using Automation.Repository;
 using Automation.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,13 +20,13 @@ internal static class AppServicesExtension
                         ".storage"),
                     provider.GetRequiredService<ILogger<DataRepository>>()))
                 .AddSingleton<INotify>(provider =>
-                    new Notify(GenericHelpers.GetHaContext(provider), provider.GetRequiredService<IDataRepository>(), provider.GetRequiredService<ILogger<Notify>>()))
-                .AddSingleton<ISpotcast>(provider => new Spotcast(GenericHelpers.GetHaContext(provider)))
+                    new Notify(provider.GetRequiredService<IHaContext>(), provider.GetRequiredService<IDataRepository>(), provider.GetRequiredService<ILogger<Notify>>()))
+                .AddSingleton<ISpotcast>(provider => new Spotcast(provider.GetRequiredService<IHaContext>()))
                 .AddSingleton<IEntityManager>(provider =>
                     new EntityManager(
                         provider.GetRequiredService<IMqttEntityManager>(),
-                        GenericHelpers.GetHaContext(provider), 
+                        provider.GetRequiredService<IHaContext>(), 
                         provider.GetRequiredService<ILogger<EntityManager>>()));
         });
     }
-}
+}

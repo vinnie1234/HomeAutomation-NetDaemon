@@ -1,6 +1,9 @@
-﻿using System.Reactive.Concurrency;
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
+using Microsoft.Extensions.Options;
+using Automation.Configuration;
 
 namespace Automation.apps.General;
 
@@ -10,8 +13,8 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(AutoUpdateApp))]
 public class AutoUpdateApp : BaseApp
 {
+    private readonly AppConfig _config;
     private readonly UpdateEntities _updates;
-    private readonly string _discordUpdateChannel = ConfigManager.GetValueFromConfigNested("Discord", "Updates") ?? "";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AutoUpdateApp"/> class.
@@ -24,9 +27,11 @@ public class AutoUpdateApp : BaseApp
         IHaContext ha,
         ILogger<AutoUpdateApp> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         _updates = Entities.Update;
         scheduler.ScheduleCron("0 11 30 * *", () => _ = AutoUpdate());
     }
@@ -54,15 +59,15 @@ public class AutoUpdateApp : BaseApp
 
                 Logger.LogInformation("Ready updating {name}", name);
                 NotifyMeOnDiscord("Updates is geinstaleerd", $"Geinstalleerde update voor {name}");
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Observable.Timer(TimeSpan.FromMinutes(1), Scheduler);
             }
 
             NotifyVincentPhone(needUpdate.Length);
 
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            //ignore
+            Logger.LogError(ex, "Error during auto-update process");
         }
     }
 
@@ -78,13 +83,13 @@ public class AutoUpdateApp : BaseApp
             Embed = new Embed
             {
                 Title = title,
-                Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/config/updates",
+                Url = _config.BaseUrlHomeAssistant + "/config/updates",
                 Thumbnail = new Location("https://icon-library.com/images/update-icon-png/update-icon-png-22.jpg"),
                 Description = message
             }
         };
 
-        Notify.NotifyDiscord("", [_discordUpdateChannel], discordNotificationModel);
+        Notify.NotifyDiscord("", [_config.Discord.Updates], discordNotificationModel);
     }
     
     /// <summary>

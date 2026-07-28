@@ -58,7 +58,8 @@ public static class Globals
 
     public static HouseState GetHouseState(IEntities entities)
     {
-        return (entities.InputSelect.Housemodeselect.State ?? "Day")
+        var state = entities.InputSelect.Housemodeselect.State;
+        return (state is null or "unknown" or "unavailable" ? "Day" : state)
             switch
             {
                 "Morning" => HouseState.Morning,

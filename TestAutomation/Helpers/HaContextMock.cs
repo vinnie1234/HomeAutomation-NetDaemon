@@ -53,7 +53,7 @@ public class HaContextMock
     {
         if (_scheduler != null)
         {
-            _scheduler.AdvanceBy(1); // Process immediate operations
+            _scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks); // Process immediate operations
         }
     }
 }

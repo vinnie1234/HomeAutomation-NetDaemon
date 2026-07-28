@@ -41,7 +41,7 @@
         <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.29.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+
         <PackageReference Include="RestSharp" Version="114.0.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="System.Reactive" Version="7.0.0" />

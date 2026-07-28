@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Enum;
+using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
 namespace Automation.apps.General;
@@ -15,7 +16,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(AwayManager))]
 public class AwayManager : BaseApp
 {
-    private readonly AppConfiguration _config = new();
+    private readonly AppConfiguration _config;
     private HomePresenceState _currentState = HomePresenceState.Home;
     private readonly object _stateLock = new();
 
@@ -26,13 +27,16 @@ public class AwayManager : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="config">The application configuration.</param>
     public AwayManager(
         IHaContext ha,
         ILogger<AwayManager> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfiguration> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         TriggersHandler();
     }
 

@@ -1,12 +1,13 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.LivingRoom;
 
 [NetDaemonApp(Id = nameof(LivingRoomLights))]
 public class LivingRoomLights : BaseApp
 {
-    private readonly AppConfiguration _config = new();
+    private readonly AppConfiguration _config;
     /// <summary>
     /// Initializes a new instance of the <see cref="LivingRoomLights"/> class.
     /// </summary>
@@ -14,13 +15,16 @@ public class LivingRoomLights : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="config">The application configuration.</param>
     public LivingRoomLights(
         IHaContext ha,
         ILogger<LivingRoomLights> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfiguration> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>
         {
             var eventModel = x.DataElement?.ToObject<EventModel>();

@@ -1,5 +1,7 @@
-﻿using System.Reactive.Concurrency;
+using System.Reactive.Concurrency;
 using Automation.Helpers;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -9,6 +11,8 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(Vacuum))]
 public class Vacuum : BaseApp
 {
+    private readonly AppConfig _config;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Vacuum"/> class.
     /// </summary>
@@ -20,9 +24,11 @@ public class Vacuum : BaseApp
         IHaContext ha,
         ILogger<Vacuum> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         CleanLitterBoxAfterUse();
         StartFromButton();
     }
@@ -105,7 +111,7 @@ public class Vacuum : BaseApp
                 command = "start",
                 @params = new
                 {
-                    pmap_id = ConfigManager.GetValueFromConfigNested("Roomba", "PmapId") ?? "",
+                    pmap_id = _config.Roomba.PmapId,
                     regions = new[]
                     {
                         new

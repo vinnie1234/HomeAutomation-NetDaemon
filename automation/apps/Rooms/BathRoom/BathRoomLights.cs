@@ -1,6 +1,8 @@
 using System.Reactive.Concurrency;
 using Automation.Helpers;
 using static Automation.Globals;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.BathRoom;
 
@@ -13,7 +15,7 @@ public class BathRoomLights : BaseApp
     private bool IsNighttime => Entities.InputSelect.Housemodeselect.State == "Night";
 
     private ISpotcast _spotcast;
-    private readonly string _spotifyUrl = ConfigManager.GetValueFromConfig("SpotifyRadioNlUrl") ?? "";
+    private readonly AppConfig _config;
     
     /// <summary>
     /// Gets a value indicating whether light automations are disabled.
@@ -31,16 +33,18 @@ public class BathRoomLights : BaseApp
     /// <param name="ha">The Home Assistant context.</param>
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
-    /// <param name="spotcast">The spotcast service</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="spotcast">The spotcast service</param>
     public BathRoomLights(
         IHaContext ha,
         ILogger<BathRoomLights> logger,
         INotify notify,
+        IScheduler scheduler,
         ISpotcast spotcast,
-        IScheduler scheduler)
+        IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         _spotcast = spotcast;
         
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>
@@ -93,7 +97,7 @@ public class BathRoomLights : BaseApp
             if (!IsNightMode)
             {
                 Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
+                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _config.SpotifyRadioNlUrl);
             }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
@@ -209,7 +213,7 @@ public class BathRoomLights : BaseApp
                 if (!IsDouching && !IsNightMode)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
-                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _spotifyUrl);
+                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _config.SpotifyRadioNlUrl);
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
             });

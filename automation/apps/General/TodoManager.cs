@@ -1,18 +1,21 @@
-﻿using System.Reactive.Concurrency;
+using System.Reactive.Concurrency;
 using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Todo;
+using Microsoft.Extensions.Options;
+using Automation.Configuration;
 
 namespace Automation.apps.General;
 
 [NetDaemonApp(Id = nameof(TodoManager))]
 public class TodoManager : BaseApp
 {
-    private readonly string _discordTodoChannel = ConfigManager.GetValueFromConfigNested("Discord", "TODO") ?? "";
+    private readonly AppConfig _config;
     
-    public TodoManager(IHaContext haContext,  ILogger<TodoManager> logger, INotify notify, IScheduler scheduler) 
+    public TodoManager(IHaContext haContext,  ILogger<TodoManager> logger, INotify notify, IScheduler scheduler, IOptions<AppConfig> config) 
         : base(haContext, logger, notify, scheduler)
     {
+        _config = config.Value;
         Scheduler.ScheduleCron("00 22 * * *", HandleTodoList);
     }
 
@@ -39,12 +42,12 @@ public class TodoManager : BaseApp
         {
             var fieldList = (from item in notCompleteList where item.Status == "needs_action" select new Field { Name = "Niet gedaan", Value = item.Summary }).ToList();
             
-            Notify.NotifyDiscord("", [_discordTodoChannel], new DiscordNotificationModel
+            Notify.NotifyDiscord("", [_config.Discord.TODO], new DiscordNotificationModel
             {
                 Embed = new Embed
                 {
                     Title = "Niet alles gedaan wat je moest doen!",
-                    Url = ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/todo?entity_id=todo.dagelijks",
+                    Url = _config.BaseUrlHomeAssistant + "/todo?entity_id=todo.dagelijks",
                     Fields = fieldList.ToArray()
                 }
             });

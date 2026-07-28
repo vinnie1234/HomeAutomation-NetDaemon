@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;
 using NetDaemonApps.Tests.Helpers;
@@ -37,8 +37,20 @@ public static class AppTestContextExtensions
     {
         TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
         {
-            haContext.Received(times)
-                .CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<object?>());
+            var allCalls = haContext.ReceivedCalls().ToList();
+            var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
+            var matchedCalls = calls.Where(c => 
+                (string)c.GetArguments()[0]! == domain && 
+                (string)c.GetArguments()[1]! == service &&
+                c.GetArguments()[2] is ServiceTarget st && 
+                st.EntityIds != null && 
+                st.EntityIds.Contains($"{domain}.{entityId}")).ToList();
+
+            if (matchedCalls.Count != times)
+            {
+                var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}, Target: {(c.GetArguments()[2] as ServiceTarget)?.EntityIds?.FirstOrDefault() ?? "null"}, Data: {c.GetArguments()[3]}"));
+                matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service} for {entityId}. Actual calls:\n{debugInfo}");
+            }
         }, testName);
     }    
     
@@ -46,8 +58,17 @@ public static class AppTestContextExtensions
     {
         TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
         {
-            haContext.Received(times)
-                .CallService(domain, service, null, Arg.Any<object?>());
+            var allCalls = haContext.ReceivedCalls().ToList();
+            var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
+            var matchedCalls = calls.Where(c => 
+                (string)c.GetArguments()[0]! == domain && 
+                (string)c.GetArguments()[1]! == service).ToList();
+
+            if (matchedCalls.Count != times)
+            {
+                var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}"));
+                matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service}. Actual calls:\n{debugInfo}");
+            }
         }, testName);
     }
 
@@ -63,11 +84,18 @@ public static class AppTestContextExtensions
         }, testName);
     }
 
-    public static void VerifyCallServiceWithData<T>(this AppTestContext ctx, string domain, string service, string entityId, T? data, int times = 1, [CallerMemberName] string testName = "") where T : class
+    public static void VerifyCallServiceWithData<T>(this AppTestContext ctx, string domain, string service, string? entityId, T? data, int times = 1, [CallerMemberName] string testName = "") where T : class
     {
         TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
         {
-            haContext.Received(times).CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.First() == $"{domain}.{entityId}"), Arg.Any<T>());
+            if (entityId != null)
+            {
+                haContext.Received(times).CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.FirstOrDefault() == $"{domain}.{entityId}"), Arg.Any<T>());
+            }
+            else
+            {
+                haContext.Received(times).CallService(domain, service, null, Arg.Any<T>());
+            }
         }, testName);
         
         T? calledData = null;

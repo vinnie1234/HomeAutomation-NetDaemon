@@ -1,5 +1,8 @@
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using Automation.Helpers;
+using Microsoft.Extensions.Options;
+using Automation.Configuration;
 
 namespace Automation.apps.General;
 
@@ -9,7 +12,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(NetDaemon))]
 public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
 {
-    private readonly string _discordLogChannel = ConfigManager.GetValueFromConfigNested("Discord", "Logs") ?? "";
+    private readonly AppConfig _config;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetDaemon"/> class.
@@ -22,9 +25,11 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     private readonly IDataRepository _storage;
 
     public NetDaemon(IHaContext ha, ILogger<NetDaemon> logger,
-        INotify notify, IScheduler scheduler, IDataRepository storage)
+        INotify notify, IScheduler scheduler, IDataRepository storage,
+        IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         _storage = storage;
     }
 
@@ -42,7 +47,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
 
         if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn())
             Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
-        Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_discordLogChannel]);
+        Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_config.Discord.Logs]);
 
         Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>
         {
@@ -50,8 +55,10 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
             Entities.Light.Koelkast.TurnOn(colorName: "red");
             Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
 
-            Thread.Sleep(TimeSpan.FromSeconds(5));
-            Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
+            Observable.Timer(TimeSpan.FromSeconds(5), Scheduler).Subscribe(_ =>
+            {
+                Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
+            });
         });
         
         return Task.CompletedTask;
@@ -64,6 +71,6 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     public void Dispose()
 #pragma warning restore CA1816
     {
-        Notify.NotifyDiscord("NetDaemon stopped", [_discordLogChannel]);
+        Notify.NotifyDiscord("NetDaemon stopped", [_config.Discord.Logs]);
     }
 }

@@ -1,6 +1,9 @@
 using System.Reflection;
 using Automation;
+using Automation.Configuration;
 using Automation.CustomLogger;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NetDaemon.Extensions.Tts;
 using NetDaemon.Extensions.MqttEntityManager;
@@ -23,13 +26,18 @@ try
         .UseNetDaemonTextToSpeech()
         .UseNetDaemonMqttEntityManagement()
         .AddAppServices()
-        .ConfigureServices((_, services) =>
+        .ConfigureAppConfiguration(config =>
+            config.AddJsonFile("config.json", optional: false, reloadOnChange: false))
+        .ConfigureServices((context, services) =>
+        {
+            services.Configure<AppConfig>(context.Configuration);
+            services.Configure<AppConfiguration>(context.Configuration.GetSection("AppConfiguration"));
             services
                 .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddNetDaemonStateManager()
                 .AddNetDaemonScheduler()
-                .AddHomeAssistantGenerated()
-        )
+                .AddHomeAssistantGenerated();
+        })
         .Build()
         .RunAsync()
         .ConfigureAwait(false);
@@ -38,4 +46,4 @@ catch (Exception ex)
 {
     Console.WriteLine($"Failed to start host... {ex}");
     throw;
-}
+}

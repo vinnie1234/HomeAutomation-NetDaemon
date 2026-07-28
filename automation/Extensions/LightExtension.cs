@@ -14,9 +14,9 @@ public static class LightExtension
     /// Turns off all lights except specified ones.
     /// </summary>
     /// <param name="lightEntities">The light entities to turn off.</param>
-    public static void TurnAllOff(this LightEntities lightEntities)
+    public static void TurnAllOff(this LightEntities lightEntities, AppConfiguration? config = null)
     {
-        var config = new AppConfiguration();
+        config ??= new AppConfiguration();
         lightEntities.EnumerateAll()
             .Where(x => x.EntityId is not "light.rt_ax88u_led" and not "light.tradfri_driver")
             .TurnOff(transition: config.Lights.DefaultTransitionSeconds);
@@ -27,9 +27,9 @@ public static class LightExtension
     /// </summary>
     /// <param name="entities">The entities to control.</param>
     /// <param name="scheduler">The scheduler to use for timing operations.</param>
-    public static void TurnOnLightsWoonkamer(IEntities entities, IScheduler scheduler)
+    public static void TurnOnLightsWoonkamer(IEntities entities, IScheduler scheduler, AppConfiguration? config = null)
     {
-        var config = new AppConfiguration();
+        config ??= new AppConfiguration();
         var throttleTime = config.Lights.StateChangeThrottleMs;
         var delayTime = config.Lights.DelayBetweenLights;
         
@@ -58,9 +58,9 @@ public static class LightExtension
     /// </summary>
     /// <param name="entities">The entities to control.</param>
     /// <param name="scheduler">The scheduler to use for timing operations.</param>
-    public static void TurnOffLightsWoonkamer(IEntities entities, IScheduler scheduler)
+    public static void TurnOffLightsWoonkamer(IEntities entities, IScheduler scheduler, AppConfiguration? config = null)
     {
-        var config = new AppConfiguration();
+        config ??= new AppConfiguration();
         var throttleTime = config.Lights.StateChangeThrottleMs;
         var delayTime = config.Lights.DelayBetweenLights;
         

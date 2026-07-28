@@ -1,4 +1,4 @@
-﻿using System.Reactive.Disposables;
+using System.Reactive.Disposables;
 
 namespace Automation.Models.Persons;
 
@@ -15,6 +15,10 @@ public class CarleenModel: IPerson
     
     public CarleenModel(IEntities entities)
     {
+        IsSleeping = entities.InputBoolean.Sleepingcarleen.IsOn();
+        IsHome = entities.InputBoolean.Awaycarleen.IsOff();
+        State = entities.Person.Carleen.State;
+
         _subscriptions = new CompositeDisposable(
             entities.InputBoolean.Sleepingcarleen.StateChanges().Subscribe(x => IsSleeping = x.New.IsOn()),
             entities.InputBoolean.Awaycarleen.StateChanges().Subscribe(x => IsHome = x.New.IsOff()),

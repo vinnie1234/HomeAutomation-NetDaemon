@@ -1,4 +1,6 @@
+using Automation.Configuration;
 using Automation.apps.Rooms.LivingRoom;
+using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -22,7 +24,7 @@ public class LivingRoomLightsTests
         var ctx = ArrangeWithLightOn();
 
         // Carleen home and sleeping; Vincent awake (sleepingvincent never turned on → IsSleeping=false)
-        ctx.InitApp<LivingRoomLights>();
+        ctx.InitApp<LivingRoomLights>(Options.Create(new AppConfiguration()));
         ctx.ChangeStateFor("input_boolean.awaycarleen").FromState("on").ToState("off"); // Carleen home
         ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on"); // Carleen sleeping
         ctx.HaContextMock.ProcessPendingOperations();
@@ -40,7 +42,7 @@ public class LivingRoomLightsTests
     {
         var ctx = ArrangeWithLightOn();
 
-        ctx.InitApp<LivingRoomLights>();
+        ctx.InitApp<LivingRoomLights>(Options.Create(new AppConfiguration()));
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on"); // Vincent sleeping
         ctx.HaContextMock.ProcessPendingOperations();
 
@@ -50,3 +52,5 @@ public class LivingRoomLightsTests
         ctx.VerifyCallService("light", "turn_off", "woonkamer");
     }
 }
+
+

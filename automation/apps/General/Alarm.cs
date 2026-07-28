@@ -2,6 +2,8 @@ using System.Reactive.Concurrency;
 using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
 using NetDaemon.Client;
+using Microsoft.Extensions.Options;
+using Automation.Configuration;
 
 namespace Automation.apps.General;
 
@@ -11,7 +13,7 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(Alarm))]
 public class Alarm : BaseApp
 {
-    private readonly string _discordLogChannel = ConfigManager.GetValueFromConfigNested("Discord", "Logs") ?? "";
+    private readonly AppConfig _config;
 
     private readonly IEntityManager _entityManager;
     
@@ -30,9 +32,11 @@ public class Alarm : BaseApp
         INotify notify,
         IScheduler scheduler,
         IHomeAssistantConnection homeAssistantConnection,
-        IEntityManager entityManager)
+        IEntityManager entityManager,
+        IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         _entityManager = entityManager;
         InitializeGarbageCounterEntities();
         
@@ -46,7 +50,7 @@ public class Alarm : BaseApp
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ =>
         {
             // Only alarm when nobody is home (neither Vincent nor Carleen).
-            if (!Vincent.IsHome && !Carleen.IsHome)
+            if (Entities.InputBoolean.Away.IsOn())
                 Notify.NotifyPhoneVincent("ALARM", "Beweging gedetecteerd", false, 5, channel: "ALARM",
                     vibrationPattern: "100, 1000, 100, 1000, 100");
         });
@@ -83,7 +87,7 @@ public class Alarm : BaseApp
                         10,
                         [
                             new ActionModel(action: "URI", title: "Ga naar dashboard",
-                                uri: ConfigManager.GetValueFromConfig("BaseUrlHomeAssistant") + "/energy")
+                                uri: _config.BaseUrlHomeAssistant + "/energy")
                         ],
                         channel: "ALARM", vibrationPattern: "100, 1000, 100, 1000, 100");
                 }
@@ -233,7 +237,7 @@ public class Alarm : BaseApp
                     }
                 };
 
-                Notify.NotifyDiscord("PetSnowy heeft errors", [_discordLogChannel], discordNotificationModel);
+                Notify.NotifyDiscord("PetSnowy heeft errors", [_config.Discord.Logs], discordNotificationModel);
                 Notify.NotifyPhoneVincent("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", false, 10);
             }
@@ -251,7 +255,7 @@ public class Alarm : BaseApp
             {
                 if (x.New?.State < -20.00)
                 {
-                    Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", [_discordLogChannel]);
+                    Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", [_config.Discord.Logs]);
                     Notify.NotifyPhoneVincent($"ENERGY IS NEGATIEF - {x.New.State}",
                         "Je energy is negatief, dit kost geld.", false, 10);
                 }
@@ -274,11 +278,11 @@ public class Alarm : BaseApp
                 if (dateTime < DateTime.Now.AddDays(-2))
                     Notify.NotifyDiscord(
                         $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",
-                        [_discordLogChannel]);
+                        [_config.Discord.Logs]);
             }
             else
             {
-                Notify.NotifyDiscord("Er is geen  backup", [_discordLogChannel]);
+                Notify.NotifyDiscord("Er is geen  backup", [_config.Discord.Logs]);
             }
         });
     }

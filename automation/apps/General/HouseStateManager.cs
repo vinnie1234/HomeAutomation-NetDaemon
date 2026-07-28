@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Enum;
-using Newtonsoft.Json;
 using static Automation.Globals;
 
 namespace Automation.apps.General;
@@ -47,7 +46,9 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void SetCurrentStates()
     {
-        SetHouseState(Entities.Sun.Sun.State == "below_horizon" ? HouseState.Evening : HouseState.Day);
+        var sunState = Entities.Sun.Sun.State;
+        if (sunState is not (null or "unknown" or "unavailable"))
+            SetHouseState(sunState == "below_horizon" ? HouseState.Evening : HouseState.Day);
     }
 
     /// <summary>
@@ -173,7 +174,8 @@ public class HouseStateManager : BaseApp
     {
         Entities.Sun.Sun
             .StateChanges()
-            .Where(change => change.Entity.State == "below_horizon")
+            .Where(change => change.Entity.State == "below_horizon"
+                          && change.Old?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ =>
             {
                 Logger.LogDebug("Setting current house state to {State}", HouseState.Evening);
@@ -188,7 +190,8 @@ public class HouseStateManager : BaseApp
     {
         Entities.Sun.Sun
             .StateChanges()
-            .Where(change => change.Entity.State == "above_horizon")
+            .Where(change => change.Entity.State == "above_horizon"
+                          && change.Old?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ =>
             {
                 Logger.LogDebug("Setting current house state to {State}", HouseState.Morning);

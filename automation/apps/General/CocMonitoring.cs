@@ -1,19 +1,24 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Helpers;
 using Automation.Models.COC;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Twitter;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 using RestSharp;
 
 namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
 public class CocMonitoring : BaseApp
 {
-    public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository) : base(haContext, logger, notify, scheduler)
+    private readonly AppConfig _config;
+
+    public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository, IOptions<AppConfig> config) : base(haContext, logger, notify, scheduler)
     {
-        var discordChannel = ConfigManager.GetValueFromConfigNested("Discord", "COC") ?? "";
-        var bearerToken = ConfigManager.GetValueFromConfigNested("Twitter", "BearerToken") ?? "";
+        _config = config.Value;
+        var discordChannel = _config.Discord.COC;
+        var bearerToken = _config.Twitter.BearerToken;
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
             () => { GetTweets(bearerToken, discordChannel, dataRepository); });        
@@ -25,7 +30,7 @@ public class CocMonitoring : BaseApp
     {
         // Check if this function has already run today at allowed times (07:00 or 19:00)
         var lastRunTime = dataRepository.Get<string>("COC_LAST_RUN_TIME");
-        var now = DateTime.Now;
+        var now = Scheduler.Now;
         
         if (!string.IsNullOrEmpty(lastRunTime) && DateTime.TryParse(lastRunTime, out var lastRun) && lastRun.Date == now.Date)
         {
@@ -78,7 +83,7 @@ public class CocMonitoring : BaseApp
                             idListModel.Add(new COCModel
                             {
                                 Id = tweet.Id,
-                                InertDate = DateTime.Now
+                                InertDate = Scheduler.Now.LocalDateTime
                             });
                         }
                     }

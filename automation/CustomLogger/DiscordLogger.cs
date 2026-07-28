@@ -1,4 +1,5 @@
-﻿using Automation.Helpers;
+using System.Collections.Concurrent;
+using Automation.Helpers;
 using Serilog.Core;
 using Serilog.Events;
 using Discord;
@@ -9,8 +10,9 @@ namespace Automation.CustomLogger;
 
 /// <summary>
 /// A custom logger that sends log events to a Discord channel using webhooks.
+/// Caches webhook clients per URL to prevent port exhaustion.
 /// </summary>
-public class DiscordLogger : ILogEventSink
+public class DiscordLogger : ILogEventSink, IDisposable
 {
     private readonly IFormatProvider? _formatProvider;
     private readonly LogEventLevel _restrictedToMinimumLevel;
@@ -20,6 +22,11 @@ public class DiscordLogger : ILogEventSink
     private static readonly string WebhookUrlWarning = ConfigManager.GetValueFromConfigNested("NetDaemonLogging", "Warning") ?? throw new InvalidOperationException();
     private static readonly string WebhookUrlError = ConfigManager.GetValueFromConfigNested("NetDaemonLogging", "Error") ?? throw new InvalidOperationException();
     private static readonly string WebhookUrlException = ConfigManager.GetValueFromConfigNested("NetDaemonLogging", "Exception") ?? throw new InvalidOperationException();
+
+    /// <summary>
+    /// Cached webhook clients keyed by webhook URL to prevent creating a new client per log event.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, DiscordWebhookClient> WebhookClients = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DiscordLogger"/> class.
@@ -44,6 +51,16 @@ public class DiscordLogger : ILogEventSink
     }
 
     /// <summary>
+    /// Gets or creates a cached webhook client for the given URL.
+    /// </summary>
+    /// <param name="webhookUrl">The Discord webhook URL.</param>
+    /// <returns>A cached or newly created <see cref="DiscordWebhookClient"/>.</returns>
+    private static DiscordWebhookClient GetOrCreateClient(string webhookUrl)
+    {
+        return WebhookClients.GetOrAdd(webhookUrl, url => new DiscordWebhookClient(url));
+    }
+
+    /// <summary>
     /// Sends a log event message to the Discord channel.
     /// </summary>
     /// <param name="logEvent">The log event to send.</param>
@@ -58,7 +75,7 @@ public class DiscordLogger : ILogEventSink
         {
             if (logEvent.Exception != null)
             {
-                var webHook = new DiscordWebhookClient(GetWebhookUrl());
+                var webHook = GetOrCreateClient(GetWebhookUrl());
                 embedBuilder.Color = Color.DarkRed;
                 embedBuilder.WithTitle(":o: Exception");
                 embedBuilder.AddField("Type:", $"```{logEvent.Exception.GetType().FullName}```");
@@ -73,7 +90,7 @@ public class DiscordLogger : ILogEventSink
             }
             else
             {
-                var webHook = new DiscordWebhookClient(GetWebhookUrl(logEvent.Level));
+                var webHook = GetOrCreateClient(GetWebhookUrl(logEvent.Level));
                 var message = logEvent.RenderMessage(_formatProvider);
                 message = FormatMessage(message, 240);
 
@@ -86,7 +103,7 @@ public class DiscordLogger : ILogEventSink
         }
         catch (Exception ex)
         {
-            var webHook = new DiscordWebhookClient(GetWebhookUrl());
+            var webHook = GetOrCreateClient(GetWebhookUrl());
             await webHook.SendMessageAsync(
                     $"ooo snap, {ex.Message}");
         }
@@ -176,5 +193,18 @@ public class DiscordLogger : ILogEventSink
             null => WebhookUrlException,
             _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
         };
+    }
+
+    /// <summary>
+    /// Disposes all cached webhook clients.
+    /// </summary>
+    public void Dispose()
+    {
+        foreach (var client in WebhookClients.Values)
+        {
+            client.Dispose();
+        }
+        WebhookClients.Clear();
+        GC.SuppressFinalize(this);
     }
 }

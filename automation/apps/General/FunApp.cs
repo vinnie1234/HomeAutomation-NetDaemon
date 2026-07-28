@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Enum;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -9,7 +10,7 @@ namespace Automation.apps.General;
 // ReSharper disable once UnusedType.Global
 public class FunApp : BaseApp
 {
-    private readonly AppConfiguration _config = new();
+    private readonly AppConfiguration _config;
     /// <summary>
     /// Initializes a new instance of the <see cref="FunApp"/> class.
     /// </summary>
@@ -17,9 +18,12 @@ public class FunApp : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
-    public FunApp(IHaContext ha, ILogger<FunApp> logger, INotify notify, IScheduler scheduler)
+    /// <param name="config">The application configuration.</param>
+    public FunApp(IHaContext ha, ILogger<FunApp> logger, INotify notify, IScheduler scheduler,
+                  IOptions<AppConfiguration> config)
         : base(ha, logger, notify, scheduler)
     {
+        _config = config.Value;
         Friends();
         Parents();
         NewYear();
