@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
-using Automation.Helpers;
+
 using Automation.Models.DiscordNotificationModels;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
@@ -256,7 +256,7 @@ public class Cat : BaseApp
     private void AutoFeedCat()
     {
         foreach (var autoFeed in
-                 Collections.GetFeedTimes(Entities).Where(autoFeed => autoFeed.Key.State != null))
+                 GetFeedTimes().Where(autoFeed => autoFeed.Key.State != null))
             Scheduler.RunDaily(TimeSpan.Parse(autoFeed.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")), () =>
             {
                 if (Entities.InputBoolean.Pixelskipnextautofeed.IsOff())
@@ -329,13 +329,25 @@ public class Cat : BaseApp
     private KeyValuePair<InputDatetimeEntity, InputNumberEntity> GetClosestFeed()
     {
         var closestFeed =
-            Collections
-                .GetFeedTimes(Entities)
+            GetFeedTimes()
                 .MinBy(pair =>
                     Math.Abs(
                         (DateTimeOffset.Parse(pair.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")) - DateTimeOffset.Now)
                         .Ticks));
         return closestFeed;
+    }
+    /// <summary>
+    /// Gets a dictionary of feed times with their corresponding feed amounts.
+    /// </summary>
+    private Dictionary<InputDatetimeEntity, InputNumberEntity> GetFeedTimes()
+    {
+        return new Dictionary<InputDatetimeEntity, InputNumberEntity>
+        {
+            { Entities.InputDatetime.Pixelfeedfirsttime, Entities.InputNumber.Pixelfeedfirstamount },
+            { Entities.InputDatetime.Pixelfeedsecondtime, Entities.InputNumber.Pixelfeedsecondamount },
+            { Entities.InputDatetime.Pixelfeedthirdtime, Entities.InputNumber.Pixelfeedthirdamount },
+            { Entities.InputDatetime.Pixelfeedfourthtime, Entities.InputNumber.Pixelfeedfourthamount }
+        };
     }
 
 

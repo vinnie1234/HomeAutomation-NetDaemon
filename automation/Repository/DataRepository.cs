@@ -1,14 +1,19 @@
+using System.Collections.Concurrent;
 using System.IO;
+using System.Text.Json;
+using Automation.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Automation.Repository;
 
 /// <summary>
-/// Provides methods for data storage and retrieval.
+/// Provides methods for data storage and retrieval with in-memory caching.
 /// </summary>
 public class DataRepository : IDataRepository
 {
     private readonly string _dataStoragePath;
     private readonly ILogger _logger;
+    private readonly ConcurrentDictionary<string, object> _cache;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DataRepository"/> class.
@@ -19,10 +24,12 @@ public class DataRepository : IDataRepository
     {
         _dataStoragePath = dataStoragePath;
         _logger = logger;
+        _cache = new ConcurrentDictionary<string, object>();
     }
 
     /// <summary>
     /// Retrieves data of type <typeparamref name="T"/> from storage.
+    /// Uses an in-memory cache to avoid disk reads.
     /// </summary>
     /// <typeparam name="T">The type of data to retrieve.</typeparam>
     /// <param name="id">The identifier of the data to retrieve.</param>
@@ -31,13 +38,25 @@ public class DataRepository : IDataRepository
     {
         try
         {
+            if (_cache.TryGetValue(id, out var cachedObj))
+            {
+                return cachedObj as T;
+            }
+
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
 
             if (!File.Exists(storageJsonFile))
                 return null;
 
             var jsonContent = File.ReadAllText(storageJsonFile);
-            return JsonSerializer.Deserialize<T>(jsonContent);
+            var parsedObj = JsonSerializer.Deserialize<T>(jsonContent);
+            
+            if (parsedObj != null)
+            {
+                _cache[id] = parsedObj;
+            }
+            
+            return parsedObj;
         }
         catch (Exception ex)
         {
@@ -48,7 +67,7 @@ public class DataRepository : IDataRepository
     }
 
     /// <summary>
-    /// Saves data of type <typeparamref name="T"/> to storage.
+    /// Saves data of type <typeparamref name="T"/> to storage and updates the cache.
     /// </summary>
     /// <typeparam name="T">The type of data to save.</typeparam>
     /// <param name="id">The identifier of the data to save.</param>
@@ -57,6 +76,11 @@ public class DataRepository : IDataRepository
     {
         try
         {
+            if (data != null)
+            {
+                _cache[id] = data;
+            }
+            
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
             Directory.CreateDirectory(_dataStoragePath);
 

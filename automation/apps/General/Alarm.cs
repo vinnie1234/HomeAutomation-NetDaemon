@@ -62,13 +62,26 @@ public class Alarm : BaseApp
     /// </summary>
     private void TemperatureCheck()
     {
-        foreach (var temperatureSensor in Collections.GetAllTemperatureSensors(Entities))
+        foreach (var temperatureSensor in GetAllTemperatureSensors())
             temperatureSensor.Key
                 .StateChanges()
                 .Where(x => x.Entity.State > 25 && !IsNightMode)
                 .Subscribe(x => Notify.NotifyPhoneVincent("Hoge temperatuur gedetecteerd",
                     $"{temperatureSensor.Value} is {x.Entity.State} graden", true, channel: "ALARM",
                     vibrationPattern: "100, 1000, 100, 1000, 100"));
+    }
+
+    /// <summary>
+    /// Gets a dictionary of all temperature sensors with their corresponding descriptions.
+    /// </summary>
+    private Dictionary<NumericSensorEntity, string> GetAllTemperatureSensors()
+    {
+        return new Dictionary<NumericSensorEntity, string>
+        {
+            { Entities.Sensor.BadkamerTemperature, "Badkamer" },
+            { Entities.Sensor.BergingTemperature, "Berging" },
+            { Entities.Sensor.GangTemperature, "Gang" }
+        };
     }
 
     /// <summary>

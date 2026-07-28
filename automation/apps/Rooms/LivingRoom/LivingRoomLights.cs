@@ -51,7 +51,7 @@ public class LivingRoomLights : BaseApp
             .Where(_ => Entities.Light.HueFilamentBulb2.IsOn())
             .Subscribe(_ =>
             {
-                LightExtension.TurnOnLightsWoonkamer(Entities, Scheduler);
+                LightExtension.SetLightSceneWoonkamer(Entities);
             });
 
         FixLightsDifferentColorWhenTurnOn();
@@ -69,11 +69,11 @@ public class LivingRoomLights : BaseApp
         {
             if (Entities.Light.HueFilamentBulb2.IsOff())
             {
-                LightExtension.TurnOnLightsWoonkamer(Entities, Scheduler);
+                LightExtension.SetLightSceneWoonkamer(Entities);
             }
             else
             {
-                LightExtension.TurnOffLightsWoonkamer(Entities, Scheduler);
+                Entities.Light.Woonkamer.TurnOff(transition: _config.Lights.DefaultTransitionSeconds);
             }
         }
     }
@@ -87,7 +87,7 @@ public class LivingRoomLights : BaseApp
         {
             Scheduler.Schedule(TimeSpan.FromSeconds(10), () =>
             {
-                LightExtension.TurnOnLightsWoonkamer(Entities, Scheduler);
+                LightExtension.SetLightSceneWoonkamer(Entities);
             });
         });
     }

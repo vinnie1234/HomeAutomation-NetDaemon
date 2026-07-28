@@ -5,6 +5,8 @@ using Automation.CustomLogger;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Builder;
 using NetDaemon.Extensions.Tts;
 using NetDaemon.Extensions.MqttEntityManager;
 using NetDaemon.Runtime;
@@ -20,6 +22,18 @@ try
     Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
     
     await Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+            webBuilder.ConfigureServices(services =>
+            {
+                services.AddHealthChecks();
+            });
+            webBuilder.Configure(app =>
+            {
+                app.UseHealthChecks("/health");
+            });
+            webBuilder.UseUrls("http://*:8080");
+        })
         .UseCustomLogging()
         .UseNetDaemonAppSettings()
         .UseNetDaemonRuntime()
@@ -30,8 +44,16 @@ try
             config.AddJsonFile("config.json", optional: false, reloadOnChange: false))
         .ConfigureServices((context, services) =>
         {
-            services.Configure<AppConfig>(context.Configuration);
-            services.Configure<AppConfiguration>(context.Configuration.GetSection("AppConfiguration"));
+            services.AddOptions<AppConfig>()
+                .Bind(context.Configuration)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+                
+            services.AddOptions<AppConfiguration>()
+                .Bind(context.Configuration.GetSection("AppConfiguration"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+                
             services
                 .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddNetDaemonStateManager()

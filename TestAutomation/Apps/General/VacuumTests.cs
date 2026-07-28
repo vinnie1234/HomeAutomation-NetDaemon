@@ -16,7 +16,18 @@ public class VacuumTests
     {
         return Options.Create(new AppConfig
         {
-            Roomba = new RoombaConfig { PmapId = "test_pmap_id" }
+            Roomba = new RoombaConfig 
+            { 
+                PmapId = "test_pmap_id",
+                Rooms = new Dictionary<string, RoombaRoomOptions>
+                {
+                    { "Kattenbak", new RoombaRoomOptions { Id = "0", Type = "zid" } },
+                    { "Bank", new RoombaRoomOptions { Id = "1", Type = "zid" } },
+                    { "Slaapkamer", new RoombaRoomOptions { Id = "2", Type = "rid" } },
+                    { "Gang", new RoombaRoomOptions { Id = "4", Type = "rid" } },
+                    { "Woonkamer", new RoombaRoomOptions { Id = "3", Type = "rid" } }
+                }
+            }
         });
     }
 

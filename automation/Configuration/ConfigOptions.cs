@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Automation.Configuration;
 
 /// <summary>
@@ -10,7 +12,12 @@ public class AppConfig
     public string SnowyFeeder { get; set; } = "";
     public string SnowyFountain { get; set; } = "";
     public string PetSnowyDeviceId { get; set; } = "";
+    
+    [Required]
+    [Url]
     public string BaseUrlHomeAssistant { get; set; } = "";
+    
+    [Url]
     public string SpotifyRadioNlUrl { get; set; } = "";
     public DiscordConfig Discord { get; set; } = new();
     public RoombaConfig Roomba { get; set; } = new();
@@ -32,11 +39,21 @@ public class DiscordConfig
 }
 
 /// <summary>
+/// Roomba room configuration.
+/// </summary>
+public class RoombaRoomOptions
+{
+    public string Id { get; set; } = "";
+    public string Type { get; set; } = "";
+}
+
+/// <summary>
 /// Roomba vacuum robot configuration.
 /// </summary>
 public class RoombaConfig
 {
     public string PmapId { get; set; } = "";
+    public Dictionary<string, RoombaRoomOptions> Rooms { get; set; } = new();
 }
 
 /// <summary>

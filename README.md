@@ -39,6 +39,7 @@ The complete documentation is split into different sections:
 - **[Integrations & Connections](docs/integrations.md)** - Discord, Home Assistant, external services  
 - **[Logging & Monitoring](docs/logging-and-monitoring.md)** - Discord logging, error handling, debugging
 - **[Configuration](docs/configuration.md)** - App configuration, settings and customizations
+- **[Testing Framework](docs/testing.md)** - Details on Rx testing, AppTestContext, and time manipulation
 
 ### App Documentation
 Each automation app has its own detailed documentation:

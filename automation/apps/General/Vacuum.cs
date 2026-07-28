@@ -1,5 +1,5 @@
 using System.Reactive.Concurrency;
-using Automation.Helpers;
+
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -103,7 +103,11 @@ public class Vacuum : BaseApp
     /// <param name="cleanKey">The key representing the zone to clean.</param>
     private void Clean(string cleanKey)
     {
-        var zone = Collections.GetRoombaRooms().First(x => x.Key == cleanKey);
+        if (!_config.Roomba.Rooms.TryGetValue(cleanKey, out var zone))
+        {
+            Logger.LogError("Roomba room {Room} not found in configuration.", cleanKey);
+            return;
+        }
 
         Entities.Vacuum.Jaap.CallService("send_command",
             new
@@ -116,8 +120,8 @@ public class Vacuum : BaseApp
                     {
                         new
                         {
-                            region_id = zone.Value.Item1,
-                            type = zone.Value.Item2
+                            region_id = zone.Id,
+                            type = zone.Type
                         }
                     }
                 }

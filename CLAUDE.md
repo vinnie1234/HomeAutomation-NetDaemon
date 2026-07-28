@@ -239,9 +239,10 @@ WelcomingHome → Home (sequence completed)
 **Location**: `TestAutomation/`
 
 #### Comprehensive Test Coverage
-- **Unit Tests**: Full coverage for all automation apps
-- **Mocking Support**: Sophisticated mocking of NetDaemon dependencies
+- **Unit Tests**: Full coverage for all automation apps (158 passing tests)
+- **Mocking Support**: Sophisticated mocking of NetDaemon dependencies using `NSubstitute`
 - **Test Helpers**: `AppTestContext` and `TestDebugHelper` for easier testing
+- **Rx Time Manipulation**: Advanced usage of `TestScheduler` to instantly simulate passage of time (via `ctx.AdvanceTimeBy`) for reactive features like `.WhenStateIsFor()`, `.Throttle()`, etc.
 - **Behavioral Testing**: Tests focus on behavior rather than implementation
 
 #### Test Organization
