@@ -80,7 +80,12 @@ public class DataRepository : IDataRepository
             {
                 _cache[id] = data;
             }
-            
+            else
+            {
+                // Never leave a stale cached value behind when the stored value is cleared.
+                _cache.TryRemove(id, out _);
+            }
+
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
             Directory.CreateDirectory(_dataStoragePath);
 

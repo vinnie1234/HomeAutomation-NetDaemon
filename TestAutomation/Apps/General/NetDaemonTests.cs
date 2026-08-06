@@ -40,8 +40,8 @@ public class NetDaemonTests
         await Task.Delay(100);
 
         // Assert
-        ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1); 
-        storage.Received().Save("NetDaemonRestart", "");
+        ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1);
+        storage.Received().Save("NetDaemonRestart", (IReadOnlyList<double>?)null);
         
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new HomeAssistantGenerated.TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Het huis is opnieuw opgestart" });
         ctx.VerifyCallNotify("notify", "discord_homeassistant", times: 1);

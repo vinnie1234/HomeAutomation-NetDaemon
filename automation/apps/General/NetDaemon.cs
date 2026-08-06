@@ -37,13 +37,16 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     {
         var lightColor = _storage.Get<IReadOnlyList<double>>("NetDaemonRestart");
 
-        if (lightColor != null && lightColor.ToString() != "")
+        if (lightColor is { Count: >= 3 })
         {
             // Translate the value from IReadOnlyList<double> to IReadOnlyCollection<int>
             IReadOnlyCollection<int> lightColorInInt = [(int)lightColor[0], (int)lightColor[1], (int)lightColor[2]];
             Entities.Light.Koelkast.TurnOn(rgbColor: lightColorInInt);
-            _storage.Save("NetDaemonRestart", "");
         }
+
+        // Always clear the stored color: it has been consumed, and clearing it with a
+        // typed null keeps the stored JSON readable as IReadOnlyList<double> next time.
+        _storage.Save<IReadOnlyList<double>?>("NetDaemonRestart", null);
 
         if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn())
             Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
