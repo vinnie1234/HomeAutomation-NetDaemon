@@ -52,7 +52,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
         Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>
         {
             _storage.Save("NetDaemonRestart", Entities.Light.Koelkast.Attributes?.RgbColor);
-            Entities.Light.Koelkast.TurnOn(colorName: "red");
+            Entities.Light.Koelkast.TurnOn(rgbColor: LightColors.Red);
             Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
 
             Observable.Timer(TimeSpan.FromSeconds(5), Scheduler).Subscribe(_ =>

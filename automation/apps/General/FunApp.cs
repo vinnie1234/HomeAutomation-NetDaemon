@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Enum;
+using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
@@ -117,39 +118,39 @@ public class FunApp : BaseApp
             switch (num)
             {
                 case 1:
-                    Entities.Light.Tv.TurnOn(colorName: "GREEN");
-                    Entities.Light.HuePlayMidden.TurnOn(colorName: "GREEN");
-                    Entities.Light.HuePlayLinks.TurnOn(colorName: "GREEN");
-                    Entities.Light.HuePlayRechts.TurnOn(colorName: "GREEN");
-                    Entities.Light.Tv.TurnOn(colorName: "RED");
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Red);
                     break;
                 case 2:
-                    Entities.Light.Tv.TurnOn(colorName: "RED");
-                    Entities.Light.HuePlayMidden.TurnOn(colorName: "RED");
-                    Entities.Light.HuePlayLinks.TurnOn(colorName: "RED");
-                    Entities.Light.HuePlayRechts.TurnOn(colorName: "RED");
-                    Entities.Light.Tv.TurnOn(colorName: "GREEN");
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Green);
                     break;
                 case 3:
-                    Entities.Light.Tv.TurnOn(colorName: "BLUE");
-                    Entities.Light.HuePlayMidden.TurnOn(colorName: "BLUE");
-                    Entities.Light.HuePlayLinks.TurnOn(colorName: "BLUE");
-                    Entities.Light.HuePlayRechts.TurnOn(colorName: "BLUE");
-                    Entities.Light.Tv.TurnOn(colorName: "YELLOW");
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Yellow);
                     break;
                 case 4:
-                    Entities.Light.Tv.TurnOn(colorName: "WHITE");
-                    Entities.Light.HuePlayMidden.TurnOn(colorName: "WHITE");
-                    Entities.Light.HuePlayLinks.TurnOn(colorName: "WHITE");
-                    Entities.Light.HuePlayRechts.TurnOn(colorName: "WHITE");
-                    Entities.Light.Tv.TurnOn(colorName: "BLUE");
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Blue);
                     break;
                 case 5:
-                    Entities.Light.Tv.TurnOn(colorName: "YELLOW");
-                    Entities.Light.HuePlayMidden.TurnOn(colorName: "YELLOW");
-                    Entities.Light.HuePlayLinks.TurnOn(colorName: "YELLOW");
-                    Entities.Light.HuePlayRechts.TurnOn(colorName: "YELLOW");
-                    Entities.Light.Tv.TurnOn(colorName: "WHITE");
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.White);
                     break;
             }
 

@@ -92,17 +92,20 @@ public class HallLightOnMovement : BaseApp
         {
             case true:
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 15);
-                if (!IsNightMode || (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping))
+                if (!IsNightMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     Entities.Light.Hal.TurnOn();
                     if (Entities.Light.Hal.IsOff())
                         Entities.Switch.Bot29ff.TurnOn();
+                    
+                    Entities.Light.GangSigaret.TurnOn();
                 }
 
                 break;
             case false:
                 Entities.Light.Hal.TurnOff();
                 Entities.Light.Hal2.TurnOff();
+                Entities.Light.GangSigaret.TurnOff();
                 break;
         }
     }

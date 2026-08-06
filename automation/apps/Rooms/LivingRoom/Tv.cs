@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Enum;
+using Automation.Helpers;
 using static Automation.Globals;
 
 namespace Automation.apps.Rooms.LivingRoom;
@@ -40,7 +41,7 @@ public class Tv : BaseApp
             .Where(x => x.New.IsOn())
             .Subscribe(x =>
             {
-                x.Entity.TurnOn(rgbColor: new List<int> { 255, 0, 0 });
+                x.Entity.TurnOn(rgbColor: LightColors.Red);
             });
     }
 

@@ -127,7 +127,7 @@ public class Reset : BaseApp
                 ];
                 light.TurnOn(
                     rgbColor: lightColorInInt,
-                    brightness: Convert.ToInt64(oldStateLight.Brightness)
+                    brightnessPct: ToBrightnessPct(oldStateLight.Brightness)
                 );
             }
         }
@@ -141,8 +141,22 @@ public class Reset : BaseApp
             else
                 light.TurnOn(
                     colorTempKelvin: oldStateLight.ColorTemp,
-                    brightness: Convert.ToInt64(oldStateLight.Brightness)
+                    brightnessPct: ToBrightnessPct(oldStateLight.Brightness)
                 );
         }
+    }
+
+    /// <summary>
+    /// Converts a stored Home Assistant <c>brightness</c> attribute (0-255) to the
+    /// <c>brightness_pct</c> value (1-100) the light <c>turn_on</c> service expects.
+    /// </summary>
+    /// <param name="brightness">The stored brightness attribute, or <c>null</c> when unknown.</param>
+    /// <returns>The brightness percentage, or <c>null</c> when no brightness was stored.</returns>
+    private static long? ToBrightnessPct(double? brightness)
+    {
+        if (brightness is null) return null;
+
+        var pct = (long)Math.Round(brightness.Value / 255d * 100d);
+        return Math.Clamp(pct, 1, 100);
     }
 }

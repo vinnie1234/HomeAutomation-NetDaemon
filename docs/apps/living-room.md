@@ -101,7 +101,7 @@ private void SetupGamingEnvironment()
     
     // Set gaming lighting
     TurnOffLivingRoomLights();
-    Entities.Light.TvBacklight.TurnOn(colorName: "BLUE", brightnessPct: 30);
+    Entities.Light.TvBacklight.TurnOn(rgbColor: LightColors.Blue, brightnessPct: 30);
 }
 ```
 

@@ -34,13 +34,13 @@ The Fun App brings joy and entertainment to the home automation system by provid
 ```csharp
 private async Task ChristmasFirework()
 {
-    var colors = new[] { "RED", "GREEN", "BLUE", "WHITE" };
+    var colors = new[] { LightColors.Red, LightColors.Green, LightColors.Blue, LightColors.White };
     var stopwatch = Stopwatch.StartNew();
     
     do
     {
         var randomColor = colors[Random.Next(colors.Length)];
-        Entities.Light.Tv.TurnOn(colorName: randomColor);
+        Entities.Light.Tv.TurnOn(rgbColor: randomColor);
         await Task.Delay(_config.Timing.ShortDelay);
     } 
     while (stopwatch.Elapsed < TimeSpan.FromMinutes(4));
