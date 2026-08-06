@@ -52,10 +52,10 @@ public class CocMonitoring : BaseApp
         
         // Only allow execution at 07:00 (6-8) or 19:00 (18-20) hour ranges
         var currentTime = now.TimeOfDay;
-        if (!(currentTime >= TimeSpan.FromHours(6) && currentTime < TimeSpan.FromHours(8)) &&
-            !(currentTime >= TimeSpan.FromHours(18) && currentTime < TimeSpan.FromHours(20)))
+        if (!(currentTime >= TimeSpan.FromHours(5) && currentTime < TimeSpan.FromHours(8)) &&
+            !(currentTime >= TimeSpan.FromHours(17) && currentTime < TimeSpan.FromHours(20)))
         {
-            Logger.LogWarning("GetTweets can only run between 06:00-08:00 or 18:00-20:00, current time: {Time}", now.ToString("HH:mm:ss"));
+            Logger.LogWarning("GetTweets can only run between 05:00-08:00 or 17:00-20:00, current time: {Time}", now.ToString("HH:mm:ss"));
             return;
         }
 
