@@ -57,7 +57,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
 
             Observable.Timer(TimeSpan.FromSeconds(5), Scheduler).Subscribe(_ =>
             {
-                Services.Hassio.AddonRestart("c6a2317c_netdaemon5");
+                Services.Hassio.AddonRestart("c6a2317c_netdaemon6");
             });
         });
         
