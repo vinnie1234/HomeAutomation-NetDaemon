@@ -91,7 +91,7 @@ public class HallLightOnMovement : BaseApp
         switch (on)
         {
             case true:
-                Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 15);
+                Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5);
                 if (!IsNightMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     Entities.Light.Hal.TurnOn();
