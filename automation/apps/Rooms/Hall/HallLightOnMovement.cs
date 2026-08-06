@@ -98,7 +98,8 @@ public class HallLightOnMovement : BaseApp
                     if (Entities.Light.Hal.IsOff())
                         Entities.Switch.Bot29ff.TurnOn();
                     
-                    Entities.Light.GangSigaret.TurnOn();
+                    if(Entities.MediaPlayer.Tv.IsOff())
+                        Entities.Light.GangSigaret.TurnOn();
                 }
 
                 break;
