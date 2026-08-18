@@ -1,0 +1,36 @@
+{
+  "ZedarDeviceId": "integration-test-zedar",
+  "SnowyFeeder": "integration-test-feeder",
+  "SnowyFountain": "integration-test-fountain",
+  "PetSnowyDeviceId": "integration-test-petsnowy",
+  "Discord": {
+    "Pixel": "0",
+    "Logs": "0",
+    "Updates": "0",
+    "Yts": "0",
+    "COC": "0",
+    "TODO": "0"
+  },
+  "Roomba": {
+    "PmapId": "integration-test-pmap",
+    "Rooms": {
+      "Kattenbak": { "Id": "0", "Type": "0" },
+      "Bank": { "Id": "1", "Type": "0" },
+      "Slaapkamer": { "Id": "2", "Type": "0" },
+      "Gang": { "Id": "3", "Type": "0" },
+      "Woonkamer": { "Id": "4", "Type": "0" }
+    }
+  },
+  "Twitter": {
+    "BearerToken": ""
+  },
+  "NetDaemonLogging": {
+    "Debug": "",
+    "Information": "",
+    "Warning": "",
+    "Error": "",
+    "Exception": ""
+  },
+  "BaseUrlHomeAssistant": "http://localhost:8123",
+  "SpotifyRadioNlUrl": "https://open.spotify.com/playlist/integration-test"
+}

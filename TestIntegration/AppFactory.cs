@@ -7,6 +7,19 @@ namespace TestIntegration;
 
 public class AppFactory : WebApplicationFactory<Program>
 {
+    /// <summary>
+    /// WebApplicationFactory points the content root at the automation project folder, where the
+    /// real appsettings.json and config.json live. Those files are gitignored because they hold
+    /// live tokens, so they are missing on a fresh clone and on CI, which makes the host fail to
+    /// start on the non-optional config.json. Using the test output folder as content root picks
+    /// up the committed, secret-free fixtures of this project instead.
+    /// </summary>
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        builder.UseContentRoot(AppContext.BaseDirectory);
+        return base.CreateHost(builder);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((context, config) =>

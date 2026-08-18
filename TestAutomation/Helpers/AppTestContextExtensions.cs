@@ -72,6 +72,43 @@ public static class AppTestContextExtensions
         }, testName);
     }
 
+    /// <summary>
+    /// Waits until at least <paramref name="times"/> calls to <paramref name="domain"/>.<paramref name="service"/>
+    /// have been recorded, or until <paramref name="timeout"/> elapses.
+    /// </summary>
+    /// <remarks>
+    /// Notify.NotifyDiscord dispatches to the thread pool (fire and forget), so the call is not
+    /// guaranteed to have reached IHaContext by the time the test resumes. Polling instead of
+    /// sleeping a fixed amount keeps the assertion reliable on slower machines such as CI runners.
+    /// </remarks>
+    public static async Task WaitForCallNotifyAsync(this AppTestContext ctx, string domain, string service, int times = 1, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+
+        while (DateTime.UtcNow < deadline)
+        {
+            if (CountCallServiceCalls(ctx, domain, service) >= times)
+                return;
+
+            await Task.Delay(25);
+        }
+    }
+
+    private static int CountCallServiceCalls(AppTestContext ctx, string domain, string service)
+    {
+        try
+        {
+            return ctx.HaContext.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name.Contains("CallService"))
+                .Count(c => c.GetArguments()[0] as string == domain && c.GetArguments()[1] as string == service);
+        }
+        catch (InvalidOperationException)
+        {
+            // A background notification was recorded while we were reading the call list; retry.
+            return 0;
+        }
+    }
+
     public static void VerifyNotCallService(this AppTestContext ctx, string serviceCall, [CallerMemberName] string testName = "")
     {
         var domain = serviceCall[..serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase)];

@@ -30,4 +30,24 @@
     <ProjectReference Include="..\automation\Automation.csproj" />
   </ItemGroup>
 
+  <!--
+    The real automation/appsettings.json and automation/config.json are gitignored (they hold
+    live tokens and webhook urls), so they do not exist on a fresh clone or on CI. Program.Main
+    and DiscordLogger both read those files by name, so the integration host cannot start
+    without them. AppFactory points the content root at this output folder so these committed,
+    secret-free fixtures are used instead.
+
+    The copy runs after the regular build so the fixtures also win over the copies that flow in
+    transitively from Automation.csproj on a developer machine. That keeps the integration tests
+    off the real Discord webhooks.
+  -->
+  <ItemGroup>
+    <TestHostConfiguration Include="appsettings.json" />
+    <TestHostConfiguration Include="config.json" />
+  </ItemGroup>
+
+  <Target Name="CopyTestHostConfiguration" AfterTargets="Build">
+    <Copy SourceFiles="@(TestHostConfiguration)" DestinationFolder="$(OutDir)" />
+  </Target>
+
 </Project>

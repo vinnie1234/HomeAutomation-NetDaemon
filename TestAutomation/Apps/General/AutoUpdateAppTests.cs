@@ -56,7 +56,9 @@ public class AutoUpdateAppTests
 
         ctx.AdvanceTimeBy(TimeSpan.FromMinutes(2).Ticks);
         ctx.HaContextMock.ProcessPendingOperations();
-        await Task.Delay(100);
+
+        // NotifyDiscord is fire and forget, so wait for the calls to land instead of sleeping a fixed amount
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant", times: 3);
 
         // Verify NotifyDiscord
         ctx.VerifyCallNotify("notify", "discord_homeassistant", times: 3); // Because: 1 summary, 1 start update, 1 finish update
