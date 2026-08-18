@@ -1,7 +1,5 @@
 using System.Reactive.Concurrency;
-using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
-using NetDaemon.Client;
 using Microsoft.Extensions.Options;
 using Automation.Configuration;
 
@@ -16,7 +14,7 @@ public class Alarm : BaseApp
     private readonly AppConfig _config;
 
     private readonly IEntityManager _entityManager;
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Alarm"/> class.
     /// </summary>
@@ -24,14 +22,13 @@ public class Alarm : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for timed tasks.</param>
-    /// <param name="homeAssistantConnection">The Home Assistant connection.</param>
     /// <param name="entityManager">The entity manager for creating and managing entities.</param>
+    /// <param name="config">The application configuration.</param>
     public Alarm(
         IHaContext ha,
         ILogger<Alarm> logger,
         INotify notify,
         IScheduler scheduler,
-        IHomeAssistantConnection homeAssistantConnection,
         IEntityManager entityManager,
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
@@ -147,10 +144,7 @@ public class Alarm : BaseApp
         if (_entityManager.EntityExists(entityId))
         {
             var currentState = HaContext.GetState(entityId);
-            if (currentState?.State != null && int.TryParse(currentState.State.ToString(), out var count))
-            {
-                currentCount = count;
-            }
+            if (currentState?.State != null && int.TryParse(currentState.State, out var count)) currentCount = count;
         }
         
         currentCount++;
@@ -194,7 +188,6 @@ public class Alarm : BaseApp
                 var entityId = $"sensor.garbage_placed_{key}";
                 
                 if (!_entityManager.EntityExists(entityId))
-                {
                     try
                     {
                         await _entityManager.Create(entityId, new EntityCreationOptions
@@ -203,7 +196,7 @@ public class Alarm : BaseApp
                             Icon = "mdi:trash-can",
                             UnitOfMeasurement = "keer"
                         });
-                        
+
                         // Initialize with 0
                         _entityManager.SetState(entityId, 0, new
                         {
@@ -218,7 +211,6 @@ public class Alarm : BaseApp
                     {
                         Logger.LogError(ex, "Failed to initialize garbage counter for {GarbageType}", displayName);
                     }
-                }
             }
         });
     }
@@ -230,7 +222,7 @@ public class Alarm : BaseApp
     {
         Scheduler.ScheduleCron("00 22 * * *", () =>
         {
-            if (int.Parse(Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0") > 0)
+            if (int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0)
             {
                 var discordNotificationModel = new DiscordNotificationModel
                 {
@@ -262,15 +254,15 @@ public class Alarm : BaseApp
     /// </summary>
     private void EnergyNegativeCheck()
     {
-        Entities.Sensor.Energykwhnetpriceincents
+        Entities.Sensor.AnwbElectricityAllInPriceCurrent
             .StateChanges()
             .Subscribe(x =>
             {
-                if (x.New?.State < -20.00)
+                if (x.New?.State < 0)
                 {
                     Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", [_config.Discord.Logs]);
                     Notify.NotifyPhoneVincent($"ENERGY IS NEGATIEF - {x.New.State}",
-                        "Je energy is negatief, dit kost geld.", false, 10);
+                        "Je energy is negatief, dit kan geld kosten.", false, 10);
                 }
             });
     }
@@ -287,7 +279,8 @@ public class Alarm : BaseApp
 
             if (!string.IsNullOrEmpty(lastLocalBackString))
             {
-                var dateTime = DateTime.Parse(lastLocalBackString);
+                if (!DateTime.TryParse(lastLocalBackString, out var dateTime))
+                    return;
                 if (dateTime < DateTime.Now.AddDays(-2))
                     Notify.NotifyDiscord(
                         $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",

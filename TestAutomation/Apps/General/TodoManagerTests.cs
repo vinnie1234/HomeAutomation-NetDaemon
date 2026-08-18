@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using Automation.apps.General;
 using Automation.Configuration;

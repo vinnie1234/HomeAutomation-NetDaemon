@@ -1,6 +1,4 @@
-using System;
 using Automation.apps.Rooms.Hall;
-using FluentAssertions;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;

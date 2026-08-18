@@ -68,4 +68,6 @@ catch (Exception ex)
 {
     Console.WriteLine($"Failed to start host... {ex}");
     throw;
-}
+}
+
+public partial class Program { }

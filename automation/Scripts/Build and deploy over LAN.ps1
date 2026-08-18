@@ -4,7 +4,7 @@
 # READ COMMENTS CAREFULLY
 
 # Local paths on your computer
-$solutionPath = "D:\Projects\HomeAutomation-NetDaemon\automation"
+$solutionPath = "C:\Project\me\HomeAutomation-NetDaemon\automation"
 $solutionFilename = "Automation.csproj"
 
 # ND folder served up by a samba addon in HA
@@ -49,4 +49,4 @@ if ($key.Character -eq 'y')
 	explorer "\\192.168.50.189\config\netdaemon6\logs"
 }
 
-Set-Location "D:\Projects\HomeAutomation-NetDaemon\automation\Scripts"
+Set-Location "C:\Project\me\HomeAutomation-NetDaemon\automation\Scripts"

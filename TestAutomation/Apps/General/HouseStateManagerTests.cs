@@ -1,4 +1,3 @@
-using System;
 using Automation.apps.General;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;

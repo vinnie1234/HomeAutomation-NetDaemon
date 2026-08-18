@@ -200,10 +200,7 @@ public class DiscordLogger : ILogEventSink, IDisposable
     /// </summary>
     public void Dispose()
     {
-        foreach (var client in WebhookClients.Values)
-        {
-            client.Dispose();
-        }
+        foreach (var client in WebhookClients.Values) client.Dispose();
         WebhookClients.Clear();
         GC.SuppressFinalize(this);
     }

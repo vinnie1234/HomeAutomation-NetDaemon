@@ -1,11 +1,7 @@
 using System.Text.Json;
-using System.Collections.Generic;
 using Automation.apps.General;
 using Automation.Configuration;
-using Automation.Interfaces;
-using Automation.Models;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;

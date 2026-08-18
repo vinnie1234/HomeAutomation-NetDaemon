@@ -166,15 +166,11 @@ public class AwayManager : BaseApp
                                   Entities.DeviceTracker.CarleenMobiel.State == "home";
 
                 if (vincentHome && carleenHome)
-                {
                     message += "Welkom thuis Vincent en Carleen!";
-                }else if (carleenHome)
-                {
+                else if (carleenHome)
                     message += "Welkom thuis Carleen!";
-                }else
-                {
+                else
                     message = "Welkom thuis Vincent!";
-                }
 
                 if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")
                     message += " Het eten van Pixel is bijna op!";

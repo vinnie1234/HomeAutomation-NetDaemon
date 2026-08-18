@@ -1,4 +1,3 @@
-using System.Reactive.Concurrency;
 using Automation.Enum;
 using Automation.Configuration;
 using static Automation.Globals;

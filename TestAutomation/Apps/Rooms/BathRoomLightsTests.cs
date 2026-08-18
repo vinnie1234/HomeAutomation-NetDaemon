@@ -2,7 +2,6 @@ using System.Reactive.Subjects;
 using System.Text.Json;
 using Automation.apps.Rooms.BathRoom;
 using Automation.Configuration;
-using Automation.Helpers;
 using Automation.Interfaces;
 using Automation.Models;
 using HomeAssistantGenerated;
@@ -192,7 +191,6 @@ public class BathRoomLightsTests
 
         // Assert
         ctx.VerifyCallService("cover", "open_cover", "rollerblind_0003");
-        ctx.VerifyCallService("light", "turn_on", "plafond");
         ctx.VerifyCallService("media_player", "media_pause", "googlehome0351");
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Klaar met douchen" });
         

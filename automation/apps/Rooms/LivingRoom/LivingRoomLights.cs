@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.LivingRoom;
@@ -16,12 +17,14 @@ public class LivingRoomLights : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="config">The application configuration.</param>
+    /// <param name="livingRoomPresenceService">The service that tracks whether the living room is occupied.</param>
     public LivingRoomLights(
         IHaContext ha,
         ILogger<LivingRoomLights> logger,
         INotify notify,
         IScheduler scheduler,
-        IOptions<AppConfiguration> config)
+        IOptions<AppConfiguration> config,
+        ILivingRoomPresenceService livingRoomPresenceService)
         : base(ha, logger, notify, scheduler)
     {
         _config = config.Value;
@@ -31,15 +34,12 @@ public class LivingRoomLights : BaseApp
             if (eventModel != null) TurnOnPlafond(eventModel);
         });
 
-        Entities.BinarySensor.Motionwoonkamer.StateChanges().Subscribe(x =>
+        livingRoomPresenceService.OccupiedChanged.Subscribe(isOccupied =>
         {
-            if (Entities.Light.Woonkamer.IsOn() && x.New.IsOff())
+            if (Entities.Light.Woonkamer.IsOn() && !isOccupied)
             {
-                if (IsVincentNightMode)
-                {
-                    Entities.Light.Woonkamer.TurnOff();
-                }
-            }else if (Entities.Light.Woonkamer.IsOff() && x.New.IsOn())
+                if (IsVincentNightMode) Entities.Light.Woonkamer.TurnOff();
+            }else if (Entities.Light.Woonkamer.IsOff() && isOccupied)
             {
                 if (!IsVincentNightMode)
                     LightExtension.SetLightSceneWoonkamer(Entities);
@@ -68,13 +68,9 @@ public class LivingRoomLights : BaseApp
         if (eventModel is { DeviceId: { } deviceId, Type: "initial_press" } && deviceId == hueWallLivingRoomId)
         {
             if (Entities.Light.HueFilamentBulb2.IsOff())
-            {
                 LightExtension.SetLightSceneWoonkamer(Entities);
-            }
             else
-            {
                 Entities.Light.Woonkamer.TurnOff(transition: _config.Lights.DefaultTransitionSeconds);
-            }
         }
     }
 
@@ -87,7 +83,8 @@ public class LivingRoomLights : BaseApp
         {
             Scheduler.Schedule(TimeSpan.FromSeconds(10), () =>
             {
-                LightExtension.SetLightSceneWoonkamer(Entities);
+                if (Entities.Light.HueFilamentBulb2.IsOn())
+                    LightExtension.SetLightSceneWoonkamer(Entities);
             });
         });
     }

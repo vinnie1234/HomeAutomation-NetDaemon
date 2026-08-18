@@ -1,5 +1,4 @@
 using System.Reactive.Concurrency;
-using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Todo;
 using Microsoft.Extensions.Options;
@@ -30,11 +29,8 @@ public class TodoManager : BaseApp
         if (responseModel?.TodoDagelijks.Items != null)
             foreach (var todoDagelijksItem in responseModel.TodoDagelijks.Items)
             {
-                if (todoDagelijksItem.Status == "needs_action")
-                {
-                    notCompleteList.Add(todoDagelijksItem);  
-                }
-                
+                if (todoDagelijksItem.Status == "needs_action") notCompleteList.Add(todoDagelijksItem);
+
                 Entities.Todo.Dagelijks.RemoveItem(todoDagelijksItem.Uid);
             }
 
@@ -55,12 +51,7 @@ public class TodoManager : BaseApp
 
         var todoList = GetTodoItemsToday();
 
-        foreach (var todoAddItemParameters in todoList)
-        {
-            Entities.Todo.Dagelijks.AddItem(todoAddItemParameters);
-        }
-        
-
+        foreach (var todoAddItemParameters in todoList) Entities.Todo.Dagelijks.AddItem(todoAddItemParameters);
     }
 
     private static List<TodoAddItemParameters> GetTodoItemsToday()

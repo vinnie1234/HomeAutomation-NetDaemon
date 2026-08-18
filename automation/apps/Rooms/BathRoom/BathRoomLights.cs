@@ -16,6 +16,7 @@ public class BathRoomLights : BaseApp
 
     private ISpotcast _spotcast;
     private readonly AppConfig _config;
+    private readonly ICircadianLightingService _circadianLightingService;
     
     /// <summary>
     /// Gets a value indicating whether light automations are disabled.
@@ -35,17 +36,21 @@ public class BathRoomLights : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="spotcast">The spotcast service</param>
+    /// <param name="config">The application configuration.</param>
+    /// <param name="circadianLightingService">The service providing the brightness and color temperature that match the time of day.</param>
     public BathRoomLights(
         IHaContext ha,
         ILogger<BathRoomLights> logger,
         INotify notify,
         IScheduler scheduler,
         ISpotcast spotcast,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        ICircadianLightingService circadianLightingService)
         : base(ha, logger, notify, scheduler)
     {
         _config = config.Value;
         _spotcast = spotcast;
+        _circadianLightingService = circadianLightingService;
         
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>
         {
@@ -118,12 +123,14 @@ public class BathRoomLights : BaseApp
         {
             Scheduler.Schedule(TimeSpan.FromMinutes(3), () =>
             {
-                Entities.Light.BadkamerSpiegel.TurnOff();
-                Entities.Light.PlafondBadkamer.TurnOff();
+                if (!IsDouching)
+                {
+                    Entities.Light.BadkamerSpiegel.TurnOff();
+                    Entities.Light.PlafondBadkamer.TurnOff();
+                }
             });
 
             Entities.Cover.Rollerblind0003.OpenCover();
-            Entities.Light.Plafond.TurnOn();
             Entities.MediaPlayer.Googlehome0351.MediaPause();
             Notify.NotifyHouse("readyDouche", "Klaar met douchen", true);
         }
@@ -139,11 +146,7 @@ public class BathRoomLights : BaseApp
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
-        return IsNightMode switch
-        {
-            true  => 5,
-            false => 100
-        };
+        return _circadianLightingService.GetBrightness(IsNightMode);
     }
 
     /// <summary>
@@ -156,8 +159,14 @@ public class BathRoomLights : BaseApp
         switch (on)
         {
             case true:
-                Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: brightnessPct, transition: 2);
-                Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: brightnessPct, transition: 2);
+                Entities.Light.PlafondBadkamer.TurnOn(
+                    brightnessPct: brightnessPct,
+                    transition: 2,
+                    colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.PlafondBadkamer));
+                Entities.Light.BadkamerSpiegel.TurnOn(
+                    brightnessPct: brightnessPct,
+                    transition: 2,
+                    colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.BadkamerSpiegel));
                 break;
             case false:
                 Entities.Light.PlafondBadkamer.TurnOff();
@@ -194,8 +203,7 @@ public class BathRoomLights : BaseApp
                     break;
                 //button four
                 case 4:
-                    if (Entities.InputBoolean.Douchen.IsOn()) Entities.InputBoolean.Douchen.TurnOff();
-                    if (Entities.InputBoolean.Douchen.IsOff()) Entities.InputBoolean.Douchen.TurnOn();
+                    Entities.InputBoolean.Douchen.Toggle();
                     break;
             }
     }

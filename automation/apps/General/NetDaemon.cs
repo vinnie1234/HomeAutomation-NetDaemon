@@ -1,5 +1,4 @@
 using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 using Automation.Configuration;

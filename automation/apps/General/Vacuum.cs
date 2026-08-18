@@ -48,12 +48,10 @@ public class Vacuum : BaseApp
         };
 
         foreach (var button in buttons)
-        {
             button.Key.StateChanges().Subscribe(_ =>
             {
                 Clean(button.Value);
             });
-        }
     }
 
     /// <summary>
@@ -69,11 +67,8 @@ public class Vacuum : BaseApp
                 if(Entities.InputBoolean.Datenight.IsOn()) return;
                 
                 if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                {
                     Clean("Kattenbak");
-                }
                 else if (Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                {
                     // Wait until nobody is sleeping anymore before cleaning
                     Entities.InputBoolean.Sleepingvincent
                         .StateChanges()
@@ -97,10 +92,7 @@ public class Vacuum : BaseApp
                                     break;
                             }
                         });
-                    
-                   
-                }
-                
+
                 Entities.InputBoolean.Skipvaccumlitterbox.TurnOff();
             });
     }

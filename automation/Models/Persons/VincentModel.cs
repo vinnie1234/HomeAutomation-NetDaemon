@@ -15,8 +15,8 @@ public class VincentModel: IPerson
     public VincentModel(IEntities entities)
     {
         IsSleeping = entities.InputBoolean.Sleepingvincent.IsOn();
-        IsDriving = entities.InputBoolean.Sleepingvincent.IsOn();
-        IsHome = entities.InputBoolean.Awayvincent.IsOn();
+        IsDriving = entities.BinarySensor.VincentPhoneAndroidAuto.IsOn();
+        IsHome = entities.InputBoolean.Awayvincent.IsOff();
         State = entities.Person.VincentMaarschalkerweerd.State;
         
         _subscriptions = new CompositeDisposable(

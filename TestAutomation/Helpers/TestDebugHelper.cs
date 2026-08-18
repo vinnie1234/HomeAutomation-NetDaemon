@@ -136,21 +136,13 @@ public static class TestDebugHelper
         return haContext =>
         {
             if (target == null && data == null)
-            {
                 haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), Arg.Any<object>());
-            }
             else if (target == null)
-            {
                 haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), data);
-            }
             else if (data == null)
-            {
                 haContext.Received().CallService(domain, service, target, Arg.Any<object>());
-            }
             else
-            {
                 haContext.Received().CallService(domain, service);
-            }
         };
     }
 

@@ -1,6 +1,5 @@
 using Automation.apps.General;
 using Automation.Configuration;
-using Automation.Models;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;

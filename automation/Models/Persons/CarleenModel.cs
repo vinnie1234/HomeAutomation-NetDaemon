@@ -16,7 +16,7 @@ public class CarleenModel: IPerson
     public CarleenModel(IEntities entities)
     {
         IsSleeping = entities.InputBoolean.Sleepingcarleen.IsOn();
-        IsHome = entities.InputBoolean.Awaycarleen.IsOn();
+        IsHome = entities.InputBoolean.Awaycarleen.IsOff();
         State = entities.Person.Carleen.State;
         
         _subscriptions = new CompositeDisposable(

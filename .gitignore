@@ -11,4 +11,9 @@
 /automation/Release
 /TestAutomation/bin
 /TestAutomation/obj
+/TestAutomation/TestResults
+/TestIntegration/bin
+/TestIntegration/obj
+/TestIntegration/TestResults
+/test_output.txt
 .idea

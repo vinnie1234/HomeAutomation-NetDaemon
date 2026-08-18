@@ -37,7 +37,7 @@ public class Tv : BaseApp
 
         // Green is broken, red is always good
         Entities.Light.Bank
-            .StateAllChanges()
+            .StateChanges()
             .Where(x => x.New.IsOn())
             .Subscribe(x =>
             {

@@ -1,8 +1,5 @@
 using System.Collections.Concurrent;
 using System.IO;
-using System.Text.Json;
-using Automation.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace Automation.Repository;
 
@@ -38,10 +35,7 @@ public class DataRepository : IDataRepository
     {
         try
         {
-            if (_cache.TryGetValue(id, out var cachedObj))
-            {
-                return cachedObj as T;
-            }
+            if (_cache.TryGetValue(id, out var cachedObj)) return cachedObj as T;
 
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
 
@@ -51,11 +45,8 @@ public class DataRepository : IDataRepository
             var jsonContent = File.ReadAllText(storageJsonFile);
             var parsedObj = JsonSerializer.Deserialize<T>(jsonContent);
             
-            if (parsedObj != null)
-            {
-                _cache[id] = parsedObj;
-            }
-            
+            if (parsedObj != null) _cache[id] = parsedObj;
+
             return parsedObj;
         }
         catch (Exception ex)
@@ -77,14 +68,10 @@ public class DataRepository : IDataRepository
         try
         {
             if (data != null)
-            {
                 _cache[id] = data;
-            }
             else
-            {
                 // Never leave a stale cached value behind when the stored value is cleared.
                 _cache.TryRemove(id, out _);
-            }
 
             var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
             Directory.CreateDirectory(_dataStoragePath);

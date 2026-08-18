@@ -1,6 +1,4 @@
 using System.Reactive.Concurrency;
-using System.Reactive.Linq;
-using Automation.Helpers;
 using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
 using Automation.Configuration;

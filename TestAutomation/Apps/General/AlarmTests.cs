@@ -1,18 +1,12 @@
 using Automation.apps.General;
 using Automation.Configuration;
-using Automation.Helpers;
-using HomeAssistantGenerated;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Automation.Enum;
 using Automation.Interfaces;
-using NetDaemon.Client;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
-using Automation.Interfaces;
-using System.Reactive.Concurrency;
 
 namespace TestAutomation.Apps.General;
 
@@ -21,7 +15,6 @@ public class AlarmTests
     private readonly AppTestContext _ctx;
     private readonly INotify _notify;
     private readonly ILogger<Alarm> _logger;
-    private readonly IHomeAssistantConnection _haConnection;
     private readonly IEntityManager _entityManager;
     private readonly IOptions<AppConfig> _config;
     
@@ -30,7 +23,6 @@ public class AlarmTests
         _ctx = AppTestContext.NewWithScheduler();
         _notify = Substitute.For<INotify>();
         _logger = Substitute.For<ILogger<Alarm>>();
-        _haConnection = Substitute.For<IHomeAssistantConnection>();
         _entityManager = Substitute.For<IEntityManager>();
         _config = Options.Create(new AppConfig { BaseUrlHomeAssistant = "http://test", Discord = new DiscordConfig { Logs = "logs" } });
 
@@ -55,7 +47,7 @@ public class AlarmTests
         _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "0" });
         
         // Energy negative check setup
-        _ctx.HaContext.GetState("sensor.energykwhnetpriceincents").Returns(new EntityState { EntityId = "sensor.energykwhnetpriceincents", State = "10.0" });
+        _ctx.HaContext.GetState("sensor.anwb_electricity_all_in_price_current").Returns(new EntityState { EntityId = "sensor.anwb_electricity_all_in_price_current", State = "10.0" });
         
         // Backup check setup
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = DateTime.Now.ToString("O") });
@@ -63,7 +55,7 @@ public class AlarmTests
 
     private Alarm CreateApp()
     {
-        return new Alarm(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _haConnection, _entityManager, _config);
+        return new Alarm(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _entityManager, _config);
     }
 
     [Fact]
@@ -256,28 +248,28 @@ public class AlarmTests
     }
 
     [Fact]
-    public void EnergyNegativeCheck_WhenBelowMinus20_SendsNotification()
+    public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification()
     {
         // Arrange
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.energykwhnetpriceincents").FromState("10.0").ToState("-25.0");
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("-3.0");
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -25", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPhoneVincent("ENERGY IS NEGATIEF - -25", "Je energy is negatief, dit kost geld.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyPhoneVincent("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
     }
 
     [Fact]
-    public void EnergyNegativeCheck_WhenAboveMinus20_DoesNotSendNotification()
+    public void EnergyNegativeCheck_WhenPriceIsPositive_DoesNotSendNotification()
     {
         // Arrange
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.energykwhnetpriceincents").FromState("10.0").ToState("-19.0");
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("5.0");
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert

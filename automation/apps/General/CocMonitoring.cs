@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
-using Automation.Helpers;
 using Automation.Models.COC;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Twitter;
@@ -76,7 +75,6 @@ public class CocMonitoring : BaseApp
                 var twitterModel = JsonSerializer.Deserialize<TweetResponse>(response.Content);
                 if (twitterModel?.Data != null)
                     foreach (var tweet in twitterModel.Data)
-                    {
                         if (tweet.Id != null && idListModel.All(x => x.Id != tweet.Id))
                         {
                             SendToDiscord(discordChannel, tweet);
@@ -86,7 +84,6 @@ public class CocMonitoring : BaseApp
                                 InertDate = Scheduler.Now.LocalDateTime
                             });
                         }
-                    }
             }
             dataRepository.Save("COC_TWEET_ID_LIST", idListModel);
         }

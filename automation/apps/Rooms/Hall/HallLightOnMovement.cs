@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Automation.Helpers;
 using static Automation.Globals;
 
 namespace Automation.apps.Rooms.Hall;
@@ -11,6 +12,8 @@ public class HallLightOnMovement : BaseApp
     /// </summary>
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationhall.IsOn();
 
+    private readonly ICircadianLightingService _circadianLightingService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HallLightOnMovement"/> class.
     /// </summary>
@@ -18,13 +21,16 @@ public class HallLightOnMovement : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="circadianLightingService">The service providing the brightness and color temperature that match the time of day.</param>
     public HallLightOnMovement(
         IHaContext ha,
         ILogger<HallLightOnMovement> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        ICircadianLightingService circadianLightingService)
         : base(ha, logger, notify, scheduler)
     {
+        _circadianLightingService = circadianLightingService;
         InitializeLights();
 
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>
@@ -61,11 +67,7 @@ public class HallLightOnMovement : BaseApp
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
-        return IsNightMode switch
-        {
-            true => 5,
-            false => 100
-        };
+        return _circadianLightingService.GetBrightness(IsNightMode);
     }
 
     /// <summary>
@@ -91,7 +93,8 @@ public class HallLightOnMovement : BaseApp
         switch (on)
         {
             case true:
-                Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5);
+                var colorTemp = _circadianLightingService.GetColorTemperature(Entities.Light.Hal2);
+                Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
                 if (!IsNightMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     Entities.Light.Hal.TurnOn();

@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Automation.apps.General;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Microsoft.Extensions.Options;
@@ -9,7 +5,6 @@ using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
-using System.Text.Json;
 
 namespace TestAutomation.Apps.General;
 

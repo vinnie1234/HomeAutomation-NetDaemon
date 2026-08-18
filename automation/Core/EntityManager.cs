@@ -72,10 +72,7 @@ public class EntityManager(IMqttEntityManager mqttEntityManager, IHaContext haCo
                 try
                 {
                     await mqttEntityManager.SetStateAsync(entityId, state.ToString()!);
-                    if (attributes != null)
-                    {
-                        await mqttEntityManager.SetAttributesAsync(entityId, attributes);
-                    }
+                    if (attributes != null) await mqttEntityManager.SetAttributesAsync(entityId, attributes);
                     logger.LogDebug("Set state for {EntityId} to {State}", entityId, state);
                 }
                 catch (Exception ex)

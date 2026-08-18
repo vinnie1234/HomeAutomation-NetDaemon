@@ -51,9 +51,6 @@ public class HaContextMock
     /// </summary>
     public void ProcessPendingOperations()
     {
-        if (_scheduler != null)
-        {
-            _scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks); // Process immediate operations
-        }
+        if (_scheduler != null) _scheduler.AdvanceBy(TimeSpan.FromSeconds(1).Ticks); // Process immediate operations
     }
 }

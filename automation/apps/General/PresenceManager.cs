@@ -49,18 +49,18 @@ public class PresenceManager : BaseApp
     {
         Entities.Person.VincentMaarschalkerweerd
             .StateChanges()
-            .Where(x => x.New?.State == "home" && Entities.InputBoolean.Awayvincent.IsOn())
+            .Where(x => x.New?.State?.ToLower() == "home" && Entities.InputBoolean.Awayvincent.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Awayvincent.TurnOff());
 
         Entities.Person.Carleen
             .StateChanges()
-            .Where(x => x.New?.State == "home" && Entities.InputBoolean.Awaycarleen.IsOn())
+            .Where(x => x.New?.State?.ToLower() == "home" && Entities.InputBoolean.Awaycarleen.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Awaycarleen.TurnOff());
 
         Entities.Person.Carleen
             .StateChanges()
-            .Where(x => x.Old?.State == "home" &&
-                        x.New?.State != "home" &&
+            .Where(x => x.Old?.State?.ToLower() == "home" &&
+                        x.New?.State?.ToLower() != "home" &&
                         Entities.InputBoolean.Awaycarleen.IsOff())
             .Subscribe(_ => Entities.InputBoolean.Awaycarleen.TurnOn());
     }
@@ -72,20 +72,20 @@ public class PresenceManager : BaseApp
     {
         Entities.Person.VincentMaarschalkerweerd.StateChanges()
             .WhenStateIsFor(x => 
-                x.State != "Home" 
-                && Entities.Zone.Boodschappen.IsOff()
+                x?.State?.ToLower() != "home" 
+                && x?.State?.ToLower() != "boodschappen"
                 && Entities.InputBoolean.Awayvincent.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
-            .Subscribe(x =>
+            .Subscribe(_ =>
             {
                 Entities.InputBoolean.Awayvincent.TurnOn();
             });
         
         Entities.Person.Carleen.StateChanges()
             .WhenStateIsFor(x => 
-                x.State != "Home" 
-                && Entities.Zone.Boodschappen.IsOff()
-                && Entities.InputBoolean.Awayvincent.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
-            .Subscribe(x =>
+                x?.State?.ToLower() != "home" 
+                && x?.State?.ToLower() != "boodschappen"
+                && Entities.InputBoolean.Awaycarleen.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
+            .Subscribe(_ =>
             {
                 Entities.InputBoolean.Awaycarleen.TurnOn();
             });

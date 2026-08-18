@@ -9,10 +9,7 @@ public static partial class UrlExtractor
         var urls = new List<string>();
         var matches = UrlRegex().Matches(input);
 
-        foreach (Match match in matches)
-        {
-            urls.Add(match.Value);
-        }
+        foreach (Match match in matches) urls.Add(match.Value);
 
         return urls;
     }

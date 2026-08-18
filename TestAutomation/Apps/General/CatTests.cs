@@ -1,13 +1,9 @@
 using Automation.Interfaces;
-using System.Globalization;
 using Automation.apps.General;
 using Automation.Configuration;
-using Automation.Helpers;
 using HomeAssistantGenerated;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NetDaemon.Client;
-using Automation.Interfaces;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;

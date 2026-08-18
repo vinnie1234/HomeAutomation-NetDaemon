@@ -1,8 +1,5 @@
-using System;
-using System.Text.Json;
 using Automation.apps.General;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -305,7 +302,7 @@ public class SleepManagerTests
     }
 
     [Fact]
-    public void BureauLightTurnsOn_WakesBothUp_WhenBothSleeping()
+    public void BureauLightTurnsOn_WakesOnlyVincent_WhenBothSleeping()
     {
         var ctx = SetupContext();
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { State = "on" });
@@ -315,8 +312,9 @@ public class SleepManagerTests
         ctx.ChangeStateFor("light.bureau").FromState("off").ToState("on");
 
 
+        // The desk light is Vincent's: it may only wake him, never Carleen.
         ctx.VerifyCallService("input_boolean", "turn_off", "sleepingvincent", times: 1);
-        ctx.VerifyCallService("input_boolean", "turn_off", "sleepingcarleen", times: 1);
+        ctx.VerifyCallService("input_boolean", "turn_off", "sleepingcarleen", times: 0);
     }
 }
 

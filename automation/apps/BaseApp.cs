@@ -1,10 +1,5 @@
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Reactive.Concurrency;
 using Automation.Models.Persons;
-using Polly;
-using Polly.CircuitBreaker;
-using static Automation.Globals;
 
 namespace Automation.apps;
 
@@ -87,18 +82,18 @@ public class BaseApp
 
     }
     
-    protected void ExecuteWithFallbackAsync(Func<Task> operation, Func<Task> fallback, string operationName)
+    protected async Task ExecuteWithFallbackAsync(Func<Task> operation, Func<Task> fallback, string operationName)
     {
         try
         {
-            operation();
+            await operation();
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Primary operation {Operation} failed, executing fallback", operationName);
             try
             {
-                fallback();
+                await fallback();
                 Logger.LogInformation("Fallback for operation {Operation} executed successfully", operationName);
             }
             catch (Exception fallbackEx)
