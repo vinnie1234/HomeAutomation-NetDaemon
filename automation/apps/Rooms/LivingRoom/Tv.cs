@@ -76,7 +76,7 @@ public class Tv : BaseApp
         Entities.MediaPlayer.AvSoundbar.TurnOff();
         Entities.Switch.Ps5VincentPower.TurnOff();
 
-        if (IsWorking) Entities.Light.Plafond.TurnOn();
+        if (IsWorking) Entities.Light.Plafondslaapkamer.TurnOn();
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public class Tv : BaseApp
             Entities.Light.HueFilamentBulb1.TurnOff();
             Entities.Light.HueFilamentBulb2.TurnOff();
             Entities.Light.LampenKeuken.TurnOff();
-            Entities.Light.Plafond.TurnOff();
+            Entities.Light.Plafondslaapkamer.TurnOff();
             Entities.Light.Nachtkastje.TurnOff();
             Entities.MediaPlayer.Tv.VolumeSet(0.14);
             Logger.LogDebug("Movie time started!");

@@ -28,7 +28,7 @@ public class PcManager : BaseApp
             {
                 Entities.Light.Bureau.TurnOn();
                 Entities.Light.Nachtkastje.TurnOff();
-                Entities.Light.Plafond.TurnOn();
+                Entities.Light.Plafondslaapkamer.TurnOn();
                 Entities.MediaPlayer.Tv.TurnOff();
             });
 
@@ -38,7 +38,7 @@ public class PcManager : BaseApp
             {
                 Entities.Light.Bureau.TurnOn();
                 Entities.Light.Nachtkastje.TurnOff();
-                Entities.Light.Plafond.TurnOn();
+                Entities.Light.Plafondslaapkamer.TurnOn();
                 Entities.MediaPlayer.Tv.TurnOff();
             });
 

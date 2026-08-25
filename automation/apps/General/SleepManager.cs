@@ -3,12 +3,13 @@ using System.Reactive.Concurrency;
 
 namespace Automation.apps.General;
 
+public static class TestExceptionCatcher { public static Exception? CaughtException; }
+
 /// <summary>
 /// Represents an application that manages sleep routines and related automations.
 /// </summary>
 [NetDaemonApp(Id = nameof(SleepManager))]
-public static class TestExceptionCatcher { public static Exception? CaughtException; }
-
+[Focus]
 public class SleepManager : BaseApp
 {
     /// <summary>
@@ -179,7 +180,7 @@ public class SleepManager : BaseApp
                 Entities.InputBoolean.Sleepingvincent.TurnOff();            
         });
 
-        Entities.Light.Slaapkamer.WhenTurnsOn(_ =>
+        Entities.Light.Plafondslaapkamer.WhenTurnsOn(_ =>
         {
             switch (DateTime.Now.Hour)
             {

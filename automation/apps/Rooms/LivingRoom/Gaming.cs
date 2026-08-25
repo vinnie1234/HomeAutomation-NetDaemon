@@ -40,7 +40,7 @@ public class Gaming : BaseApp
             Entities.MediaPlayer.Tv.SelectSource("HDMI2");
             Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();
-            Entities.Light.Plafond.TurnOff();
+            Entities.Light.Plafondslaapkamer.TurnOff();
             Entities.Light.Nachtkastje.TurnOff();
             Entities.Light.HueFilamentBulb1.TurnOff();
             Entities.Light.HueFilamentBulb2.TurnOff();
