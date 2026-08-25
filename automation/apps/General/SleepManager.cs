@@ -9,7 +9,6 @@ public static class TestExceptionCatcher { public static Exception? CaughtExcept
 /// Represents an application that manages sleep routines and related automations.
 /// </summary>
 [NetDaemonApp(Id = nameof(SleepManager))]
-[Focus]
 public class SleepManager : BaseApp
 {
     /// <summary>
