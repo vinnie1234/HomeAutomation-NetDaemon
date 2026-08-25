@@ -181,10 +181,22 @@ public class SleepManager : BaseApp
 
         Entities.Light.Slaapkamer.WhenTurnsOn(_ =>
         {
-            if (DateTime.Now.Hour > 8)
+            switch (DateTime.Now.Hour)
             {
-                Entities.InputBoolean.Sleepingcarleen.TurnOff();
-                Entities.InputBoolean.Sleepingvincent.TurnOff();
+                case > 8 and < 10:
+                {
+                    if (!Vincent.IsHome)
+                    {
+                        Entities.InputBoolean.Sleepingcarleen.TurnOff();
+                        Entities.InputBoolean.Sleepingvincent.TurnOff();
+                    }
+
+                    break;
+                }
+                case > 10:
+                    Entities.InputBoolean.Sleepingcarleen.TurnOff();
+                    Entities.InputBoolean.Sleepingvincent.TurnOff();
+                    break;
             }
         });
     }
