@@ -36,7 +36,7 @@ public class PcManagerTests
         // Assert
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
         ctx.VerifyCallService("light", "turn_off", "nachtkastje", times: 1);
-        ctx.VerifyCallService("light", "turn_on", "plafond", times: 1);
+        ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
         ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
     }
 
@@ -55,7 +55,7 @@ public class PcManagerTests
         // Assert
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
         ctx.VerifyCallService("light", "turn_off", "nachtkastje", times: 1);
-        ctx.VerifyCallService("light", "turn_on", "plafond", times: 1);
+        ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
         ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
     }
 }

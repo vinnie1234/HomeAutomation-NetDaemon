@@ -54,7 +54,7 @@ public class TvTests
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_1", times: 1);
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_2", times: 1);
         ctx.VerifyCallService("light", "turn_off", "lampen_keuken", times: 1);
-        ctx.VerifyCallService("light", "turn_off", "plafond", times: 1);
+        ctx.VerifyCallService("light", "turn_off", "plafondslaapkamer", times: 1);
         ctx.VerifyCallService("light", "turn_off", "nachtkastje", times: 1);
     }
 
@@ -233,7 +233,7 @@ public class TvTests
         System.Threading.Thread.Sleep(50);
 
         // Assert
-        ctx.VerifyCallServiceWithData<HomeAssistantGenerated.LightTurnOnParameters>("light", "turn_on", "plafond", new HomeAssistantGenerated.LightTurnOnParameters(), times: 1);
+        ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
     }
 
     [Fact]

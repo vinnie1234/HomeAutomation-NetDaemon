@@ -28,7 +28,7 @@ public class GamingTests
         ctx.VerifyCallService("media_player", "select_source", "tv");
         ctx.VerifyCallService("media_player", "turn_on", "av_soundbar");
         ctx.VerifyCallService("light", "turn_off", "plafond_woonkamer");
-        ctx.VerifyCallService("light", "turn_off", "plafond");
+        ctx.VerifyCallService("light", "turn_off", "plafondslaapkamer");
         ctx.VerifyCallService("light", "turn_off", "nachtkastje");
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_1");
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_2");
