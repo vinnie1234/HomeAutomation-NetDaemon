@@ -58,7 +58,7 @@ public class SleepManager : BaseApp
                 return;
             }
 
-            var carleenStillSleeping = Carleen.IsHome && Carleen.IsSleeping;
+            var carleenStillSleeping = Carleen is { IsHome: true, IsSleeping: true };
 
             if (!carleenStillSleeping)
                 OpenRollerblind();
@@ -177,6 +177,15 @@ public class SleepManager : BaseApp
         {
             if (Entities.InputBoolean.Sleepingvincent.IsOn()) 
                 Entities.InputBoolean.Sleepingvincent.TurnOff();            
+        });
+
+        Entities.Light.Slaapkamer.WhenTurnsOn(_ =>
+        {
+            if (DateTime.Now.Hour > 7)
+            {
+                Entities.InputBoolean.Sleepingcarleen.TurnOff();
+                Entities.InputBoolean.Sleepingvincent.TurnOff();
+            }
         });
     }
     
