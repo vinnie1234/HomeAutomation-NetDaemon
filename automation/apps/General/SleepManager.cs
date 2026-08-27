@@ -51,13 +51,6 @@ public class SleepManager : BaseApp
     private void WakeUp()
     {
         try {
-            Logger.LogDebug("Wake up Routine");
-            if (Scheduler.Now.Hour < 7 && Entities.InputBoolean.Onvacation.IsOff())
-            {
-                Entities.InputBoolean.Sleepingvincent.TurnOn();
-                return;
-            }
-
             var carleenStillSleeping = Carleen is { IsHome: true, IsSleeping: true };
 
             if (!carleenStillSleeping)

@@ -106,7 +106,7 @@ public class BathRoomLights : BaseApp
             }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
-            Entities.Cover.Rollerblind0003.CloseCover();
+            Entities.Cover.Rollerblind0003.OpenCover();
             Notify.NotifyHouse("timeToDouche", "Tijd om te douchen", true);
             Scheduler.Schedule(TimeSpan.FromHours(1), () =>
             {
