@@ -130,7 +130,7 @@ public class BathRoomLights : BaseApp
                 }
             });
 
-            Entities.Cover.Rollerblind0003.OpenCover();
+            Entities.Cover.Rollerblind0003.CloseCover();
             Entities.MediaPlayer.Googlehome0351.MediaPause();
             Notify.NotifyHouse("readyDouche", "Klaar met douchen", true);
         }
