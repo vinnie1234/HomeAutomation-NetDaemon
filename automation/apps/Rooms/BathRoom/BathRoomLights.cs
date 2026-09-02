@@ -102,7 +102,8 @@ public class BathRoomLights : BaseApp
             if (!IsNightMode)
             {
                 Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _config.SpotifyRadioNlUrl);
+                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
+                    Carleen.IsHome ? _config.SpotifyDoucheUrl : _config.SpotifyRadioNlUrl);
             }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
@@ -221,7 +222,9 @@ public class BathRoomLights : BaseApp
                 if (!IsDouching && !IsNightMode)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
-                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, _config.SpotifyRadioNlUrl);
+                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
+                        Carleen.IsHome ? _config.SpotifyDoucheUrl : _config.SpotifyRadioNlUrl);
+
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
             });

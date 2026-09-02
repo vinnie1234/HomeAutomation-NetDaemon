@@ -16,6 +16,16 @@ public interface INotify
         string? channel = null,
         string? vibrationPattern = null);
     
+    void NotifyPhoneCarleen(
+        string title,
+        string message,
+        bool canAlwaysSendNotification,
+        double? sendAfterMinutes = null,
+        List<ActionModel>? action = null,
+        string? image = null,
+        string? channel = null,
+        string? vibrationPattern = null);
+    
     void NotifyPhoneVincentCarleen(
         string title,
         string message,

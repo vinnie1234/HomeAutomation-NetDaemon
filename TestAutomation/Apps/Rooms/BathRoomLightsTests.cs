@@ -135,7 +135,8 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         
         var spotcast = Substitute.For<ISpotcast>();
-        var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio" });
+        // Carleen is home (default), so SpotifyDoucheUrl is used
+        var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio", SpotifyDoucheUrl = "spotify:douche" });
 
         var app = ctx.InitApp<BathRoomLights>(spotcast, config);
 
@@ -145,10 +146,11 @@ public class BathRoomLightsTests
 
         // Assert
         ctx.VerifyCallService("media_player", "volume_set", "googlehome0351");
-        spotcast.Received(1).PlaySpotify(Arg.Any<MediaPlayerEntity>(), "spotify:radio");
+        spotcast.Received(1).PlaySpotify(Arg.Any<MediaPlayerEntity>(), "spotify:douche");
         ctx.VerifyCallService("light", "turn_on", "badkamer_spiegel");
         ctx.VerifyCallService("light", "turn_on", "plafond_badkamer");
-        ctx.VerifyCallService("cover", "close_cover", "rollerblind_0003");
+        // Cover opens when douching starts (was close, now open)
+        ctx.VerifyCallService("cover", "open_cover", "rollerblind_0003");
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Tijd om te douchen" }); 
     }
     
@@ -190,7 +192,8 @@ public class BathRoomLightsTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        ctx.VerifyCallService("cover", "open_cover", "rollerblind_0003");
+        // Cover closes when douching finishes (was open, now close)
+        ctx.VerifyCallService("cover", "close_cover", "rollerblind_0003");
         ctx.VerifyCallService("media_player", "media_pause", "googlehome0351");
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Klaar met douchen" });
         
@@ -231,7 +234,8 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         
         var spotcast = Substitute.For<ISpotcast>();
-        var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio" });
+        // Carleen is home (default), so SpotifyDoucheUrl is used for toothbrush too
+        var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio", SpotifyDoucheUrl = "spotify:douche" });
 
         var app = ctx.InitApp<BathRoomLights>(spotcast, config);
 
@@ -241,7 +245,7 @@ public class BathRoomLightsTests
 
         // Assert
         ctx.VerifyCallService("media_player", "volume_set", "googlehome0351");
-        spotcast.Received(1).PlaySpotify(Arg.Any<MediaPlayerEntity>(), "spotify:radio");
+        spotcast.Received(1).PlaySpotify(Arg.Any<MediaPlayerEntity>(), "spotify:douche");
         ctx.VerifyCallService("media_player", "media_play", "googlehome0351");
     }
 

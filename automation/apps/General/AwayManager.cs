@@ -47,6 +47,8 @@ public class AwayManager : BaseApp
     {
         Entities.InputBoolean.Away.WhenTurnsOn(_ => TransitionToState(HomePresenceState.Away));
         Entities.InputBoolean.Away.WhenTurnsOff(_ => TransitionToState(HomePresenceState.Returning));
+        Entities.InputBoolean.Awayvincent.WhenTurnsOff(_ => TransitionToState(HomePresenceState.Returning));
+        Entities.InputBoolean.Awaycarleen.WhenTurnsOff(_ => TransitionToState(HomePresenceState.Returning));
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ => HandleMotionDetected());
     }
 
@@ -63,7 +65,6 @@ public class AwayManager : BaseApp
             // Validate state transition
             if (!IsValidStateTransition(oldState, newState))
             {
-                Logger.LogWarning("Invalid state transition attempted: {OldState} → {NewState}", oldState, newState);
                 return;
             }
 

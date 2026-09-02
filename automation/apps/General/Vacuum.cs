@@ -59,7 +59,7 @@ public class Vacuum : BaseApp
     /// </summary>
     private void CleanLitterBoxAfterUse()
     {
-        Entities.Sensor.PetsnowyLitterboxStatus
+        Entities.Sensor.SnowSelfCleaningLitterBoxStatus
             .StateChanges()
             .Where(x => x.New?.State == "cleaning")
             .Subscribe(_ =>

@@ -61,7 +61,7 @@ public class CatTests
     {
         var app = CreateApp();
         
-        _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("standby").ToState("pet_into");
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("pet_into");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxpixelinit", times: 1);
@@ -72,7 +72,7 @@ public class CatTests
     {
         var app = CreateApp();
         
-        _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("standby").ToState("cleaning");
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("cleaning");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylittleboxcleaning", times: 1);
@@ -83,7 +83,7 @@ public class CatTests
     {
         var app = CreateApp();
         
-        _ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("standby").ToState("emptying");
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("emptying");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxemptying", times: 1);

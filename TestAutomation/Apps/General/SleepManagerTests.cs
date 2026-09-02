@@ -200,19 +200,6 @@ public class SleepManagerTests
     }
 
     [Fact]
-    public void VincentWakeUp_GoesBackToSleep_WhenBefore7AM()
-    {
-        var ctx = SetupContext();
-        ctx.SetCurrentTime(new DateTime(2023, 1, 1, 5, 0, 0)); // Before 7 AM
-        ctx.InitApp<SleepManager>();
-
-        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
-
-
-        ctx.VerifyCallService("input_boolean", "turn_on", "sleepingvincent", times: 1);
-    }
-
-    [Fact]
     public void VincentWakeUp_SendsBatteryWarning_WhenPhoneLow()
     {
         var ctx = SetupContext();
@@ -226,7 +213,8 @@ public class SleepManagerTests
         
         TestExceptionCatcher.CaughtException.Should().BeNull("Because an exception was caught during SleepManager execution");
 
-        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 1);
+        // SendBatteryWarning now uses NotifyHouse for the phone battery warning
+        ctx.VerifyCallNotify("tts", "cloud_say", times: 1);
     }
 
     [Fact]

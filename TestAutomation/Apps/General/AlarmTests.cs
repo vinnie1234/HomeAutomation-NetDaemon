@@ -108,8 +108,8 @@ public class AlarmTests
         _ctx.ChangeStateFor("sensor.badkamer_temperature").FromState("20").ToState("26");
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Assert
-        _notify.Received(1).NotifyPhoneVincent(
+        // Assert - temperature always notifies both Vincent and Carleen
+        _notify.Received(1).NotifyPhoneVincentCarleen(
             "Hoge temperatuur gedetecteerd",
             "Badkamer is 26 graden",
             true,
@@ -184,19 +184,38 @@ public class AlarmTests
     }
 
     [Fact]
-    public void GarbageCheck_SendsNotification_WhenGarbageNextDay()
+    public void GarbageCheck_SendsNotification_WhenGarbageNextDay_AndCarleenHome()
     {
         // Arrange
         var app = CreateApp();
         _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Restafval" });
 
         // Act
-        // Schedule is 22:00. Set current time to some point before that.
-
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Assert
+        // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
+        _notify.Received(1).NotifyPhoneVincentCarleen(
+            "Vergeet het afval niet",
+            "Vergeet je niet op Restafval buiten te zetten?",
+            true,
+            sendAfterMinutes: Arg.Any<double?>(),
+            action: Arg.Any<List<Automation.Models.ActionModel>>());
+    }
+
+    [Fact]
+    public void GarbageCheck_SendsNotification_WhenGarbageNextDay_AndCarleenAway()
+    {
+        // Arrange
+        _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
+        var app = CreateApp();
+        _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Restafval" });
+
+        // Act
+        _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyPhoneVincent(
             "Vergeet het afval niet",
             "Vergeet je niet op Restafval buiten te zetten?",
@@ -221,7 +240,7 @@ public class AlarmTests
     }
 
     [Fact]
-    public void PetSnowyCheck_ErrorsFound_SendsNotification()
+    public void PetSnowyCheck_ErrorsFound_SendsNotification_WhenCarleenHome()
     {
         // Arrange
         var app = CreateApp();
@@ -231,7 +250,35 @@ public class AlarmTests
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Assert
+        // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
+        _notify.Received(1).NotifyPhoneVincentCarleen(
+            "PetSnowy heeft errors",
+            "Er staat nog een error open voor de PetSnowy",
+            false,
+            10,
+            channel: null,
+            vibrationPattern: null,
+            image: null,
+            action: null);
+        _notify.Received(1).NotifyDiscord(
+            "PetSnowy heeft errors", 
+            Arg.Is<string[]>(t => t.Contains("logs")), 
+            Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
+    }
+
+    [Fact]
+    public void PetSnowyCheck_ErrorsFound_SendsNotification_WhenCarleenAway()
+    {
+        // Arrange
+        _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
+        var app = CreateApp();
+        _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "1" });
+
+        // Act
+        _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyPhoneVincent(
             "PetSnowy heeft errors",
             "Er staat nog een error open voor de PetSnowy",
@@ -248,7 +295,7 @@ public class AlarmTests
     }
 
     [Fact]
-    public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification()
+    public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification_WhenCarleenHome()
     {
         // Arrange
         var app = CreateApp();
@@ -257,7 +304,23 @@ public class AlarmTests
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("-3.0");
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Assert
+        // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
+        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyPhoneVincentCarleen("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
+    }
+
+    [Fact]
+    public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification_WhenCarleenAway()
+    {
+        // Arrange
+        _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
+        var app = CreateApp();
+
+        // Act
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("-3.0");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
         _notify.Received(1).NotifyPhoneVincent("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
     }

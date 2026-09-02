@@ -85,12 +85,12 @@ public class VacuumTests
         using var ctx = AppTestContext.NewWithScheduler();
         SetupBaseStates(ctx);
         ctx.HaContext.GetState("input_boolean.disablereset").Returns(new EntityState { EntityId = "input_boolean.disablereset", State = "on" });
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_status").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_status", State = "idle" });
+        ctx.HaContext.GetState("sensor.snow_self_cleaning_litter_box_status").Returns(new EntityState { EntityId = "sensor.snow_self_cleaning_litter_box_status", State = "idle" });
         
         ctx.InitApp<Vacuum>(CreateConfig());
 
         // Act
-        ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -110,12 +110,12 @@ public class VacuumTests
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_status").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_status", State = "idle" });
+        ctx.HaContext.GetState("sensor.snow_self_cleaning_litter_box_status").Returns(new EntityState { EntityId = "sensor.snow_self_cleaning_litter_box_status", State = "idle" });
         
         ctx.InitApp<Vacuum>(CreateConfig());
 
         // Act
-        ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -136,12 +136,12 @@ public class VacuumTests
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_status").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_status", State = "idle" });
+        ctx.HaContext.GetState("sensor.snow_self_cleaning_litter_box_status").Returns(new EntityState { EntityId = "sensor.snow_self_cleaning_litter_box_status", State = "idle" });
         
         ctx.InitApp<Vacuum>(CreateConfig());
 
         // Act
-        ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -162,12 +162,12 @@ public class VacuumTests
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_status").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_status", State = "idle" });
+        ctx.HaContext.GetState("sensor.snow_self_cleaning_litter_box_status").Returns(new EntityState { EntityId = "sensor.snow_self_cleaning_litter_box_status", State = "idle" });
         
         ctx.InitApp<Vacuum>(CreateConfig());
 
         // Act 1: litter box status changes to cleaning while sleeping
-        ctx.ChangeStateFor("sensor.petsnowy_litterbox_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert 1

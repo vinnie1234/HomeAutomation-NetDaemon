@@ -83,7 +83,7 @@ public class Cat : BaseApp
     /// </summary>
     private void PetSnowyStatusMonitoring()
     {
-        Entities.Sensor.PetsnowyLitterboxStatus
+        Entities.Sensor.SnowSelfCleaningLitterBoxStatus
             .StateChanges()
             .Subscribe(x =>
             {
