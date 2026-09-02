@@ -86,6 +86,41 @@ public class Notify : INotify
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
             { Title = title, Message = message, Data = data });
     }
+    
+    /// <summary>
+    /// Sends a notification to Vincent's phone and Carleen's Phone.
+    /// </summary>
+    /// <param name="title">The title of the notification.</param>
+    /// <param name="message">The message of the notification.</param>
+    /// <param name="canAlwaysSendNotification">Indicates whether the notification can always be sent.</param>
+    /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
+    /// <param name="action">The list of actions associated with the notification.</param>
+    /// <param name="image">The image URL for the notification.</param>
+    /// <param name="channel">The notification channel.</param>
+    /// <param name="vibrationPattern">The vibration pattern for the notification.</param>
+    public void NotifyPhoneVincentCarleen(
+        string title,
+        string message,
+        bool canAlwaysSendNotification,
+        double? sendAfterMinutes = null,
+        List<ActionModel>? action = null,
+        string? image = null,
+        string? channel = null,
+        string? vibrationPattern = null)
+    {
+        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        if (!canSendNotification) return;
+
+        SaveNotification(_storage, title, message);
+
+        var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern);
+        _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
+            { Title = title, Message = message, Data = data });
+        
+        _services.Notify.MobileAppCarleenMobiel(new NotifyMobileAppCarleenMobielParameters
+            { Title = title, Message = message, Data = data });
+    }
+    
 
     /// <summary>
     /// Sends a TTS notification to Vincent's phone.
