@@ -16,6 +16,11 @@ public class AppTestContext : IDisposable
     private ICircadianLightingService? _circadianLightingService;
     private ILivingRoomPresenceService? _livingRoomPresenceService;
 
+    /// <summary>
+    /// Gets the Spotcast mock so tests can verify <see cref="ISpotcast.PlaySpotify"/> was called.
+    /// </summary>
+    public ISpotcast Spotcast { get; } = Substitute.For<ISpotcast>();
+
     public TestScheduler Scheduler { get; } = new();
     public HaContextMock HaContextMock { get; }
     public IHaContext HaContext => HaContextMock.HaContext;

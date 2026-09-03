@@ -56,6 +56,7 @@ public static class Init
 
         if (type == typeof(ICircadianLightingService)) return ctx.CircadianLightingService;
         if (type == typeof(ILivingRoomPresenceService)) return ctx.LivingRoomPresenceService;
+        if (type == typeof(ISpotcast)) return ctx.Spotcast;
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IOptions<>)) return CreateOptions(ctx, type);
         if (type.IsInterface) return Substitute.For([type], []);
 
