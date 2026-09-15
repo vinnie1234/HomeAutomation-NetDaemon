@@ -32,5 +32,7 @@
     "Exception": ""
   },
   "BaseUrlHomeAssistant": "http://localhost:8123",
-  "SpotifyRadioNlUrl": "https://open.spotify.com/playlist/integration-test"
+  "SpotifyRadioNlUrl": "https://open.spotify.com/playlist/integration-test",
+  "SpotifyDoucheUrl" : "https://open.spotify.com/playlist/integration-test",
+  "SpotifyKeukenUrl" : "https://open.spotify.com/playlist/integration-test"
 }

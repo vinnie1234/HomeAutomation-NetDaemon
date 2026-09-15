@@ -67,7 +67,7 @@ public class HallLightOnMovement : BaseApp
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
-        return _circadianLightingService.GetBrightness(IsNightMode);
+        return _circadianLightingService.GetBrightness(IsSleepMode);
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public class HallLightOnMovement : BaseApp
     /// <returns>The state time in minutes.</returns>
     private int GetStateTime()
     {
-        return IsNightMode switch
+        return IsSleepMode switch
         {
             true => Convert.ToInt32(Entities.InputNumber.Halllightnighttime.State),
             false => Convert.ToInt32(Entities.InputNumber.Halllightdaytime.State)
@@ -95,7 +95,7 @@ public class HallLightOnMovement : BaseApp
             case true:
                 var colorTemp = _circadianLightingService.GetColorTemperature(Entities.Light.Hal2);
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
-                if (!IsNightMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
+                if (!IsSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     Entities.Light.Hal.TurnOn();
                     if (Entities.Light.Hal.IsOff())

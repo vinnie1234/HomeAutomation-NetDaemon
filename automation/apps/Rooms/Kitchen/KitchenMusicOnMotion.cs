@@ -1,6 +1,8 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Enum;
 using Microsoft.Extensions.Options;
+using static Automation.Globals;
 
 namespace Automation.apps.Rooms.Kitchen;
 
@@ -55,9 +57,10 @@ public class KitchenMusicOnMotion : BaseApp
         Entities.InputBoolean.Working.IsOff() &&
         !IsSpotifyPlaying &&
         !IsTvOn &&
-        !IsNightMode &&
+        !IsSleepMode &&
         !WasRecentlyStopped &&
-        !IsKitchenAlreadyPlaying;
+        !IsKitchenAlreadyPlaying && 
+        GetHouseState(Entities) != HouseState.Night;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KitchenMusicOnMotion"/> class.
@@ -101,7 +104,7 @@ public class KitchenMusicOnMotion : BaseApp
     {
         Entities.MediaPlayer.Nestmini9818
             .StateChanges()
-            .Where(x => x.Old?.State == "playing" && x.New?.State is "idle" or "off")
+            .Where(x => x.Old?.State?.ToLower() == "playing")
             .Subscribe(_ =>
             {
                 Logger.LogDebug("Kitchen speaker stopped — starting 15-minute cooldown");
@@ -131,7 +134,7 @@ public class KitchenMusicOnMotion : BaseApp
                 Entities.InputBoolean.Working.IsOn(),
                 IsSpotifyPlaying,
                 IsTvOn,
-                IsNightMode,
+                IsSleepMode,
                 WasRecentlyStopped,
                 IsKitchenAlreadyPlaying);
             return;

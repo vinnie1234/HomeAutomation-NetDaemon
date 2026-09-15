@@ -38,10 +38,10 @@ public class LivingRoomLights : BaseApp
         {
             if (Entities.Light.Woonkamer.IsOn() && !isOccupied)
             {
-                if (IsVincentNightMode) Entities.Light.Woonkamer.TurnOff();
+                if (IsVincentSleepMode) Entities.Light.Woonkamer.TurnOff();
             }else if (Entities.Light.Woonkamer.IsOff() && isOccupied)
             {
-                if (!IsVincentNightMode)
+                if (!IsVincentSleepMode)
                     LightExtension.SetLightSceneWoonkamer(Entities);
             }
         });

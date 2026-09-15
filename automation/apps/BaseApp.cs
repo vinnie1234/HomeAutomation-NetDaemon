@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Automation.Enum;
 using Automation.Models.Persons;
 
 namespace Automation.apps;
@@ -46,16 +47,14 @@ public class BaseApp
     /// This is when Vincent is sleeping, OR when Carleen is home and sleeping.
     /// Use this for rooms near the bedroom (hall, bathroom) where Carleen's sleep matters.
     /// </summary>
-    protected bool IsNightMode => Vincent.IsSleeping || (Carleen.IsHome && Carleen.IsSleeping);
+    protected bool IsSleepMode => Vincent.IsSleeping || (Carleen.IsHome && Carleen.IsSleeping);
 
     /// <summary>
     /// True only when Vincent himself is sleeping, regardless of Carleen.
     /// Use this for living spaces (e.g. the living room) that should stay active when Vincent is
     /// awake even if Carleen is still asleep in the bedroom.
     /// </summary>
-    protected bool IsVincentNightMode => Vincent.IsSleeping;
-
-
+    protected bool IsVincentSleepMode => Vincent.IsSleeping;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseApp"/> class.

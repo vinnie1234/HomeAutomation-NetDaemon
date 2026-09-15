@@ -62,7 +62,7 @@ public class Alarm : BaseApp
         foreach (var temperatureSensor in GetAllTemperatureSensors())
             temperatureSensor.Key
                 .StateChanges()
-                .Where(x => x.Entity.State > 25 && !IsNightMode)
+                .Where(x => x.Entity.State > 25 && !IsSleepMode)
                 .Subscribe(x => Notify.NotifyPhoneVincentCarleen("Hoge temperatuur gedetecteerd",
                     $"{temperatureSensor.Value} is {x.Entity.State} graden", true, channel: "ALARM",
                     vibrationPattern: "100, 1000, 100, 1000, 100"));

@@ -66,7 +66,7 @@ public class Vacuum : BaseApp
             {
                 if(Entities.InputBoolean.Datenight.IsOn()) return;
                 
-                if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                if (!IsSleepMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                     Clean("Kattenbak");
                 else if (Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                     // Wait until nobody is sleeping anymore before cleaning
@@ -75,7 +75,7 @@ public class Vacuum : BaseApp
                         .Where(x => x.New.IsOff())
                         .Subscribe(_ =>
                         {
-                            switch (IsNightMode)
+                            switch (IsSleepMode)
                             {
                                 case false when Entities.InputBoolean.Skipvaccumlitterbox.IsOff() && Entities.InputBoolean.Sleepingcarleen.IsOff():
                                     Clean("Kattenbak");
@@ -86,7 +86,7 @@ public class Vacuum : BaseApp
                                         .Where(x => x.New.IsOff())
                                         .Subscribe(_ =>
                                         {
-                                            if (!IsNightMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                                            if (!IsSleepMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
                                                 Clean("Kattenbak");
                                         });
                                     break;

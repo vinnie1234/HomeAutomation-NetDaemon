@@ -76,14 +76,14 @@ public class BathRoomLights : BaseApp
             .StateChanges()
             .WhenStateIsFor(x => x.IsOff(),
                 TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightnighttime.State ?? 0)), Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && IsNightMode)
+            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && IsSleepMode)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
             .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightdaytime.State ?? 0)),
                 Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !IsNightMode)
+            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !IsSleepMode)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.InputBoolean.Douchen
@@ -99,7 +99,7 @@ public class BathRoomLights : BaseApp
     {
         if (isOn)
         {
-            if (!IsNightMode)
+            if (!IsSleepMode)
             {
                 Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
                 _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
@@ -147,7 +147,7 @@ public class BathRoomLights : BaseApp
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
-        return _circadianLightingService.GetBrightness(IsNightMode);
+        return _circadianLightingService.GetBrightness(IsSleepMode);
     }
 
     /// <summary>
@@ -219,7 +219,7 @@ public class BathRoomLights : BaseApp
             .Where(x => x.New?.State != "idle" && x.Old?.State == "idle")
             .Subscribe(_ =>
             {
-                if (!IsDouching && !IsNightMode)
+                if (!IsDouching && !IsSleepMode)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
                     _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
