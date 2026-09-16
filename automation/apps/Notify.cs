@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using Automation.Enum;
 using Automation.Models.DiscordNotificationModels;
+using Automation.Models.Persons;
 using Polly;
 using Polly.CircuitBreaker;
 using static System.Enum;
@@ -19,6 +20,8 @@ public class Notify : INotify
     private readonly IDataRepository _storage;
     private readonly ILogger<Notify> _logger;
     private readonly ResiliencePipeline _discordResiliencePipeline;
+    private readonly CarleenModel _carleen;
+    private readonly VincentModel _vincentModel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Notify"/> class.
@@ -34,6 +37,8 @@ public class Notify : INotify
         _entities = new Entities(ha);
         _services = new Services(ha);
         _discordResiliencePipeline = CreateDiscordResiliencePipeline();
+        _vincentModel = new VincentModel(_entities);
+        _carleen = new CarleenModel(_entities);
     }
 
     /// <summary>
@@ -86,6 +91,60 @@ public class Notify : INotify
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
             { Title = title, Message = message, Data = data });
     }
+
+    /// <summary>
+    /// Sends a notification to All people that are home.
+    /// </summary>
+    /// <param name="title">The title of the notification.</param>
+    /// <param name="message">The message of the notification.</param>
+    /// <param name="canAlwaysSendNotification">Indicates whether the notification can always be sent.</param>
+    /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
+    /// <param name="action">The list of actions associated with the notification.</param>
+    /// <param name="image">The image URL for the notification.</param>
+    /// <param name="channel">The notification channel.</param>
+    /// <param name="vibrationPattern">The vibration pattern for the notification.</param>
+    public void NotifyPeopleHome(string title, string message, bool canAlwaysSendNotification, double? sendAfterMinutes = null,
+        List<ActionModel>? action = null, string? image = null, string? channel = null, string? vibrationPattern = null)
+    {
+        switch (_carleen.IsHome)
+        {
+            case true when _vincentModel.IsHome:
+                NotifyPhoneVincentCarleen(
+                    title,
+                    message,
+                    canAlwaysSendNotification,
+                    sendAfterMinutes,
+                    action,
+                    image,
+                    channel,
+                    vibrationPattern);
+                break;
+            case true:
+                NotifyPhoneCarleen(
+                    title,
+                    message,
+                    canAlwaysSendNotification,
+                    sendAfterMinutes,
+                    action,
+                    image,
+                    channel,
+                    vibrationPattern);
+                break;
+            default:
+                NotifyPhoneVincent(
+                    title,
+                    message,
+                    canAlwaysSendNotification,
+                    sendAfterMinutes,
+                    action,
+                    image,
+                    channel,
+                    vibrationPattern);
+                break;
+        }
+    }
+    
+    
     
     /// <summary>
     /// Sends a notification to Carleen's phone.

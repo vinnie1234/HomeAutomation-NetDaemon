@@ -115,29 +115,16 @@ public class Alarm : BaseApp
             if (message != "Geen" && !string.IsNullOrEmpty(message))
             {
                 var garbageType = message.ToLower().Replace(" ", "_");
-
-                if (Carleen.IsHome)
-                    Notify.NotifyPhoneVincentCarleen("Vergeet het afval niet",
-                        $"Vergeet je niet op {message} buiten te zetten?", true,
-                        action: 
-                        [
-                            new ActionModel(
-                                action: $"garbage_placed_{garbageType}",
-                                title: "Buiten gezet",
-                                func: () => HandleGarbagePlaced(garbageType, message)
-                            )
-                        ]);
-                else
-                    Notify.NotifyPhoneVincent("Vergeet het afval niet",
-                        $"Vergeet je niet op {message} buiten te zetten?", true,
-                        action: 
-                        [
-                            new ActionModel(
-                                action: $"garbage_placed_{garbageType}",
-                                title: "Buiten gezet",
-                                func: () => HandleGarbagePlaced(garbageType, message)
-                            )
-                        ]);
+                Notify.NotifyPeopleHome("Vergeet het afval niet",
+                    $"Vergeet je niet op {message} buiten te zetten?", true,
+                    action: 
+                    [
+                        new ActionModel(
+                            action: $"garbage_placed_{garbageType}",
+                            title: "Buiten gezet",
+                            func: () => HandleGarbagePlaced(garbageType, message)
+                        )
+                    ]);
             }
         });
     }
@@ -255,12 +242,9 @@ public class Alarm : BaseApp
                 };
 
                 Notify.NotifyDiscord("PetSnowy heeft errors", [_config.Discord.Logs], discordNotificationModel);
-                if (Carleen.IsHome)
-                    Notify.NotifyPhoneVincentCarleen("PetSnowy heeft errors",
+                Notify.NotifyPeopleHome("PetSnowy heeft errors",
                         "Er staat nog een error open voor de PetSnowy", false, 10);
-                else
-                    Notify.NotifyPhoneVincent("PetSnowy heeft errors",
-                        "Er staat nog een error open voor de PetSnowy", false, 10);
+
             }
         });
     }
@@ -277,13 +261,8 @@ public class Alarm : BaseApp
                 if (x.New?.State < 0)
                 {
                     Notify.NotifyDiscord($"ENERGY IS NEGATIEF - {x.New.State}", [_config.Discord.Logs]);
-                    
-                    if(Carleen.IsHome)
-                        Notify.NotifyPhoneVincentCarleen($"ENERGY IS NEGATIEF - {x.New.State}",
-                            "Je energy is negatief, dit kan geld kosten.", false, 10);
-                    else
-                        Notify.NotifyPhoneVincent($"ENERGY IS NEGATIEF - {x.New.State}",
-                            "Je energy is negatief, dit kan geld kosten.", false, 10);
+                    Notify.NotifyPeopleHome($"ENERGY IS NEGATIEF - {x.New.State}",
+                        "Je energy is negatief, dit kan geld kosten.", false, 10);
                 }
             });
     }

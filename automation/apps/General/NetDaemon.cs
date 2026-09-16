@@ -47,7 +47,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
         // typed null keeps the stored JSON readable as IReadOnlyList<double> next time.
         _storage.Save<IReadOnlyList<double>?>("NetDaemonRestart", null);
 
-        if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn())
+        if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn() && Vincent.IsHome)
             Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
         Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_config.Discord.Logs]);
 

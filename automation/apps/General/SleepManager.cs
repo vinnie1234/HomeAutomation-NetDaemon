@@ -108,11 +108,11 @@ public class SleepManager : BaseApp
                 message = Entities.Sensor.AfvalVandaag.State;
 
             if (message != "Geen")
-                Notify.NotifyPhoneVincent("Vergeet het afval niet",
+                Notify.NotifyPeopleHome("Vergeet het afval niet",
                     $"Vergeet je niet op {message} buiten te zetten?", true);
 
             if (int.Parse(Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0") > 0)
-                Notify.NotifyPhoneVincent("PetSnowy heeft errors",
+                Notify.NotifyPeopleHome("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", true);
         } catch (Exception ex) {
             TestExceptionCatcher.CaughtException = ex;
@@ -136,8 +136,23 @@ public class SleepManager : BaseApp
     /// </summary>
     private void SendBatteryWarning()
     {
-        if ((Entities.Sensor.VincentPhoneBatteryLevel.State ?? 0) < 30 && Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
-            Notify.NotifyHouse("Telefoon bijna leeg", "Je moet je telefoon opladen", true);
+        var message = "";
+
+        if ((Entities.Sensor.VincentPhoneBatteryLevel.State ?? 0) < 30 &&
+            Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
+            message = "Telefoon van Vincent is bijna leeg.";
+
+        if ((Entities.Sensor.CarleenMobielBatteryLevel.State ?? 0) < 30 &&
+            Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
+        {
+            if(!string.IsNullOrEmpty(message))
+                message += " En ";
+            message += "Telefoon van Carleen is bijna leeg.";
+        }
+            
+
+        if (!string.IsNullOrEmpty(message)) 
+            Notify.NotifyHouse("Telefoon bijna leeg", message, true);
 
         if ((Entities.Sensor.SmT860BatteryLevel.State ?? 0) < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
             Notify.NotifyPhoneVincent("Tabled bijna leeg", "Je moet je tabled opladen", true);
