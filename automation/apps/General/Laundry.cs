@@ -9,6 +9,7 @@ namespace Automation.apps.General;
 /// Manages laundry drying notifications by coupling the washing machine state to weather forecasts.
 /// </summary>
 [NetDaemonApp(Id = nameof(Laundry))]
+[Focus]
 public class Laundry : BaseApp
 {
     private const int RequiredDryHours = 3;
@@ -29,6 +30,8 @@ public class Laundry : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
+        _ = Task.Run(OnWashingMachineFinishedAsync);
+        
         SetupWashingMachineMonitoring();
         SetupLaundryOutsideToggleMonitoring();
 
@@ -108,9 +111,16 @@ public class Laundry : BaseApp
     {
         try
         {
-            var result = await Entities.Weather.WeerThuis.GetForecastsAsync(
-                new { type = "hourly" });
-
+            var result = await HaContext.CallServiceWithResponseAsync(
+                "weather",
+                "get_forecasts",
+                target: new ServiceTarget { EntityIds = new[] { "weather.weer_thuis" } },
+                data: new Dictionary<string, object>
+                {
+                    ["type"] = "hourly"
+                }
+            );
+            
             if (result == null) return null;
 
             if (result.Value.TryGetProperty(Entities.Weather.WeerThuis.EntityId, out var entityProp) &&

@@ -14,11 +14,11 @@ public record ForecastEntry
     public string? Condition { get; init; }
 
     [JsonPropertyName("precipitation")]
-    public double Precipitation { get; init; }
+    public double? Precipitation { get; init; }
 
     [JsonPropertyName("precipitation_probability")]
-    public int PrecipitationProbability { get; init; }
+    public double? PrecipitationProbability { get; init; }
 
     [JsonPropertyName("temperature")]
-    public double Temperature { get; init; }
+    public double? Temperature { get; init; }
 }
