@@ -31,6 +31,12 @@ public class Laundry : BaseApp
     {
         SetupWashingMachineMonitoring();
         SetupLaundryOutsideToggleMonitoring();
+
+        if (IsLaundryOutside())
+        {
+            Logger.LogInformation("Laundry already outside at startup, starting monitoring");
+            StartLaundryOutsideMonitoring();
+        }
     }
 
     private void SetupWashingMachineMonitoring()
@@ -436,7 +442,7 @@ public class Laundry : BaseApp
                 return;
 
             var sunsetLocal = sunsetUtc.ToLocalTime();
-            
+
             // Schedule the notification 60 minutes before sunset
             var warningTime = sunsetLocal.AddMinutes(-60);
             var delay = warningTime - Scheduler.Now.LocalDateTime;
@@ -453,7 +459,7 @@ public class Laundry : BaseApp
             }
 
             Logger.LogInformation("Scheduled sunset warning for {WarningTime}", warningTime);
-            
+
             _sunsetSchedule = Scheduler.Schedule(delay, () =>
             {
                 if (!IsLaundryOutside()) return;

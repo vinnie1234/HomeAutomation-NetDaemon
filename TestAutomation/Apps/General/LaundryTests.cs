@@ -74,10 +74,10 @@ public class LaundryTests
 
     private void SetWasHangtBuiten(bool aan)
     {
-        _ctx.HaContext.GetState("input_boolean.was_hangt_buiten")
+        _ctx.HaContext.GetState("input_boolean.laundryhangingoutside")
             .Returns(new EntityState
             {
-                EntityId = "input_boolean.was_hangt_buiten",
+                EntityId = "input_boolean.laundryhangingoutside",
                 State = aan ? "on" : "off"
             });
     }
@@ -163,7 +163,7 @@ public class LaundryTests
         await Task.Delay(200);
 
         // Assert: positive notification sent
-        _notify.Received().NotifyPhoneVincent(
+        _notify.Received().NotifyPeopleHome(
             Arg.Is<string>(t => t.Contains("kan buiten")),
             Arg.Any<string>(),
             true,
@@ -191,7 +191,7 @@ public class LaundryTests
         await Task.Delay(200);
 
         // Assert: negative / warning notification
-        _notify.Received().NotifyPhoneVincent(
+        _notify.Received().NotifyPeopleHome(
             Arg.Is<string>(t => t.Contains("niet buiten") || t.Contains("🌧️")),
             Arg.Any<string>(),
             true,
@@ -224,7 +224,7 @@ public class LaundryTests
         await Task.Delay(200);
 
         // Assert: notification mentions a dry window and the time
-        _notify.Received().NotifyPhoneVincent(
+        _notify.Received().NotifyPeopleHome(
             Arg.Is<string>(t => t.Contains("nu niet") || t.Contains("later") || t.Contains("venster") || t.Contains("🌧️")),
             Arg.Is<string>(m => m.Contains("11:00") || m.Contains("venster") || m.Contains("droog")),
             true,
@@ -253,7 +253,7 @@ public class LaundryTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert: rain warning sent with "binnen gehaald" action button
-        _notify.Received().NotifyPhoneVincent(
+        _notify.Received().NotifyPeopleHome(
             Arg.Is<string>(t => t.Contains("binnen") || t.Contains("regen") || t.Contains("🌧️")),
             Arg.Any<string>(),
             false,
@@ -298,12 +298,14 @@ public class LaundryTests
     {
         // Arrange: laundry is outside
         SetWasHangtBuiten(true);
-        var app = CreateApp();
-        
+
         // Let's say sunset is 2 hours from now
+        // (using UTC ticks so Scheduler.Now.LocalDateTime lines up with "nu" regardless of the local time zone)
         var nu = DateTime.Today.AddHours(12);
-        _ctx.Scheduler.AdvanceTo(nu.Ticks);
-        
+        _ctx.Scheduler.AdvanceTo(nu.ToUniversalTime().Ticks);
+
+        var app = CreateApp();
+
         var sunsetUtc = nu.AddHours(2).ToUniversalTime();
         
         // Act: change sensor state to trigger SetupSunsetMonitoring
@@ -317,7 +319,7 @@ public class LaundryTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert: sunset reminder sent
-        _notify.Received().NotifyPhoneVincent(
+        _notify.Received().NotifyPeopleHome(
             Arg.Is<string>(t => t.Contains("binnen") || t.Contains("zonsondergang") || t.Contains("🌅")),
             Arg.Any<string>(),
             false,
@@ -375,7 +377,7 @@ public class LaundryTests
 
         // Turn off (laundry brought in)
         SetWasHangtBuiten(false);
-        _ctx.ChangeStateFor("input_boolean.was_hangt_buiten")
+        _ctx.ChangeStateFor("input_boolean.laundryhangingoutside")
             .FromState("on")
             .ToState("off");
         _ctx.HaContextMock.ProcessPendingOperations();

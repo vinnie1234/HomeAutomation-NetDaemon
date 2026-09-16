@@ -195,7 +195,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
-        _notify.Received(1).NotifyPhoneVincentCarleen(
+        _notify.Received(1).NotifyPeopleHome(
             "Vergeet het afval niet",
             "Vergeet je niet op Restafval buiten te zetten?",
             true,
@@ -216,7 +216,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
-        _notify.Received(1).NotifyPhoneVincent(
+        _notify.Received(1).NotifyPeopleHome(
             "Vergeet het afval niet",
             "Vergeet je niet op Restafval buiten te zetten?",
             true,
@@ -251,7 +251,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
-        _notify.Received(1).NotifyPhoneVincentCarleen(
+        _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
             "Er staat nog een error open voor de PetSnowy",
             false,
@@ -279,7 +279,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
-        _notify.Received(1).NotifyPhoneVincent(
+        _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
             "Er staat nog een error open voor de PetSnowy",
             false,
@@ -306,7 +306,7 @@ public class AlarmTests
 
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
         _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPhoneVincentCarleen("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public class AlarmTests
 
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPhoneVincent("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
     }
 
     [Fact]
