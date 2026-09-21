@@ -14,6 +14,7 @@ public class Alarm : BaseApp
     private readonly AppConfig _config;
 
     private readonly IEntityManager _entityManager;
+    private bool _cleanedPetsnowyToday = false;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Alarm"/> class.
@@ -219,9 +220,15 @@ public class Alarm : BaseApp
     /// </summary>
     private void PetSnowyCheck()
     {
+        Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(x =>
+        {
+            if (x.New?.State == "Cleaning")
+                _cleanedPetsnowyToday = true;
+        });
+        
         Scheduler.ScheduleCron("00 22 * * *", () =>
         {
-            if (int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0)
+            if ((int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0) || !_cleanedPetsnowyToday)
             {
                 var discordNotificationModel = new DiscordNotificationModel
                 {
@@ -241,11 +248,13 @@ public class Alarm : BaseApp
                     }
                 };
 
-                Notify.NotifyDiscord("PetSnowy heeft errors", [_config.Discord.Logs], discordNotificationModel);
+                Notify.NotifyDiscord("PetSnowy heeft errors of is vandaag nog niet geschoond", [_config.Discord.Logs], discordNotificationModel);
                 Notify.NotifyPeopleHome("PetSnowy heeft errors",
-                        "Er staat nog een error open voor de PetSnowy", false, 10);
+                        "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond", false, 10);
 
             }
+
+            _cleanedPetsnowyToday = false;
         });
     }
 
