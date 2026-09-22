@@ -53,22 +53,20 @@ public class HolidayManager : BaseApp
     /// </summary>
     private void SetHoliday()
     {
-        // if (Entities.Sensor.HubVincentAlarms.Attributes is { NextAlarmStatus: "set", Alarms: not null })
-        // {
-        //     var alarmList = new List<AlarmStateModel?>();
-        //     var jsonList = Entities.Sensor.HubVincentAlarms.Attributes?.Alarms;
-        //
-        //     if (jsonList != null)
-        //         alarmList.AddRange(
-        //             jsonList.Cast<JsonElement>()
-        //                 .Select(o => o.Deserialize<AlarmStateModel>()));
-        //
-        //     var firstAlarm = alarmList.Where(x => x?.Status == "set").MinBy(x => x?.LocalTime);
-        //     Notify.NotifyPhoneVincent("WEKKER UITZETTEN",
-        //         $"Je moet je wekker nog uit zetten voor {firstAlarm?.LocalTime ?? ""}", true);
-        //
-        //     Logger.LogDebug("Send reminder for disable alarm");
-        // }
+        if (GetNextAlarmStatus() != "set") return;
+
+        var attributesJson = Entities.Sensor.HubVincentAlarms.EntityState?.AttributesJson;
+        if (attributesJson?.TryGetProperty("alarms", out var alarmsProp) != true) return;
+
+        var alarmList = alarmsProp.EnumerateArray()
+            .Select(o => o.Deserialize<AlarmStateModel>())
+            .ToList();
+
+        var firstAlarm = alarmList.Where(x => x?.Status == "set").MinBy(x => x?.LocalTime);
+        Notify.NotifyPhoneVincent("WEKKER UITZETTEN",
+            $"Je moet je wekker nog uit zetten voor {firstAlarm?.LocalTime ?? ""}", true);
+
+        Logger.LogDebug("Send reminder for disable alarm");
     }
 
     /// <summary>
@@ -76,23 +74,36 @@ public class HolidayManager : BaseApp
     /// </summary>
     private void SetEndHoliday()
     {
-        // if (Entities.Sensor.HubVincentAlarms.Attributes?.NextAlarmStatus == "inactive")
-        // {
-        //     Notify.NotifyPhoneVincent("WEKKER AANZETTEN", "Helaas moet je je wekker nog aanzetten :(", true);
-        //     Logger.LogDebug("Send reminder for enable alarm");
-        // }
+        if (GetNextAlarmStatus() != "inactive") return;
+
+        Notify.NotifyPhoneVincent("WEKKER AANZETTEN", "Helaas moet je je wekker nog aanzetten :(", true);
+        Logger.LogDebug("Send reminder for enable alarm");
     }
+
+    /// <summary>
+    /// Reads the alarm hub's "next_alarm_status" attribute directly from the raw attributes JSON, since it's
+    /// only present on the device when an alarm is actually set and therefore isn't part of the generated
+    /// <see cref="SensorAttributes"/> model.
+    /// </summary>
+    private string? GetNextAlarmStatus() =>
+        Entities.Sensor.HubVincentAlarms.EntityState?.AttributesJson?.TryGetProperty("next_alarm_status", out var status) == true
+            ? status.GetString()
+            : null;
 
     /// <summary>
     /// Checks the calendar for holidays and updates the holiday state accordingly.
     /// </summary>
     private void CheckCalenderForHoliday()
     {
-        // Scheduler.ScheduleCron("00 00 * * *", () =>
-        // {
-        //     var description = Entities.Calendar.VincentmaarschalkerweerdGmailCom.Attributes?.Description?.ToLower();
-        //     if (description?.Contains("vrij") == true || description?.Contains("vakantie") == true)
-        //         Entities.InputBoolean.Holliday.TurnOn();
-        // });
+        Scheduler.ScheduleCron("00 00 * * *", () =>
+        {
+            var attributesJson = Entities.Calendar.VincentmaarschalkerweerdGmailCom.EntityState?.AttributesJson;
+            var description = attributesJson?.TryGetProperty("description", out var descriptionProp) == true
+                ? descriptionProp.GetString()?.ToLower()
+                : null;
+
+            if (description?.Contains("vrij") == true || description?.Contains("vakantie") == true)
+                Entities.InputBoolean.Holliday.TurnOn();
+        });
     }
 }
