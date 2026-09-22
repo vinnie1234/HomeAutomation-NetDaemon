@@ -253,7 +253,7 @@ public class AlarmTests
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
         _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy",
+            "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond",
             false,
             10,
             channel: null,
@@ -261,8 +261,8 @@ public class AlarmTests
             image: null,
             action: null);
         _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors", 
-            Arg.Is<string[]>(t => t.Contains("logs")), 
+            "PetSnowy heeft errors of is vandaag nog niet geschoond",
+            Arg.Is<string[]>(t => t.Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -281,7 +281,7 @@ public class AlarmTests
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy",
+            "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond",
             false,
             10,
             channel: null,
@@ -289,8 +289,8 @@ public class AlarmTests
             image: null,
             action: null);
         _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors", 
-            Arg.Is<string[]>(t => t.Contains("logs")), 
+            "PetSnowy heeft errors of is vandaag nog niet geschoond",
+            Arg.Is<string[]>(t => t.Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -341,6 +341,51 @@ public class AlarmTests
     }
 
     [Fact]
+    public void EnergyHighPriceCheck_WhenPriceIsHigh_SendsNotification()
+    {
+        // Arrange
+        var app = CreateApp();
+
+        // Act
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("60.0");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.Received(1).NotifyDiscord("ENERGY IS ENORM DUUR - 60", Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyPeopleHome("ENERGY IS ENORM DUUR - 60", "Je energy is hoog, dit kan geld kosten.", false, 10, null, null, null, null);
+    }
+
+    [Fact]
+    public void EnergyHighPriceCheck_WhenPriceIsAtThreshold_DoesNotSendNotification()
+    {
+        // Arrange
+        var app = CreateApp();
+
+        // Act - exactly 55 should not trigger, since the check requires strictly greater than 55
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("55.0");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default!);
+    }
+
+    [Fact]
+    public void EnergyHighPriceCheck_WhenPriceIsNormal_DoesNotSendNotification()
+    {
+        // Arrange
+        var app = CreateApp();
+
+        // Act
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("20.0");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default!);
+    }
+
+    [Fact]
     public void BackUpCheck_WhenNoRecentBackup_SendsNotification()
     {
         // Arrange
@@ -378,6 +423,10 @@ public class AlarmTests
         var app = CreateApp();
         var recentBackup = DateTime.Now.AddDays(-1).ToString("O");
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = recentBackup });
+
+        // PetSnowy already cleaned today, so the daily cron doesn't also fire a PetSnowy notification
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("Idle").ToState("Cleaning");
+        _ctx.HaContextMock.ProcessPendingOperations();
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);

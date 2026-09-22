@@ -43,6 +43,7 @@ public class Alarm : BaseApp
         GarbageCheck();
         PetSnowyCheck();
         EnergyNegativeCheck();
+        EnergyHighPriceCheck();
         BackUpCheck();
         
         Entities.BinarySensor.GangMotion.WhenTurnsOn(_ =>
@@ -275,6 +276,25 @@ public class Alarm : BaseApp
                 }
             });
     }
+    
+    /// <summary>
+    /// Checks the energy price and sends a notification if it becomes high.
+    /// </summary>
+    private void EnergyHighPriceCheck()
+    {
+        Entities.Sensor.AnwbElectricityAllInPriceCurrent
+            .StateChanges()
+            .Subscribe(x =>
+            {
+                if (x.New?.State > 55)
+                {
+                    Notify.NotifyDiscord($"ENERGY IS ENORM DUUR - {x.New.State}", [_config.Discord.Logs]);
+                    Notify.NotifyPeopleHome($"ENERGY IS ENORM DUUR - {x.New.State}",
+                        "Je energy is hoog, dit kan geld kosten.", false, 10);
+                }
+            });
+    }
+    
 
     /// <summary>
     /// Schedules a daily check for backups and sends a notification if no recent backups are found.

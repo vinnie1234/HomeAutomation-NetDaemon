@@ -9,7 +9,6 @@ namespace Automation.apps.General;
 /// Manages laundry drying notifications by coupling the washing machine state to weather forecasts.
 /// </summary>
 [NetDaemonApp(Id = nameof(Laundry))]
-[Focus]
 public class Laundry : BaseApp
 {
     private const int RequiredDryHours = 3;
