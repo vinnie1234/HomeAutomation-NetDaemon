@@ -8,17 +8,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="8.10.0" />
+        <PackageReference Include="FluentAssertions" Version="8.11.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
-        <PackageReference Include="NetDaemon.AppModel" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Client" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.HassModel" Version="26.32.0" />
-        <PackageReference Include="NetDaemon.Runtime" Version="26.32.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+        <PackageReference Include="NetDaemon.AppModel" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Client" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.HassModel" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.Runtime" Version="26.36.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
         <PackageReference Include="Microsoft.Reactive.Testing" Version="7.0.0" />
 
         <PackageReference Include="NSubstitute" Version="6.2.0" />
