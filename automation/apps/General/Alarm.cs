@@ -14,7 +14,8 @@ public class Alarm : BaseApp
     private readonly AppConfig _config;
 
     private readonly IEntityManager _entityManager;
-    private bool _cleanedPetsnowyToday = false;
+    private readonly IDataRepository _storage;
+    private const string PetsnowyLastCleanedDateKey = "PetsnowyLastCleanedDate";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Alarm"/> class.
@@ -31,11 +32,13 @@ public class Alarm : BaseApp
         INotify notify,
         IScheduler scheduler,
         IEntityManager entityManager,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        IDataRepository storage)
         : base(ha, logger, notify, scheduler)
     {
         _config = config.Value;
         _entityManager = entityManager;
+        _storage = storage;
         InitializeGarbageCounterEntities();
         
         TemperatureCheck();
@@ -224,12 +227,14 @@ public class Alarm : BaseApp
         Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(x =>
         {
             if (x.New?.State == "Cleaning")
-                _cleanedPetsnowyToday = true;
+                _storage.Save(PetsnowyLastCleanedDateKey, DateTime.Today.ToString("O"));
         });
-        
+
         Scheduler.ScheduleCron("00 22 * * *", () =>
         {
-            if ((int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0) || !_cleanedPetsnowyToday)
+            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == DateTime.Today.ToString("O");
+
+            if ((int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0) || !cleanedToday)
             {
                 var discordNotificationModel = new DiscordNotificationModel
                 {
@@ -254,8 +259,6 @@ public class Alarm : BaseApp
                         "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond", false, 10);
 
             }
-
-            _cleanedPetsnowyToday = false;
         });
     }
 
@@ -286,7 +289,7 @@ public class Alarm : BaseApp
             .StateChanges()
             .Subscribe(x =>
             {
-                if (x.New?.State > 55)
+                if (x.New?.State > 0.55)
                 {
                     Notify.NotifyDiscord($"ENERGY IS ENORM DUUR - {x.New.State}", [_config.Discord.Logs]);
                     Notify.NotifyPeopleHome($"ENERGY IS ENORM DUUR - {x.New.State}",
