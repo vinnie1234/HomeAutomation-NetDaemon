@@ -29,8 +29,6 @@ public class Laundry : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler)
     {
-        _ = Task.Run(OnWashingMachineFinishedAsync);
-        
         SetupWashingMachineMonitoring();
         SetupLaundryOutsideToggleMonitoring();
 
