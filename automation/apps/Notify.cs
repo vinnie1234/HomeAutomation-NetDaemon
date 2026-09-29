@@ -51,6 +51,8 @@ public class Notify : INotify
     public void NotifyHouse(string title, string message, bool canAlwaysSendNotification,
         double? sendAfterMinutes = null)
     {
+        if (IsHouseEmpty(nameof(NotifyHouse))) return;
+
         var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
@@ -292,6 +294,8 @@ public class Notify : INotify
     /// <param name="volume">The volume level.</param>
     public void SendMusicToHome(string mediaContentId, double volume = 0.5)
     {
+        if (IsHouseEmpty(nameof(SendMusicToHome))) return;
+
         _entities.MediaPlayer.HeleHuis.PlayMedia(new MediaPlayerPlayMediaParameters
         {
             Media = mediaContentId,
@@ -302,18 +306,49 @@ public class Notify : INotify
     }
 
     /// <summary>
-    /// Subscribes to a notification action.
+    /// Whether Vincent and Carleen are both away. Nothing is played through the house speakers then,
+    /// so e.g. a house sitter isn't bothered by announcements or music.
+    /// </summary>
+    /// <param name="operation">The operation that is skipped, used for logging.</param>
+    private bool IsHouseEmpty(string operation)
+    {
+        if (!_entities.InputBoolean.Away.IsOn()) return false;
+
+        _logger.LogDebug("Skipped {Operation}: nobody is home", operation);
+        return true;
+    }
+
+    /// <summary>
+    /// Subscribes to a notification action. After the action is handled the notification is cleared
+    /// from all phones, so it also disappears on the phone of the person who didn't press it.
     /// </summary>
     /// <param name="func">The action to perform.</param>
     /// <param name="key">The key for the action.</param>
-    private void SubscribeToNotificationAction(Action func, string key)
+    /// <param name="tag">The tag of the notification the action belongs to.</param>
+    private void SubscribeToNotificationAction(Action func, string key, string tag)
     {
         _ha.Events.Where(x => x.EventType == "mobile_app_notification_action")
             .Subscribe(x =>
             {
                 var eventActionModel = x.DataElement?.ToObject<EventActionModel>();
-                if (eventActionModel?.Action == key) func.Invoke();
+                if (eventActionModel?.Action != key) return;
+
+                func.Invoke();
+                ClearNotification(tag);
             });
+    }
+
+    /// <summary>
+    /// Removes the notification with the given tag from Vincent's and Carleen's phone.
+    /// </summary>
+    /// <param name="tag">The tag of the notification to clear.</param>
+    private void ClearNotification(string tag)
+    {
+        var data = new { tag };
+        _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
+            { Message = "clear_notification", Data = data });
+        _services.Notify.MobileAppCarleenMobiel(new NotifyMobileAppCarleenMobielParameters
+            { Message = "clear_notification", Data = data });
     }
 
     /// <summary>
@@ -358,10 +393,14 @@ public class Notify : INotify
         {
             if (actions.Count > 3) throw new ArgumentException("To many actions");
 
+            // A tag is needed to be able to clear the notification once one of its actions is pressed
+            var tag = $"actionable-{Guid.NewGuid()}";
+            data.Tag = tag;
+
             foreach (var action in actions.Where(action => action.Func != null))
             {
                 action.Action = $"{action.Action}-{Guid.NewGuid().ToString()}";
-                if (action.Func != null) SubscribeToNotificationAction(action.Func, action.Action);
+                if (action.Func != null) SubscribeToNotificationAction(action.Func, action.Action, tag);
                 action.Func = null;
             }
 

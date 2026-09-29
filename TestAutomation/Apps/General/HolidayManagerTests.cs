@@ -150,6 +150,29 @@ public class HolidayManagerTests
     }
 
     [Fact]
+    public void HolidayManager_DailyCheck_CalendarTitleMentionsVakantie_TurnsOnHoliday()
+    {
+        // Arrange - the event title lives in the "message" attribute; description is empty
+        using var ctx = AppTestContext.NewWithScheduler();
+        SetPersonModelDefaults(ctx);
+        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
+        {
+            EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
+            State = "on",
+            AttributesJson = JsonSerializer.SerializeToElement(new { message = "Vakantie", description = "" })
+        });
+        ctx.InitApp<HolidayManager>();
+
+        // Act
+        ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("input_boolean", "turn_on", "holliday");
+    }
+
+    [Fact]
     public void HolidayManager_DailyCheck_CalendarHasNoActiveEvent_DoesNotTurnOnHoliday()
     {
         // Arrange - no active calendar event means the "description" attribute isn't present at all

@@ -123,6 +123,9 @@ public class PresenceManager : BaseApp
 
         // Both away: turn everything off. The departure notification was already sent above.
         Entities.InputBoolean.Away.WhenTurnsOn(_ => OnBothAway());
+
+        // House sitter leaves while we're away: nobody is home anymore, so turn everything off.
+        HouseSitter.Leaves.Subscribe(_ => OnHouseSitterLeaves());
     }
 
     /// <summary>
@@ -134,8 +137,7 @@ public class PresenceManager : BaseApp
         Logger.LogInformation("Presence: Vincent left ({Scenario})", GetScenario());
 
         if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek)
-            && DateTimeOffset.Now.Hour < 9
-            && Entities.InputBoolean.Holliday.IsOff())
+            && DateTimeOffset.Now.Hour < 9)
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
         else
             Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
@@ -147,9 +149,32 @@ public class PresenceManager : BaseApp
     private void OnBothAway()
     {
         Logger.LogInformation("Presence: both away — turning everything off");
+        TurnEverythingOff();
+    }
+
+    /// <summary>
+    /// Actions when the house sitter leaves: if Vincent and Carleen are away the house is empty now,
+    /// so turn off all lights and entertainment the house sitter may have left on.
+    /// </summary>
+    private void OnHouseSitterLeaves()
+    {
+        if (!Entities.InputBoolean.Away.IsOn()) return;
+
+        Logger.LogInformation("Presence: house sitter left an empty house — turning everything off");
+        TurnEverythingOff();
+    }
+
+    /// <summary>
+    /// Turns off all lights, the TV and soundbar, and stops music on the speakers.
+    /// </summary>
+    private void TurnEverythingOff()
+    {
         Entities.Light.TurnAllOff();
         Entities.MediaPlayer.Tv.TurnOff();
         Entities.MediaPlayer.AvSoundbar.TurnOff();
+        Entities.MediaPlayer.HeleHuis.MediaStop();
+        Entities.MediaPlayer.Nestmini9818.MediaStop();
+        Entities.MediaPlayer.Googlehome0351.MediaStop();
     }
 
     

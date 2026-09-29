@@ -92,18 +92,24 @@ public class HolidayManager : BaseApp
 
     /// <summary>
     /// Checks the calendar for holidays and updates the holiday state accordingly.
+    /// Both the event title (<c>message</c>) and its <c>description</c> are inspected.
     /// </summary>
     private void CheckCalenderForHoliday()
     {
         Scheduler.ScheduleCron("00 00 * * *", () =>
         {
             var attributesJson = Entities.Calendar.VincentmaarschalkerweerdGmailCom.EntityState?.AttributesJson;
-            var description = attributesJson?.TryGetProperty("description", out var descriptionProp) == true
-                ? descriptionProp.GetString()?.ToLower()
-                : null;
+            var text = $"{GetCalendarAttribute(attributesJson, "message")} {GetCalendarAttribute(attributesJson, "description")}"
+                .ToLower();
 
-            if (description?.Contains("vrij") == true || description?.Contains("vakantie") == true)
+            if (text.Contains("vrij") || text.Contains("vakantie"))
                 Entities.InputBoolean.Holliday.TurnOn();
         });
     }
+
+    /// <summary>
+    /// Reads a string attribute from the calendar's raw attributes JSON; these are only present while an event is active.
+    /// </summary>
+    private static string? GetCalendarAttribute(JsonElement? attributesJson, string name) =>
+        attributesJson?.TryGetProperty(name, out var prop) == true ? prop.GetString() : null;
 }

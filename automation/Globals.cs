@@ -29,8 +29,26 @@ public static class Globals
 
     #endregion
 
+    /// <summary>
+    /// Whether Vincent has a day off: holiday at home (<c>holliday</c>) or on vacation (<c>onvacation</c>).
+    /// Weekends are not included; use <see cref="IsDayOff"/> for that.
+    /// </summary>
+    public static bool IsOnLeave(IEntities entities) =>
+        entities.InputBoolean.Holliday.IsOn() || entities.InputBoolean.Onvacation.IsOn();
+
+    /// <summary>
+    /// Whether the given day is a non-working day: weekend, holiday at home or on vacation.
+    /// </summary>
+    public static bool IsDayOff(IEntities entities, DayOfWeek dayOfWeek) =>
+        WeekendDays.Contains(dayOfWeek) || IsOnLeave(entities);
+
+    /// <summary>
+    /// Whether the given day is a work-from-home day. Always false while on leave.
+    /// </summary>
     public static bool IsHomeWorkDay(IEntities entities, DayOfWeek dayOfWeek)
     {
+        if (IsOnLeave(entities)) return false;
+
         return dayOfWeek switch
         {
             DayOfWeek.Monday => entities.InputBoolean.OfficedayMonday.IsOff(),
@@ -42,9 +60,13 @@ public static class Globals
         };
     }
 
-
+    /// <summary>
+    /// Whether the given day is an office day. Always false while on leave.
+    /// </summary>
     public static bool IsOfficeDay(IEntities entities, DayOfWeek dayOfWeek)
     {
+        if (IsOnLeave(entities)) return false;
+
         return dayOfWeek switch
         {
             DayOfWeek.Monday    => entities.InputBoolean.OfficedayMonday.IsOn(),

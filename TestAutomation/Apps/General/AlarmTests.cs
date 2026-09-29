@@ -86,6 +86,24 @@ public class AlarmTests
     }
 
     [Fact]
+    public void GangMotion_WhenTurnsOn_AndOnlyHouseSitterHome_DoesNotSendAlarm()
+    {
+        // Arrange
+        _ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "on" });
+        _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
+        _ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "on" });
+        _ctx.HaContext.GetState("person.timo").Returns(new EntityState { EntityId = "person.timo", State = "home" });
+        var app = CreateApp();
+
+        // Act
+        _ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+    }
+
+    [Fact]
     public void GangMotion_WhenTurnsOn_AndSomeoneHome_DoesNotSendAlarm()
     {
         // Arrange

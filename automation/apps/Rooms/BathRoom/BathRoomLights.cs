@@ -69,7 +69,7 @@ public class BathRoomLights : BaseApp
     {
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
-            .Where(x => x.Old.IsOff() && x.New.IsOn() && !DisableLightAutomations)
+            .Where(x => x.Old.IsOff() && x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended)
             .Subscribe(_ => ChangeLight(true, GetBrightness()));
 
         Entities.BinarySensor.BadkamerMotion
@@ -211,12 +211,13 @@ public class BathRoomLights : BaseApp
 
     /// <summary>
     /// Handles the automation for the toothbrush state changes.
+    /// It's Vincent's toothbrush, so these automations never run while Vincent isn't home.
     /// </summary>
     private void ToothbrushHandler()
     {
         Entities.Sensor.SmartSeries400097aeToothbrushState
             .StateChanges()
-            .Where(x => x.New?.State != "idle" && x.Old?.State == "idle")
+            .Where(x => x.New?.State != "idle" && x.Old?.State == "idle" && Vincent.IsHome)
             .Subscribe(_ =>
             {
                 if (!IsDouching && !IsSleepMode)
@@ -231,11 +232,11 @@ public class BathRoomLights : BaseApp
 
         Entities.Sensor.SmartSeries400097aeToothbrushState
             .StateChanges()
-            .WhenStateIsFor(x => x?.State == "idle" && (Vincent.IsHome || Carleen.IsHome),
+            .WhenStateIsFor(x => x?.State == "idle" && Vincent.IsHome,
                 TimeSpan.FromSeconds(30), Scheduler)
             .Subscribe(_ =>
             {
-                if (!IsDouching)
+                if (!IsDouching && Vincent.IsHome)
                 {
                     Entities.MediaPlayer.Googlehome0351.MediaStop();
                     Entities.Light.Slaapkamer.TurnOn();

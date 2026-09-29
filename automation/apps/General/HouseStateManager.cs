@@ -106,16 +106,14 @@ public class HouseStateManager : BaseApp
         Scheduler.RunDaily(_startWorking, () =>
         {
             if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) ||
-                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek) &&
-                Entities.InputBoolean.Holliday.IsOff())
+                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
                 Entities.InputBoolean.Working.TurnOn();
         });
 
         Scheduler.RunDaily(_endWorking, () =>
         {
             if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) ||
-                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek) &&
-                Entities.InputBoolean.Holliday.IsOff())
+                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
                 Entities.InputBoolean.Working.TurnOff();
         });
     }
@@ -127,21 +125,18 @@ public class HouseStateManager : BaseApp
     {
         Scheduler.RunDaily(_daytimeOffice, () =>
         {
-            if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) &&
-                Entities.InputBoolean.Holliday.IsOff())
+            if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
         Scheduler.RunDaily(_daytimeHomeWork, () =>
         {
-            if (IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek) &&
-                Entities.InputBoolean.Holliday.IsOff())
+            if (IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
 
         Scheduler.RunDaily(_daytimeWeekend, () =>
         {
-            if (WeekendDays.Contains(DateTimeOffset.Now.DayOfWeek) ||
-                Entities.InputBoolean.Holliday.IsOn())
+            if (IsDayOff(Entities, DateTimeOffset.Now.DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
     }

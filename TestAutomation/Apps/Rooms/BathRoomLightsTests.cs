@@ -272,6 +272,63 @@ public class BathRoomLightsTests
     }
 
     [Fact]
+    public void MotionOn_DoesNotTurnOnLights_WhenOnVacationWithoutHouseSitter()
+    {
+        // Arrange
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("person.timo").Returns(new EntityState { State = "not_home" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        // Act
+        ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyNotCallService("light.turn_on");
+    }
+
+    [Fact]
+    public void Toothbrush_TurnsOn_DoesNothing_WhenVincentNotHome()
+    {
+        // Arrange
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { State = "on" });
+        var spotcast = Substitute.For<ISpotcast>();
+        var app = ctx.InitApp<BathRoomLights>(spotcast, Options.Create(new AppConfig()));
+
+        // Act
+        ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("idle").ToState("running");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        spotcast.DidNotReceiveWithAnyArgs().PlaySpotify(default!, default!);
+        ctx.VerifyNotCallService("media_player.volume_set");
+    }
+
+    [Fact]
+    public void Toothbrush_TurnsOff_DoesNothing_WhenVincentNotHome()
+    {
+        // Arrange - only Carleen is home
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { State = "on" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        // Act
+        ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("running").ToState("idle");
+        ctx.AdvanceTimeBy(TimeSpan.FromSeconds(30).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyNotCallService("media_player.media_stop");
+        ctx.VerifyNotCallService("light.turn_on");
+    }
+
+    [Fact]
     public void HueSwitch_Button1_TurnsOffLights()
     {
         // Arrange

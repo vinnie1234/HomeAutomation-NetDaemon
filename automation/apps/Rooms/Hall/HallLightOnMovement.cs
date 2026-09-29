@@ -47,7 +47,7 @@ public class HallLightOnMovement : BaseApp
     {
         Entities.BinarySensor.GangMotion
             .StateChanges()
-            .Where(x => x.New.IsOn() && !DisableLightAutomations)
+            .Where(x => x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended)
             .Subscribe(_ => ChangeLight(true, GetBrightness()));
 
         Entities.BinarySensor.GangMotion

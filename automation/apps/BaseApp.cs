@@ -41,6 +41,7 @@ public class BaseApp
 
     internal readonly VincentModel Vincent;
     internal readonly CarleenModel Carleen;
+    internal readonly HouseSitterModel HouseSitter;
 
     /// <summary>
     /// True when the house should behave in night/quiet mode.
@@ -55,6 +56,15 @@ public class BaseApp
     /// awake even if Carleen is still asleep in the bedroom.
     /// </summary>
     protected bool IsVincentSleepMode => Vincent.IsSleeping;
+
+    /// <summary>
+    /// True when we're on vacation, nobody is home and the house sitter isn't there either.
+    /// Motion is then not caused by a resident, so automations must not turn on lights.
+    /// </summary>
+    protected bool IsHouseUnattended =>
+        Entities.InputBoolean.Onvacation.IsOn() &&
+        Entities.InputBoolean.Away.IsOn() &&
+        !HouseSitter.IsHome;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseApp"/> class.
@@ -78,7 +88,7 @@ public class BaseApp
 
         Vincent = new VincentModel(Entities);
         Carleen = new CarleenModel(Entities);
-
+        HouseSitter = new HouseSitterModel(Entities);
     }
     
     protected async Task ExecuteWithFallbackAsync(Func<Task> operation, Func<Task> fallback, string operationName)

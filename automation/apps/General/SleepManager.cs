@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Reactive.Concurrency;
 
 namespace Automation.apps.General;
@@ -46,7 +45,7 @@ public class SleepManager : BaseApp
 
         Scheduler.ScheduleCron("00 10 * * *", () =>
         {
-            if (!((IList)Globals.WeekendDays).Contains(Scheduler.Now.DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Holliday.IsOff() && Entities.InputBoolean.Datenight.IsOff())
+            if (!Globals.IsDayOff(Entities, Scheduler.Now.DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Datenight.IsOff())
                 Entities.InputBoolean.Sleepingvincent.TurnOff();
         });
     }
@@ -70,11 +69,11 @@ public class SleepManager : BaseApp
     }
 
     /// <summary>
-    /// Opens the rollerblind at the appropriate position based on the day of week.
+    /// Opens the rollerblind at the appropriate position: fully on days off, partially on work days.
     /// </summary>
     private void OpenRollerblind()
     {
-        if (((IList)Globals.WeekendDays).Contains(Scheduler.Now.DayOfWeek))
+        if (Globals.IsDayOff(Entities, Scheduler.Now.DayOfWeek))
         {
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);

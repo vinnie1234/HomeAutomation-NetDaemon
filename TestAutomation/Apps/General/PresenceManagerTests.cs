@@ -61,5 +61,28 @@ public class PresenceManagerTests
         ctx.VerifyCallService("input_boolean", "turn_off", "away");
     }
 
+    [Fact]
+    public void HouseSitterLeaves_WhenNobodyHome_TurnsEverythingOff()
+    {
+        var ctx = Arrange(awayVincent: "on", awayCarleen: "on", away: "on");
+
+        ctx.ChangeStateFor("person.timo").FromState("home").ToState("not_home");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("media_player", "turn_off", "tv");
+        ctx.VerifyCallService("media_player", "media_stop", "hele_huis");
+    }
+
+    [Fact]
+    public void HouseSitterLeaves_WhenSomeoneHome_DoesNothing()
+    {
+        var ctx = Arrange(awayVincent: "off", awayCarleen: "on", away: "off");
+
+        ctx.ChangeStateFor("person.timo").FromState("home").ToState("not_home");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyNotCallService("media_player.turn_off");
+        ctx.VerifyNotCallService("media_player.media_stop");
+    }
 }
 
