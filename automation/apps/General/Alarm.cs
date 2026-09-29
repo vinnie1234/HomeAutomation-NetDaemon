@@ -26,6 +26,7 @@ public class Alarm : BaseApp
     /// <param name="scheduler">The scheduler for timed tasks.</param>
     /// <param name="entityManager">The entity manager for creating and managing entities.</param>
     /// <param name="config">The application configuration.</param>
+    /// <param name="storage">The data repository for storing and retrieving data.</param>
     public Alarm(
         IHaContext ha,
         ILogger<Alarm> logger,
@@ -226,8 +227,7 @@ public class Alarm : BaseApp
     {
         Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(x =>
         {
-            if (x.New?.State == "Cleaning")
-                _storage.Save(PetsnowyLastCleanedDateKey, DateTime.Today.ToString("O"));
+            _storage.Save(PetsnowyLastCleanedDateKey, DateTime.Today.ToString("O"));
         });
 
         Scheduler.ScheduleCron("00 22 * * *", () =>

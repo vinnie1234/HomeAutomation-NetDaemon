@@ -15,6 +15,9 @@ public class SleepManager : BaseApp
     /// Gets a value indicating whether light automations are disabled.
     /// </summary>
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationgeneral.IsOn();
+    
+    private readonly IDataRepository _storage;
+    private const string PetsnowyLastCleanedDateKey = "PetsnowyLastCleanedDate";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SleepManager"/> class.
@@ -23,13 +26,17 @@ public class SleepManager : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="storage">The data repository for storing and retrieving data.</param>
     public SleepManager(
         IHaContext ha,
         ILogger<SleepManager> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IDataRepository storage)
         : base(ha, logger, notify, scheduler)
     {
+        _storage = storage;
+        
         AwakeExtraChecks();
         ScheduleCarleenWakeUp();
         
@@ -104,14 +111,15 @@ public class SleepManager : BaseApp
             Entities.Cover.Rollerblind0003.SetCoverPosition(0);
             var checkDate = Scheduler.Now;
             var message = Entities.Sensor.AfvalMorgen.State;
-            if (checkDate.Hour is >= 00 and < 07) 
+            if (checkDate.Hour is >= 05 and < 07) 
                 message = Entities.Sensor.AfvalVandaag.State;
 
             if (message != "Geen")
                 Notify.NotifyPeopleHome("Vergeet het afval niet",
                     $"Vergeet je niet op {message} buiten te zetten?", true);
 
-            if (int.Parse(Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0") > 0)
+            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == DateTime.Today.ToString("O");
+            if (int.Parse(Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0") > 0 || !cleanedToday)
                 Notify.NotifyPeopleHome("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", true);
         } catch (Exception ex) {
