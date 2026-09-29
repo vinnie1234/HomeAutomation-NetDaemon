@@ -124,6 +124,18 @@ public class LaundryTests
     }
 
     /// <summary>
+    /// Waits until the washing machine finished notification has been sent. The forecast is fetched on a
+    /// background task, so a fixed delay is flaky on slow machines (e.g. the GitHub runner).
+    /// </summary>
+    private async Task WaitForNotificationAsync()
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < timeout &&
+               !_notify.ReceivedCalls().Any(c => c.GetMethodInfo().Name == nameof(INotify.NotifyPeopleHome)))
+            await Task.Delay(20);
+    }
+
+    /// <summary>
     /// Creates a list of hours starting at <paramref name="start"/> that are all dry,
     /// followed optionally by wet hours.
     /// </summary>
@@ -159,8 +171,8 @@ public class LaundryTests
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Allow async forecast call to complete
-        await Task.Delay(200);
+        // Wait for the async forecast call to complete
+        await WaitForNotificationAsync();
 
         // Assert: positive notification sent
         _notify.Received().NotifyPeopleHome(
@@ -188,7 +200,7 @@ public class LaundryTests
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
-        await Task.Delay(200);
+        await WaitForNotificationAsync();
 
         // Assert: negative / warning notification
         _notify.Received().NotifyPeopleHome(
@@ -221,7 +233,7 @@ public class LaundryTests
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
-        await Task.Delay(200);
+        await WaitForNotificationAsync();
 
         // Assert: notification mentions a dry window and the time
         _notify.Received().NotifyPeopleHome(

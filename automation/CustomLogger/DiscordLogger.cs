@@ -83,7 +83,7 @@ public class DiscordLogger : ILogEventSink, IDisposable
                 var message = FormatMessage(logEvent.Exception.Message, 240);
                 embedBuilder.AddField("Message:", message);
 
-                var stackTrace = FormatMessage(logEvent.Exception.StackTrace ?? string.Empty, 1024);
+                var stackTrace = FormatMessage(logEvent.Exception.StackTrace ?? string.Empty, EmbedFieldBuilder.MaxFieldValueLength);
                 embedBuilder.AddField("StackTrace:", stackTrace);
 
                 await webHook.SendMessageAsync(null, false, [embedBuilder.Build()]);
@@ -148,20 +148,25 @@ public class DiscordLogger : ILogEventSink, IDisposable
     }
 
     /// <summary>
-    /// Formats a message to a specified maximum length.
+    /// Formats a message as a code block of at most the specified length.
     /// </summary>
     /// <param name="message">The message to format.</param>
-    /// <param name="maxLength">The maximum length of the message.</param>
+    /// <param name="maxLength">The maximum length of the formatted message, including the code block markers
+    /// and the truncation marker (Discord rejects embed field values longer than 1024 characters).</param>
     /// <returns>The formatted message.</returns>
     private static string FormatMessage(string message, int maxLength)
     {
-        if (message.Length > maxLength)
-            message = $"{message[..maxLength]} ...";
+        const string codeBlock = "```";
+        const string truncated = " ...";
 
-        if (!string.IsNullOrWhiteSpace(message))
-            message = $"```{message}```";
+        if (string.IsNullOrWhiteSpace(message))
+            return message;
 
-        return message;
+        var maxContentLength = maxLength - 2 * codeBlock.Length;
+        if (message.Length > maxContentLength)
+            message = $"{message[..(maxContentLength - truncated.Length)]}{truncated}";
+
+        return $"{codeBlock}{message}{codeBlock}";
     }
 
     /// <summary>
