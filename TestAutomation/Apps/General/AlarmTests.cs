@@ -429,9 +429,10 @@ public class AlarmTests
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.60");
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        // Assert
-        _notify.Received(1).NotifyDiscord("ENERGY IS ENORM DUUR - 0,6", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPeopleHome("ENERGY IS ENORM DUUR - 0,6", "Je energy is hoog, dit kan geld kosten.", false, 10, null, null, null, null);
+        // Assert - format the price like the app does, so the test passes regardless of the machine's culture ("0,6" vs "0.6")
+        var expectedTitle = $"ENERGY IS ENORM DUUR - {0.6}";
+        _notify.Received(1).NotifyDiscord(expectedTitle, Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyPeopleHome(expectedTitle, "Je energy is hoog, dit kan geld kosten.", false, 10, null, null, null, null);
     }
 
     [Fact]

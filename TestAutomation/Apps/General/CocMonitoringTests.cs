@@ -25,9 +25,9 @@ public class CocMonitoringTests
 
 
         // We assume last run time is empty
-        storage.Get<string>("COC_LAST_RUN_TIME").Returns((string)null);
+        storage.Get<string>("COC_LAST_RUN_TIME").Returns((string?)null);
         storage.Get<List<COCModel>>("COC_TWEET_ID_LIST").Returns(new List<COCModel>());
-        
+
         var app = ctx.InitApp<CocMonitoring>(storage, config);
 
         // Act

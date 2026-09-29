@@ -125,16 +125,15 @@ public class AwayManagerTests
     #endregion
 
     [Fact]
-    public void WelcomeHome_ExecuteSequence_CallsServices()
+    public async Task WelcomeHome_ExecuteSequence_CallsServices()
     {
         // Arrange
         var ctx = SetupContext(houseMode: "Day");
         var app = CreateApp(ctx);
 
         // Act - Call ExecuteWelcomeHomeSequenceAsync via reflection
-        var method = typeof(AwayManager).GetMethod("ExecuteWelcomeHomeSequenceAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var task = (Task)method.Invoke(app, null);
-        task.Wait();
+        var method = typeof(AwayManager).GetMethod("ExecuteWelcomeHomeSequenceAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        await (Task)method.Invoke(app, null)!;
 
         // Let the immediate actions run
         ctx.HaContextMock.ProcessPendingOperations();

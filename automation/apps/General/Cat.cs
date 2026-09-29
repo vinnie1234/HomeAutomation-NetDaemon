@@ -147,6 +147,7 @@ public class Cat : BaseApp
             FeedCatViaTuya(amount);
         }catch(Exception ex)
         {
+            Logger.LogError(ex, "Feeding {Amount}g via LocalTuya failed", amount);
             NotifyManualFeedingRequired(amount);
         }
     }

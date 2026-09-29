@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Automation.apps.General;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
@@ -76,6 +77,13 @@ public class VacuumTests
 
         // Assert
         ctx.VerifyCallService("vacuum", "send_command", "jaap", times: 1);
+
+        var sendCommandData = ctx.HaContext.ReceivedCalls()
+            .Single(c => c.GetMethodInfo().Name == "CallService" && (string?)c.GetArguments()[1] == "send_command")
+            .GetArguments()[3];
+        var regionId = JsonSerializer.SerializeToElement(sendCommandData)
+            .GetProperty("params").GetProperty("regions")[0].GetProperty("region_id").GetString();
+        Assert.Equal(CreateConfig().Value.Roomba.Rooms[expectedRoomKey].Id, regionId);
     }
 
     [Fact]

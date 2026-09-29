@@ -52,7 +52,7 @@ public class NetDaemonTests
         
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
-        storage.Get<IReadOnlyList<double>>("NetDaemonRestart").Returns((IReadOnlyList<double>)null);
+        storage.Get<IReadOnlyList<double>>("NetDaemonRestart").Returns((IReadOnlyList<double>?)null);
 
         // Act
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());

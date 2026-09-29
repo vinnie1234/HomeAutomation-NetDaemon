@@ -32,7 +32,9 @@ try
             {
                 app.UseHealthChecks("/health");
             });
-            webBuilder.UseUrls("http://*:8080");
+            // Use HTTP_PORTS (same setting the .NET container image sets) instead of URLS,
+            // otherwise ASP.NET Core warns that URLS overrides HTTP_PORTS on every start
+            webBuilder.UseSetting(WebHostDefaults.HttpPortsKey, "8080");
         })
         .UseCustomLogging()
         .UseNetDaemonAppSettings()

@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using Automation.Interfaces;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
@@ -30,6 +31,17 @@ public class SleepManagerTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity>());
 
         return ctx;
+    }
+
+    /// <summary>
+    /// Creates storage in which the PetSnowy was cleaned today, so the "not cleaned today"
+    /// notification doesn't interfere with tests that count other notifications.
+    /// </summary>
+    private static IDataRepository StorageWithPetSnowyCleanedToday()
+    {
+        var storage = Substitute.For<IDataRepository>();
+        storage.Get<string>("PetsnowyLastCleanedDate").Returns(DateTime.Today.ToString("O"));
+        return storage;
     }
 
     [Fact]
@@ -135,7 +147,7 @@ public class SleepManagerTests
         var ctx = SetupContext();
         ctx.SetCurrentTime(new DateTime(2023, 1, 1, 22, 0, 0)); // Not between 0 and 7
         ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Plastic" });
-        ctx.InitApp<SleepManager>();
+        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday());
 
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
@@ -148,7 +160,7 @@ public class SleepManagerTests
     {
         var ctx = SetupContext();
         ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
-        ctx.InitApp<SleepManager>();
+        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday());
 
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 

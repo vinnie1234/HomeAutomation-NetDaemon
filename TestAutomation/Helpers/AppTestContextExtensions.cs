@@ -18,7 +18,7 @@ public static class AppTestContextExtensions
                 Arg.Is<ServiceTarget>(x
                     => x.EntityIds != null && x.EntityIds.First() == entityId),
                 Arg.Is<InputSelectSelectOptionParameters>(x
-                    => x.Option == option));
+                    => Equals(x.Option, option)));
         }, testName);
     }
 
