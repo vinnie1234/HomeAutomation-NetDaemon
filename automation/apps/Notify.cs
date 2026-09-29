@@ -275,6 +275,11 @@ public class Notify : INotify
             
             _logger.LogDebug("Discord notification sent successfully to channels: {Channels}", string.Join(", ", target));
         }
+        catch (ObjectDisposedException)
+        {
+            // NetDaemon is stopping and has already disposed the Home Assistant context; nothing can be sent anymore
+            _logger.LogDebug("Discord notification skipped: NetDaemon is shutting down");
+        }
         catch (BrokenCircuitException)
         {
             _logger.LogWarning("Discord notification blocked by circuit breaker - service may be unavailable");

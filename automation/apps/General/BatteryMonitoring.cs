@@ -35,7 +35,7 @@ public class BatteryMonitoring : BaseApp
         var batterySensors = Entities.Sensor.
             EnumerateAllNumeric().Where(x => x.Attributes?.DeviceClass == "battery");
         
-        Console.WriteLine($"Found {batterySensors.Count()} battery sensors");
+        Logger.LogDebug("Found {Count} battery sensors", batterySensors.Count());
         foreach (var battySensor in batterySensors)
         {
             battySensor

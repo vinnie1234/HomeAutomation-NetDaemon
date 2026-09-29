@@ -55,7 +55,9 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
         {
             _storage.Save("NetDaemonRestart", Entities.Light.Koelkast.Attributes?.RgbColor);
             Entities.Light.Koelkast.TurnOn(rgbColor: LightColors.Red);
-            Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
+            // Only announce through the speakers when Vincent is home
+            if (Vincent.IsHome)
+                Notify.NotifyHouse("Het huis wordt opnieuw opgestart", "Het huis wordt opnieuw opgestart", true);
 
             Observable.Timer(TimeSpan.FromSeconds(5), Scheduler).Subscribe(_ =>
             {
@@ -73,6 +75,15 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     public void Dispose()
 #pragma warning restore CA1816
     {
-        Notify.NotifyDiscord("NetDaemon stopped", [_config.Discord.Logs]);
+        // Send directly instead of via Notify.NotifyDiscord: that sends on a background task, which runs after
+        // NetDaemon has already disposed this app's Home Assistant context (ObjectDisposedException).
+        try
+        {
+            Services.Notify.DiscordHomeassistant("NetDaemon stopped", "", new[] { _config.Discord.Logs });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not send the NetDaemon stopped notification to Discord");
+        }
     }
 }

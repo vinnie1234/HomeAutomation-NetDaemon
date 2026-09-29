@@ -34,7 +34,7 @@ public class Laundry : BaseApp
 
         if (IsLaundryOutside())
         {
-            Logger.LogInformation("Laundry already outside at startup, starting monitoring");
+            Logger.LogDebug("Laundry already outside at startup, starting monitoring");
             StartLaundryOutsideMonitoring();
         }
     }
@@ -365,7 +365,7 @@ public class Laundry : BaseApp
             .StateChanges()
             .Subscribe(_ => SetupSunsetMonitoring());
 
-        Logger.LogInformation("Laundry outside monitoring started");
+        Logger.LogDebug("Laundry outside monitoring started");
     }
 
     private void StopLaundryOutsideMonitoring()
@@ -382,7 +382,7 @@ public class Laundry : BaseApp
         _sunSensorSub?.Dispose();
         _sunSensorSub = null;
 
-        Logger.LogInformation("Laundry outside monitoring stopped");
+        Logger.LogDebug("Laundry outside monitoring stopped");
     }
 
     private async Task CheckHourlyRainAsync()
@@ -465,7 +465,7 @@ public class Laundry : BaseApp
                 return;
             }
 
-            Logger.LogInformation("Scheduled sunset warning for {WarningTime}", warningTime);
+            Logger.LogDebug("Scheduled sunset warning for {WarningTime}", warningTime);
 
             _sunsetSchedule = Scheduler.Schedule(delay, () =>
             {

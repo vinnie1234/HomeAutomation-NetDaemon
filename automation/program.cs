@@ -32,9 +32,11 @@ try
             {
                 app.UseHealthChecks("/health");
             });
-            // Use HTTP_PORTS (same setting the .NET container image sets) instead of URLS,
-            // otherwise ASP.NET Core warns that URLS overrides HTTP_PORTS on every start
-            webBuilder.UseSetting(WebHostDefaults.HttpPortsKey, "8080");
+            // The NetDaemon add-on sets ASPNETCORE_URLS (port 5000) and the .NET base image sets
+            // ASPNETCORE_HTTP_PORTS (8080). Bind explicitly to 8080 and clear HTTP_PORTS, otherwise
+            // ASP.NET Core warns on every start that URLS overrides HTTP_PORTS.
+            webBuilder.UseUrls("http://*:8080");
+            webBuilder.UseSetting(WebHostDefaults.HttpPortsKey, string.Empty);
         })
         .UseCustomLogging()
         .UseNetDaemonAppSettings()

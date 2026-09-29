@@ -71,6 +71,7 @@ public class NetDaemonTests
         
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
+        ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
 
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
 
@@ -91,6 +92,25 @@ public class NetDaemonTests
         storage.Received().Save("NetDaemonRestart", Arg.Any<object>());
         ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1);
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new HomeAssistantGenerated.TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Het huis wordt opnieuw opgestart" });
+        ctx.VerifyCallNotify("hassio", "addon_restart", times: 1);
+    }
+
+    [Fact]
+    public async Task RestartNetdaemonButton_DoesNotAnnounceThroughSpeakers_WhenVincentNotHome()
+    {
+        // Arrange
+        using var ctx = AppTestContext.NewWithScheduler();
+        ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "on" });
+        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(Substitute.For<IDataRepository>(), CreateConfig());
+        ctx.HaContext.ClearReceivedCalls();
+
+        // Act
+        ctx.ChangeStateFor("input_button.restartnetdaemon").FromState("unknown").ToState("12345");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(TimeSpan.FromSeconds(5).Ticks);
+
+        // Assert - still restarts, but without the announcement
+        ctx.VerifyNotCallService("tts.cloud_say");
         ctx.VerifyCallNotify("hassio", "addon_restart", times: 1);
     }
     
