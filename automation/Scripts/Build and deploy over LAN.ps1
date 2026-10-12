@@ -10,8 +10,29 @@ $solutionFilename = "Automation.csproj"
 # ND folder served up by a samba addon in HA
 $buildPath = "\\192.168.50.189\config\netdaemon6"
 
-# Step 1: Run dotnet build
+# Local folder the project is built to first, so a failed build never leaves a half deployed share behind
+$localOutputPath = Join-Path $solutionPath "bin\deploy"
+
+# Files NetDaemon cannot start without
+$requiredFiles = @("Automation.dll", "Automation.runtimeconfig.json")
+
+# Step 1: Build locally and verify the output before touching the share
 Set-Location $solutionPath
+
+if (Test-Path $localOutputPath) { Remove-Item $localOutputPath -Recurse -Force }
+
+& dotnet build $solutionPath\$solutionFilename --output $localOutputPath
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Build failed, nothing was deployed"
+    exit 1
+}
+
+foreach ($file in $requiredFiles) {
+    if (!(Test-Path (Join-Path $localOutputPath $file))) {
+        Write-Error "Build output is missing $file, nothing was deployed"
+        exit 1
+    }
+}
 
 # Don't know why, but ND *really* wants this folder to exist even though we're only working with binaries
 New-Item -Path $buildPath\apps -ItemType Directory -Force
@@ -29,8 +50,15 @@ Get-ChildItem -Path $buildPath -Exclude "logs","apps", ".storage" | ForEach-Obje
     }
 }
 
-# Build the local project and output to where it should go in ND share
-& dotnet build $solutionPath\$solutionFilename --output $buildPath
+# Step 3: Copy the verified build output to the ND share
+Copy-Item -Path (Join-Path $localOutputPath "*") -Destination $buildPath -Recurse -Force
+
+foreach ($file in $requiredFiles) {
+    if (!(Test-Path (Join-Path $buildPath $file))) {
+        Write-Error "$file was not copied to $buildPath, not restarting the ND addon"
+        exit 1
+    }
+}
 
 Write-Host "Built and deployed, now restarting ND addon"
 
