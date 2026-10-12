@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using Automation.Configuration;
 using Automation.Enum;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,12 @@ public class AwayManager : BaseApp
     private HomePresenceState _currentState = HomePresenceState.Home;
     private readonly object _stateLock = new();
 
+    /// <summary>How long to wait for motion in the hall after returning home before giving up on the welcome.</summary>
+    private static readonly TimeSpan ReturningTimeout = TimeSpan.FromMinutes(15);
+
+    /// <summary>The pending timeout of the Returning state.</summary>
+    private readonly SerialDisposable _returningTimeout = new();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AwayManager"/> class.
     /// </summary>
@@ -37,6 +44,10 @@ public class AwayManager : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         _config = config.Value;
+
+        // Start in the state that matches reality, e.g. after a restart while nobody is home
+        _currentState = Entities.InputBoolean.Away.IsOn() ? HomePresenceState.Away : HomePresenceState.Home;
+
         TriggersHandler();
     }
 
@@ -111,6 +122,17 @@ public class AwayManager : BaseApp
                 break;
             case HomePresenceState.Returning:
                 Logger.LogInformation("Someone is returning home, waiting for motion detection");
+                // Don't wait forever: e.g. "away" can also be cleared by going to sleep, without coming home
+                _returningTimeout.Disposable = Scheduler.Schedule(ReturningTimeout, () =>
+                {
+                    lock (_stateLock)
+                    {
+                        if (_currentState != HomePresenceState.Returning) return;
+
+                        Logger.LogInformation("No motion after returning home, back to Home without welcome");
+                        _currentState = HomePresenceState.Home;
+                    }
+                });
                 break;
             case HomePresenceState.WelcomingHome:
                 // Start welcome home sequence asynchronously
@@ -129,9 +151,19 @@ public class AwayManager : BaseApp
     {
         lock (_stateLock)
         {
+            // No welcome (living room scene, announcement) while someone is sleeping, e.g. at night
+            if (_currentState == HomePresenceState.Returning && IsSleepMode)
+            {
+                Logger.LogInformation("Motion detected while returning, but someone is sleeping: no welcome home");
+                _returningTimeout.Disposable = Disposable.Empty;
+                _currentState = HomePresenceState.Home;
+                return;
+            }
+
             // Only trigger welcome home if we're in Returning state
             if (_currentState == HomePresenceState.Returning)
             {
+                _returningTimeout.Disposable = Disposable.Empty;
                 Logger.LogInformation("Motion detected while returning - starting welcome home sequence");
                 _currentState = HomePresenceState.WelcomingHome;
                 _ = Task.Run(ExecuteWelcomeHomeSequenceAsync);

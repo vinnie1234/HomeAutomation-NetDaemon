@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Automation.apps.General;
+using Automation.Interfaces;
 using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
@@ -170,6 +171,57 @@ public class HolidayManagerTests
 
         // Assert
         ctx.VerifyCallService("input_boolean", "turn_on", "holliday");
+    }
+
+    [Theory]
+    [InlineData("off", "Vakantie")]       // the attributes describe an upcoming event, not a current one
+    [InlineData("on", "Vrijdagborrel")]   // "vrij" only as a whole word
+    public void HolidayManager_DailyCheck_NotADayOffNow_DoesNotTurnOnHoliday(string calendarState, string title)
+    {
+        // Arrange
+        using var ctx = AppTestContext.NewWithScheduler();
+        SetPersonModelDefaults(ctx);
+        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
+        {
+            EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
+            State = calendarState,
+            AttributesJson = JsonSerializer.SerializeToElement(new { message = title, description = "" })
+        });
+        ctx.InitApp<HolidayManager>();
+
+        // Act
+        ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyNotCallService("input_boolean.turn_on");
+    }
+
+    [Theory]
+    [InlineData("True", 1)]  // turned on by the calendar: turned off again once the day off is over
+    [InlineData(null, 0)]    // turned on by hand: left alone
+    public void HolidayManager_DailyCheck_DayOffIsOver_TurnsOffOnlyAHolidayTheCalendarTurnedOn(string? setByCalendar, int expectedTurnOffs)
+    {
+        // Arrange - the holiday is on, today there is no day off in the calendar
+        using var ctx = AppTestContext.NewWithScheduler();
+        SetPersonModelDefaults(ctx);
+        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "on" });
+        ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
+        {
+            EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
+            State = "off"
+        });
+        var storage = Substitute.For<IDataRepository>();
+        storage.Get<string>("HolidaySetByCalendar").Returns(setByCalendar);
+        ctx.InitApp<HolidayManager>(storage);
+
+        // Act
+        ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("input_boolean", "turn_off", "holliday", times: expectedTurnOffs);
     }
 
     [Fact]

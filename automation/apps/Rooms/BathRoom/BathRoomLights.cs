@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using Automation.Helpers;
 using static Automation.Globals;
 using Automation.Configuration;
@@ -9,10 +10,11 @@ namespace Automation.apps.Rooms.BathRoom;
 [NetDaemonApp(Id = nameof(BathRoomLights))]
 public class BathRoomLights : BaseApp
 {
-    /// <summary>
-    /// Gets a value indicating whether it is nighttime.
-    /// </summary>
-    private bool IsNighttime => Entities.InputSelect.Housemodeselect.State == "Night";
+    /// <summary>The lights-off delay used while the bathroom light input_numbers have no value.</summary>
+    private static readonly TimeSpan DefaultLightOffDelay = TimeSpan.FromMinutes(5);
+
+    /// <summary>The "showering for an hour" check of the current shower, cancelled when showering stops.</summary>
+    private readonly SerialDisposable _douchingTooLongCheck = new();
 
     private ISpotcast _spotcast;
     private readonly AppConfig _config;
@@ -72,18 +74,12 @@ public class BathRoomLights : BaseApp
             .Where(x => x.Old.IsOff() && x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended)
             .Subscribe(_ => ChangeLight(true, GetBrightness()));
 
+        // Lights off once there was no motion for a while: shorter while someone sleeps. The waiting time is
+        // read each time the motion stops, so changing the input_numbers in Home Assistant applies right away.
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
-            .WhenStateIsFor(x => x.IsOff(),
-                TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightnighttime.State ?? 0)), Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && IsNighttime && IsSleepMode)
-            .Subscribe(_ => ChangeLight(false));
-
-        Entities.BinarySensor.BadkamerMotion
-            .StateChanges()
-            .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes((int)(Entities.InputNumber.Bathroomlightdaytime.State ?? 0)),
-                Scheduler)
-            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching && !IsSleepMode)
+            .WhenOffFor(GetLightOffDelay, Scheduler)
+            .Where(x => x.Old.IsOn() && !DisableLightAutomations && !IsDouching)
             .Subscribe(_ => ChangeLight(false));
 
         Entities.InputBoolean.Douchen
@@ -109,11 +105,12 @@ public class BathRoomLights : BaseApp
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
             Entities.Cover.Rollerblind0003.OpenCover();
             Notify.NotifyHouse("timeToDouche", "Tijd om te douchen", true);
-            Scheduler.Schedule(TimeSpan.FromHours(1), () =>
+            // Replaces the check of an earlier shower, so that one can't end this shower early
+            _douchingTooLongCheck.Disposable = Scheduler.Schedule(TimeSpan.FromHours(1), () =>
             {
                 if (IsDouching)
                 {
-                    Entities.MediaPlayer.Googlehome0351.MediaStop();
+                    Entities.MediaPlayer.Googlehome0351.StopIfPlaying();
                     Entities.InputBoolean.Douchen.TurnOff();
                     Notify.NotifyHouse("toLongDouchen",
                         "Je bent of een uur aan het douchen, of weer is vergeten alles uit te zetten!", false, 60);
@@ -122,6 +119,8 @@ public class BathRoomLights : BaseApp
         }
         else
         {
+            _douchingTooLongCheck.Disposable = Disposable.Empty;
+
             Scheduler.Schedule(TimeSpan.FromMinutes(3), () =>
             {
                 if (!IsDouching)
@@ -132,9 +131,22 @@ public class BathRoomLights : BaseApp
             });
 
             Entities.Cover.Rollerblind0003.CloseCover();
-            Entities.MediaPlayer.Googlehome0351.MediaPause();
+            Entities.MediaPlayer.Googlehome0351.PauseIfPlaying();
             Notify.NotifyHouse("readyDouche", "Klaar met douchen", true);
         }
+    }
+
+    /// <summary>
+    /// How long the lights stay on after the last motion: the night time while someone sleeps, otherwise
+    /// the day time. Falls back to <see cref="DefaultLightOffDelay"/> when the input_number has no value.
+    /// </summary>
+    private TimeSpan GetLightOffDelay()
+    {
+        var minutes = IsSleepMode
+            ? Entities.InputNumber.Bathroomlightnighttime.State
+            : Entities.InputNumber.Bathroomlightdaytime.State;
+
+        return minutes is > 0 ? TimeSpan.FromMinutes(minutes.Value) : DefaultLightOffDelay;
     }
 
     /// <summary>
@@ -144,7 +156,7 @@ public class BathRoomLights : BaseApp
     private int GetBrightness()
     {
         // On office days Vincent needs full brightness regardless of Carleen sleeping
-        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
+        if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
         return _circadianLightingService.GetBrightness(IsSleepMode);
@@ -238,7 +250,7 @@ public class BathRoomLights : BaseApp
             {
                 if (!IsDouching && Vincent.IsHome)
                 {
-                    Entities.MediaPlayer.Googlehome0351.MediaStop();
+                    Entities.MediaPlayer.Googlehome0351.StopIfPlaying();
                     Entities.Light.Slaapkamer.TurnOn();
                 }
             });

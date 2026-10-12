@@ -57,10 +57,11 @@ public class PresenceManager : BaseApp
             .Where(x => x.New?.State?.ToLower() == "home" && Entities.InputBoolean.Awaycarleen.IsOn())
             .Subscribe(_ => Entities.InputBoolean.Awaycarleen.TurnOff());
 
+        // Like the auto-away rule below: going for groceries ("boodschappen") is not being away
         Entities.Person.Carleen
             .StateChanges()
             .Where(x => x.Old?.State?.ToLower() == "home" &&
-                        x.New?.State?.ToLower() != "home" &&
+                        x.New?.State?.ToLower() is not ("home" or "boodschappen") &&
                         Entities.InputBoolean.Awaycarleen.IsOff())
             .Subscribe(_ => Entities.InputBoolean.Awaycarleen.TurnOn());
     }
@@ -136,8 +137,9 @@ public class PresenceManager : BaseApp
     {
         Logger.LogInformation("Presence: Vincent left ({Scenario})", GetScenario());
 
-        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek)
-            && DateTimeOffset.Now.Hour < 9)
+        var now = Scheduler.NowNl();
+        if (IsOfficeDay(Entities, now.DayOfWeek)
+            && now.Hour < 9)
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
         else
             Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
@@ -172,9 +174,9 @@ public class PresenceManager : BaseApp
         Entities.Light.TurnAllOff();
         Entities.MediaPlayer.Tv.TurnOff();
         Entities.MediaPlayer.AvSoundbar.TurnOff();
-        Entities.MediaPlayer.HeleHuis.MediaStop();
-        Entities.MediaPlayer.Nestmini9818.MediaStop();
-        Entities.MediaPlayer.Googlehome0351.MediaStop();
+        Entities.MediaPlayer.HeleHuis.StopIfPlaying();
+        Entities.MediaPlayer.Nestmini9818.StopIfPlaying();
+        Entities.MediaPlayer.Googlehome0351.StopIfPlaying();
     }
 
     

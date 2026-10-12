@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using static Automation.Extensions.SchedulerExtensions;
 using Automation.Configuration;
 using Automation.Models.Laundry;
 using Microsoft.Extensions.Options;
@@ -90,7 +91,7 @@ public class Laundry : BaseApp
                 return;
             }
 
-            var now = Scheduler.Now.LocalDateTime;
+            var now = Scheduler.NowNl().DateTime;
             var dryResult = CalculateDryWindow(forecast, now);
 
             SendWashingMachineFinishedNotification(dryResult, now);
@@ -137,7 +138,7 @@ public class Laundry : BaseApp
     private DryWindowResult CalculateDryWindow(List<ForecastEntry> forecast, DateTime fromNow)
     {
         var futureForecast = forecast
-            .Where(f => f.DateTime.ToLocalTime() >= fromNow.AddMinutes(-30))
+            .Where(f => ToDutchTime(f.DateTime) >= fromNow.AddMinutes(-30))
             .OrderBy(f => f.DateTime)
             .ToList();
 
@@ -146,7 +147,9 @@ public class Laundry : BaseApp
             ? (int)(dryUntil.Value - fromNow).TotalHours
             : CountConsecutiveDryHours(futureForecast, 0);
 
-        var isDryNow = dryHours >= RequiredDryHours;
+        // Only "can go outside now" within the hanging window (not e.g. at 22:30 on a dry night)
+        var isWithinWindow = fromNow.Hour >= StartWindowHour && fromNow.Hour < EndWindowHour;
+        var isDryNow = isWithinWindow && dryHours >= RequiredDryHours;
 
         DateTime? nextWindowTime = null;
 
@@ -161,7 +164,7 @@ public class Laundry : BaseApp
                 if (hour < windowStart) continue;
 
                 var indexFromHour = futureForecast
-                    .FindIndex(f => f.DateTime.ToLocalTime() >= hour.AddMinutes(-30));
+                    .FindIndex(f => ToDutchTime(f.DateTime) >= hour.AddMinutes(-30));
 
                 if (indexFromHour < 0) break;
 
@@ -188,8 +191,8 @@ public class Laundry : BaseApp
 
     private static DateTime? GetRainStartTime(List<ForecastEntry> forecast, DateTime fromNow)
     {
-        foreach (var entry in forecast.Where(f => f.DateTime.ToLocalTime() >= fromNow.AddMinutes(-30)))
-            if (IsWet(entry)) return entry.DateTime.ToLocalTime();
+        foreach (var entry in forecast.Where(f => ToDutchTime(f.DateTime) >= fromNow.AddMinutes(-30)))
+            if (IsWet(entry)) return ToDutchTime(entry.DateTime);
         return null;
     }
 
@@ -233,6 +236,11 @@ public class Laundry : BaseApp
             message = $"De wasmachine is klaar, maar het is nu te nat. " +
                       $"Tussen {hourStr} en {EndWindowHour}:00 is er een droog venster. Je krijgt een melding.";
         }
+        else if (now.Hour >= EndWindowHour)
+        {
+            title = "🧺 Wasmachine klaar – te laat voor buiten";
+            message = $"De wasmachine is klaar. Na {EndWindowHour}:00 is het te laat om de was nog buiten te hangen.";
+        }
         else
         {
             title = "🧺🌧️ Wasmachine klaar – niet buiten vandaag";
@@ -248,7 +256,7 @@ public class Laundry : BaseApp
     {
         _nextChanceSchedule?.Dispose();
 
-        var now = Scheduler.Now.LocalDateTime;
+        var now = Scheduler.NowNl().DateTime;
         var delay = nextChanceTime - now;
 
         if (delay <= TimeSpan.Zero) return;
@@ -261,7 +269,7 @@ public class Laundry : BaseApp
             try
             {
                 var forecast = await GetHourlyForecastAsync();
-                var now2 = Scheduler.Now.LocalDateTime;
+                var now2 = Scheduler.NowNl().DateTime;
                 if (forecast != null && forecast.Count > 0)
                 {
                     var result = CalculateDryWindow(forecast, now2);
@@ -394,10 +402,10 @@ public class Laundry : BaseApp
             var forecast = await GetHourlyForecastAsync();
             if (forecast == null || forecast.Count == 0) return;
 
-            var thisHour = Scheduler.Now.LocalDateTime;
+            var thisHour = Scheduler.NowNl().DateTime;
             var thisHourEntry = forecast
                 .FirstOrDefault(f => {
-                    var localF = f.DateTime.ToLocalTime();
+                    var localF = ToDutchTime(f.DateTime);
                     return localF.Year == thisHour.Year &&
                            localF.Month == thisHour.Month &&
                            localF.Day == thisHour.Day &&
@@ -448,16 +456,16 @@ public class Laundry : BaseApp
             if (string.IsNullOrEmpty(sunsetTimeStr) || !DateTime.TryParse(sunsetTimeStr, out var sunsetUtc))
                 return;
 
-            var sunsetLocal = sunsetUtc.ToLocalTime();
+            var sunsetLocal = ToDutchTime(sunsetUtc);
 
             // Schedule the notification 60 minutes before sunset
             var warningTime = sunsetLocal.AddMinutes(-60);
-            var delay = warningTime - Scheduler.Now.LocalDateTime;
+            var delay = warningTime - Scheduler.NowNl().DateTime;
 
             if (delay <= TimeSpan.Zero)
             {
                 // If it's already less than 60 mins until sunset, and sunset hasn't passed, notify immediately
-                if (sunsetLocal > Scheduler.Now.LocalDateTime)
+                if (sunsetLocal > Scheduler.NowNl().DateTime)
                 {
                     Logger.LogInformation("Sunset is imminent, sending immediate notification");
                     SendSunsetWarning(sunsetLocal);

@@ -1,5 +1,6 @@
 using Automation.apps.General;
 using Automation.Configuration;
+using Automation.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Automation.Interfaces;
@@ -360,7 +361,7 @@ public class AlarmTests
     {
         // Arrange - no errors, but the last recorded cleaning was yesterday, not today
         var app = CreateApp();
-        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(DateTime.Today.AddDays(-1).ToString("O"));
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().AddDays(-1).ToString("O"));
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -497,6 +498,36 @@ public class AlarmTests
     }
 
     [Fact]
+    public void TemperatureCheck_StaysAboveThreshold_DoesNotNotifyAgain()
+    {
+        // Arrange
+        var app = CreateApp();
+
+        // Act - from 26 to 26.1 degrees: already above 25
+        _ctx.ChangeStateFor("sensor.badkamer_temperature").FromState("26").ToState("26.1");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincentCarleen(default!, default!, default!);
+    }
+
+    [Fact]
+    public void BackUpCheck_WhenBackupSensorIsUnavailable_SendsNotification()
+    {
+        // Arrange
+        var app = CreateApp();
+        _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = "unavailable" });
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().ToString("O"));
+
+        // Act
+        _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.Received(1).NotifyDiscord("De backup status is onbekend (unavailable)", Arg.Any<string[]>(), null);
+    }
+
+    [Fact]
     public void BackUpCheck_WhenRecentBackup_DoesNotSendNotification()
     {
         // Arrange
@@ -505,7 +536,7 @@ public class AlarmTests
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = recentBackup });
 
         // PetSnowy already cleaned today, so the daily cron doesn't also fire a PetSnowy notification
-        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(DateTime.Today.ToString("O"));
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().ToString("O"));
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -514,5 +545,10 @@ public class AlarmTests
         // Assert
         _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
     }
+
+    /// <summary>
+    /// The Dutch date of the test clock at the moment the app asks for it, matching how the app computes "today".
+    /// </summary>
+    private DateTime DutchDateOfTestClock() => SchedulerExtensions.ToDutchTime(_ctx.Scheduler.Now).Date;
 }
 

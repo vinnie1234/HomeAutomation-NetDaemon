@@ -13,5 +13,5 @@ public class NotificationModel
     
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string Value { get; set; }
-    public DateTimeOffset LastSendNotification { get; }
+    public DateTimeOffset LastSendNotification { get; set; }
 }

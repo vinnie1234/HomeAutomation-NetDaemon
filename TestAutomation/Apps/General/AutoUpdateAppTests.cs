@@ -54,6 +54,8 @@ public class AutoUpdateAppTests
         ctx.VerifyCallService("update", "install", "test1", times: 1);
         ctx.VerifyCallService("update", "install", "test2", times: 0);
 
+        // The update finishes installing
+        ctx.HaContext.GetState("update.test1").Returns(updateEntity1 with { State = "off" });
         ctx.AdvanceTimeBy(TimeSpan.FromMinutes(2).Ticks);
         ctx.HaContextMock.ProcessPendingOperations();
 

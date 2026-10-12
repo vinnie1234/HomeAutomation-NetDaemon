@@ -20,7 +20,7 @@ public class AwayManagerTests
         var ctx = AppTestContext.NewWithScheduler();
         
         ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "off" });
-        ctx.HaContext.GetState("binary_sensor.gangmotion").Returns(new EntityState { EntityId = "binary_sensor.gangmotion", State = "off" });
+        ctx.HaContext.GetState("binary_sensor.gang_motion").Returns(new EntityState { EntityId = "binary_sensor.gang_motion", State = "off" });
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = houseMode });
         
         ctx.HaContext.GetState("person.vincentmaarschalkerweerd").Returns(new EntityState { EntityId = "person.vincentmaarschalkerweerd", State = "home" });
@@ -56,7 +56,7 @@ public class AwayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
         
         // Assert — motion in Away state should not trigger any scene (stays in Away)
-        ctx.ChangeStateFor("binary_sensor.gangmotion").FromState("off").ToState("on");
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(300);
         
@@ -73,7 +73,7 @@ public class AwayManagerTests
         CreateApp(ctx);
         
         // Act — motion while in Home state
-        ctx.ChangeStateFor("binary_sensor.gangmotion").FromState("off").ToState("on");
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(300);
 
@@ -94,7 +94,7 @@ public class AwayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
         
         // Act — motion while Away
-        ctx.ChangeStateFor("binary_sensor.gangmotion").FromState("off").ToState("on");
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(300);
 
@@ -114,12 +114,82 @@ public class AwayManagerTests
         ctx.ChangeStateFor("input_boolean.away").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
         
-        ctx.ChangeStateFor("binary_sensor.gangmotion").FromState("off").ToState("on");
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(300);
 
         // Assert — no welcome home
         ctx.VerifyNotCallService("scene.turn_on");
+    }
+
+    [Fact]
+    public void RestartWhileAway_StillWelcomesHome()
+    {
+        // Arrange - NetDaemon starts while nobody is home
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "on" });
+        CreateApp(ctx);
+
+        // Act - coming home, then motion in the hall
+        ctx.ChangeStateFor("input_boolean.away").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - the welcome home notification is sent (the sequence runs on a background task)
+        WaitUntil(() => ctx.HaContext.ReceivedCalls().Any(IsWelcomeHomeNotification));
+        Assert.Contains(ctx.HaContext.ReceivedCalls(), IsWelcomeHomeNotification);
+    }
+
+    [Fact]
+    public void Returning_WithSomeoneSleeping_DoesNotWelcomeHome()
+    {
+        // Arrange - away is cleared, but someone is sleeping (e.g. at night)
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "on" });
+        CreateApp(ctx);
+        ctx.ChangeStateFor("input_boolean.away").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.away").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Act
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(300);
+
+        // Assert
+        Assert.DoesNotContain(ctx.HaContext.ReceivedCalls(), IsWelcomeHomeNotification);
+    }
+
+    [Fact]
+    public void Returning_WithoutMotion_TimesOutWithoutWelcome()
+    {
+        // Arrange - away is cleared, but nobody walks through the hall within 15 minutes
+        var ctx = SetupContext();
+        CreateApp(ctx);
+        ctx.ChangeStateFor("input_boolean.away").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.away").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(16).Ticks);
+
+        // Act - motion much later (e.g. at night)
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(300);
+
+        // Assert
+        Assert.DoesNotContain(ctx.HaContext.ReceivedCalls(), IsWelcomeHomeNotification);
+    }
+
+    private static bool IsWelcomeHomeNotification(NSubstitute.Core.ICall call) =>
+        call.GetMethodInfo().Name == "CallService" &&
+        (string?)call.GetArguments()[1] == "mobile_app_vincent_phone" &&
+        System.Text.Json.JsonSerializer.SerializeToElement(call.GetArguments()[3]).GetProperty("title").GetString() == "Thuis";
+
+    private static void WaitUntil(Func<bool> condition)
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(5);
+        while (!condition() && DateTime.UtcNow < timeout) Thread.Sleep(20);
     }
 
     #endregion
@@ -162,7 +232,7 @@ public class AwayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Step 2: Motion in Away — no CallService
-        ctx.ChangeStateFor("binary_sensor.gangmotion").FromState("off").ToState("on");
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(300);
         

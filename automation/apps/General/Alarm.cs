@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
@@ -68,7 +69,8 @@ public class Alarm : BaseApp
         foreach (var temperatureSensor in GetAllTemperatureSensors())
             temperatureSensor.Key
                 .StateChanges()
-                .Where(x => x.Entity.State > 25 && !IsSleepMode)
+                // Only when crossing 25 degrees, not again for every tenth of a degree above it
+                .Where(x => x.Old?.State is <= 25 && x.New?.State is > 25 && !IsSleepMode)
                 .Subscribe(x => Notify.NotifyPhoneVincentCarleen("Hoge temperatuur gedetecteerd",
                     $"{temperatureSensor.Value} is {x.Entity.State} graden", true, channel: "ALARM",
                     vibrationPattern: "100, 1000, 100, 1000, 100"));
@@ -115,7 +117,7 @@ public class Alarm : BaseApp
     /// </summary>
     private void GarbageCheck()
     {
-        Scheduler.ScheduleCron("00 22 * * *", () =>
+        Scheduler.ScheduleCronNl("00 22 * * *", () =>
         {
             var message = Entities.Sensor.AfvalMorgen.State;
             if (message != "Geen" && !string.IsNullOrEmpty(message))
@@ -157,7 +159,7 @@ public class Alarm : BaseApp
         // Update the entity with new count
         _entityManager.SetState(entityId, currentCount, new
         {
-            last_placed = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            last_placed = Scheduler.NowNl().ToString("yyyy-MM-dd HH:mm:ss"),
             garbage_type = originalMessage,
             friendly_name = $"{originalMessage} keer buiten gezet"
         });
@@ -227,12 +229,12 @@ public class Alarm : BaseApp
     {
         Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(x =>
         {
-            _storage.Save(PetsnowyLastCleanedDateKey, DateTime.Today.ToString("O"));
+            _storage.Save(PetsnowyLastCleanedDateKey, Scheduler.NowNl().Date.ToString("O"));
         });
 
-        Scheduler.ScheduleCron("00 22 * * *", () =>
+        Scheduler.ScheduleCronNl("00 22 * * *", () =>
         {
-            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == DateTime.Today.ToString("O");
+            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == Scheduler.NowNl().Date.ToString("O");
 
             if ((int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0) || !cleanedToday)
             {
@@ -304,23 +306,25 @@ public class Alarm : BaseApp
     /// </summary>
     private void BackUpCheck()
     {
-        Scheduler.ScheduleCron("00 22 * * *", () =>
+        Scheduler.ScheduleCronNl("00 22 * * *", () =>
         {
             var lastLocalBackString = Entities.Sensor.BackupLastAttemptedAutomaticBackup.State;
             
 
-            if (!string.IsNullOrEmpty(lastLocalBackString))
-            {
-                if (!DateTime.TryParse(lastLocalBackString, out var dateTime))
-                    return;
-                if (dateTime < DateTime.Now.AddDays(-2))
-                    Notify.NotifyDiscord(
-                        $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",
-                        [_config.Discord.Logs]);
-            }
-            else
+            if (string.IsNullOrEmpty(lastLocalBackString))
             {
                 Notify.NotifyDiscord("Er is geen  backup", [_config.Discord.Logs]);
+            }
+            else if (!DateTimeOffset.TryParse(lastLocalBackString, CultureInfo.InvariantCulture, out var lastBackup))
+            {
+                // e.g. "unknown"/"unavailable": a broken backup sensor must not go unnoticed
+                Notify.NotifyDiscord($"De backup status is onbekend ({lastLocalBackString})", [_config.Discord.Logs]);
+            }
+            else if (lastBackup < DateTimeOffset.Now.AddDays(-2))
+            {
+                Notify.NotifyDiscord(
+                    $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",
+                    [_config.Discord.Logs]);
             }
         });
     }

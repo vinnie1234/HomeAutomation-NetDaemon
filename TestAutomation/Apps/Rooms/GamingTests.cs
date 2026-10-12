@@ -15,12 +15,12 @@ public class GamingTests
         var ctx = AppTestContext.NewWithScheduler();
         
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "off" });
+        ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "not_home" });
         
         var app = ctx.InitApp<Gaming>();
 
         // Act
-        ctx.ChangeStateFor("device_tracker.sony").FromState("off").ToState("on");
+        ctx.ChangeStateFor("device_tracker.sony").FromState("not_home").ToState("home");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -42,12 +42,12 @@ public class GamingTests
         var ctx = AppTestContext.NewWithScheduler();
         
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { State = "on" });
-        ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "off" });
+        ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "not_home" });
         
         var app = ctx.InitApp<Gaming>();
 
         // Act
-        ctx.ChangeStateFor("device_tracker.sony").FromState("off").ToState("on");
+        ctx.ChangeStateFor("device_tracker.sony").FromState("not_home").ToState("home");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert

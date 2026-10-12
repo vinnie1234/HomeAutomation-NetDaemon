@@ -50,7 +50,7 @@ public class PresenceSimulation : BaseApp
     {
         if (!IsHouseUnattended) return;
 
-        var now = Scheduler.Now.LocalDateTime;
+        var now = Scheduler.NowNl().DateTime;
         var livingRoomOn = now + RandomBetween(TimeSpan.Zero, MaxDelayAfterSunset);
 
         var livingRoomOff = now.Date + EarliestLivingRoomOff + RandomBetween(TimeSpan.Zero, TimeSpan.FromHours(1));
@@ -77,7 +77,7 @@ public class PresenceSimulation : BaseApp
     /// </summary>
     private void ScheduleAt(DateTime time, Action action)
     {
-        Scheduler.Schedule(time - Scheduler.Now.LocalDateTime, () =>
+        Scheduler.Schedule(time - Scheduler.NowNl().DateTime, () =>
         {
             if (IsHouseUnattended) action();
         });

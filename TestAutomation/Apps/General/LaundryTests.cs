@@ -187,6 +187,33 @@ public class LaundryTests
     }
 
     [Fact]
+    public async Task WasmachineKlaar_DrogeAvondNa19Uur_ZegtTeLaatVoorBuiten()
+    {
+        // Arrange: 22:30 Dutch time on a dry evening
+        var dutchEvening = new DateTimeOffset(2026, 7, 1, 22, 30, 0, TimeSpan.FromHours(2));
+        _ctx.Scheduler.AdvanceTo(dutchEvening.UtcTicks);
+        SetupForecast(BuildForecast(dutchEvening.UtcDateTime, dryHours: 6));
+        var app = CreateApp();
+
+        // Act
+        _ctx.ChangeStateFor("sensor.wasmachine_washer_machine_state")
+            .FromState("run")
+            .ToState("stop");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        await WaitForNotificationAsync();
+
+        // Assert: no "kan buiten" with a button, but "te laat"
+        _notify.DidNotReceive().NotifyPeopleHome(
+            Arg.Is<string>(t => t.Contains("kan buiten")),
+            Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<double?>(), Arg.Any<List<ActionModel>?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+        _notify.Received().NotifyPeopleHome(
+            Arg.Is<string>(t => t.Contains("te laat")),
+            Arg.Any<string>(), true, Arg.Any<double?>(), Arg.Any<List<ActionModel>?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+    }
+
+    [Fact]
     public async Task WasmachineKlaar_RegenBinnen3Uur_StuurtNegatieveNotificatie()
     {
         // Arrange: only 1 dry hour, then rain

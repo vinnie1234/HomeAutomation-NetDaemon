@@ -22,6 +22,18 @@ public static class AppTestContextExtensions
         }, testName);
     }
 
+    public static void VerifyInputSelect_SelectOption_NotChangedTo(this AppTestContext ctx, string entityId, string option, [CallerMemberName] string testName = "")
+    {
+        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        {
+            haContext.DidNotReceive().CallService("input_select", "select_option",
+                Arg.Is<ServiceTarget>(x
+                    => x.EntityIds != null && x.EntityIds.First() == entityId),
+                Arg.Is<InputSelectSelectOptionParameters>(x
+                    => Equals(x.Option, option)));
+        }, testName);
+    }
+
     public static void VerifyInputSelect_SelectOption_NotChanged(this AppTestContext ctx, string entityId, [CallerMemberName] string testName = "")
     {
         TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>

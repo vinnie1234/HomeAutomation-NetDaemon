@@ -29,8 +29,8 @@ public class CocMonitoring : BaseApp
     {
         // Check if this function has already run today at allowed times (07:00 or 19:00)
         var lastRunTime = dataRepository.Get<string>("COC_LAST_RUN_TIME");
-        var now = Scheduler.Now;
-        
+        var now = Scheduler.NowNl();
+
         if (!string.IsNullOrEmpty(lastRunTime) && DateTime.TryParse(lastRunTime, out var lastRun) && lastRun.Date == now.Date)
         {
             var currentHour = now.Hour;
@@ -81,7 +81,7 @@ public class CocMonitoring : BaseApp
                             idListModel.Add(new COCModel
                             {
                                 Id = tweet.Id,
-                                InertDate = Scheduler.Now.LocalDateTime
+                                InertDate = now.DateTime
                             });
                         }
             }

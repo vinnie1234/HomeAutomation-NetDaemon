@@ -35,6 +35,43 @@ public class HallLightOnMovementTests
         ctx.VerifyCallService("light", "turn_on", "hal_2", times: 1);
     }
 
+    [Theory]
+    [InlineData("unavailable", 1)] // no power: the wall switch is off, so the bot presses it
+    [InlineData("off", 0)]         // has power: turning it on is enough, pressing the switch would cut the power
+    public void MotionDetected_PressesTheBot_OnlyWhenHalHasNoPower(string halState, int expectedBotPresses)
+    {
+        // Arrange
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("light.hal").Returns(new EntityState { EntityId = "light.hal", State = halState });
+        var app = ctx.InitApp<HallLightOnMovement>();
+
+        // Act
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("switch", "turn_on", "bot_29ff", times: expectedBotPresses);
+    }
+
+    [Fact]
+    public void MotionStops_UsesTheCurrentDelay_WhenChangedAfterStartup()
+    {
+        // Arrange - the day delay is changed from 10 to 2 minutes after the app started
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.HaContext.GetState("input_number.halllightdaytime").Returns(new EntityState { EntityId = "input_number.halllightdaytime", State = "2" });
+
+        // Act
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("on").ToState("off");
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(2).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("light", "turn_off", "hal_2", times: 1);
+    }
+
     [Fact]
     public void MotionDetected_TurnsOnHalLights_AtFullBrightness_WhenDaytime()
     {

@@ -14,6 +14,11 @@ public class Vacuum : BaseApp
     private readonly AppConfig _config;
 
     /// <summary>
+    /// Whether the litter box was used while someone was sleeping, so it still needs to be vacuumed.
+    /// </summary>
+    private bool _litterBoxCleaningPending;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Vacuum"/> class.
     /// </summary>
     /// <param name="ha">The Home Assistant context.</param>
@@ -65,35 +70,29 @@ public class Vacuum : BaseApp
             .Subscribe(_ =>
             {
                 if(Entities.InputBoolean.Datenight.IsOn()) return;
-                
-                if (!IsSleepMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                    Clean("Kattenbak");
-                else if (Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                    // Wait until nobody is sleeping anymore before cleaning
-                    Entities.InputBoolean.Sleepingvincent
-                        .StateChanges()
-                        .Where(x => x.New.IsOff())
-                        .Subscribe(_ =>
-                        {
-                            switch (IsSleepMode)
-                            {
-                                case false when Entities.InputBoolean.Skipvaccumlitterbox.IsOff() && Entities.InputBoolean.Sleepingcarleen.IsOff():
-                                    Clean("Kattenbak");
-                                    break;
-                                case false when Entities.InputBoolean.Skipvaccumlitterbox.IsOff() && Entities.InputBoolean.Sleepingcarleen.IsOn():
-                                    Entities.InputBoolean.Sleepingcarleen
-                                        .StateChanges()
-                                        .Where(x => x.New.IsOff())
-                                        .Subscribe(_ =>
-                                        {
-                                            if (!IsSleepMode && Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
-                                                Clean("Kattenbak");
-                                        });
-                                    break;
-                            }
-                        });
+
+                if (Entities.InputBoolean.Skipvaccumlitterbox.IsOff())
+                {
+                    if (!IsSleepMode)
+                        Clean("Kattenbak");
+                    else
+                        // Clean once nobody is sleeping anymore (see below)
+                        _litterBoxCleaningPending = true;
+                }
 
                 Entities.InputBoolean.Skipvaccumlitterbox.TurnOff();
+            });
+
+        // A single subscription for the pending cleaning, so it runs once however often the litter box was used
+        Entities.InputBoolean.Sleepingvincent.StateChanges()
+            .Merge(Entities.InputBoolean.Sleepingcarleen.StateChanges())
+            .Where(x => x.New.IsOff())
+            .Subscribe(_ =>
+            {
+                if (!_litterBoxCleaningPending || IsSleepMode) return;
+
+                _litterBoxCleaningPending = false;
+                Clean("Kattenbak");
             });
     }
 

@@ -5,12 +5,12 @@ namespace Automation.Models;
 
 public class LightStateModel
 {
-    public LightStateModel(string entityId, IReadOnlyList<double>? rgbColors, double? brightness, double? colorTemp, bool isOn, IReadOnlyList<string>? supportedColorModes)
+    public LightStateModel(string entityId, IReadOnlyList<double>? rgbColors, double? brightness, double? colorTempKelvin, bool isOn, IReadOnlyList<string>? supportedColorModes)
     {
         EntityId = entityId;
         RgbColors = rgbColors;
         Brightness = brightness;
-        ColorTemp = colorTemp;
+        ColorTempKelvin = colorTempKelvin;
         IsOn = isOn;
         SupportedColorModes = supportedColorModes;
     }
@@ -18,7 +18,9 @@ public class LightStateModel
     public string EntityId { get; }
     public IReadOnlyList<double>? RgbColors { get; }
     public double? Brightness { get; }
-    public double? ColorTemp { get; }
+
+    /// <summary>The color temperature in Kelvin (Home Assistant's <c>color_temp_kelvin</c>, not the mired <c>color_temp</c>).</summary>
+    public double? ColorTempKelvin { get; }
 
     public bool IsOn { get; }
 

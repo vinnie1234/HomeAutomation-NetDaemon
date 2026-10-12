@@ -114,9 +114,8 @@ public class KitchenMusicOnMotion : BaseApp
 
     private void StopKitchenMusicIfPlaying()
     {
-        if (!IsKitchenAlreadyPlaying) return;
-        Logger.LogInformation("Stopping kitchen music");
-        Services.MediaPlayer.MediaStop(ServiceTarget.FromEntity(Entities.MediaPlayer.Nestmini9818.EntityId));
+        if (Entities.MediaPlayer.Nestmini9818.StopIfPlaying())
+            Logger.LogInformation("Stopped kitchen music");
     }
 
     /// <summary>

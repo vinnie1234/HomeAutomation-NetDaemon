@@ -5,12 +5,15 @@ namespace Automation.Repository;
 
 /// <summary>
 /// Provides methods for data storage and retrieval with in-memory caching.
+/// The repository is shared by all apps (singleton), so it caches the JSON instead of the object:
+/// every <see cref="Get{T}"/> returns its own copy, and apps can't change each other's data in place.
 /// </summary>
 public class DataRepository : IDataRepository
 {
     private readonly string _dataStoragePath;
     private readonly ILogger _logger;
-    private readonly ConcurrentDictionary<string, object> _cache;
+    private readonly ConcurrentDictionary<string, string> _cache;
+    private readonly object _fileLock = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DataRepository"/> class.
@@ -21,7 +24,7 @@ public class DataRepository : IDataRepository
     {
         _dataStoragePath = dataStoragePath;
         _logger = logger;
-        _cache = new ConcurrentDictionary<string, object>();
+        _cache = new ConcurrentDictionary<string, string>();
     }
 
     /// <summary>
@@ -30,24 +33,27 @@ public class DataRepository : IDataRepository
     /// </summary>
     /// <typeparam name="T">The type of data to retrieve.</typeparam>
     /// <param name="id">The identifier of the data to retrieve.</param>
-    /// <returns>The retrieved data, or null if the data does not exist.</returns>
+    /// <returns>A copy of the retrieved data, or null if the data does not exist.</returns>
     public T? Get<T>(string id) where T : class
     {
         try
         {
-            if (_cache.TryGetValue(id, out var cachedObj)) return cachedObj as T;
+            if (!_cache.TryGetValue(id, out var json))
+            {
+                var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
 
-            var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
+                lock (_fileLock)
+                {
+                    if (!File.Exists(storageJsonFile))
+                        return null;
 
-            if (!File.Exists(storageJsonFile))
-                return null;
+                    json = File.ReadAllText(storageJsonFile);
+                }
 
-            var jsonContent = File.ReadAllText(storageJsonFile);
-            var parsedObj = JsonSerializer.Deserialize<T>(jsonContent);
-            
-            if (parsedObj != null) _cache[id] = parsedObj;
+                _cache[id] = json;
+            }
 
-            return parsedObj;
+            return JsonSerializer.Deserialize<T>(json);
         }
         catch (Exception ex)
         {
@@ -67,17 +73,15 @@ public class DataRepository : IDataRepository
     {
         try
         {
-            if (data != null)
-                _cache[id] = data;
-            else
-                // Never leave a stale cached value behind when the stored value is cleared.
-                _cache.TryRemove(id, out _);
-
-            var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
-            Directory.CreateDirectory(_dataStoragePath);
-
             var jsonContent = JsonSerializer.Serialize(data);
-            File.WriteAllText(storageJsonFile, jsonContent);
+            var storageJsonFile = Path.Combine(_dataStoragePath, $"{id}_store.json");
+
+            lock (_fileLock)
+            {
+                Directory.CreateDirectory(_dataStoragePath);
+                File.WriteAllText(storageJsonFile, jsonContent);
+                _cache[id] = jsonContent;
+            }
         }
         catch (Exception ex)
         {

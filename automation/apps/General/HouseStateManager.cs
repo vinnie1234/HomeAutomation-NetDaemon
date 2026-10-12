@@ -8,11 +8,12 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(HouseStateManager))]
 public class HouseStateManager : BaseApp
 {
-    private TimeSpan _nighttimeWeekdays;
-    private TimeSpan _nighttimeWeekends;
-    private TimeSpan _daytimeWeekend;
-    private TimeSpan _daytimeHomeWork;
-    private TimeSpan _daytimeOffice;
+    // Used while the corresponding input_datetime has no valid time
+    private static readonly TimeSpan DefaultNighttimeWeekdays = new(0, 0, 0);
+    private static readonly TimeSpan DefaultNighttimeWeekends = new(0, 30, 0);
+    private static readonly TimeSpan DefaultDaytimeWeekend = new(10, 0, 0);
+    private static readonly TimeSpan DefaultDaytimeHomeWork = new(8, 15, 0);
+    private static readonly TimeSpan DefaultDaytimeOffice = new(7, 15, 0);
     private readonly TimeSpan _startWorking = TimeSpan.Parse("08:30:00", new CultureInfo("nl-Nl"));
     private readonly TimeSpan _endWorking = TimeSpan.Parse("17:00:00", new CultureInfo("nl-Nl"));
 
@@ -31,7 +32,6 @@ public class HouseStateManager : BaseApp
         : base(ha, logger, notify, scheduler)
     {
         SetSleepingOffFromAlarm();
-        SetTimes();
         SetDayTime();
         SetEveningWhenSunIsDown();
         SetNightTime();
@@ -49,18 +49,6 @@ public class HouseStateManager : BaseApp
         var sunState = Entities.Sun.Sun.State;
         if (sunState is not (null or "unknown" or "unavailable"))
             SetHouseState(sunState == "below_horizon" ? HouseState.Evening : HouseState.Day);
-    }
-
-    /// <summary>
-    /// Sets the times for various house states.
-    /// </summary>
-    private void SetTimes()
-    {
-        _nighttimeWeekdays = TimeSpan.Parse(Entities.InputDatetime.Nighttimeweekdays.State ?? "00:00:00", new CultureInfo("nl-Nl"));
-        _nighttimeWeekends = TimeSpan.Parse(Entities.InputDatetime.Nighttimeweekends.State ?? "00:30:00", new CultureInfo("nl-Nl"));
-        _daytimeWeekend = TimeSpan.Parse(Entities.InputDatetime.Daytimeweekend.State ?? "10:00:00", new CultureInfo("nl-Nl"));
-        _daytimeHomeWork = TimeSpan.Parse(Entities.InputDatetime.Daytimehomework.State ?? "08:15:00", new CultureInfo("nl-Nl"));
-        _daytimeOffice = TimeSpan.Parse(Entities.InputDatetime.Daytimeoffice.State ?? "07:15:00", new CultureInfo("nl-Nl"));
     }
 
     /// <summary>
@@ -105,15 +93,15 @@ public class HouseStateManager : BaseApp
     {
         Scheduler.RunDaily(_startWorking, () =>
         {
-            if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) ||
-                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
+            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
+                IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
                 Entities.InputBoolean.Working.TurnOn();
         });
 
         Scheduler.RunDaily(_endWorking, () =>
         {
-            if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) ||
-                IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
+            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
+                IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
                 Entities.InputBoolean.Working.TurnOff();
         });
     }
@@ -123,20 +111,21 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void SetDayTime()
     {
-        Scheduler.RunDaily(_daytimeOffice, () =>
+        // The times come from input_datetimes and are rescheduled when changed in Home Assistant
+        Scheduler.RunDailyAt(Entities.InputDatetime.Daytimeoffice, DefaultDaytimeOffice, () =>
         {
-            if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek))
+            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
-        Scheduler.RunDaily(_daytimeHomeWork, () =>
+        Scheduler.RunDailyAt(Entities.InputDatetime.Daytimehomework, DefaultDaytimeHomeWork, () =>
         {
-            if (IsHomeWorkDay(Entities, DateTimeOffset.Now.DayOfWeek))
+            if (IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
 
-        Scheduler.RunDaily(_daytimeWeekend, () =>
+        Scheduler.RunDailyAt(Entities.InputDatetime.Daytimeweekend, DefaultDaytimeWeekend, () =>
         {
-            if (IsDayOff(Entities, DateTimeOffset.Now.DayOfWeek))
+            if (IsDayOff(Entities, Scheduler.NowNl().DayOfWeek))
                 SetHouseState(HouseState.Day);
         });
     }
@@ -149,15 +138,15 @@ public class HouseStateManager : BaseApp
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => SetHouseState(HouseState.Night));
         Entities.InputBoolean.Sleepingcarleen.WhenTurnsOn(_ => SetHouseState(HouseState.Night));
 
-        Scheduler.RunDaily(_nighttimeWeekdays, () =>
+        Scheduler.RunDailyAt(Entities.InputDatetime.Nighttimeweekdays, DefaultNighttimeWeekdays, () =>
         {
-            if (WeekdayNightDays.Contains(DateTimeOffset.Now.DayOfWeek))
+            if (WeekdayNightDays.Contains(Scheduler.NowNl().DayOfWeek))
                 SetHouseState(HouseState.Night);
         });
 
-        Scheduler.RunDaily(_nighttimeWeekends, () =>
+        Scheduler.RunDailyAt(Entities.InputDatetime.Nighttimeweekends, DefaultNighttimeWeekends, () =>
         {
-            if (WeekendNightDays.Contains(DateTimeOffset.Now.DayOfWeek))
+            if (WeekendNightDays.Contains(Scheduler.NowNl().DayOfWeek))
                 SetHouseState(HouseState.Night);
         });
     }
@@ -171,6 +160,8 @@ public class HouseStateManager : BaseApp
             .StateChanges()
             .Where(change => change.Entity.State == "below_horizon"
                           && change.Old?.State is not (null or "unknown" or "unavailable"))
+            // Someone already went to sleep before sunset (e.g. in summer): stay in Night
+            .Where(_ => GetHouseState(Entities) != HouseState.Night)
             .Subscribe(_ =>
             {
                 Logger.LogDebug("Setting current house state to {State}", HouseState.Evening);
@@ -187,6 +178,8 @@ public class HouseStateManager : BaseApp
             .StateChanges()
             .Where(change => change.Entity.State == "above_horizon"
                           && change.Old?.State is not (null or "unknown" or "unavailable"))
+            // The scheduled daytime may already have set Day before sunrise (e.g. office days in winter)
+            .Where(_ => GetHouseState(Entities) != HouseState.Day)
             .Subscribe(_ =>
             {
                 Logger.LogDebug("Setting current house state to {State}", HouseState.Morning);

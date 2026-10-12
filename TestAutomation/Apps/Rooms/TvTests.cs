@@ -37,6 +37,40 @@ public class TvTests
     }
 
     [Fact]
+    public void TvTurnsOff_DoesNotTurnOnLivingRoomLights_WhenGoingToSleep()
+    {
+        // Arrange - the sleep routine turns all lights off and then the TV
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
+        var app = ctx.InitApp<Tv>();
+
+        // Act
+        ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - soundbar still off, but no living room scene
+        ctx.VerifyNotCallService("scene.turn_on");
+        ctx.VerifyCallService("media_player", "turn_off", "av_soundbar", times: 1);
+    }
+
+    [Fact]
+    public void TvTurnsOff_FromPlaying_ActivatesTheScene()
+    {
+        // Arrange - the TV reports "playing" while on, so it can go straight from playing to off
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        var app = ctx.InitApp<Tv>();
+
+        // Act
+        ctx.ChangeStateFor("media_player.tv").FromState("playing").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("scene", "turn_on", "woonkamerday", times: 1);
+    }
+
+    [Fact]
     public void TvTurnsOn_TurnsOffMultipleLights()
     {
         // Arrange

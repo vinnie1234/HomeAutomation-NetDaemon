@@ -65,12 +65,17 @@ public class PresenceManagerTests
     public void HouseSitterLeaves_WhenNobodyHome_TurnsEverythingOff()
     {
         var ctx = Arrange(awayVincent: "on", awayCarleen: "on", away: "on");
+        ctx.HaContext.GetState("media_player.hele_huis").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "media_player.hele_huis", State = "playing" });
 
         ctx.ChangeStateFor("person.timo").FromState("home").ToState("not_home");
         ctx.HaContextMock.ProcessPendingOperations();
 
         ctx.VerifyCallService("media_player", "turn_off", "tv");
         ctx.VerifyCallService("media_player", "media_stop", "hele_huis");
+        // The kitchen and bathroom speakers aren't playing, so no (failing) stop is sent to them
+        ctx.VerifyCallService("media_player", "media_stop", "nestmini9818", times: 0);
+        ctx.VerifyCallService("media_player", "media_stop", "googlehome0351", times: 0);
     }
 
     [Fact]

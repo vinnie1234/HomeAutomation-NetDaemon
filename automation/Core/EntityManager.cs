@@ -38,9 +38,10 @@ public class EntityManager(IMqttEntityManager mqttEntityManager, IHaContext haCo
 
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                // WaitAsync with a timeout throws a TimeoutException (a cancellation token would throw a
+                // TaskCanceledException instead, which the timeout handler below would never see)
                 await mqttEntityManager.CreateAsync(entityId, creationOptions, attributes)
-                    .WaitAsync(cts.Token);
+                    .WaitAsync(TimeSpan.FromSeconds(10));
                 logger.LogInformation("Created entity {EntityId} with name '{Name}'", entityId, options.Name);
             }
             catch (TimeoutException)

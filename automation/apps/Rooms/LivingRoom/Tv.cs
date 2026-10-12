@@ -19,6 +19,11 @@ public class Tv : BaseApp
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationlivingroom.IsOn();
 
     /// <summary>
+    /// Whether a TV state means the TV is on.
+    /// </summary>
+    private static bool IsTvOnState(string? state) => state is "on" or "playing" or "paused" or "idle";
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Tv"/> class.
     /// </summary>
     /// <param name="ha">The Home Assistant context.</param>
@@ -32,8 +37,13 @@ public class Tv : BaseApp
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)
     {
-        Entities.MediaPlayer.Tv.WhenTurnsOn(_ => MovieTime());
-        Entities.MediaPlayer.Tv.WhenTurnsOff(_ => LetThereBeLight());
+        // The TV also reports playing/paused/idle while it is on, not only "on"
+        Entities.MediaPlayer.Tv.StateChanges()
+            .Where(x => x.Old?.State == "off" && IsTvOnState(x.New?.State))
+            .Subscribe(_ => MovieTime());
+        Entities.MediaPlayer.Tv.StateChanges()
+            .Where(x => IsTvOnState(x.Old?.State) && x.New?.State == "off")
+            .Subscribe(_ => LetThereBeLight());
 
         // Green is broken, red is always good
         Entities.Light.Bank
@@ -54,6 +64,12 @@ public class Tv : BaseApp
 
         if (DisableLightAutomations) return;
 
+        Entities.MediaPlayer.AvSoundbar.TurnOff();
+        Entities.Switch.Ps5VincentPower.TurnOff();
+
+        // The TV is also turned off when going to sleep or leaving: don't turn the living room lights back on then
+        if (IsSleepMode || Entities.InputBoolean.Away.IsOn()) return;
+
         switch (GetHouseState(Entities))
         {
             case HouseState.Morning:
@@ -72,9 +88,6 @@ public class Tv : BaseApp
                 Entities.Scene.Woonkamerday.TurnOn();
                 break;
         }
-
-        Entities.MediaPlayer.AvSoundbar.TurnOff();
-        Entities.Switch.Ps5VincentPower.TurnOff();
 
         if (IsWorking) Entities.Light.Plafondslaapkamer.TurnOn();
     }

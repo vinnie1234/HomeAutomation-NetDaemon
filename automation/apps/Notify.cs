@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Reactive.Disposables;
 using Automation.Enum;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Persons;
@@ -23,6 +24,12 @@ public class Notify : INotify
     private readonly CarleenModel _carleen;
     private readonly VincentModel _vincentModel;
 
+    /// <summary>Guards the notification history, which is shared by the Notify instances of all apps.</summary>
+    private static readonly object HistoryLock = new();
+
+    /// <summary>How long the buttons of an actionable notification keep working when nobody presses them.</summary>
+    private static readonly TimeSpan NotificationActionLifetime = TimeSpan.FromDays(1);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Notify"/> class.
     /// </summary>
@@ -42,7 +49,8 @@ public class Notify : INotify
     }
 
     /// <summary>
-    /// Sends a notification to the house.
+    /// Announces a notification through the house speakers. Nothing is announced while Vincent or Carleen
+    /// is sleeping or when nobody is home.
     /// </summary>
     /// <param name="title">The title of the notification.</param>
     /// <param name="message">The message of the notification.</param>
@@ -51,7 +59,7 @@ public class Notify : INotify
     public void NotifyHouse(string title, string message, bool canAlwaysSendNotification,
         double? sendAfterMinutes = null)
     {
-        if (IsHouseEmpty(nameof(NotifyHouse))) return;
+        if (SpeakersNotAllowed(nameof(NotifyHouse))) return;
 
         var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
@@ -240,11 +248,14 @@ public class Notify : INotify
     /// <param name="title">The title of the notification to reset.</param>
     public void ResetNotificationHistoryForNotificationTitle(string title)
     {
-        var oldData = _storage.Get<List<NotificationModel>>("notificationHistory") ?? [];
-        var data = oldData.Find(x => x.Name == title);
-        if (data != null) oldData.Remove(data);
+        lock (HistoryLock)
+        {
+            var oldData = _storage.Get<List<NotificationModel>>("notificationHistory") ?? [];
+            var data = oldData.Find(x => x.Name == title);
+            if (data != null) oldData.Remove(data);
 
-        _storage.Save("notificationHistory", oldData);
+            _storage.Save("notificationHistory", oldData);
+        }
     }
 
     /// <summary>
@@ -299,7 +310,7 @@ public class Notify : INotify
     /// <param name="volume">The volume level.</param>
     public void SendMusicToHome(string mediaContentId, double volume = 0.5)
     {
-        if (IsHouseEmpty(nameof(SendMusicToHome))) return;
+        if (SpeakersNotAllowed(nameof(SendMusicToHome))) return;
 
         _entities.MediaPlayer.HeleHuis.PlayMedia(new MediaPlayerPlayMediaParameters
         {
@@ -311,35 +322,37 @@ public class Notify : INotify
     }
 
     /// <summary>
-    /// Whether Vincent and Carleen are both away. Nothing is played through the house speakers then,
-    /// so e.g. a house sitter isn't bothered by announcements or music.
+    /// Whether the house speakers may not be used. They are never used while Vincent or Carleen is
+    /// sleeping, nor while both are away (so e.g. a house sitter isn't bothered by announcements or music).
     /// </summary>
     /// <param name="operation">The operation that is skipped, used for logging.</param>
-    private bool IsHouseEmpty(string operation)
+    private bool SpeakersNotAllowed(string operation)
     {
-        if (!_entities.InputBoolean.Away.IsOn()) return false;
+        string? reason = null;
+        if (_entities.InputBoolean.Sleepingvincent.IsOn() || _entities.InputBoolean.Sleepingcarleen.IsOn())
+            reason = "someone is sleeping";
+        else if (_entities.InputBoolean.Away.IsOn())
+            reason = "nobody is home";
 
-        _logger.LogDebug("Skipped {Operation}: nobody is home", operation);
+        if (reason is null) return false;
+
+        _logger.LogDebug("Skipped {Operation}: {Reason}", operation, reason);
         return true;
     }
 
     /// <summary>
-    /// Subscribes to a notification action. After the action is handled the notification is cleared
-    /// from all phones, so it also disappears on the phone of the person who didn't press it.
+    /// Subscribes to a notification action (button press).
     /// </summary>
-    /// <param name="func">The action to perform.</param>
     /// <param name="key">The key for the action.</param>
-    /// <param name="tag">The tag of the notification the action belongs to.</param>
-    private void SubscribeToNotificationAction(Action func, string key, string tag)
+    /// <param name="onPressed">What to do when the button is pressed.</param>
+    /// <returns>The subscription, which stops listening when disposed.</returns>
+    private IDisposable SubscribeToNotificationAction(string key, Action onPressed)
     {
-        _ha.Events.Where(x => x.EventType == "mobile_app_notification_action")
+        return _ha.Events.Where(x => x.EventType == "mobile_app_notification_action")
             .Subscribe(x =>
             {
                 var eventActionModel = x.DataElement?.ToObject<EventActionModel>();
-                if (eventActionModel?.Action != key) return;
-
-                func.Invoke();
-                ClearNotification(tag);
+                if (eventActionModel?.Action == key) onPressed();
             });
     }
 
@@ -384,14 +397,13 @@ public class Notify : INotify
             sticky: "true");
 
         if (tts)
-        {
-            data.Channel = "process";
             data.TtsText = phoneMessage;
-        }
 
-        data.Channel = channel;
+        // TTS notifications must use the "process" channel, otherwise the phone doesn't speak them
+        data.Channel = tts ? "process" : channel;
         data.VibrationPattern = vibrationPattern; //"100, 1000, 100, 1000, 100"
-        data.LedColor = vibrationPattern;         //"red"
+        // Notifications with a vibration pattern are alarms: show them with a red LED
+        data.LedColor = vibrationPattern != null ? "red" : null;
         data.Image = image;
 
         if (actions != null)
@@ -402,10 +414,24 @@ public class Notify : INotify
             var tag = $"actionable-{Guid.NewGuid()}";
             data.Tag = tag;
 
+            // All button subscriptions of this notification: disposed once one button is handled, or after a day
+            var subscriptions = new CompositeDisposable();
+            var handled = 0;
+            subscriptions.Add(Observable.Timer(NotificationActionLifetime).Subscribe(_ => subscriptions.Dispose()));
+
             foreach (var action in actions.Where(action => action.Func != null))
             {
                 action.Action = $"{action.Action}-{Guid.NewGuid().ToString()}";
-                if (action.Func != null) SubscribeToNotificationAction(action.Func, action.Action, tag);
+                var func = action.Func!;
+                subscriptions.Add(SubscribeToNotificationAction(action.Action, () =>
+                {
+                    // Only the first press counts, e.g. when both phones press a button of the same notification
+                    if (Interlocked.Exchange(ref handled, 1) == 1) return;
+
+                    subscriptions.Dispose();
+                    func.Invoke();
+                    ClearNotification(tag);
+                }));
                 action.Func = null;
             }
 
@@ -482,9 +508,10 @@ public class Notify : INotify
         if (canAlwaysSend) return true;
 
         var notification = GetLastNotification(storage, title);
+        if (notification == null) return true;
 
-        sendAfterMinutes ??= 60;
-        return DateTimeOffset.Now.AddMinutes((double)sendAfterMinutes) >= (notification?.LastSendNotification ?? DateTime.Now.AddDays(-1000));
+        // Only send again once the waiting time since the last notification with this title has passed
+        return DateTimeOffset.Now >= notification.LastSendNotification.AddMinutes(sendAfterMinutes ?? 60);
     }
 
     /// <summary>
@@ -495,14 +522,21 @@ public class Notify : INotify
     /// <param name="message">The message of the notification.</param>
     private static void SaveNotification(IDataRepository storage, string title, string message)
     {
-        var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
-        var data = oldData.Find(x => x.Name == title);
-        if (data != null)
-            data.Value = message;
-        else
-            oldData.Add(new NotificationModel(name: title, value: message, lastSendNotification: DateTimeOffset.Now));
+        // Every app has its own Notify, but they share the history: update it one at a time
+        lock (HistoryLock)
+        {
+            var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
+            var data = oldData.Find(x => x.Name == title);
+            if (data != null)
+            {
+                data.Value = message;
+                data.LastSendNotification = DateTimeOffset.Now;
+            }
+            else
+                oldData.Add(new NotificationModel(name: title, value: message, lastSendNotification: DateTimeOffset.Now));
 
-        storage.Save("notificationHistory", oldData);
+            storage.Save("notificationHistory", oldData);
+        }
     }
 
     /// <summary>

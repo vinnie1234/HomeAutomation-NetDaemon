@@ -14,6 +14,9 @@ public class HallLightOnMovement : BaseApp
 
     private readonly ICircadianLightingService _circadianLightingService;
 
+    /// <summary>The lights-off delay used while the hall light input_numbers have no value.</summary>
+    private static readonly TimeSpan DefaultLightOffDelay = TimeSpan.FromMinutes(5);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HallLightOnMovement"/> class.
     /// </summary>
@@ -50,9 +53,10 @@ public class HallLightOnMovement : BaseApp
             .Where(x => x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended)
             .Subscribe(_ => ChangeLight(true, GetBrightness()));
 
+        // The waiting time is determined each time the motion stops (night or day, current input_number value)
         Entities.BinarySensor.GangMotion
             .StateChanges()
-            .WhenStateIsFor(x => x.IsOff(), TimeSpan.FromMinutes(GetStateTime()), Scheduler)
+            .WhenOffFor(GetLightOffDelay, Scheduler)
             .Where(_ => !DisableLightAutomations)
             .Subscribe(_ => ChangeLight(false));
     }
@@ -64,23 +68,23 @@ public class HallLightOnMovement : BaseApp
     private int GetBrightness()
     {
         // On office days Vincent needs full brightness regardless of Carleen sleeping
-        if (IsOfficeDay(Entities, DateTimeOffset.Now.DayOfWeek) && !Vincent.IsSleeping)
+        if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
         return _circadianLightingService.GetBrightness(IsSleepMode);
     }
 
     /// <summary>
-    /// Gets the state time based on the sleeping state.
+    /// How long the lights stay on after the last motion: the night time while someone sleeps, otherwise
+    /// the day time. Falls back to <see cref="DefaultLightOffDelay"/> when the input_number has no value.
     /// </summary>
-    /// <returns>The state time in minutes.</returns>
-    private int GetStateTime()
+    private TimeSpan GetLightOffDelay()
     {
-        return IsSleepMode switch
-        {
-            true => Convert.ToInt32(Entities.InputNumber.Halllightnighttime.State),
-            false => Convert.ToInt32(Entities.InputNumber.Halllightdaytime.State)
-        };
+        var minutes = IsSleepMode
+            ? Entities.InputNumber.Halllightnighttime.State
+            : Entities.InputNumber.Halllightdaytime.State;
+
+        return minutes is > 0 ? TimeSpan.FromMinutes(minutes.Value) : DefaultLightOffDelay;
     }
 
     /// <summary>
@@ -97,8 +101,11 @@ public class HallLightOnMovement : BaseApp
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
                 if (!IsSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
+                    // An unavailable Hal has no power (wall switch off): the bot presses the switch.
+                    // Decided before TurnOn, because the state doesn't update right after the call.
+                    var halHasNoPower = Entities.Light.Hal.State is "unavailable";
                     Entities.Light.Hal.TurnOn();
-                    if (Entities.Light.Hal.IsOff())
+                    if (halHasNoPower)
                         Entities.Switch.Bot29ff.TurnOn();
                     
                     if(Entities.MediaPlayer.Tv.IsOff())

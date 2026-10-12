@@ -62,7 +62,7 @@ public class BatteryMonitoring : BaseApp
             $"Batterij bijna leeg van {name}",
             $"Het is tijd om de batterij op te laden van {name}. De batterij is nu op {batterPrc}%",
             false,
-            TimeSpan.FromDays(7).Minutes,
+            TimeSpan.FromDays(7).TotalMinutes,
             [
                 new ActionModel(action: "URI", title: "Ga naar batterij checks",
                     uri: _config.BaseUrlHomeAssistant + "/status-huis")

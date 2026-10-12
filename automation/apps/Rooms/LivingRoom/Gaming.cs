@@ -24,7 +24,10 @@ public class Gaming : BaseApp
         IScheduler scheduler)
         : base(ha, logger, notify, scheduler)
     {
-        Entities.DeviceTracker.Sony.WhenTurnsOn(_ => GameSetUp());
+        // A device tracker reports home/not_home (not on/off): the PS5 coming online means it was turned on
+        Entities.DeviceTracker.Sony.StateChanges()
+            .Where(x => x.Old?.State == "not_home" && x.New?.State == "home")
+            .Subscribe(_ => GameSetUp());
     }
 
     /// <summary>

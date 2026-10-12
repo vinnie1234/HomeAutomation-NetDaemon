@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using Automation.Extensions;
 using Automation.Interfaces;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
@@ -28,6 +29,9 @@ public class SleepManagerTests
         ctx.HaContext.GetState("sensor.afval_vandaag").Returns(new EntityState { State = "Geen" });
         ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { State = "0" });
         ctx.HaContext.GetState("cover.rollerblind_0003").Returns(new EntityState { State = "closed" });
+        // Phones are charged by default, so the low battery warning only fires in tests that ask for it
+        ctx.HaContext.GetState("sensor.vincent_phone_battery_level").Returns(new EntityState { State = "100" });
+        ctx.HaContext.GetState("sensor.carleen_mobiel_battery_level").Returns(new EntityState { State = "100" });
         ctx.HaContext.GetAllEntities().Returns(new List<Entity>());
 
         return ctx;
@@ -37,10 +41,12 @@ public class SleepManagerTests
     /// Creates storage in which the PetSnowy was cleaned today, so the "not cleaned today"
     /// notification doesn't interfere with tests that count other notifications.
     /// </summary>
-    private static IDataRepository StorageWithPetSnowyCleanedToday()
+    private static IDataRepository StorageWithPetSnowyCleanedToday(AppTestContext ctx)
     {
         var storage = Substitute.For<IDataRepository>();
-        storage.Get<string>("PetsnowyLastCleanedDate").Returns(DateTime.Today.ToString("O"));
+        // "Today" is the Dutch date of the test clock at the moment the app asks for it
+        storage.Get<string>("PetsnowyLastCleanedDate")
+            .Returns(_ => SchedulerExtensions.ToDutchTime(ctx.Scheduler.Now).Date.ToString("O"));
         return storage;
     }
 
@@ -137,7 +143,6 @@ public class SleepManagerTests
 
 
         ctx.VerifyCallService("input_boolean", "turn_off", "awayvincent", times: 1);
-        ctx.VerifyCallService("input_boolean", "turn_off", "awaycarleen", times: 1);
         ctx.VerifyCallService("input_boolean", "turn_off", "douchen", times: 1);
     }
 
@@ -147,7 +152,7 @@ public class SleepManagerTests
         var ctx = SetupContext();
         ctx.SetCurrentTime(new DateTime(2023, 1, 1, 22, 0, 0)); // Not between 0 and 7
         ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Plastic" });
-        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday());
+        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday(ctx));
 
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
@@ -160,7 +165,7 @@ public class SleepManagerTests
     {
         var ctx = SetupContext();
         ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
-        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday());
+        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday(ctx));
 
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
@@ -225,8 +230,9 @@ public class SleepManagerTests
         
         TestExceptionCatcher.CaughtException.Should().BeNull("Because an exception was caught during SleepManager execution");
 
-        // SendBatteryWarning now uses NotifyHouse for the phone battery warning
-        ctx.VerifyCallNotify("tts", "cloud_say", times: 1);
+        // The phone battery warning goes to the phones, never through the speakers
+        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 1);
+        ctx.VerifyCallNotify("tts", "cloud_say", times: 0);
     }
 
     [Fact]
@@ -299,6 +305,39 @@ public class SleepManagerTests
 
         ctx.VerifyCallService("input_boolean", "turn_off", "sleepingvincent", times: 1);
         ctx.VerifyCallService("input_boolean", "turn_off", "sleepingcarleen", times: 1);
+    }
+
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(13, true)]
+    [InlineData(23, false)]
+    public void BedroomCeilingLight_OnlyEndsTheNight_InTheMorning(int dutchHour, bool expectWakeUp)
+    {
+        // Arrange - both sleeping; the Dutch time in January is UTC+1
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
+        ctx.SetCurrentTime(new DateTime(2023, 1, 2, dutchHour - 1, 0, 0));
+        ctx.InitApp<SleepManager>();
+
+        // Act
+        ctx.ChangeStateFor("light.plafondslaapkamer").FromState("off").ToState("on");
+
+        // Assert
+        ctx.VerifyCallService("input_boolean", "turn_off", "sleepingvincent", times: expectWakeUp ? 1 : 0);
+    }
+
+    [Fact]
+    public void VincentWakeUp_DoesNotSendBatteryWarning_WhenBatteryLevelIsUnavailable()
+    {
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("sensor.vincent_phone_battery_level").Returns(new EntityState { State = "unavailable" });
+        ctx.HaContext.GetState("binary_sensor.vincent_phone_is_charging").Returns(new EntityState { State = "off" });
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+
+        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 0);
     }
 
     [Fact]

@@ -112,11 +112,11 @@ public class Cat : BaseApp
             {
                 try
                 {
-                    FeedCat(Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0));
-                    
-                    Entities.InputNumber.Pixellastamountmanualfeed.SetValue(Convert.ToInt32(
-                        (Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0) +
-                        Convert.ToInt32(Entities.InputNumber.Pixellastamountmanualfeed.State ?? 0)));
+                    var amount = Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0);
+                    FeedCat(amount);
+
+                    // The amount of this (last) manual feed, like GiveNextFeedEarly does
+                    Entities.InputNumber.Pixellastamountmanualfeed.SetValue(amount);
                     Entities.InputDatetime.Pixellastmanualfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
                     {
                         Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
@@ -248,7 +248,7 @@ public class Cat : BaseApp
             });
 
 
-        Scheduler.ScheduleCron("59 23 * * *", () => Entities.InputNumber.Pixeltotalamountfeedday.SetValue(0));
+        Scheduler.ScheduleCronNl("59 23 * * *", () => Entities.InputNumber.Pixeltotalamountfeedday.SetValue(0));
     }
 
     /// <summary>
@@ -256,9 +256,9 @@ public class Cat : BaseApp
     /// </summary>
     private void AutoFeedCat()
     {
-        foreach (var autoFeed in
-                 GetFeedTimes().Where(autoFeed => autoFeed.Key.State != null))
-            Scheduler.RunDaily(TimeSpan.Parse(autoFeed.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")), () =>
+        // The feed times are rescheduled when changed in Home Assistant; a feed without a valid time is skipped
+        foreach (var autoFeed in GetFeedTimes())
+            Scheduler.RunDailyAt(autoFeed.Key, fallback: null, () =>
             {
                 if (Entities.InputBoolean.Pixelskipnextautofeed.IsOff())
                 {
@@ -281,6 +281,11 @@ public class Cat : BaseApp
     private void GiveNextFeedEarly()
     {
         var closestFeed = GetClosestFeed();
+        if (closestFeed.Key is null)
+        {
+            Logger.LogWarning("Cannot give the next feed early: none of the feed times is set");
+            return;
+        }
 
         Entities.InputBoolean.Pixelskipnextautofeed.TurnOn();
         FeedCat(Convert.ToInt32(closestFeed.Value.State));
@@ -329,13 +334,25 @@ public class Cat : BaseApp
     /// <returns>The closest feed time as a key-value pair.</returns>
     private KeyValuePair<InputDatetimeEntity, InputNumberEntity> GetClosestFeed()
     {
+        // The next upcoming feed (also past midnight), which is also the one "skip next auto feed" skips.
+        // Feed times are Dutch clock times, so compare them with the Dutch time of day.
+        var timeOfDay = Scheduler.NowNl().TimeOfDay;
         var closestFeed =
             GetFeedTimes()
-                .MinBy(pair =>
-                    Math.Abs(
-                        (DateTimeOffset.Parse(pair.Key.State ?? "00:00:00", new CultureInfo("nl-Nl")) - DateTimeOffset.Now)
-                        .Ticks));
+                .Select(pair => (Feed: pair, Time: Extensions.SchedulerExtensions.ParseTimeOfDay(pair.Key.State)))
+                .Where(feed => feed.Time != null)
+                .MinBy(feed => TimeUntil(feed.Time!.Value, timeOfDay))
+                .Feed;
         return closestFeed;
+    }
+
+    /// <summary>
+    /// How long it takes until the given time of day, counting from <paramref name="now"/> and wrapping past midnight.
+    /// </summary>
+    private static TimeSpan TimeUntil(TimeSpan timeOfDay, TimeSpan now)
+    {
+        var until = timeOfDay - now;
+        return until < TimeSpan.Zero ? until + TimeSpan.FromDays(1) : until;
     }
     /// <summary>
     /// Gets a dictionary of feed times with their corresponding feed amounts.

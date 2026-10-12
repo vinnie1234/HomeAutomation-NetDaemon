@@ -189,6 +189,29 @@ public class VacuumTests
         // Assert 2
         ctx.VerifyCallService("vacuum", "send_command", "jaap", times: 1);
     }
+
+    [Fact]
+    public void CleanLitterBoxAfterUse_CleansOnce_WhenUsedSeveralTimesDuringTheNight()
+    {
+        // Arrange
+        using var ctx = AppTestContext.NewWithScheduler();
+        SetupBaseStates(ctx);
+        ctx.HaContext.GetState("input_boolean.skipvaccumlitterbox").Returns(new EntityState { EntityId = "input_boolean.skipvaccumlitterbox", State = "off" });
+        ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
+        ctx.InitApp<Vacuum>(CreateConfig());
+
+        // Act - the litter box is used twice during the night, then Vincent wakes up; the next morning nothing happened
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("cleaning").ToState("idle");
+        ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("idle").ToState("cleaning");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - one cleaning in total
+        ctx.VerifyCallService("vacuum", "send_command", "jaap", times: 1);
+    }
 }
 
 

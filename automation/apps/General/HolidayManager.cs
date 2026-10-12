@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Text.RegularExpressions;
 
 namespace Automation.apps.General;
 
@@ -8,6 +9,11 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(HolidayManager))]
 public class HolidayManager : BaseApp
 {
+    /// <summary>Whether the holiday was turned on by the calendar check (and may be turned off by it).</summary>
+    private const string HolidaySetByCalendarKey = "HolidaySetByCalendar";
+
+    private readonly IDataRepository _storage;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HolidayManager"/> class.
     /// </summary>
@@ -15,13 +21,16 @@ public class HolidayManager : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="storage">The data repository, remembering whether the calendar turned the holiday on.</param>
     public HolidayManager(
         IHaContext ha,
         ILogger<HolidayManager> logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IDataRepository storage)
         : base(ha, logger, notify, scheduler)
     {
+        _storage = storage;
         HolidayChangeStateHandler();
         CheckCalenderForHoliday();
     }
@@ -92,19 +101,44 @@ public class HolidayManager : BaseApp
 
     /// <summary>
     /// Checks the calendar for holidays and updates the holiday state accordingly.
-    /// Both the event title (<c>message</c>) and its <c>description</c> are inspected.
+    /// Both the event title (<c>message</c>) and its <c>description</c> of the current event are inspected.
+    /// When the calendar turned the holiday on, it also turns it off again once the day off is over;
+    /// a holiday turned on by hand is left alone.
     /// </summary>
     private void CheckCalenderForHoliday()
     {
-        Scheduler.ScheduleCron("00 00 * * *", () =>
+        // At 00:05 rather than 00:00: an all-day event only turns the calendar on just after midnight
+        Scheduler.ScheduleCronNl("05 00 * * *", () =>
         {
-            var attributesJson = Entities.Calendar.VincentmaarschalkerweerdGmailCom.EntityState?.AttributesJson;
-            var text = $"{GetCalendarAttribute(attributesJson, "message")} {GetCalendarAttribute(attributesJson, "description")}"
-                .ToLower();
+            var calendar = Entities.Calendar.VincentmaarschalkerweerdGmailCom;
 
-            if (text.Contains("vrij") || text.Contains("vakantie"))
+            // The attributes also describe the next upcoming event, so only an event that is active now counts
+            var isDayOff = calendar.State == "on" && IsDayOffEvent(calendar.EntityState?.AttributesJson);
+            var setByCalendar = _storage.Get<string>(HolidaySetByCalendarKey) == bool.TrueString;
+
+            if (isDayOff)
+            {
+                if (Entities.InputBoolean.Holliday.IsOn()) return;
+
                 Entities.InputBoolean.Holliday.TurnOn();
+                _storage.Save(HolidaySetByCalendarKey, bool.TrueString);
+            }
+            else if (setByCalendar)
+            {
+                Entities.InputBoolean.Holliday.TurnOff();
+                _storage.Save(HolidaySetByCalendarKey, bool.FalseString);
+            }
         });
+    }
+
+    /// <summary>
+    /// Whether the calendar event is a day off: its title or description contains the word "vrij" or "vakantie".
+    /// Whole words only, so e.g. "vrijdagborrel" doesn't count.
+    /// </summary>
+    private static bool IsDayOffEvent(JsonElement? attributesJson)
+    {
+        var text = $"{GetCalendarAttribute(attributesJson, "message")} {GetCalendarAttribute(attributesJson, "description")}";
+        return Regex.IsMatch(text, @"\b(vrij|vakantie)\b", RegexOptions.IgnoreCase);
     }
 
     /// <summary>

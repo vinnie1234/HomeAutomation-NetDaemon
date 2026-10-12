@@ -180,7 +180,8 @@ public class BathRoomLightsTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        
+        ctx.HaContext.GetState("media_player.googlehome0351").Returns(new EntityState { State = "playing" });
+
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
@@ -209,7 +210,8 @@ public class BathRoomLightsTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "on" }); // Remains on
-        
+        ctx.HaContext.GetState("media_player.googlehome0351").Returns(new EntityState { State = "playing" });
+
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
@@ -224,6 +226,49 @@ public class BathRoomLightsTests
         ctx.VerifyCallService("media_player", "media_stop", "googlehome0351");
         ctx.VerifyCallService("input_boolean", "turn_off", "douchen");
         // We know it notifies but let's just assume we hit the logic.
+    }
+
+    [Fact]
+    public void Douchen_SecondShowerWithinAnHour_IsNotEndedByTheFirstShowersTimer()
+    {
+        // Arrange - shower 1 from 0:00 to 0:20, shower 2 starts at 0:50
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "on" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        ctx.ChangeStateFor("input_boolean.douchen").FromState("off").ToState("on");
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(20).Ticks);
+        ctx.ChangeStateFor("input_boolean.douchen").FromState("on").ToState("off");
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(30).Ticks);
+        ctx.ChangeStateFor("input_boolean.douchen").FromState("off").ToState("on");
+        ctx.HaContext.ClearReceivedCalls();
+
+        // Act - 1:00, when the first shower's timer would have fired
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(10).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - the second shower is not turned off
+        ctx.VerifyNotCallService("input_boolean.turn_off", "douchen");
+    }
+
+    [Fact]
+    public void MotionOff_TurnsOffLights_WhileSomeoneSleeps_OutsideNightMode()
+    {
+        // Arrange - Carleen still sleeps but the house mode is already Morning
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { State = "Morning" });
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        // Act - motion stops; the night delay is 2 minutes
+        ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("on").ToState("off");
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(2).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyCallService("light", "turn_off", "plafond_badkamer");
     }
 
     [Fact]
@@ -255,7 +300,8 @@ public class BathRoomLightsTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        
+        ctx.HaContext.GetState("media_player.googlehome0351").Returns(new EntityState { State = "playing" });
+
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
@@ -268,6 +314,25 @@ public class BathRoomLightsTests
 
         // Assert
         ctx.VerifyCallService("media_player", "media_stop", "googlehome0351");
+        ctx.VerifyCallService("light", "turn_on", "slaapkamer");
+    }
+
+    [Fact]
+    public void Toothbrush_TurnsOff_DoesNotStopSpeaker_WhenNothingIsPlaying()
+    {
+        // Arrange - a Cast speaker fails "media_stop" when nothing is playing
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("media_player.googlehome0351").Returns(new EntityState { State = "idle" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        // Act
+        ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("running").ToState("idle");
+        ctx.AdvanceTimeBy(TimeSpan.FromSeconds(30).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - still turns on the bedroom light, but doesn't send a stop to the idle speaker
+        ctx.VerifyNotCallService("media_player.media_stop");
         ctx.VerifyCallService("light", "turn_on", "slaapkamer");
     }
 

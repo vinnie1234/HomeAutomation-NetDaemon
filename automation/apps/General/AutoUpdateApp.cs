@@ -14,6 +14,9 @@ public class AutoUpdateApp : BaseApp
     private readonly AppConfig _config;
     private readonly UpdateEntities _updates;
 
+    /// <summary>How long to wait for a single update to finish installing.</summary>
+    private static readonly TimeSpan InstallTimeout = TimeSpan.FromMinutes(30);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AutoUpdateApp"/> class.
     /// </summary>
@@ -31,7 +34,7 @@ public class AutoUpdateApp : BaseApp
     {
         _config = config.Value;
         _updates = Entities.Update;
-        scheduler.ScheduleCron("0 11 30 * *", () => _ = AutoUpdate());
+        scheduler.ScheduleCronNl("0 11 30 * *", () => _ = AutoUpdate());
     }
 
     /// <summary>
@@ -41,7 +44,11 @@ public class AutoUpdateApp : BaseApp
     {
         try
         {
-            var needUpdate = _updates.EnumerateAll().Where(u => u.IsOn()).ToArray();
+            // The Home Assistant Core update restarts Home Assistant, which would break the installs after it: do it last
+            var needUpdate = _updates.EnumerateAll()
+                .Where(u => u.IsOn())
+                .OrderBy(u => u.EntityId.Contains("home_assistant_core"))
+                .ToArray();
             if (needUpdate.Length == 0) return;
 
             var names = string.Join(",", needUpdate.Select(u => u.Attributes?.FriendlyName ?? u.EntityId));
@@ -55,9 +62,17 @@ public class AutoUpdateApp : BaseApp
 
                 updateEntity.Install();
 
-                Logger.LogInformation("Ready updating {name}", name);
-                NotifyMeOnDiscord("Updates is geinstaleerd", $"Geinstalleerde update voor {name}");
-                await Observable.Timer(TimeSpan.FromMinutes(1), Scheduler);
+                // Install only starts the update: wait until the entity reports it is up to date
+                if (await WaitUntilInstalled(updateEntity))
+                {
+                    Logger.LogInformation("Ready updating {name}", name);
+                    NotifyMeOnDiscord("Updates is geinstaleerd", $"Geinstalleerde update voor {name}");
+                }
+                else
+                {
+                    Logger.LogWarning("Update for {name} did not finish within {Timeout}", name, InstallTimeout);
+                    NotifyMeOnDiscord("Update niet afgerond", $"De update voor {name} is na {InstallTimeout.TotalMinutes} minuten nog niet klaar");
+                }
             }
 
             NotifyVincentPhone(needUpdate.Length);
@@ -67,6 +82,22 @@ public class AutoUpdateApp : BaseApp
         {
             Logger.LogError(ex, "Error during auto-update process");
         }
+    }
+
+    /// <summary>
+    /// Waits until an update entity is off (installed), checking every minute up to <see cref="InstallTimeout"/>.
+    /// </summary>
+    /// <param name="updateEntity">The update being installed.</param>
+    /// <returns><c>true</c> when the update was installed in time; otherwise <c>false</c>.</returns>
+    private async Task<bool> WaitUntilInstalled(UpdateEntity updateEntity)
+    {
+        for (var waited = TimeSpan.Zero; waited < InstallTimeout; waited += TimeSpan.FromMinutes(1))
+        {
+            await Observable.Timer(TimeSpan.FromMinutes(1), Scheduler);
+            if (updateEntity.IsOff()) return true;
+        }
+
+        return false;
     }
 
     /// <summary>

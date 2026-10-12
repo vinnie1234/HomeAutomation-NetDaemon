@@ -43,9 +43,9 @@ public class SleepManager : BaseApp
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => Sleeping());
         Entities.InputBoolean.Sleepingcarleen.WhenTurnsOff(_ => CarleenWokeUp());
 
-        Scheduler.ScheduleCron("00 10 * * *", () =>
+        Scheduler.ScheduleCronNl("00 10 * * *", () =>
         {
-            if (!Globals.IsDayOff(Entities, Scheduler.Now.DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Datenight.IsOff())
+            if (!Globals.IsDayOff(Entities, Scheduler.NowNl().DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Datenight.IsOff())
                 Entities.InputBoolean.Sleepingvincent.TurnOff();
         });
     }
@@ -64,6 +64,7 @@ public class SleepManager : BaseApp
 
             SendBatteryWarning();
         } catch (Exception ex) {
+            Logger.LogError(ex, "Error in the wake-up routine");
             TestExceptionCatcher.CaughtException = ex;
         }
     }
@@ -73,7 +74,7 @@ public class SleepManager : BaseApp
     /// </summary>
     private void OpenRollerblind()
     {
-        if (Globals.IsDayOff(Entities, Scheduler.Now.DayOfWeek))
+        if (Globals.IsDayOff(Entities, Scheduler.NowNl().DayOfWeek))
         {
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);
@@ -108,20 +109,23 @@ public class SleepManager : BaseApp
             SendBatteryWarning();
             Entities.MediaPlayer.Tv.TurnOff();
             Entities.Cover.Rollerblind0003.SetCoverPosition(0);
-            var checkDate = Scheduler.Now;
+            var now = Scheduler.NowNl();
             var message = Entities.Sensor.AfvalMorgen.State;
-            if (checkDate.Hour is >= 05 and < 07) 
+            if (now.Hour is >= 05 and < 07)
                 message = Entities.Sensor.AfvalVandaag.State;
 
-            if (message != "Geen")
+            // Like Alarm's garbage check: no reminder when there's no garbage or the sensor has no value
+            if (message is not (null or "" or "Geen" or "unknown" or "unavailable"))
                 Notify.NotifyPeopleHome("Vergeet het afval niet",
                     $"Vergeet je niet op {message} buiten te zetten?", true);
 
-            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == DateTime.Today.ToString("O");
-            if (int.Parse(Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0") > 0 || !cleanedToday)
+            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == now.Date.ToString("O");
+            var hasErrors = int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var errors) && errors > 0;
+            if (hasErrors || !cleanedToday)
                 Notify.NotifyPeopleHome("PetSnowy heeft errors",
                     "Er staat nog een error open voor de PetSnowy", true);
         } catch (Exception ex) {
+            Logger.LogError(ex, "Error in the sleep routine");
             TestExceptionCatcher.CaughtException = ex;
         }
     }
@@ -131,10 +135,9 @@ public class SleepManager : BaseApp
     /// </summary>
     private void ChangeRelevantHouseState()
     {
-        // Going to sleep means being home: clear per-person away so the derived "away" follows.
+        // Going to sleep means being home: clear Vincent's away so the derived "away" follows.
+        // (Carleen's away is left alone: it only says whether she is home.)
         Entities.InputBoolean.Awayvincent.TurnOff();
-        if (Carleen.IsHome)
-            Entities.InputBoolean.Awaycarleen.TurnOff();
         Entities.InputBoolean.Douchen.TurnOff();
     }
 
@@ -145,23 +148,25 @@ public class SleepManager : BaseApp
     {
         var message = "";
 
-        if ((Entities.Sensor.VincentPhoneBatteryLevel.State ?? 0) < 30 &&
+        // An unknown/unavailable battery level (null) is not "almost empty"
+        if (Entities.Sensor.VincentPhoneBatteryLevel.State is < 30 &&
             Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
             message = "Telefoon van Vincent is bijna leeg.";
 
-        if ((Entities.Sensor.CarleenMobielBatteryLevel.State ?? 0) < 30 &&
-            Entities.BinarySensor.VincentPhoneIsCharging.IsOff())
+        if (Entities.Sensor.CarleenMobielBatteryLevel.State is < 30 &&
+            Entities.Sensor.CarleenMobielBatteryState.State is not ("charging" or "full"))
         {
             if(!string.IsNullOrEmpty(message))
                 message += " En ";
             message += "Telefoon van Carleen is bijna leeg.";
         }
-            
 
-        if (!string.IsNullOrEmpty(message)) 
-            Notify.NotifyHouse("Telefoon bijna leeg", message, true);
+        // To the phones, not the speakers: this runs when going to sleep or waking up, and nothing is
+        // announced through the speakers while someone is sleeping
+        if (!string.IsNullOrEmpty(message))
+            Notify.NotifyPeopleHome("Telefoon bijna leeg", message, true);
 
-        if ((Entities.Sensor.SmT860BatteryLevel.State ?? 0) < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
+        if (Entities.Sensor.SmT860BatteryLevel.State is < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
             Notify.NotifyPhoneVincent("Tabled bijna leeg", "Je moet je tabled opladen", true);
     }
 
@@ -194,11 +199,12 @@ public class SleepManager : BaseApp
                 Entities.InputBoolean.Sleepingvincent.TurnOff();            
         });
 
+        // The bedroom ceiling light in the morning means getting up; in the evening it must not end the night
         Entities.Light.Plafondslaapkamer.WhenTurnsOn(_ =>
         {
-            switch (DateTime.Now.Hour)
+            switch (Scheduler.NowNl().Hour)
             {
-                case > 8 and < 10:
+                case 9:
                 {
                     if (!Vincent.IsHome)
                     {
@@ -208,7 +214,7 @@ public class SleepManager : BaseApp
 
                     break;
                 }
-                case > 10:
+                case >= 10 and < 14:
                     Entities.InputBoolean.Sleepingcarleen.TurnOff();
                     Entities.InputBoolean.Sleepingvincent.TurnOff();
                     break;
@@ -221,7 +227,7 @@ public class SleepManager : BaseApp
     /// </summary>
     private void ScheduleCarleenWakeUp()
     {
-        Scheduler.ScheduleCron("00 10 * * *", () =>
+        Scheduler.ScheduleCronNl("00 10 * * *", () =>
         {
             if (Carleen.IsHome && Carleen.IsSleeping)
             {

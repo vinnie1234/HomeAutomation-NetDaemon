@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Automation.Helpers;
 using Serilog.Core;
+using Serilog.Debugging;
 using Serilog.Events;
 using Discord;
 using Discord.Webhook;
@@ -28,6 +29,12 @@ public class DiscordLogger : ILogEventSink, IDisposable
     /// </summary>
     private static readonly ConcurrentDictionary<string, DiscordWebhookClient> WebhookClients = new();
 
+    /// <summary>Messages waiting to be sent above this number are dropped.</summary>
+    private const int MaxPendingMessages = 50;
+
+    private static readonly SemaphoreSlim SendLock = new(1, 1);
+    private static int _pendingMessages;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DiscordLogger"/> class.
     /// </summary>
@@ -47,7 +54,30 @@ public class DiscordLogger : ILogEventSink, IDisposable
     /// <param name="logEvent">The log event to emit.</param>
     public void Emit(LogEvent logEvent)
     {
-        _ = Task.Run(async () => await SendMessageAsync(logEvent));
+        if (!ShouldLogMessage(_restrictedToMinimumLevel, logEvent.Level))
+            return;
+
+        // During a burst of errors Discord rate limits the webhook: don't queue up an unlimited number of messages
+        if (Interlocked.Increment(ref _pendingMessages) > MaxPendingMessages)
+        {
+            Interlocked.Decrement(ref _pendingMessages);
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            // One message at a time, so they arrive in order and don't all hit the rate limit at once
+            await SendLock.WaitAsync();
+            try
+            {
+                await SendMessageAsync(logEvent);
+            }
+            finally
+            {
+                SendLock.Release();
+                Interlocked.Decrement(ref _pendingMessages);
+            }
+        });
     }
 
     /// <summary>
@@ -66,9 +96,6 @@ public class DiscordLogger : ILogEventSink, IDisposable
     /// <param name="logEvent">The log event to send.</param>
     private async Task SendMessageAsync(LogEvent logEvent)
     {
-        if (!ShouldLogMessage(_restrictedToMinimumLevel, logEvent.Level))
-            return;
-
         var embedBuilder = new EmbedBuilder();
 
         try
@@ -103,9 +130,17 @@ public class DiscordLogger : ILogEventSink, IDisposable
         }
         catch (Exception ex)
         {
-            var webHook = GetOrCreateClient(GetWebhookUrl());
-            await webHook.SendMessageAsync(
-                    $"ooo snap, {ex.Message}");
+            try
+            {
+                var webHook = GetOrCreateClient(GetWebhookUrl());
+                await webHook.SendMessageAsync(
+                        $"ooo snap, {ex.Message}");
+            }
+            catch (Exception fallbackEx)
+            {
+                // Discord itself is unreachable: report it to Serilog's own diagnostics instead of losing it
+                SelfLog.WriteLine("Could not send log event to Discord: {0}; fallback failed too: {1}", ex.Message, fallbackEx.Message);
+            }
         }
     }
 

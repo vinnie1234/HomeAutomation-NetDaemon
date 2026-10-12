@@ -21,6 +21,11 @@ public class AppTestContext : IDisposable
     /// </summary>
     public ISpotcast Spotcast { get; } = Substitute.For<ISpotcast>();
 
+    /// <summary>
+    /// The moment the test clock starts at.
+    /// </summary>
+    public static readonly DateTimeOffset StartTime = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     public TestScheduler Scheduler { get; } = new();
     public HaContextMock HaContextMock { get; }
     public IHaContext HaContext => HaContextMock.HaContext;
@@ -54,7 +59,10 @@ public class AppTestContext : IDisposable
 
     private AppTestContext(bool useSchedulerForReactive = false)
     {
-        Scheduler.AdvanceTo(DateTimeOffset.Now.ToUnixTimeMilliseconds());
+        // Start the test clock (UTC ticks) at a fixed, realistic moment that lies before any time a test
+        // moves to: the TestScheduler can't go back in time. Year 1 doesn't work with the Dutch time zone,
+        // whose historical offset (local mean time) isn't a whole number of minutes.
+        Scheduler.AdvanceTo(StartTime.UtcTicks);
         HaContextMock = new HaContextMock(useSchedulerForReactive ? Scheduler : null);
         Notify = new Notify(HaContext, DataRepository, Substitute.For<ILogger<Notify>>());
     }

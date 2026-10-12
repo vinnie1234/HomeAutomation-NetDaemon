@@ -3,13 +3,16 @@ using System.Reactive.Concurrency;
 namespace Automation.apps.General;
 
 /// <summary>
-/// Represents an application that saves the state of lights and alarms.
+/// Represents an application that saves the state of lights and alarms, so <see cref="Reset"/> can restore
+/// the lights after a restart.
 /// </summary>
 [NetDaemonApp(Id = nameof(SaveInState))]
 public class SaveInState : BaseApp, IAsyncInitializable
 {
+    /// <summary>Saves once the lights have been unchanged for this long, instead of on every single change.</summary>
+    private static readonly TimeSpan SaveDelay = TimeSpan.FromSeconds(10);
+
     private readonly IDataRepository _storage;
-    private List<LightStateModel> LightEntitiesStates { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SaveInState"/> class.
@@ -28,34 +31,36 @@ public class SaveInState : BaseApp, IAsyncInitializable
         : base(ha, logger, notify, scheduler)
     {
         _storage = storage;
-        LightEntitiesStates = new List<LightStateModel>();
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken)
     {
-        SetInitialStates();
+        // Keep the snapshot up to date while running, so Reset restores the state from just before a restart.
+        // Not at startup: that would overwrite the snapshot before Reset has used it.
+        HaContext.StateChanges()
+            .Where(change => change.Entity.EntityId.StartsWith("light."))
+            .Throttle(SaveDelay, Scheduler)
+            .Subscribe(_ => SaveStates());
+
+        _storage.Save("AlarmState", SetAlarmState());
+
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Sets the initial states of lights and alarms and saves them to storage.
+    /// Saves the current state of the lights to storage.
     /// </summary>
-    private void SetInitialStates()
+    private void SaveStates()
     {
-        var properties = Entities.Light.GetType().GetProperties();
+        var lightStates = _storage.Get<List<LightStateModel>>("LightState") ?? [];
 
-        foreach (var property in properties)
-        {
-            var light = property.GetValue(Entities.Light, null);
-            if (light != null)
-                SetLightEntityState((LightEntity)light);
-        }
+        foreach (var property in Entities.Light.GetType().GetProperties())
+            if (property.GetValue(Entities.Light, null) is LightEntity light)
+                SetLightEntityState(lightStates, light);
 
-        _storage.Save("LightState", LightEntitiesStates);
+        _storage.Save("LightState", lightStates);
 
-        _storage.Save("AlarmState", SetAlarmState());
-
-        Logger.LogDebug("Save state");
+        Logger.LogDebug("Saved the light states");
     }
 
     /// <summary>
@@ -80,17 +85,20 @@ public class SaveInState : BaseApp, IAsyncInitializable
     }
 
     /// <summary>
-    /// Sets the state of a light entity and adds it to the list of light states.
+    /// Sets the state of a light entity in the list of light states.
+    /// A light without a real state (unavailable/unknown, e.g. while Home Assistant restarts) keeps its
+    /// previous entry, otherwise Reset would turn it off.
     /// </summary>
+    /// <param name="lightStates">The light states to update.</param>
     /// <param name="entity">The light entity to set the state for.</param>
-    private void SetLightEntityState(LightEntity entity)
+    private static void SetLightEntityState(List<LightStateModel> lightStates, LightEntity entity)
     {
-        var oldEntity = LightEntitiesStates
-            .Find(lightStateModel => lightStateModel.EntityId == entity.EntityId);
-        if (oldEntity != null) LightEntitiesStates.Remove(oldEntity);
+        if (entity.State is not ("on" or "off")) return;
 
-        LightEntitiesStates.Add(new LightStateModel(entityId: entity.EntityId, rgbColors: entity.Attributes?.RgbColor,
-            brightness: entity.Attributes?.Brightness, colorTemp: entity.Attributes?.ColorTemp, isOn: entity.IsOn(),
-            supportedColorModes: entity.Attributes?.SupportedColorModes));
+        lightStates.RemoveAll(lightStateModel => lightStateModel.EntityId == entity.EntityId);
+
+        lightStates.Add(new LightStateModel(entityId: entity.EntityId, rgbColors: entity.Attributes?.RgbColor,
+            brightness: entity.Attributes?.Brightness, colorTempKelvin: entity.Attributes?.ColorTempKelvin,
+            isOn: entity.IsOn(), supportedColorModes: entity.Attributes?.SupportedColorModes));
     }
 }

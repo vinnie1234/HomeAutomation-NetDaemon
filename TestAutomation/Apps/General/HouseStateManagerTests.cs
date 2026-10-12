@@ -108,6 +108,7 @@ public class HouseStateManagerTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("sun.sun").Returns(new EntityState { EntityId = "sun.sun", State = "below_horizon" });
+        ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Night" });
         ctx.InitApp<HouseStateManager>();
 
         // Act
@@ -116,6 +117,62 @@ public class HouseStateManagerTests
 
         // Assert
         ctx.VerifyInputSelect_SelectOption("input_select.housemodeselect", "Morning");
+    }
+
+    [Fact]
+    public void SunComesUp_KeepsDay_WhenDayWasAlreadySet()
+    {
+        // Arrange - e.g. an office day in winter: Day is set at 07:15, sunrise is later
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("sun.sun").Returns(new EntityState { EntityId = "sun.sun", State = "below_horizon" });
+        ctx.InitApp<HouseStateManager>();
+        ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Day" });
+
+        // Act
+        ctx.ChangeStateFor("sun.sun").FromState("below_horizon").ToState("above_horizon");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyInputSelect_SelectOption_NotChangedTo("input_select.housemodeselect", "Morning");
+    }
+
+    [Fact]
+    public void SunGoesDown_KeepsNight_WhenSomeoneAlreadySleeps()
+    {
+        // Arrange - e.g. going to bed before sunset in summer
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.InitApp<HouseStateManager>();
+        ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Night" });
+
+        // Act
+        ctx.ChangeStateFor("sun.sun").FromState("above_horizon").ToState("below_horizon");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        ctx.VerifyInputSelect_SelectOption_NotChangedTo("input_select.housemodeselect", "Evening");
+    }
+
+    [Fact]
+    public void DaytimeOffice_IsRescheduled_WhenChangedInHomeAssistant()
+    {
+        // Arrange - Monday 3 January 2000 (an office day), the office daytime is moved from 07:15 to 06:00
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.officeday_monday").Returns(new EntityState { EntityId = "input_boolean.officeday_monday", State = "on" });
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { EntityId = "input_boolean.onvacation", State = "off" });
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks); // Monday 01:00 Dutch time
+        ctx.InitApp<HouseStateManager>();
+        ctx.ChangeStateFor("input_datetime.daytimeoffice").FromState("07:15:00").ToState("06:00:00");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.HaContext.ClearReceivedCalls();
+
+        // Act - advance to 06:30 Dutch time (05:30 UTC) on Monday, before the old 07:15
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 5, 30, 0, TimeSpan.Zero).UtcTicks);
+
+        // Assert
+        ctx.VerifyInputSelect_SelectOption("input_select.housemodeselect", "Day");
     }
 
     [Fact]
