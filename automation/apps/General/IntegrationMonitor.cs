@@ -9,7 +9,7 @@ namespace Automation.apps.General;
 
 /// <summary>
 /// Watches the Home Assistant integrations every quarter of an hour. An integration has a problem when it failed
-/// to load, or when it is loaded but did not load some of its entities. Such an integration is reloaded up to
+/// to load, or when it is loaded but no longer loads entities it loaded before. Such an integration is reloaded up to
 /// <see cref="MaxReloadAttempts"/> times, with <see cref="RetryDelay"/> in between. When that does not help, the
 /// Discord log channel is told which integration has problems and what they are. The attempts are stored, so a
 /// restart of NetDaemon doesn't reset them; they are removed once the integration works again.
@@ -29,6 +29,9 @@ public class IntegrationMonitor : BaseApp
     /// <summary>How long to wait after a reload before checking whether it helped.</summary>
     public static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(5);
 
+    /// <summary>The storage key of the entities that have been seen loaded.</summary>
+    public const string LoadedEntitiesStorageKey = "IntegrationMonitorLoadedEntities";
+
     /// <summary>The maximum number of entities listed in the Discord notification.</summary>
     private const int MaxListedEntities = 10;
 
@@ -36,7 +39,7 @@ public class IntegrationMonitor : BaseApp
     private readonly IDataRepository _storage;
     private readonly AppConfig _config;
 
-    /// <summary>Guards <see cref="_inProgress"/> and the stored reload history.</summary>
+    /// <summary>Guards <see cref="_inProgress"/>, the stored reload history and the stored loaded entities.</summary>
     private readonly object _lock = new();
 
     /// <summary>The integrations that are being repaired right now, so the next check doesn't repair them twice.</summary>
@@ -46,7 +49,7 @@ public class IntegrationMonitor : BaseApp
     /// An integration with problems.
     /// </summary>
     /// <param name="Entry">The integration.</param>
-    /// <param name="NotLoadedEntities">The enabled entities of the integration that it did not load.</param>
+    /// <param name="NotLoadedEntities">The enabled entities of the integration that it loaded before, but not now.</param>
     private sealed record IntegrationProblem(ConfigEntry Entry, IReadOnlyList<string> NotLoadedEntities)
     {
         /// <summary>Gets a short description of the problem, for the log and Discord.</summary>
@@ -237,17 +240,28 @@ public class IntegrationMonitor : BaseApp
         });
 
         SaveRecord(record with { Notified = true });
+
+        // Discord knows about these entities now. Forget that they were loaded, so an entity that is gone for good
+        // (e.g. a removed device) doesn't keep the integration marked as having problems; it is tracked again once it loads.
+        ForgetLoadedEntities(problem.NotLoadedEntities);
     }
 
     /// <summary>
-    /// Gets the enabled integrations that failed to load, or that are loaded but did not load all their entities.
+    /// Gets the enabled integrations that failed to load, or that are loaded but no longer load entities they loaded before.
     /// </summary>
     private async Task<IReadOnlyList<IntegrationProblem>> GetProblemsAsync()
     {
         var entries = await Connection.SendCommandAndReturnResponseAsync<GetConfigEntriesCommand, IReadOnlyList<ConfigEntry>>(
             new GetConfigEntriesCommand(), CancellationToken.None) ?? [];
-        var notLoaded = (await GetEntityRegistryAsync())
-            .Where(e => e.ConfigEntryId is not null && e.DisabledBy is null && IsNotLoaded(e.EntityId))
+        var registry = (await GetEntityRegistryAsync())
+            .Where(e => e.ConfigEntryId is not null && e.DisabledBy is null)
+            .ToList();
+
+        // An entity that never loaded is usually orphaned: still in the registry, but no longer provided by the
+        // integration. A reload won't bring it back, so only entities that have been seen loaded count.
+        var seenLoaded = UpdateLoadedEntities(registry);
+        var notLoaded = registry
+            .Where(e => seenLoaded.Contains(e.EntityId) && IsNotLoaded(e.EntityId))
             .ToLookup(e => e.ConfigEntryId!, e => e.EntityId);
 
         return entries
@@ -284,6 +298,49 @@ public class IntegrationMonitor : BaseApp
         HaContext.GetState(entityId) is { State: "unavailable", AttributesJson: { ValueKind: JsonValueKind.Object } attributes } &&
         attributes.TryGetProperty("restored", out var restored) &&
         restored.ValueKind == JsonValueKind.True;
+
+    /// <summary>
+    /// Adds the entities that are loaded now to the stored entities that have been seen loaded, and drops the ones
+    /// that are no longer in the registry.
+    /// </summary>
+    /// <param name="registry">The enabled entities of the integrations.</param>
+    /// <returns>The entities that have been seen loaded.</returns>
+    private HashSet<string> UpdateLoadedEntities(IReadOnlyCollection<EntityRegistryEntry> registry)
+    {
+        lock (_lock)
+        {
+            var stored = GetLoadedEntities();
+
+            // Without a registry (it could not be read) there is nothing to update; don't throw the stored entities away
+            if (registry.Count == 0) return stored;
+
+            var inRegistry = registry.Select(e => e.EntityId).ToHashSet();
+            var updated = stored
+                .Where(inRegistry.Contains)
+                .Concat(inRegistry.Where(id => HaContext.GetState(id) is not null && !IsNotLoaded(id)))
+                .ToHashSet();
+
+            if (!updated.SetEquals(stored)) _storage.Save(LoadedEntitiesStorageKey, updated);
+            return updated;
+        }
+    }
+
+    /// <summary>
+    /// Removes entities from the stored entities that have been seen loaded.
+    /// </summary>
+    /// <param name="entityIds">The entities to forget.</param>
+    private void ForgetLoadedEntities(IEnumerable<string> entityIds)
+    {
+        lock (_lock)
+        {
+            var stored = GetLoadedEntities();
+            stored.ExceptWith(entityIds);
+            _storage.Save(LoadedEntitiesStorageKey, stored);
+        }
+    }
+
+    private HashSet<string> GetLoadedEntities() =>
+        _storage.Get<HashSet<string>>(LoadedEntitiesStorageKey) ?? [];
 
     /// <summary>
     /// Removes the reload history of integrations that work again, so they get all attempts when they fail later.

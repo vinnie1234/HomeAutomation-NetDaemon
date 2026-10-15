@@ -87,12 +87,16 @@ public class IntegrationMonitorTests : IDisposable
     [Fact]
     public void FailingIntegration_StillFailingAfterTwoReloads_NotifiesLogChannelOnce()
     {
-        _entries = [Failing("hue", reason: "Unable to connect to the bridge")];
+        // The light was loaded, then the integration broke
+        _entries = [Loaded("hue")];
         _registry = [new EntityRegistryEntry { EntityId = "light.woonkamer", ConfigEntryId = "hue" }];
-        SetState("light.woonkamer", "unavailable", restored: true);
+        SetState("light.woonkamer", "on");
         CreateApp();
-
         AdvanceToFirstCheck();
+
+        _entries = [Failing("hue", reason: "Unable to connect to the bridge")];
+        SetState("light.woonkamer", "unavailable", restored: true);
+        Advance(TimeSpan.FromMinutes(15));
         VerifyReloads("hue", 1);
 
         // The second reload waits for the retry delay
@@ -200,10 +204,13 @@ public class IntegrationMonitorTests : IDisposable
             new EntityRegistryEntry { EntityId = "light.keuken", ConfigEntryId = "hue" }
         ];
         SetState("light.woonkamer", "on");
-        SetState("light.keuken", "unavailable", restored: true);
+        SetState("light.keuken", "on");
         CreateApp();
-
         AdvanceToFirstCheck();
+        VerifyReloads("hue", 0);
+
+        SetState("light.keuken", "unavailable", restored: true);
+        Advance(TimeSpan.FromMinutes(15));
         VerifyReloads("hue", 1);
 
         SetState("light.keuken", "off");
@@ -218,10 +225,12 @@ public class IntegrationMonitorTests : IDisposable
     {
         _entries = [Loaded("hue")];
         _registry = [new EntityRegistryEntry { EntityId = "light.keuken", ConfigEntryId = "hue" }];
-        SetState("light.keuken", "unavailable", restored: true);
+        SetState("light.keuken", "on");
         CreateApp();
-
         AdvanceToFirstCheck();
+
+        SetState("light.keuken", "unavailable", restored: true);
+        Advance(TimeSpan.FromMinutes(15));
         Advance(IntegrationMonitor.RetryDelay * 2);
 
         VerifyReloads("hue", 2);
@@ -229,6 +238,40 @@ public class IntegrationMonitorTests : IDisposable
             Arg.Is<DiscordNotificationModel>(m =>
                 m.Embed!.Fields!.Any(f => f.Value.Contains("1 entiteit(en) niet geladen")) &&
                 m.Embed.Fields!.Any(f => f.Value == "light.keuken")));
+
+        // The entity may be gone for good: after the notification it is ignored, so the integration is fine again
+        Advance(TimeSpan.FromMinutes(15));
+        Records().Should().BeEmpty();
+        Advance(TimeSpan.FromHours(1));
+        VerifyReloads("hue", 2);
+        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(default!, default!);
+    }
+
+    [Fact]
+    public void LoadedIntegration_WithOrphanedEntitiesThatNeverLoaded_IsIgnored()
+    {
+        _entries = [Loaded("cast")];
+        _registry = [new EntityRegistryEntry { EntityId = "media_player.oude_speaker", ConfigEntryId = "cast" }];
+        SetState("media_player.oude_speaker", "unavailable", restored: true);
+        CreateApp();
+
+        Advance(TimeSpan.FromHours(1));
+
+        _ctx.HaContext.DidNotReceive().CallService("homeassistant", "reload_config_entry", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+    }
+
+    [Fact]
+    public void SeenLoadedEntities_SurviveRestart()
+    {
+        _storage.Save(IntegrationMonitor.LoadedEntitiesStorageKey, new HashSet<string> { "light.keuken" });
+        _entries = [Loaded("hue")];
+        _registry = [new EntityRegistryEntry { EntityId = "light.keuken", ConfigEntryId = "hue" }];
+        SetState("light.keuken", "unavailable", restored: true);
+        CreateApp();
+
+        AdvanceToFirstCheck();
+
+        VerifyReloads("hue", 1);
     }
 
     [Fact]
