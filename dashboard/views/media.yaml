@@ -16,8 +16,6 @@ sections:
       - type: custom:button-card
         template: summary
         icon: mdi:play-circle-outline
-        grid_options:
-          columns: full
         name: |
           [[[
             const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];

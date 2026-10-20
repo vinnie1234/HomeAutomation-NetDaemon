@@ -15,8 +15,6 @@ sections:
       - !include ../navbar.yaml
       - type: custom:button-card
         template: summary
-        grid_options:
-          columns: full
         icon: mdi:lightning-bolt
         variables:
           level: |

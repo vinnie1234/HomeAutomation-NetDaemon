@@ -140,8 +140,8 @@ sections:
         # Uptime in seconden (of een opstarttijdstip); getoond als "6 dagen, 4 uur"
         state_display: |
           [[[
-            const v = parseFloat(entity.state);
-            const since = isNaN(v) || entity.attributes.device_class === 'timestamp' ? new Date(entity.state) : null;
+            const v = parseFloat(entity?.state);
+            const since = isNaN(v) || entity?.attributes.device_class === 'timestamp' ? new Date(entity?.state) : null;
             const seconds = since ? (Date.now() - since) / 1000 : v;
             if (isNaN(seconds)) return 'Onbekend';
             const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600);
