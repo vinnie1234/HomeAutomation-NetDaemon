@@ -109,13 +109,12 @@ sections:
         label: |
           [[[
             const list = states['sensor.watchman_missing_entities']?.attributes.entities ?? [];
-            return list.slice(0, 6).map(e => e.id ?? e.entity_id ?? e).join(', ') + (list.length > 6 ? ` en ${list.length - 6} meer` : '');
+            const names = list.slice(0, 4).map(e => e.id ?? e.entity_id ?? e).join(', ') + (list.length > 4 ? ` en ${list.length - 4} meer` : '');
+            return list.length ? `${names} · tik om op te lossen` : '';
           ]]]
         tap_action:
-          action: perform-action
-          perform_action: button.press
-          target:
-            entity_id: button.watchman_report
+          action: navigate
+          navigation_path: "#watchman"
         styles:
           grid:
             - grid-template-areas: '"i n" "i l"'
@@ -449,3 +448,50 @@ sections:
                 name: Hal overdag
               - entity: input_number.halllightnighttime
                 name: Hal 's nachts
+
+  # Pop-up: Watchman, wat ontbreekt waar, met een gok voor de vervanger en knoppen om het op te lossen
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#watchman"
+        name: Watchman
+        icon: mdi:shield-search
+        cards:
+          - type: custom:button-card
+            template: watchman_list
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              # Studio Code Server (add-on); open het bestand met Ctrl+P en spring naar de regel met Ctrl+G
+              - type: custom:button-card
+                template: action
+                name: Open VS Code
+                icon: mdi:microsoft-visual-studio-code
+                tap_action:
+                  action: navigate
+                  navigation_path: /hassio/ingress/a0d7b954_vscode
+              - type: custom:button-card
+                template: action
+                name: Automatiseringen
+                icon: mdi:robot-outline
+                tap_action:
+                  action: navigate
+                  navigation_path: /config/automation/dashboard
+              - type: custom:button-card
+                template: action
+                name: Entiteiten
+                icon: mdi:format-list-bulleted
+                tap_action:
+                  action: navigate
+                  navigation_path: /config/entities
+              - type: custom:button-card
+                template: action
+                name: Nieuw rapport
+                icon: mdi:refresh
+                tap_action:
+                  action: perform-action
+                  perform_action: button.press
+                  target:
+                    entity_id: button.watchman_report

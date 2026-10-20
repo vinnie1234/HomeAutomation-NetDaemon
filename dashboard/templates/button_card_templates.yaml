@@ -1454,3 +1454,73 @@ ms:
       const ms = unit === 's' || (unit !== 'ms' && v < 1) ? v * 1000 : v;
       return `${ms < 10 ? ms.toFixed(1).replace('.', ',') : Math.round(ms)} ms`;
     ]]]
+
+# Watchman-lijst: per ontbrekende entiteit of actie waar hij gebruikt wordt (bestand:regel) en een gok voor de vervanger
+# (een bestaande entiteit van hetzelfde domein met de meeste overeenkomende woorden in de naam).
+# Tik op de kaart om de lijst te kopiëren (om te plakken, bijvoorbeeld in een chat om hem te laten oplossen).
+watchman_list:
+  template: glass
+  triggers_update:
+    - sensor.watchman_missing_entities
+    - sensor.watchman_missing_actions
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const items = (key, attr) => (states[key]?.attributes[attr] ?? []).map(i => `${i.id ?? i.entity_id ?? i}  ->  ${i.occurrences ?? ''}`);
+        const text = [...items('sensor.watchman_missing_entities', 'entities'),
+                      ...items('sensor.watchman_missing_actions', 'actions'), ...items('sensor.watchman_missing_actions', 'services')].join('\n');
+        const copy = t => navigator.clipboard?.writeText(t).catch(() => {}) ?? Promise.resolve();
+        copy(text).then(() => hass.callService('persistent_notification', 'create', {
+          title: 'Watchman', message: 'De lijst met ontbrekende entiteiten en acties is gekopieerd.', notification_id: 'watchman_kopie' }));
+      ]]]
+  custom_fields:
+    list: |
+      [[[
+        const tokens = id => id.split(/[._]/).filter(t => t.length > 1);
+        const guess = (id) => {
+          const [domain] = id.split('.');
+          const want = tokens(id).slice(1);
+          let best = null;
+          for (const other of Object.keys(states)) {
+            if (!other.startsWith(domain + '.')) continue;
+            const have = tokens(other).slice(1);
+            // Gelijk woord telt 1, een woord dat in een ander woord zit (machine / machinestatus) telt 0,5
+            const shared = want.reduce((sum, t) => sum + (have.includes(t) ? 1
+              : have.some(h => t.length >= 4 && h.length >= 4 && (h.includes(t) || t.includes(h))) ? 0.5 : 0), 0);
+            const score = shared / Math.max(want.length, have.length);
+            if (shared && (!best || score > best.score)) best = { id: other, score };
+          }
+          return best && best.score >= 0.34 ? best.id : null;
+        };
+        const occurrences = text => String(text ?? '').split(/,\s*/).filter(Boolean)
+          .map(o => `<code style="font-size:11px;background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:6px">${o}</code>`).join(' ');
+        const row = (item, kind) => {
+          const id = item.id ?? item.entity_id ?? item;
+          const suggestion = kind === 'entiteit' ? guess(id) : null;
+          return `<div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+                    <div style="font-size:13px;font-weight:600;word-break:break-all">${id}
+                      <span style="font-size:11px;font-weight:400;opacity:.6">· ${kind}</span></div>
+                    <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${occurrences(item.occurrences)}</div>
+                    ${suggestion ? `<div style="font-size:12px;margin-top:5px;color:#4ade80">Misschien: ${suggestion}</div>` : ''}
+                  </div>`;
+        };
+        const ents = states['sensor.watchman_missing_entities']?.attributes.entities ?? [];
+        const acts = states['sensor.watchman_missing_actions']?.attributes.actions ?? states['sensor.watchman_missing_actions']?.attributes.services ?? [];
+        if (!ents.length && !acts.length) return '<div style="padding:8px;opacity:.7">Niets ontbreekt. 🎉</div>';
+        return `<div>
+                  <div style="font-size:12px;opacity:.6;text-align:left;margin-bottom:4px">Tik op deze lijst om hem te kopiëren</div>
+                  ${ents.map(e => row(e, 'entiteit')).join('')}${acts.map(a => row(a, 'actie')).join('')}
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - display: block
+        - width: 100%
