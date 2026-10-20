@@ -98,11 +98,17 @@ public static class SchedulerExtensions
     {
         var cron = CronExpression.Parse(cronExpression, hasSeconds ? CronFormat.IncludeSeconds : CronFormat.Standard);
         var nextRun = new SerialDisposable();
+        DateTimeOffset? planned = null;
 
         void ScheduleNext()
         {
-            var next = cron.GetNextOccurrence(scheduler.Now, DutchTimeZone);
+            // A timer can fire a few milliseconds early, while the clock is still just before the planned time.
+            // Searching from "now" would then find the same occurrence again and run the action twice (or more),
+            // so search from the planned time of the previous run when the clock hasn't passed it yet.
+            var from = planned is { } previous && previous > scheduler.Now ? previous : scheduler.Now;
+            var next = cron.GetNextOccurrence(from, DutchTimeZone);
             if (next is null) return;
+            planned = next;
 
             nextRun.Disposable = scheduler.Schedule(next.Value, () =>
             {
