@@ -28,7 +28,8 @@ public class FunAppTests
         // Assert
         ctx.VerifyCallService("media_player", "play_media", "hele_huis");
         ctx.VerifyCallService("light", "turn_on", "hal");
-        ctx.VerifyCallService("switch", "turn_on", "bot_29ff");
+        // Bot29ff staat tijdelijk uit in FunApp (commit 8df5024)
+        // ctx.VerifyCallService("switch", "turn_on", "bot_29ff");
     }
 
     [Fact]

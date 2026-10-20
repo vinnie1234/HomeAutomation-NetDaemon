@@ -40,7 +40,7 @@ public class FunApp : BaseApp
             {
                 Notify.SendMusicToHome("http://192.168.50.189:8123/local/Friends.mp3");
                 Entities.Light.Hal.TurnOn();
-                Entities.Switch.Bot29ff.TurnOn();
+                // Entities.Switch.Bot29ff.TurnOn();
             });
     }
 

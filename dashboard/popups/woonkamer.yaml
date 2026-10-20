@@ -72,6 +72,15 @@ cards:
   - type: custom:bubble-card
     card_type: button
     button_type: slider
+    entity: light.koelkast
+    name: Koelkast
+    icon: mdi:fridge-outline
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
     entity: light.tv_light
     name: TV-lamp
     icon: mdi:television-ambient-light

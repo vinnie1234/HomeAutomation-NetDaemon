@@ -38,7 +38,7 @@ sections:
         label: |
           [[[
             const jaap = { cleaning: 'aan het zuigen', docked: 'in het dock', idle: 'staat stil', paused: 'gepauzeerd', returning: 'onderweg naar dock', error: 'probleem' };
-            const washer = { run: 'bezig', running: 'bezig', stop: 'klaar', end: 'klaar', pause: 'gepauzeerd', idle: 'staat klaar' };
+            const washer = { active: 'bezig', pause: 'gepauzeerd', idle: 'staat klaar' };
             const parts = [];
             const j = states['vacuum.jaap']?.state;
             if (j) parts.push(`Jaap ${jaap[j] ?? j}`);
@@ -46,6 +46,9 @@ sections:
             if (w && !['unknown', 'unavailable'].includes(w)) parts.push(`wasmachine ${washer[w] ?? w}`);
             const tomorrow = states['sensor.afval_morgen']?.state;
             if (!['Geen', 'unknown', 'unavailable', undefined].includes(tomorrow)) parts.push(`morgen ${tomorrow}`);
+            const parcels = ['postnl', 'dhl', 'dpd', 'gls']
+              .reduce((n, c) => n + (parseInt(states[`sensor.buiten_${c}_inkomende_pakketten`]?.state) || 0), 0);
+            if (parcels) parts.push(`${parcels} ${parcels === 1 ? 'pakket' : 'pakketten'} onderweg`);
             return parts.join(' · ');
           ]]]
 
@@ -288,8 +291,12 @@ sections:
           navigation_path: "#wasmachine"
         name: |
           [[[
-            const map = { run: 'Bezig met wassen', running: 'Bezig met wassen', stop: 'Klaar', end: 'Klaar', pause: 'Gepauzeerd', idle: 'Staat klaar' };
-            return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : entity.state);
+            if (entity.state === 'active') {
+              const phase = states['sensor.badkamer_wasmachine_voortgang'];
+              return phase && !['unknown', 'unavailable', 'idle'].includes(phase.state) ? `Bezig: ${hass.formatEntityState(phase)}` : 'Bezig met wassen';
+            }
+            const map = { pause: 'Gepauzeerd', idle: 'Staat klaar' };
+            return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : hass.formatEntityState(entity));
           ]]]
         label: |
           [[[
@@ -301,7 +308,7 @@ sections:
               .filter(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on')
               .map(k => `${k[0].toUpperCase()}${k.slice(1)} bijna op`);
             const parts = [];
-            if (['run', 'running'].includes(entity.state) && !isNaN(end)) {
+            if (entity.state === 'active' && !isNaN(end)) {
               const min = Math.max(0, Math.round((end - new Date()) / 60000));
               parts.push(`Klaar om ${end.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · nog ${min} min`);
             } else {
@@ -312,7 +319,7 @@ sections:
         custom_fields:
           ring: |
             [[[
-              const running = ['run', 'running'].includes(entity.state);
+              const running = ['active', 'pause'].includes(entity.state);
               const pct = running ? Math.min(100, parseFloat(states['sensor.badkamer_wasmachine_voortgangspercentage']?.state) || 0) : 0;
               return `<div style="width:64px;height:64px;border-radius:50%;
                         background:conic-gradient(#38bdf8 ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
@@ -417,6 +424,78 @@ sections:
           method: state
           numeric: true
         show_empty: false
+      - type: heading
+        heading: Post & pakketten
+        heading_style: title
+        icon: mdi:package-variant-closed
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_postnl_inkomende_pakketten
+        name: PostNL
+        variables:
+          key: postnl
+          color: 255, 98, 0
+          pickup: onderweg_naar_postnl_punt
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_dhl_inkomende_pakketten
+        name: DHL
+        variables:
+          key: dhl
+          color: 255, 204, 0
+          pickup: onderweg_naar_servicepoint
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_dpd_inkomende_pakketten
+        name: DPD
+        variables:
+          key: dpd
+          color: 220, 0, 50
+          pickup: onderweg_naar_parcelshop
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_gls_inkomende_pakketten
+        name: GLS
+        variables:
+          key: gls
+          color: 60, 110, 200
+          pickup: onderweg_naar_parcelshop
+        grid_options:
+          columns: 6
+      - type: heading
+        heading: Brieven
+        heading_style: subtitle
+        icon: mdi:email-outline
+        badges:
+          - type: entity
+            entity: sensor.buiten_postnl_brieven
+            show_state: true
+            show_icon: false
+      # Scans van de brieven die vandaag of binnenkort komen (PostNL maakt per brief een image-entiteit)
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: image.buiten_postnl_brief_*
+              options:
+                type: picture-entity
+                show_state: false
+                show_name: true
+        sort:
+          method: last_changed
+          reverse: true
+          count: 4
+        show_empty: false
 
   # Taken en agenda
   - type: grid
@@ -463,6 +542,18 @@ sections:
           - entity: calendar.feestdagen_in_nederland
             name: Feestdagen
             color: "#4ade80"
+          - entity: calendar.buiten_postnl_bezorgingen
+            name: PostNL
+            color: "#ff6200"
+          - entity: calendar.buiten_dhl_bezorgingen
+            name: DHL
+            color: "#ffcc00"
+          - entity: calendar.buiten_dpd_bezorgingen
+            name: DPD
+            color: "#dc0032"
+          - entity: calendar.buiten_gls_bezorgingen
+            name: GLS
+            color: "#3c6ec8"
         texts:
           fullDay: Hele dag
           noEvents: Geen afspraken

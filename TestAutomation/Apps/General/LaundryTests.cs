@@ -50,7 +50,7 @@ public class LaundryTests
             .Returns(new EntityState
             {
                 EntityId = "sensor.badkamer_wasmachine_machinestatus",
-                State = "run"
+                State = "active"
             });
 
         // Default: geen neerslag
@@ -167,8 +167,8 @@ public class LaundryTests
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
-            .FromState("run")
-            .ToState("stop");
+            .FromState("active")
+            .ToState("idle");
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Wait for the async forecast call to complete
@@ -187,6 +187,25 @@ public class LaundryTests
     }
 
     [Fact]
+    public void WasmachineGepauzeerd_DanUit_IsNietKlaar()
+    {
+        // Arrange
+        var nu = DateTime.Today.AddHours(12);
+        _ctx.Scheduler.AdvanceTo(nu.Ticks);
+        SetupForecast(BuildForecast(nu, dryHours: 6));
+        var app = CreateApp();
+
+        // Act: paused and then switched off, the program did not finish
+        _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
+            .FromState("pause")
+            .ToState("idle");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default);
+    }
+
+    [Fact]
     public async Task WasmachineKlaar_DrogeAvondNa19Uur_ZegtTeLaatVoorBuiten()
     {
         // Arrange: 22:30 Dutch time on a dry evening
@@ -197,8 +216,8 @@ public class LaundryTests
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
-            .FromState("run")
-            .ToState("stop");
+            .FromState("active")
+            .ToState("idle");
         _ctx.HaContextMock.ProcessPendingOperations();
         await WaitForNotificationAsync();
 
@@ -224,8 +243,8 @@ public class LaundryTests
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
-            .FromState("run")
-            .ToState("stop");
+            .FromState("active")
+            .ToState("idle");
         _ctx.HaContextMock.ProcessPendingOperations();
         await WaitForNotificationAsync();
 
@@ -257,8 +276,8 @@ public class LaundryTests
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
-            .FromState("run")
-            .ToState("stop");
+            .FromState("active")
+            .ToState("idle");
         _ctx.HaContextMock.ProcessPendingOperations();
         await WaitForNotificationAsync();
 

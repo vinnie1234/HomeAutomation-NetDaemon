@@ -33,7 +33,7 @@ public class NetDaemonTests
 
         // Act
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
-        await Task.Delay(100);
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1);
@@ -57,7 +57,7 @@ public class NetDaemonTests
 
         // Act
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
-        await Task.Delay(100);
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
         ctx.VerifyCallNotify("notify", "discord_homeassistant", times: 1); 
@@ -126,14 +126,16 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
 
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        // The Discord message from init is sent in the background: wait for it before clearing, so it can't arrive later
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
         ctx.HaContext.ClearReceivedCalls();
 
         // Act
         app.Dispose();
-        await Task.Delay(100);
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
-        ctx.VerifyCallNotify("notify", "discord_homeassistant", times: 2); // 1 from init, 1 from dispose
+        ctx.VerifyCallNotify("notify", "discord_homeassistant", times: 1);
     }
 }
 

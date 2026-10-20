@@ -44,8 +44,9 @@ public class Laundry : BaseApp
     {
         Entities.Sensor.BadkamerWasmachineMachinestatus
             .StateChanges()
-            .Where(x => x.Old?.State?.ToLower() is "run" or "running" &&
-                        x.New?.State?.ToLower() is "stop" or "stopped" or "end")
+            // The washer reports active while washing and idle once the program is done (pause is not done)
+            .Where(x => x.Old?.State?.ToLower() is "active" &&
+                        x.New?.State?.ToLower() is "idle")
             .Subscribe(stateChange =>
             {
                 try

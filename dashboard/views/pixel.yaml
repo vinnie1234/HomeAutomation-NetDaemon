@@ -31,7 +31,7 @@ sections:
             if (food && food !== 'full') issues.push('voer');
             if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2) issues.push('filter fontein');
             if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1) issues.push('fontein schoonmaken');
-            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat ze nodig heeft';
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat hij nodig heeft';
           ]]]
         label: |
           [[[
@@ -39,6 +39,10 @@ sections:
             const visits = parseInt(states['sensor.snow_self_cleaning_litter_box_number_of_excretion']?.state);
             const parts = [`${portions} ${portions === 1 ? 'portie' : 'porties'} gegeten vandaag`];
             if (!isNaN(visits)) parts.push(`${visits}× naar de bak`);
+            const today = new Date().toDateString();
+            const sick = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
+              .filter(x => new Date(x).toDateString() === today).length;
+            if (sick) parts.push(`vandaag ${sick}× gekotst`);
             return parts.join(' · ');
           ]]]
 
@@ -393,7 +397,7 @@ sections:
         name: Schoonmaken over
         icon: mdi:spray-bottle
         variables:
-          max: 14
+          max: 7
           unit: dagen
       - type: custom:button-card
         template: progress
@@ -403,6 +407,33 @@ sections:
         variables:
           max: 30
           unit: dagen
+      # Afvinken: zet de teller van de fontein terug (na bevestiging)
+      - type: custom:button-card
+        template: action
+        name: Waterbak schoongemaakt
+        icon: mdi:spray-bottle
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.snow_automatic_pet_water_fountain_waterpomp_reset
+          confirmation:
+            text: Is de waterbak schoongemaakt? Dan begint de teller opnieuw.
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Filter vervangen
+        icon: mdi:air-filter
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.snow_automatic_pet_water_fountain_filter_reset
+          confirmation:
+            text: Is het filter vervangen? Dan begint de teller opnieuw.
+        grid_options:
+          columns: 6
       - type: custom:button-card
         template: stat
         entity: sensor.snow_automatic_pet_water_fountain_water_pump_duration
@@ -417,6 +448,14 @@ sections:
         icon: mdi:timer-sand
         grid_options:
           columns: 6
+      - type: heading
+        heading: Gekotst
+        heading_style: title
+        icon: mdi:emoticon-sick-outline
+      - type: custom:button-card
+        template: vomit_button
+      - type: custom:button-card
+        template: vomit_chart
 
   # Pop-up: voedermomenten aanpassen (tijd en porties)
   - type: grid

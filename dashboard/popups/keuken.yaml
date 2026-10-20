@@ -13,7 +13,6 @@ sub_button:
       target:
         entity_id:
           - light.lampen_keuken
-          - light.koelkast
 cards:
   - type: custom:bubble-card
     card_type: separator
@@ -25,15 +24,6 @@ cards:
     entity: light.lampen_keuken
     name: Keukenlampen
     icon: mdi:ceiling-light-multiple
-    show_state: true
-    tap_action:
-      action: toggle
-  - type: custom:bubble-card
-    card_type: button
-    button_type: slider
-    entity: light.koelkast
-    name: Koelkast
-    icon: mdi:fridge-outline
     show_state: true
     tap_action:
       action: toggle
