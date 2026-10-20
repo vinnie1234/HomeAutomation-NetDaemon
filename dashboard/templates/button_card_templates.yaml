@@ -626,6 +626,7 @@ weather_hero:
         card_mod:
           style:
             ha-markdown$: |
+              :host, ha-markdown-element { overflow: visible !important; }
               h1 {
                 font-size: clamp(52px, 9vw, 84px);
                 font-weight: 200;
@@ -652,6 +653,8 @@ weather_hero:
                 border: none !important;
                 box-shadow: none !important;
                 backdrop-filter: none !important;
+                overflow: visible !important;
+                padding: 2px 8px !important;
               }
     # Lopende timers van de speakers: oranje pil met aftellende minuten:seconden die na 75% van de tijd rood wordt,
     # de laatste 20 seconden knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
@@ -751,8 +754,11 @@ weather_hero:
         type: custom:button-card
         show_icon: false
         show_name: false
+        tap_action:
+          action: none
         styles:
           card:
+            - cursor: default
             - background: none
             - border: none
             - box-shadow: none
@@ -786,6 +792,7 @@ weather_hero:
                 charging: sensor.carleen_mobiel_battery_state
   styles:
     card:
+      - cursor: default
       - height: 320px
       - padding: 0
       - overflow: hidden
@@ -1177,6 +1184,7 @@ hero_person:
       ]]]
   styles:
     card:
+      - cursor: pointer
       - background: none
       - border: none
       - box-shadow: none
