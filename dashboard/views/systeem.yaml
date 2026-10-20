@@ -150,7 +150,7 @@ sections:
           ]]]
         grid_options:
           columns: 6
-      # De Cloudflare-test meet ongeveer 4,5× te laag; daarom wordt de download hier gecorrigeerd
+      # De Cloudflare-test meet ongeveer 4,5× te laag; daarom worden download en upload hier gecorrigeerd
       - type: custom:button-card
         template: stat
         entity: sensor.cloudflare_speed_test_90th_percentile_down
@@ -171,6 +171,11 @@ sections:
         entity: sensor.cloudflare_speed_test_90th_percentile_up
         name: Upload
         icon: mdi:upload
+        state_display: |
+          [[[
+            const v = parseFloat(entity?.state) * 4.5;
+            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+          ]]]
         styles:
           icon:
             - color: "#7aa2ff"
