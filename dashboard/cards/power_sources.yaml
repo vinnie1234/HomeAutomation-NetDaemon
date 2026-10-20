@@ -127,3 +127,11 @@
     template: power_row
     variables:
       name: Gamehoek
+# Geschat door NetDaemon (PowerEstimator): de machine meet zelf alleen kWh
+- entity_id: sensor.wasmachine_vermogen
+  state: "> 0.5"
+  options:
+    type: custom:button-card
+    template: power_row
+    variables:
+      name: Wasmachine (geschat)

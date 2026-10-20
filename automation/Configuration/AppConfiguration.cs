@@ -10,4 +10,5 @@ public class AppConfiguration
     public TimingConfiguration Timing { get; set; } = new();
     public CircadianConfiguration Circadian { get; set; } = new();
     public PresenceConfiguration Presence { get; set; } = new();
+    public PowerEstimationConfiguration PowerEstimation { get; set; } = new();
 }
