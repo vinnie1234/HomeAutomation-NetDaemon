@@ -35,7 +35,7 @@
 
     <ItemGroup>
         <PackageReference Include="Concentus" Version="2.2.2" />
-        <PackageReference Include="Discord.Net.Webhook" Version="3.20.1" />
+        <PackageReference Include="Discord.Net.Webhook" Version="3.20.2" />
         <PackageReference Include="NetDaemon.AppModel" Version="26.36.0" />
         <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.36.0" />
         <PackageReference Include="NetDaemon.Runtime" Version="26.36.0" />
