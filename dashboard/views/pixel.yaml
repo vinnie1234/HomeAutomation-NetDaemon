@@ -178,16 +178,6 @@ sections:
         grid_options:
           columns: 6
 
-      - type: custom:button-card
-        template: stat
-        entity: sensor.zedar_meal_plan
-        name: Voerschema van de Zedar zelf
-        icon: mdi:calendar-clock
-        styles:
-          state:
-            - font-size: 14px
-            - white-space: normal
-            - text-align: left
       - type: custom:bubble-card
         card_type: button
         button_type: slider
