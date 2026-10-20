@@ -35,12 +35,23 @@ routes:
     label: Huis
     icon: mdi:broom
     icon_selected: mdi:broom
+    # Bolletje bij nieuwe meldingen (afval morgen, bak van Jaap vol, batterij kritiek).
+    # Wie Huishouden opent, heeft ze gezien: dat wordt per apparaat onthouden tot er iets verandert.
     badge:
       show: |
         [[[
-          return states['binary_sensor.jaap_bin_full']?.state === 'on'
-            || parseInt(states['sensor.battery_devices_critical']?.state) > 0
-            || !['Geen', 'unavailable', 'unknown'].includes(states['sensor.afval_morgen']?.state);
+          const afval = states['sensor.afval_morgen']?.state;
+          const reasons = [
+            !['Geen', 'unavailable', 'unknown', undefined].includes(afval) && `afval:${afval}:${new Date().toDateString()}`,
+            states['binary_sensor.jaap_bin_full']?.state === 'on' && 'jaap',
+            parseInt(states['sensor.battery_devices_critical']?.state) > 0 && `batterij:${states['sensor.battery_devices_critical'].state}`
+          ].filter(Boolean).join('|');
+          if (!reasons) return false;
+          if (window.location.pathname === '/dashboard-huis/huishouden') {
+            localStorage.setItem('huis-badge-gezien', reasons);
+            return false;
+          }
+          return localStorage.getItem('huis-badge-gezien') !== reasons;
         ]]]
       color: "#ffb060"
   - url: /dashboard-huis/weer

@@ -7,7 +7,7 @@ type: sections
 max_columns: 3
 dense_section_placement: true
 sections:
-  # Jaap
+  # Jaap en afval
   - type: grid
     cards:
       - !include ../navbar.yaml
@@ -15,22 +15,108 @@ sections:
         heading: Jaap
         heading_style: title
         icon: mdi:robot-vacuum
-      - type: custom:vacuum-card
+      # Jaap: status met batterijring, en de bediening eronder (eigen kaart, onafhankelijk van extra sensoren)
+      - type: custom:button-card
+        template: glass
         entity: vacuum.jaap
-        image: default
-        show_name: false
-        show_toolbar: true
-        stats:
-          default:
-            - entity_id: sensor.jaap_battery_level
-              unit: "%"
-              subtitle: Batterij
-            - entity_id: sensor.jaap_totaal_schoonmaaktijd
-              subtitle: Schoonmaaktijd
-            - entity_id: sensor.jaap_total_cleaned_area
-              subtitle: Oppervlak
-            - entity_id: sensor.jaap_totaal_aantal_missies
-              subtitle: Missies
+        triggers_update: all
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: more-info
+        name: |
+          [[[
+            const map = {
+              cleaning: 'Aan het zuigen', docked: 'In het dock', idle: 'Staat stil', paused: 'Gepauzeerd',
+              returning: 'Gaat terug naar het dock', error: 'Heeft een probleem', unavailable: 'Niet bereikbaar'
+            };
+            return map[entity.state] ?? entity.state;
+          ]]]
+        label: |
+          [[[
+            const parts = [];
+            if (states['binary_sensor.jaap_bin_full']?.state === 'on') parts.push('Bak is vol!');
+            if (states['binary_sensor.woonkamer_jaap_opladen']?.state === 'on') parts.push('Laadt op');
+            const missions = parseInt(states['sensor.jaap_totaal_aantal_missies']?.state);
+            if (!isNaN(missions)) parts.push(`${missions} missies`);
+            return parts.join(' · ');
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const battery = parseFloat(states['sensor.jaap_battery_level']?.state ?? entity.attributes.battery_level);
+              const pct = isNaN(battery) ? 0 : battery;
+              const color = pct < 20 ? '#ff6b6b' : pct < 50 ? '#ffb060' : '#4ade80';
+              const cleaning = entity.state === 'cleaning';
+              return `<div style="width:72px;height:72px;border-radius:50%;
+                        background:conic-gradient(${color} ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                        display:flex;align-items:center;justify-content:center">
+                        <div style="width:60px;height:60px;border-radius:50%;background:#121828;display:flex;flex-direction:column;
+                          align-items:center;justify-content:center">
+                          <ha-icon icon="mdi:robot-vacuum" style="--mdc-icon-size:24px;color:${cleaning ? '#4ade80' : 'rgba(242,244,248,0.7)'}"></ha-icon>
+                          <span style="font-size:11px;font-weight:600">${isNaN(battery) ? '–' : Math.round(battery) + '%'}</span>
+                        </div>
+                      </div>`;
+            ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"ring n" "ring l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 16px
+          card:
+            - height: 100px
+          name:
+            - align-self: end
+            - font-size: 17px
+          label:
+            - align-self: start
+            - white-space: normal
+            - text-align: left
+            - color: '[[[ return states["binary_sensor.jaap_bin_full"]?.state === "on" ? "#ff6b6b" : "var(--secondary-text-color)"; ]]]'
+      - type: custom:button-card
+        template: action
+        name: Start
+        icon: mdi:play
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.start
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Pauze
+        icon: mdi:pause
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.pause
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Naar dock
+        icon: mdi:home-import-outline
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.return_to_base
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Zoek
+        icon: mdi:map-marker-question-outline
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.locate
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
       - type: heading
         heading: Ruimte zuigen
         heading_style: subtitle
@@ -90,7 +176,47 @@ sections:
         grid_options:
           columns: 6
 
-  # Wasmachine en afval
+      - type: heading
+        heading: Afval
+        heading_style: title
+        icon: mdi:trash-can-outline
+      - type: custom:button-card
+        template: stat
+        entity: sensor.afval_pmd
+        name: PMD
+        icon: mdi:recycle
+        state_display: &afval_datum |
+          [[[
+            const d = new Date(entity.state);
+            if (isNaN(d)) return ['unknown', 'unavailable'].includes(entity.state) ? 'Onbekend' : entity.state;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const day = new Date(d); day.setHours(0, 0, 0, 0);
+            const diff = Math.round((day - today) / 86400000);
+            const date = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+            return diff === 0 ? 'Vandaag' : diff === 1 ? 'Morgen' : `${date} · over ${diff} dagen`;
+          ]]]
+        styles:
+          icon:
+            - color: "#ffb060"
+          state:
+            - font-size: 17px
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.afval_papier
+        name: Papier
+        icon: mdi:newspaper-variant-outline
+        state_display: *afval_datum
+        styles:
+          icon:
+            - color: "#7aa2ff"
+          state:
+            - font-size: 17px
+        grid_options:
+          columns: 6
+
+  # Wasmachine en batterijen
   - type: grid
     cards:
       - type: heading
@@ -109,7 +235,7 @@ sections:
           navigation_path: "#wasmachine"
         name: |
           [[[
-            const map = { run: 'Bezig met wassen', running: 'Bezig met wassen', stop: 'Klaar', end: 'Klaar', pause: 'Gepauzeerd' };
+            const map = { run: 'Bezig met wassen', running: 'Bezig met wassen', stop: 'Klaar', end: 'Klaar', pause: 'Gepauzeerd', idle: 'Staat klaar' };
             return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : entity.state);
           ]]]
         label: |
@@ -174,46 +300,72 @@ sections:
         icon: mdi:hanger
 
       - type: heading
-        heading: Afval
+        heading: Batterijen
         heading_style: title
-        icon: mdi:trash-can-outline
+        icon: mdi:battery-heart-variant
+      # Eén samenvatting; onbekende waarden worden weggelaten
       - type: custom:button-card
-        template: stat
-        entity: sensor.afval_pmd
-        name: PMD
-        icon: mdi:recycle
-        state_display: &afval_datum |
+        template: glass
+        triggers_update: all
+        icon: mdi:battery-heart-variant
+        show_label: true
+        name: |
           [[[
-            const d = new Date(entity.state);
-            if (isNaN(d)) return ['unknown', 'unavailable'].includes(entity.state) ? 'Onbekend' : entity.state;
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const day = new Date(d); day.setHours(0, 0, 0, 0);
-            const diff = Math.round((day - today) / 86400000);
-            const date = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
-            return diff === 0 ? 'Vandaag' : diff === 1 ? 'Morgen' : `${date} · over ${diff} dagen`;
+            const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+            const warn = parseInt(states['sensor.battery_devices_warning']?.state) || 0;
+            if (crit) return `${crit} ${crit === 1 ? 'batterij' : 'batterijen'} bijna leeg`;
+            if (warn) return `${warn} ${warn === 1 ? 'batterij' : 'batterijen'} binnenkort vervangen`;
+            return 'Alle batterijen in orde';
+          ]]]
+        label: |
+          [[[
+            const known = id => {
+              const v = states[id]?.state;
+              return v && !['unknown', 'unavailable', 'none', 'None', ''].includes(v) ? v : null;
+            };
+            return [
+              known('sensor.next_battery_replacement') && `Volgende: ${known('sensor.next_battery_replacement')}`,
+              known('sensor.batteries_to_buy') && `Kopen: ${known('sensor.batteries_to_buy')}`
+            ].filter(Boolean).join(' · ');
           ]]]
         styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          card:
+            - min-height: 72px
           icon:
-            - color: "#ffb060"
-          state:
-            - font-size: 17px
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.afval_papier
-        name: Papier
-        icon: mdi:newspaper-variant-outline
-        state_display: *afval_datum
-        styles:
-          icon:
-            - color: "#7aa2ff"
-          state:
-            - font-size: 17px
-        grid_options:
-          columns: 6
+            - width: 30px
+            - color: |
+                [[[
+                  const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+                  const warn = parseInt(states['sensor.battery_devices_warning']?.state) || 0;
+                  return crit ? '#ff6b6b' : warn ? '#ffb060' : '#4ade80';
+                ]]]
+          name:
+            - font-size: 16px
+          label:
+            - white-space: normal
+            - text-align: left
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Bijna leeg
+        filter:
+          include:
+            - attributes:
+                device_class: battery
+              state: "< 30"
+          exclude:
+            - state: unavailable
+            - state: unknown
+        sort:
+          method: state
+          numeric: true
+        show_empty: false
 
-  # Taken, agenda en batterijen
+  # Taken en agenda
   - type: grid
     cards:
       - type: heading
@@ -265,62 +417,6 @@ sections:
           tomorrow: Morgen
           yesterday: Gisteren
           moreEvents: Meer afspraken
-
-      - type: heading
-        heading: Batterijen
-        heading_style: title
-        icon: mdi:battery-heart-variant
-      - type: custom:button-card
-        template: stat
-        entity: sensor.battery_devices_critical
-        name: Kritiek
-        icon: mdi:battery-alert-variant-outline
-        styles:
-          icon:
-            - color: '[[[ return parseInt(entity.state) > 0 ? "#ff6b6b" : "#4ade80"; ]]]'
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.battery_devices_warning
-        name: Waarschuwing
-        icon: mdi:battery-low
-        styles:
-          icon:
-            - color: '[[[ return parseInt(entity.state) > 0 ? "#ffb060" : "#4ade80"; ]]]'
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.next_battery_replacement
-        name: Volgende vervanging
-        icon: mdi:battery-sync-outline
-      - type: custom:button-card
-        template: stat
-        entity: sensor.batteries_to_buy
-        name: Batterijen kopen
-        icon: mdi:cart-outline
-        styles:
-          state:
-            - font-size: 15px
-            - white-space: normal
-            - text-align: left
-      - type: custom:auto-entities
-        card:
-          type: entities
-          title: Bijna leeg
-        filter:
-          include:
-            - attributes:
-                device_class: battery
-              state: "< 30"
-          exclude:
-            - state: unavailable
-            - state: unknown
-        sort:
-          method: state
-          numeric: true
-        show_empty: false
 
   # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
   - type: grid
