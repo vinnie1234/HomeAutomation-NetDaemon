@@ -696,8 +696,10 @@ weather_hero:
             - backdrop-filter: none
             - padding: 0
           grid:
-            - grid-template-areas: '"v c"'
-            - column-gap: 8px
+            - display: flex
+            - flex-wrap: wrap
+            - justify-content: flex-end
+            - gap: 6px
         custom_fields:
           v:
             card:
@@ -1088,7 +1090,7 @@ hero_person:
         // Telefoonbatterij: klein, rood als hij bijna leeg is, bliksem als hij laadt
         const level = parseInt(states[variables.battery]?.state);
         const charging = ['on', 'charging'].includes(states[variables.charging]?.state);
-        const batteryHtml = isNaN(level) ? '' : `<span style="font-size:10px;opacity:.85;margin-left:6px;color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
+        const batteryHtml = isNaN(level) ? '' : ` · <span style="color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
 
         const ring = asleep ? 'rgba(167,139,250,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
         const avatar = entity?.attributes.entity_picture
@@ -1099,8 +1101,8 @@ hero_person:
                   background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);color:#fff;box-shadow:inset 0 0 0 2px ${ring}">
                   ${avatar}
                   <div style="line-height:1.15;text-align:left">
-                    <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}${batteryHtml}</div>
-                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}</div>
+                    <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}</div>
+                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}${batteryHtml}</div>
                   </div>
                 </div>`;
       ]]]
@@ -1186,6 +1188,11 @@ forecast_strip:
   custom_fields:
     strip: |
       [[[
+        // Veegbewegingen niet doorgeven aan Swipe Navigation (die zou anders van tab wisselen); scrollen blijft werken
+        if (this && !this._swipeBlocked) {
+          ['touchstart', 'touchmove', 'touchend'].forEach(type => this.addEventListener(type, e => e.stopPropagation(), { passive: true }));
+          this._swipeBlocked = true;
+        }
         const forecast = (entity?.attributes.forecast ?? []).slice(0, 48);
         if (!forecast.length) return '<div style="opacity:.6;padding:8px">Nog geen verwachting. Voeg de template-sensor toe (zie README).</div>';
         const icons = {
@@ -1236,7 +1243,7 @@ forecast_strip:
             border-radius:50%;pointer-events:none;display:flex;align-items:center;justify-content:center;
             background:rgba(18,24,40,0.85);border:1px solid rgba(255,255,255,0.15)">
             <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon></div>`;
-        return `<div style="font-size:11px;opacity:.5;text-align:right;margin:-4px 4px 6px">tik voor later · dubbeltik terug</div>
+        return `<div style="font-size:11px;opacity:.5;text-align:right;margin:-4px 4px 6px">veeg of tik voor later · dubbeltik terug</div>
                 <div style="position:relative">${arrow(-1, 'mdi:chevron-left')}${arrow(1, 'mdi:chevron-right')}
                 <div class="strip" style="overflow-x:auto;overflow-y:hidden;touch-action:pan-x;-webkit-overflow-scrolling:touch;
                   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;padding-bottom:6px">

@@ -61,7 +61,7 @@ routes:
       show: "[[[ return states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on'; ]]]"
       color: "#ff6b6b"
   - url: /dashboard-huis/systeem
-    label: Systeem
+    label: Beheer
     icon: mdi:cog-outline
     icon_selected: mdi:cog
     hidden: "[[[ return !user.is_admin; ]]]"
