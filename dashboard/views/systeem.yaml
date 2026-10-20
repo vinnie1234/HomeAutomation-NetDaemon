@@ -134,9 +134,20 @@ sections:
           columns: 6
       - type: custom:button-card
         template: stat
-        entity: sensor.routeruptime
-        name: Router aan sinds
+        entity: sensor.rt_ax88u_uptime
+        name: Router draait
         icon: mdi:router
+        # Uptime in seconden (of een opstarttijdstip); getoond als "6 dagen, 4 uur"
+        state_display: |
+          [[[
+            const v = parseFloat(entity.state);
+            const since = isNaN(v) || entity.attributes.device_class === 'timestamp' ? new Date(entity.state) : null;
+            const seconds = since ? (Date.now() - since) / 1000 : v;
+            if (isNaN(seconds)) return 'Onbekend';
+            const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600);
+            if (days > 0) return `${days} ${days === 1 ? 'dag' : 'dagen'}, ${hours} uur`;
+            return hours > 0 ? `${hours} uur` : `${Math.max(1, Math.round(seconds / 60))} min`;
+          ]]]
         grid_options:
           columns: 6
       # De Cloudflare-test meet ongeveer 4,5× te laag; daarom wordt de download hier gecorrigeerd
