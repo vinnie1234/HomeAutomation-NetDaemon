@@ -180,6 +180,16 @@ sections:
         grid_options:
           columns: 6
 
+      - type: custom:button-card
+        template: stat
+        entity: sensor.zedar_meal_plan
+        name: Voerschema van de Zedar zelf
+        icon: mdi:calendar-clock
+        styles:
+          state:
+            - font-size: 14px
+            - white-space: normal
+            - text-align: left
       - type: custom:bubble-card
         card_type: button
         button_type: slider
@@ -363,6 +373,24 @@ sections:
         entity: switch.snow_self_cleaning_litter_box_auto_clean
         name: Automatisch schoonmaken
         icon: mdi:autorenew
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.snow_self_cleaning_litter_box_deodorization
+        name: Geur verdrijven
+        icon: mdi:air-purifier
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.snow_self_cleaning_litter_box_slaap
+        name: Slaapstand (stil)
+        icon: mdi:sleep
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: light.snow_self_cleaning_litter_box_licht
+        name: Lampje
+        icon: mdi:lightbulb-outline
 
   # Water
   - type: grid

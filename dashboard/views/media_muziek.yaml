@@ -159,3 +159,48 @@ sections:
         entity: media_player.hele_huis
         grid_options:
           columns: 3
+
+      - type: heading
+        heading: Niet storen
+        heading_style: subtitle
+        icon: mdi:bell-off-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.woonkamer_do_not_disturb
+        name: Woonkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.keuken_do_not_disturb
+        name: Keuken
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.badkamer_speaker_do_not_disturb
+        name: Badkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.gang_speaker_1_do_not_disturb
+        name: Gang
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.hub_vincent_do_not_disturb
+        name: Slaapkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6

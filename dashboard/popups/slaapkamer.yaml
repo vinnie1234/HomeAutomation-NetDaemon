@@ -115,6 +115,12 @@ cards:
   - type: custom:bubble-card
     card_type: button
     button_type: switch
+    entity: switch.hub_vincent_do_not_disturb
+    name: Nest Hub niet storen
+    icon: mdi:bell-off-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
     entity: input_boolean.disablelightautomationbedroom
     name: Automatisch licht pauzeren
     icon: mdi:motion-sensor-off

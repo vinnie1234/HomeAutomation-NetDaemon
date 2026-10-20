@@ -153,6 +153,108 @@ sections:
   - type: grid
     cards:
       - type: heading
+        heading: Zonneverwachting
+        heading_style: title
+        icon: mdi:solar-power-variant
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_today
+        name: Vandaag
+        icon: mdi:weather-sunny
+        styles:
+          icon:
+            - color: "#ffd166"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_today_remaining
+        name: Nog te gaan
+        icon: mdi:timer-sand
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_tomorrow
+        name: Morgen
+        icon: mdi:weather-sunny-alert
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.power_highest_peak_time_today
+        name: Piek vandaag
+        icon: mdi:chart-bell-curve
+        state_display: |
+          [[[
+            const t = new Date(entity?.state);
+            return isNaN(t) ? 'Onbekend' : t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+          ]]]
+        grid_options:
+          columns: 6
+      # Grootste verbruikers nu (alle lampen en stekkers met een vermogenssensor)
+      - type: custom:button-card
+        template: top_power
+        variables:
+          count: 8
+          sensors:
+            - sensor.koelkast_power
+            - sensor.tv_kast_power
+            - sensor.tv_power_meter
+            - sensor.soundbar_power_meter
+            - sensor.hue_play_links_power
+            - sensor.hue_play_midden_power
+            - sensor.hue_play_rechts_power
+            - sensor.plafond_woonkamer_power
+            - sensor.plafond_slaapkamer_power
+            - sensor.plafond_badkamer_power
+            - sensor.nachtkastje_power
+            - sensor.keuken_power
+            - sensor.berging_power
+            - sensor.hal_power
+            - sensor.buiten_deur_power
+            - sensor.sigaret_device_power
+            - sensor.plug_bureau_device_power
+            - sensor.nestmini9818_power
+            - sensor.woonkamer_power
+            - sensor.energysocket_5c2faf02a546_active_power
+            - sensor.energysocket_5c2faf0c7564_active_power
+            - sensor.energysocket_5c2faf0d8364_active_power
+          names:
+            sensor.tv_power_meter: TV
+            sensor.soundbar_power_meter: Soundbar
+            sensor.tv_kast_power: TV-kast
+            sensor.nestmini9818_power: Nest Mini keuken
+            sensor.plug_bureau_device_power: Bureau
+            sensor.energysocket_5c2faf02a546_active_power: Stekker 1
+            sensor.energysocket_5c2faf0c7564_active_power: Stekker 2
+            sensor.energysocket_5c2faf0d8364_active_power: Stekker 3
+      - type: heading
+        heading: Stekkers
+        heading_style: subtitle
+        icon: mdi:power-socket-eu
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf02a546_active_power
+        name: Stekker 1
+        icon: mdi:power-socket-eu
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf0c7564_active_power
+        name: Stekker 2
+        icon: mdi:power-socket-eu
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf0d8364_active_power
+        name: Stekker 3
+        icon: mdi:power-socket-eu
+        grid_options:
+          columns: 4
+      - type: heading
         heading: Netbalans
         heading_style: title
         icon: mdi:scale-balance

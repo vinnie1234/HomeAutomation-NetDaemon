@@ -89,6 +89,62 @@ sections:
         show_empty: false
 
       - type: heading
+        heading: Watchman
+        heading_style: title
+        icon: mdi:shield-search
+      # Watchman: automatiseringen en scripts die naar verdwenen entiteiten of acties verwijzen
+      - type: custom:button-card
+        template: glass
+        triggers_update:
+          - sensor.watchman_missing_entities
+          - sensor.watchman_missing_actions
+        icon: mdi:shield-search
+        show_label: true
+        name: |
+          [[[
+            const ents = parseInt(states['sensor.watchman_missing_entities']?.state) || 0;
+            const acts = parseInt(states['sensor.watchman_missing_actions']?.state) || 0;
+            return ents || acts ? `${ents} ontbrekende entiteiten · ${acts} acties` : 'Geen verwijzingen naar verdwenen dingen';
+          ]]]
+        label: |
+          [[[
+            const list = states['sensor.watchman_missing_entities']?.attributes.entities ?? [];
+            return list.slice(0, 6).map(e => e.id ?? e.entity_id ?? e).join(', ') + (list.length > 6 ? ` en ${list.length - 6} meer` : '');
+          ]]]
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.watchman_report
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          icon:
+            - width: 28px
+            - color: |
+                [[[
+                  const n = (parseInt(states['sensor.watchman_missing_entities']?.state) || 0) + (parseInt(states['sensor.watchman_missing_actions']?.state) || 0);
+                  return n ? '#ffb060' : '#4ade80';
+                ]]]
+          label:
+            - white-space: normal
+            - text-align: left
+            - font-size: 12px
+
+      - type: heading
+        heading: Instellingen
+        heading_style: title
+        icon: mdi:tune-vertical
+      - type: custom:button-card
+        template: action
+        name: Dagritme en licht instellen
+        icon: mdi:clock-edit-outline
+        tap_action:
+          action: navigate
+          navigation_path: "#instellingen"
+      - type: heading
         heading: NetDaemon
         heading_style: title
         icon: mdi:robot-outline
@@ -326,6 +382,10 @@ sections:
         entities:
           - entity: input_boolean.away
             name: Niemand thuis
+          - entity: input_boolean.awayvincent
+            name: Vincent weg
+          - entity: input_boolean.awaycarleen
+            name: Carleen weg
           - entity: input_boolean.disableautoaway
             name: Automatisch weg uitzetten
           - entity: input_boolean.holliday
@@ -348,3 +408,44 @@ sections:
             name: Donderdag
           - entity: input_boolean.officeday_friday
             name: Vrijdag
+
+  # Pop-up: dagritme (HouseStateManager) en helderheid dag/nacht (badkamer en hal)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#instellingen"
+        name: Instellingen
+        icon: mdi:tune-vertical
+        cards:
+          - type: entities
+            entities:
+              - type: section
+                label: Dag begint
+              - entity: input_datetime.daytimeoffice
+                name: Kantoordag
+                icon: mdi:office-building-outline
+              - entity: input_datetime.daytimehomework
+                name: Thuiswerkdag
+                icon: mdi:home-account
+              - entity: input_datetime.daytimeweekend
+                name: Weekend
+                icon: mdi:calendar-weekend
+              - type: section
+                label: Nacht begint
+              - entity: input_datetime.nighttimeweekdays
+                name: Doordeweeks
+                icon: mdi:weather-night
+              - entity: input_datetime.nighttimeweekends
+                name: Weekend
+                icon: mdi:weather-night
+              - type: section
+                label: Helderheid bij beweging
+              - entity: input_number.bathroomlightdaytime
+                name: Badkamer overdag
+              - entity: input_number.bathroomlightnighttime
+                name: Badkamer 's nachts
+              - entity: input_number.halllightdaytime
+                name: Hal overdag
+              - entity: input_number.halllightnighttime
+                name: Hal 's nachts

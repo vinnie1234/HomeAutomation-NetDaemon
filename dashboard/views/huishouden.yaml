@@ -225,6 +225,12 @@ sections:
         template: stat
         entity: sensor.afval_pmd
         name: PMD
+        show_label: true
+        label: |
+          [[[
+            const n = parseInt(states['sensor.garbage_placed_pmd']?.state);
+            return isNaN(n) ? '' : `${n}× buiten gezet`;
+          ]]]
         icon: mdi:recycle
         state_display: &afval_datum |
           [[[
@@ -247,6 +253,12 @@ sections:
         template: stat
         entity: sensor.afval_papier
         name: Papier
+        show_label: true
+        label: |
+          [[[
+            const n = parseInt(states['sensor.garbage_placed_papier']?.state);
+            return isNaN(n) ? '' : `${n}× buiten gezet`;
+          ]]]
         icon: mdi:newspaper-variant-outline
         state_display: *afval_datum
         styles:
@@ -407,6 +419,22 @@ sections:
           method: state
           numeric: true
         show_empty: false
+      # Batterijtrends (BatteryTrendAnalyzer): welke batterijen het eerst leeg zijn
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Eerst aan de beurt
+        filter:
+          include:
+            - entity_id: sensor.*_battery_days_remaining
+          exclude:
+            - state: unavailable
+            - state: unknown
+        sort:
+          method: state
+          numeric: true
+          count: 6
+        show_empty: false
 
   # Taken en agenda
   - type: grid
@@ -534,6 +562,60 @@ sections:
             features_position: bottom
             features:
               - type: select-options
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Planning
+            icon: mdi:clock-outline
+          - type: entities
+            entities:
+              - entity: time.badkamer_wasmachine_klaar_om
+                name: Klaar om
+              - entity: number.badkamer_wasmachine_uitgestelde_start
+                name: Uitgestelde start
+          # Zet "klaar om" op het einde van het wasadvies (het advies op deze pagina onthoudt zijn uitkomst)
+          - type: custom:button-card
+            template: action
+            name: Klaar volgens wasadvies
+            icon: mdi:washing-machine-alert
+            tap_action:
+              action: javascript
+              javascript: |
+                [[[
+                  const advice = window.huisWasAdvies;
+                  if (!advice) return;
+                  const hour = String(advice.end % 24).padStart(2, '0');
+                  hass.callService('time', 'set_value', { entity_id: 'time.badkamer_wasmachine_klaar_om', time: `${hour}:00:00` });
+                ]]]
+            label: |
+              [[[
+                const advice = window.huisWasAdvies;
+                return advice ? `klaar om ${String(advice.end % 24).padStart(2, '0')}:00` : 'eerst het wasadvies openen';
+              ]]]
+            show_label: true
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Opties
+            icon: mdi:tune-variant
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_voorwas
+            name: Voorwas
+            icon: mdi:numeric-1-circle-outline
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_intensief
+            name: Intensief
+            icon: mdi:arm-flex-outline
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_bubble_soak
+            name: Bubble soak
+            icon: mdi:chart-bubble
 
           - type: custom:bubble-card
             card_type: separator

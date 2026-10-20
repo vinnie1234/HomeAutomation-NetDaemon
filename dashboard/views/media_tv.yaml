@@ -89,6 +89,28 @@ sections:
         name: Helderheid
         icon: mdi:brightness-6
         show_state: true
+      # Welk Hue-entertainmentgebied nu actief is (alleen-lezen in Home Assistant)
+      - type: custom:button-card
+        template: stat
+        icon: mdi:television-ambient-light
+        name: Entertainmentgebied
+        triggers_update: all
+        show_state: false
+        show_label: true
+        label: |
+          [[[
+            const areas = { tv_area: 'TV', only_tv: 'Alleen TV', disco_huis: 'Disco huis', muziekruimte: 'Muziekruimte' };
+            const active = Object.entries(areas)
+              .filter(([key]) => states[`binary_sensor.${key}_entertainment_configuration`]?.state === 'on')
+              .map(([, name]) => name);
+            return active.length ? `Actief: ${active.join(', ')}` : 'Geen actief';
+          ]]]
+        styles:
+          label:
+            - font-size: 18px
+            - font-weight: 700
+            - opacity: 1
+            - justify-self: start
       - type: tile
         entity: select.sync_box_sync_mode
         name: Modus

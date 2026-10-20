@@ -22,6 +22,48 @@ sections:
       - type: custom:mushroom-chips-card
         alignment: start
         chips:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.keuken_timers
+                state_not:
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:timer-sand
+              icon_color: amber
+              content: |
+                {% set left = as_timestamp(states('sensor.keuken_timers'), 0) - now().timestamp() %}
+                Keukentimer{{ ' · nog ' ~ ((left / 60) | round(0, 'ceil') | int) ~ ' min' if left > 0 else ' · klaar' }}
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.badkamer_speaker_timers
+                state_not:
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:timer-sand
+              icon_color: amber
+              content: |
+                {% set left = as_timestamp(states('sensor.badkamer_speaker_timers'), 0) - now().timestamp() %}
+                Badkamertimer{{ ' · nog ' ~ ((left / 60) | round(0, 'ceil') | int) ~ ' min' if left > 0 else ' · klaar' }}
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.gang_speaker_1_timers
+                state_not:
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:timer-sand
+              icon_color: amber
+              content: |
+                {% set left = as_timestamp(states('sensor.gang_speaker_1_timers'), 0) - now().timestamp() %}
+                Timer gang{{ ' · nog ' ~ ((left / 60) | round(0, 'ceil') | int) ~ ' min' if left > 0 else ' · klaar' }}
           - type: template
             icon: |
               {{ {'Morning': 'mdi:weather-sunset-up', 'Day': 'mdi:white-balance-sunny', 'Evening': 'mdi:weather-sunset-down', 'Night': 'mdi:weather-night'}.get(states('input_select.housemodeselect'), 'mdi:home') }}

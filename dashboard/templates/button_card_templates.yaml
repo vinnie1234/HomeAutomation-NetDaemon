@@ -595,7 +595,8 @@ weather_hero:
           {% set months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'] %}
           ## {{ greeting }} {{ (user or '').split(' ')[0] }}
           # {{ now().strftime('%H:%M') }}
-          {{ days[now().weekday()] | capitalize }} {{ now().day }} {{ months[now().month - 1] }}
+          {% set alarm = as_timestamp(states('sensor.hub_vincent_alarms'), 0) %}
+          {{ days[now().weekday()] | capitalize }} {{ now().day }} {{ months[now().month - 1] }}{{ ' · ⏰ ' ~ (alarm | timestamp_custom('%H:%M')) if 0 < alarm - now().timestamp() < 86400 else '' }}{{ ' · 🎄' if is_state('binary_sensor.kerst', 'on') else '' }}
         card_mod:
           style:
             ha-markdown$: |
@@ -688,6 +689,10 @@ weather_hero:
               entity: person.vincent_maarschalkerweerd
               variables:
                 sleeping: input_boolean.sleepingvincent
+                battery: sensor.vincent_phone_battery_level
+                charging: binary_sensor.vincent_phone_is_charging
+                distance: sensor.thuis_sm_s938b_distance
+                direction: sensor.thuis_sm_s938b_direction_of_travel
           c:
             card:
               type: custom:button-card
@@ -695,6 +700,8 @@ weather_hero:
               entity: person.carleen
               variables:
                 sleeping: input_boolean.sleepingcarleen
+                battery: sensor.carleen_mobiel_battery_level
+                charging: sensor.carleen_mobiel_battery_state
   styles:
     card:
       - height: 320px
@@ -1025,13 +1032,18 @@ tab:
       - font-size: 12px
       - font-weight: 500
 
-# Persoon in de weer-hero: foto (of letter), naam en thuis/weg/slaapt.
+# Persoon in de weer-hero: foto (of letter), naam, telefoonbatterij en thuis/weg/slaapt (met afstand en richting).
 # Tik zet slapen aan of uit (variables.sleeping), lang drukken toont de persoon.
+# Optioneel: variables.battery / charging (telefoon) en distance / direction (Proximity-sensoren van de zone Thuis).
 hero_person:
   show_icon: false
   show_name: false
   variables:
     sleeping: null
+    battery: null
+    charging: null
+    distance: null
+    direction: null
   tap_action:
     action: javascript
     haptic: medium
@@ -1042,12 +1054,27 @@ hero_person:
   custom_fields:
     pill: |
       [[[
-        const home = entity.state === 'home';
+        const home = entity?.state === 'home';
         const asleep = states[variables.sleeping]?.state === 'on';
-        const first = (entity.attributes.friendly_name ?? entity.entity_id).split(' ')[0];
-        const status = asleep ? 'Slaapt' : home ? 'Thuis' : entity.state === 'not_home' ? 'Weg' : entity.state;
+        const first = (entity?.attributes.friendly_name ?? '?').split(' ')[0];
+        let status = asleep ? 'Slaapt' : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
+
+        // Onderweg: afstand tot huis en of de persoon naar huis komt
+        const d = states[variables.distance];
+        const meters = parseFloat(d?.state) * (d?.attributes.unit_of_measurement === 'km' ? 1000 : 1);
+        if (!home && !isNaN(meters)) {
+          const dist = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1).replace('.', ',')} km` : `${Math.round(meters)} m`;
+          const dir = { towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '';
+          status = `${dist}${dir}`;
+        }
+
+        // Telefoonbatterij: klein, rood als hij bijna leeg is, bliksem als hij laadt
+        const level = parseInt(states[variables.battery]?.state);
+        const charging = ['on', 'charging'].includes(states[variables.charging]?.state);
+        const batteryHtml = isNaN(level) ? '' : `<span style="font-size:10px;opacity:.85;margin-left:6px;color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
+
         const ring = asleep ? 'rgba(167,139,250,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
-        const avatar = entity.attributes.entity_picture
+        const avatar = entity?.attributes.entity_picture
           ? `<img src="${entity.attributes.entity_picture}" style="width:30px;height:30px;border-radius:50%;object-fit:cover">`
           : `<div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;
                align-items:center;justify-content:center;font-weight:700">${first[0]}</div>`;
@@ -1055,8 +1082,8 @@ hero_person:
                   background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);color:#fff;box-shadow:inset 0 0 0 2px ${ring}">
                   ${avatar}
                   <div style="line-height:1.15;text-align:left">
-                    <div style="font-size:13px;font-weight:600">${first}</div>
-                    <div style="font-size:11px;opacity:0.85">${asleep ? '😴 ' : ''}${status}</div>
+                    <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}${batteryHtml}</div>
+                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}</div>
                   </div>
                 </div>`;
       ]]]
@@ -1070,6 +1097,49 @@ hero_person:
       - overflow: visible
     grid:
       - grid-template-areas: '"pill"'
+
+# Grootste stroomverbruikers van nu: alle vermogenssensoren uit variables.sensors, gesorteerd, de top variables.count.
+# variables.names: optionele nette namen per sensor.
+top_power:
+  template: glass
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  variables:
+    count: 5
+    sensors: []
+    names: {}
+  custom_fields:
+    list: |
+      [[[
+        const rows = variables.sensors
+          .map(id => ({ id, w: parseFloat(states[id]?.state) }))
+          .filter(r => !isNaN(r.w) && r.w > 0.5)
+          .sort((a, b) => b.w - a.w)
+          .slice(0, variables.count);
+        if (!rows.length) return '<div style="opacity:.6">Geen meetbaar verbruik</div>';
+        const max = rows[0].w;
+        const name = id => variables.names[id] ?? (states[id]?.attributes.friendly_name ?? id).replace(/ (power|vermogen|power meter)$/i, '');
+        return `<div style="text-align:left">
+                  <div style="font-size:15px;font-weight:600;margin-bottom:8px">Grootste verbruikers nu</div>
+                  ${rows.map(r => `<div style="display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin:7px 0">
+                      <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name(r.id)}</span>
+                      <span style="font-size:13px;font-weight:600">${r.w >= 100 ? Math.round(r.w) : r.w.toFixed(1).replace('.', ',')} W</span>
+                      <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
+                        <div style="width:${r.w / max * 100}%;height:100%;border-radius:3px;background:linear-gradient(90deg,#ffb060,#ff6b6b)"></div>
+                      </div>
+                    </div>`).join('')}
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 16px
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - display: block
+        - width: 100%
 
 # Verwachting per uur als strook die je horizontaal doorschuift: tijd, icoon, temperatuurlijn, regen (mm en kans).
 # Bron: sensor.weer_verwachting_per_uur (template-sensor met het attribuut forecast, zie README).
@@ -1282,6 +1352,7 @@ wash_advice:
           if (!best || score < best.score) best = { start, end, avg, canDry, dryQuality, score };
         }
         if (!best) return '<div style="opacity:.6">Nog geen prijzen voor vandaag.</div>';
+        window.huisWasAdvies = { start: best.start, end: best.end, day: day.toDateString() };
 
         const sunny = best.dryQuality >= 0.85 ? '☀️' : best.dryQuality >= 0.6 ? '🌤️' : '☁️';
         const dryLine = best.canDry

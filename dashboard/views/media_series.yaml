@@ -41,3 +41,13 @@ sections:
         title: Nieuwe afleveringen
         image_style: poster
         max: 6
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_next_to_watch_only_upcoming
+        title: Komende afleveringen
+        image_style: poster
+        max: 6
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_upcoming_movies
+        title: Films binnenkort
+        image_style: poster
+        max: 6

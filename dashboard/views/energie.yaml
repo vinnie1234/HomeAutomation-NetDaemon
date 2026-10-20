@@ -85,6 +85,44 @@ sections:
         grid_options:
           columns: 6
 
+      # Grootste verbruikers nu (alle lampen en stekkers met een vermogenssensor)
+      - type: custom:button-card
+        template: top_power
+        variables:
+          count: 5
+          sensors:
+            - sensor.koelkast_power
+            - sensor.tv_kast_power
+            - sensor.tv_power_meter
+            - sensor.soundbar_power_meter
+            - sensor.hue_play_links_power
+            - sensor.hue_play_midden_power
+            - sensor.hue_play_rechts_power
+            - sensor.plafond_woonkamer_power
+            - sensor.plafond_slaapkamer_power
+            - sensor.plafond_badkamer_power
+            - sensor.nachtkastje_power
+            - sensor.keuken_power
+            - sensor.berging_power
+            - sensor.hal_power
+            - sensor.buiten_deur_power
+            - sensor.sigaret_device_power
+            - sensor.plug_bureau_device_power
+            - sensor.nestmini9818_power
+            - sensor.woonkamer_power
+            - sensor.energysocket_5c2faf02a546_active_power
+            - sensor.energysocket_5c2faf0c7564_active_power
+            - sensor.energysocket_5c2faf0d8364_active_power
+          names:
+            sensor.tv_power_meter: TV
+            sensor.soundbar_power_meter: Soundbar
+            sensor.tv_kast_power: TV-kast
+            sensor.nestmini9818_power: Nest Mini keuken
+            sensor.plug_bureau_device_power: Bureau
+            sensor.energysocket_5c2faf02a546_active_power: Stekker 1
+            sensor.energysocket_5c2faf0c7564_active_power: Stekker 2
+            sensor.energysocket_5c2faf0d8364_active_power: Stekker 3
+
   # Prijs en wasadvies
   - type: grid
     cards:
