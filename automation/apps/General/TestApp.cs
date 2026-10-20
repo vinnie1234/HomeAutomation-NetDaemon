@@ -1,4 +1,6 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 using NetDaemon.Client;
 
 // ReSharper disable UnusedParameter.Local
@@ -13,8 +15,8 @@ public class TestApp : BaseApp
 {
     // ReSharper disable once SuggestBaseTypeForParameterInConstructor
     public TestApp(IHaContext ha, IHomeAssistantConnection homeAssistantConnection, ILogger<TestApp> logger,
-        INotify notify, IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        INotify notify, IScheduler scheduler, IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
     }
 }

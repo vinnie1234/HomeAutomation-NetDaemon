@@ -11,13 +11,11 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
 public class CocMonitoring : BaseApp
 {
-    private readonly AppConfig _config;
-
-    public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository, IOptions<AppConfig> config) : base(haContext, logger, notify, scheduler)
+    public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository, IOptions<AppConfig> config) : base(haContext, logger, notify, scheduler, config)
     {
-        _config = config.Value;
-        var discordChannel = _config.Discord.COC;
-        var bearerToken = _config.Twitter.BearerToken;
+        var config1 = config.Value;
+        var discordChannel = config1.Discord.COC;
+        var bearerToken = config1.Twitter.BearerToken;
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
             () => { GetTweets(bearerToken, discordChannel, dataRepository); });        

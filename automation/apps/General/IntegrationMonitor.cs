@@ -76,7 +76,7 @@ public class IntegrationMonitor : BaseApp
         IDataRepository storage,
         IHomeAssistantRunner runner,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _storage = storage;
         _runner = runner;

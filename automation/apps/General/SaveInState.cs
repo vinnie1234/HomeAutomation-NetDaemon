@@ -1,4 +1,6 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -27,8 +29,9 @@ public class SaveInState : BaseApp, IAsyncInitializable
         ILogger<SaveInState> logger,
         INotify notify,
         IScheduler scheduler,
-        IDataRepository storage)
-        : base(ha, logger, notify, scheduler)
+        IDataRepository storage,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         _storage = storage;
     }

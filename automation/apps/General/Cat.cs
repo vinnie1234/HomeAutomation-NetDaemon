@@ -28,7 +28,7 @@ public class Cat : BaseApp
         INotify notify,
         IScheduler scheduler,
         IOptions<AppConfig> config)
-        : base(haContext, logger, notify, scheduler)
+        : base(haContext, logger, notify, scheduler, config)
     {
         _config = config.Value;
         ButtonFeedCat();

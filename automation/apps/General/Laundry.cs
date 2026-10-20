@@ -28,7 +28,7 @@ public class Laundry : BaseApp
         INotify notify,
         IScheduler scheduler,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         SetupWashingMachineMonitoring();
         SetupLaundryOutsideToggleMonitoring();

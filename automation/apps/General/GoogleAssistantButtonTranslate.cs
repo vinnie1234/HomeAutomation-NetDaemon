@@ -1,4 +1,6 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -15,8 +17,9 @@ public class GoogleAssistantButtonTranslate : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
-    public GoogleAssistantButtonTranslate(IHaContext haContext, ILogger<GoogleAssistantButtonTranslate> logger, INotify notify, IScheduler scheduler)
-        : base(haContext, logger, notify, scheduler)
+    public GoogleAssistantButtonTranslate(IHaContext haContext, ILogger<GoogleAssistantButtonTranslate> logger, INotify notify, IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(haContext, logger, notify, scheduler, config)
     {
         foreach (var translateEntity in TranslationInputButtonEntity())
             translateEntity.Key.WhenTurnsOn(_ =>

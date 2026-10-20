@@ -30,7 +30,7 @@ public class AutoUpdateApp : BaseApp
         INotify notify,
         IScheduler scheduler,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
         _updates = Entities.Update;

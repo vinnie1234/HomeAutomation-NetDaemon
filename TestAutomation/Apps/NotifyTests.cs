@@ -1,9 +1,11 @@
 using System.Reactive.Subjects;
 using System.Text.Json;
+using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models;
 using Automation.Repository;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetDaemon.HassModel;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
@@ -21,7 +23,7 @@ public class NotifyTests
         var ha = Substitute.For<IHaContext>();
         var events = new Subject<Event>();
         ha.Events.Returns(events);
-        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         var pressed = false;
         var action = new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen", func: () => pressed = true);
@@ -58,7 +60,7 @@ public class NotifyTests
         // Arrange
         var ha = Substitute.For<IHaContext>();
         ha.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = away });
-        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         // Act
         notify.NotifyHouse("Test", "Hallo", true);
@@ -78,7 +80,7 @@ public class NotifyTests
         var ha = Substitute.For<IHaContext>();
         ha.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "off" });
         ha.GetState(sleepingEntityId).Returns(new EntityState { EntityId = sleepingEntityId, State = "on" });
-        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         // Act
         notify.NotifyHouse("Test", "Hallo", true);
@@ -94,7 +96,7 @@ public class NotifyTests
         // Arrange - real repository, so the stored "last sent" time is actually read back
         var ha = Substitute.For<IHaContext>();
         var storage = new DataRepository(Path.Combine(Path.GetTempPath(), $"notify-test-{Guid.NewGuid()}"), Substitute.For<ILogger>());
-        var notify = new Notify(ha, storage, Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, storage, Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         // Act
         notify.NotifyPhoneVincent("Batterij", "bijna leeg", false, sendAfterMinutes: 60);
@@ -114,7 +116,7 @@ public class NotifyTests
         {
             new("Batterij", "bijna leeg", DateTimeOffset.Now.AddMinutes(-61))
         });
-        var notify = new Notify(ha, storage, Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, storage, Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         // Act
         notify.NotifyPhoneVincent("Batterij", "bijna leeg", false, sendAfterMinutes: 60);
@@ -131,7 +133,7 @@ public class NotifyTests
         var ha = Substitute.For<IHaContext>();
         var events = new Subject<Event>();
         ha.Events.Returns(events);
-        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         var pressedCount = 0;
         var action = new ActionModel("WAS_BINNEN_GEHAALD", "✅ Was binnen gehaald", func: () => pressedCount++);
@@ -155,7 +157,7 @@ public class NotifyTests
     {
         // Arrange
         var ha = Substitute.For<IHaContext>();
-        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>());
+        var notify = new Notify(ha, Substitute.For<IDataRepository>(), Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
 
         // Act
         notify.NotifyPhoneVincentTts("Test", "Hallo", true);

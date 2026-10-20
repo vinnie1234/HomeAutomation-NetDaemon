@@ -1,4 +1,5 @@
 using System.IO;
+using System.Net.Http;
 using System.Reactive.Concurrency;
 using Automation.apps;
 using Automation.Configuration;
@@ -8,6 +9,7 @@ using Automation.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NetDaemon.Client;
 using NetDaemon.Extensions.MqttEntityManager;
 
 namespace Automation;
@@ -24,7 +26,11 @@ internal static class AppServicesExtension
                         ".storage"),
                     provider.GetRequiredService<ILogger<DataRepository>>()))
                 .AddScoped<INotify>(provider =>
-                    new Notify(provider.GetRequiredService<IHaContext>(), provider.GetRequiredService<IDataRepository>(), provider.GetRequiredService<ILogger<Notify>>()))
+                    new Notify(
+                        provider.GetRequiredService<IHaContext>(),
+                        provider.GetRequiredService<IDataRepository>(),
+                        provider.GetRequiredService<ILogger<Notify>>(),
+                        provider.GetRequiredService<IOptions<AppConfig>>()))
                 .AddScoped<ICircadianLightingService>(provider =>
                     new CircadianLightingService(
                         provider.GetRequiredService<IHaContext>(),
@@ -40,8 +46,21 @@ internal static class AppServicesExtension
                 .AddScoped<IEntityManager>(provider =>
                     new EntityManager(
                         provider.GetRequiredService<IMqttEntityManager>(),
-                        provider.GetRequiredService<IHaContext>(), 
-                        provider.GetRequiredService<ILogger<EntityManager>>()));
+                        provider.GetRequiredService<IHaContext>(),
+                        provider.GetRequiredService<ILogger<EntityManager>>()))
+                .AddScoped<IWhatsAppMediaClient>(provider =>
+                    new WhatsAppMediaClient(provider.GetRequiredService<IHttpClientFactory>()))
+                .AddScoped<IAssistPipelineClient>(provider =>
+                    new AssistPipelineClient(
+                        provider.GetRequiredService<ILogger<AssistPipelineClient>>(),
+                        provider.GetRequiredService<IOptions<HomeAssistantConnectionOptions>>()))
+                .AddSingleton<IWhatsAppVoiceNoteCache, WhatsAppVoiceNoteCache>()
+                .AddScoped<ITextToSpeechClient>(provider =>
+                    new TextToSpeechClient(
+                        provider.GetRequiredService<IHomeAssistantRunner>(),
+                        provider.GetRequiredService<IHttpClientFactory>(),
+                        provider.GetRequiredService<IWhatsAppVoiceNoteCache>(),
+                        provider.GetRequiredService<IOptions<AppConfig>>()));
         });
     }
 }

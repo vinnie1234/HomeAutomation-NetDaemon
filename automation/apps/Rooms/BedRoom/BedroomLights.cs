@@ -1,4 +1,6 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.BedRoom;
 
@@ -6,11 +8,12 @@ namespace Automation.apps.Rooms.BedRoom;
 public class BedRoomLights : BaseApp
 {
     public BedRoomLights(
-        IHaContext ha, 
-        ILogger<BedRoomLights> logger, 
-        INotify notify, 
-        IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        IHaContext ha,
+        ILogger<BedRoomLights> logger,
+        INotify notify,
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         //todo still need to think about automation
     }

@@ -21,8 +21,8 @@ public class FunApp : BaseApp
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="config">The application configuration.</param>
     public FunApp(IHaContext ha, ILogger<FunApp> logger, INotify notify, IScheduler scheduler,
-                  IOptions<AppConfiguration> config)
-        : base(ha, logger, notify, scheduler)
+                  IOptions<AppConfiguration> config, IOptions<AppConfig> appConfig)
+        : base(ha, logger, notify, scheduler, appConfig)
     {
         _config = config.Value;
         Friends();
@@ -118,39 +118,39 @@ public class FunApp : BaseApp
             switch (num)
             {
                 case 1:
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Green);
                     Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Green);
                     Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Green);
                     Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Green);
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Red);
                     break;
                 case 2:
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Red);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Red);
                     Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Red);
                     Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Red);
                     Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Red);
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Green);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Green);
                     break;
                 case 3:
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Blue);
                     Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Blue);
                     Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Blue);
                     Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Blue);
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Yellow);
                     break;
                 case 4:
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.White);
                     Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.White);
                     Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.White);
                     Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.White);
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Blue);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Blue);
                     break;
                 case 5:
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.Yellow);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.Yellow);
                     Entities.Light.HuePlayMidden.TurnOn(rgbColor: LightColors.Yellow);
                     Entities.Light.HuePlayLinks.TurnOn(rgbColor: LightColors.Yellow);
                     Entities.Light.HuePlayRechts.TurnOn(rgbColor: LightColors.Yellow);
-                    Entities.Light.Tv.TurnOn(rgbColor: LightColors.White);
+                    Entities.Light.TvLight.TurnOn(rgbColor: LightColors.White);
                     break;
             }
 
@@ -158,6 +158,6 @@ public class FunApp : BaseApp
         } while (s.Elapsed < TimeSpan.FromMinutes(4));
 
         Entities.MediaPlayer.HeleHuis.VolumeSet(0.4);
-        Entities.Light.Tv.TurnOn(effect: "opal");
+        Entities.Light.TvLight.TurnOn(effect: "opal");
     }
 }

@@ -27,7 +27,7 @@ public class BatteryMonitoring : BaseApp
         IScheduler scheduler,
         IOptions<AppConfig> config,
         IOptions<AppConfiguration> appConfiguration)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
         _appConfiguration = appConfiguration.Value;
