@@ -197,27 +197,9 @@ sections:
         state_display: '[[[ return entity.state === "1" ? "Dal" : entity.state === "2" ? "Normaal" : entity.state; ]]]'
         grid_options:
           columns: 4
+      # Wasadvies: prijs én buiten drogen (zie template wash_advice)
       - type: custom:button-card
-        template: stat
-        entity: sensor.anwb_electricity_all_in_price_current
-        name: Beste moment voor de wasmachine (3 uur)
-        icon: mdi:washing-machine
-        state_display: |
-          [[[
-            const hour = 3600000;
-            const prices = Object.entries(entity.attributes.hourly_prices ?? {})
-              .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
-              .filter(([t, v]) => t >= Date.now() - hour && !isNaN(v))
-              .sort((a, b) => a[0] - b[0]);
-            let best = null;
-            for (let i = 0; i + 2 < prices.length; i++) {
-              const avg = (prices[i][1] + prices[i + 1][1] + prices[i + 2][1]) / 3;
-              if (!best || avg < best.avg) best = { start: prices[i][0], avg };
-            }
-            if (!best) return 'Morgen weer bekend';
-            const start = new Date(Math.max(best.start, Date.now()));
-            return `Vanaf ${start.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · gem. € ${best.avg.toFixed(2).replace('.', ',')}`;
-          ]]]
+        template: wash_advice
         grid_options:
           columns: 12
 

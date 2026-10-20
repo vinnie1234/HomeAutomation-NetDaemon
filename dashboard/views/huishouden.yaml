@@ -333,6 +333,8 @@ sections:
           custom_fields:
             arrow:
               - align-self: center
+      - type: custom:button-card
+        template: wash_advice
       - type: custom:bubble-card
         card_type: button
         button_type: switch

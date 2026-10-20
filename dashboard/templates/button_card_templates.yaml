@@ -1187,3 +1187,102 @@ summary:
       - font-size: 13px
       - white-space: normal
       - text-align: left
+
+# Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.
+# - Starten kan vanaf 08:00, het programma duurt 3 uur.
+# - Buiten drogen kan als de 3 uur na het einde droog zijn en vóór zonsondergang vallen;
+#   zonnig telt het zwaarst, dan half bewolkt/winderig, dan bewolkt.
+# - Een moment met buiten drogen mag tot ~€ 0,10/kWh duurder zijn dan een moment zonder.
+# - Na 20:00 het advies voor morgen (als die prijzen er zijn).
+# Bronnen: hourly_prices van de ANWB-sensor en sensor.weer_verwachting_per_uur (template-sensor, zie README).
+wash_advice:
+  template: glass
+  triggers_update:
+    - sensor.anwb_electricity_all_in_price_current
+    - sensor.weer_verwachting_per_uur
+    - sun.sun
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    advice: |
+      [[[
+        const WASH_HOURS = 3, DRY_HOURS = 3, EARLIEST = 8, DRY_BONUS = 0.10;
+        const time = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+        const euro = v => `€ ${v.toFixed(2).replace('.', ',')}`;
+
+        // Welke dag: vandaag, of morgen na 20:00 als die prijzen er al zijn
+        const prices = Object.entries(states['sensor.anwb_electricity_all_in_price_current']?.attributes.hourly_prices ?? {})
+          .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+          .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+        const now = new Date();
+        const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+        const hasTomorrow = prices.some(([t]) => t.toDateString() === tomorrow.toDateString());
+        const day = now.getHours() >= 20 && hasTomorrow ? tomorrow : now;
+        const dayName = day === now ? 'Vandaag' : 'Morgen';
+        const priceAt = {};
+        prices.filter(([t]) => t.toDateString() === day.toDateString()).forEach(([t, v]) => { priceAt[t.getHours()] = v; });
+
+        // Zonsondergang van die dag (sun.sun geeft de eerstvolgende; zo nodig een dag terug of verder rekenen)
+        const nextSetting = new Date(states['sun.sun']?.attributes.next_setting ?? NaN);
+        let sunset = 18;
+        if (!isNaN(nextSetting)) {
+          const s = new Date(nextSetting);
+          while (s.toDateString() !== day.toDateString() && s > day) s.setDate(s.getDate() - 1);
+          while (s.toDateString() !== day.toDateString() && s < day) s.setDate(s.getDate() + 1);
+          sunset = s.getHours() + s.getMinutes() / 60;
+        }
+
+        // Droogweer per uur uit de verwachting
+        const quality = { sunny: 1, partlycloudy: 0.75, windy: 0.7, 'windy-variant': 0.6, cloudy: 0.4, fog: 0.15 };
+        const forecast = {};
+        (states['sensor.weer_verwachting_per_uur']?.attributes.forecast ?? []).forEach(f => {
+          const t = new Date(f.datetime);
+          if (t.toDateString() !== day.toDateString()) return;
+          const dry = !(parseFloat(f.precipitation) > 0) && !(f.precipitation_probability >= 40) && quality[f.condition] !== undefined;
+          forecast[t.getHours()] = { dry, quality: quality[f.condition] ?? 0, condition: f.condition };
+        });
+        const haveForecast = Object.keys(forecast).length > 0;
+
+        // Alle starttijden vanaf 08:00 langs
+        let best = null;
+        for (let start = EARLIEST; start + WASH_HOURS <= 24; start++) {
+          const wash = [...Array(WASH_HOURS).keys()].map(i => priceAt[start + i]);
+          if (wash.some(v => v === undefined)) continue;
+          const avg = wash.reduce((a, b) => a + b, 0) / WASH_HOURS;
+          const end = start + WASH_HOURS;
+          const dryHours = [...Array(DRY_HOURS).keys()].map(i => forecast[end + i]);
+          const canDry = haveForecast && end + DRY_HOURS <= sunset && dryHours.every(h => h?.dry);
+          const dryQuality = canDry ? dryHours.reduce((a, h) => a + h.quality, 0) / DRY_HOURS : 0;
+          const score = avg - (canDry ? DRY_BONUS * dryQuality : 0);
+          if (!best || score < best.score) best = { start, end, avg, canDry, dryQuality, score };
+        }
+        if (!best) return '<div style="opacity:.6">Nog geen prijzen voor vandaag.</div>';
+
+        const sunny = best.dryQuality >= 0.85 ? '☀️' : best.dryQuality >= 0.6 ? '🌤️' : '☁️';
+        const dryLine = best.canDry
+          ? `${sunny} Buiten drogen ${time(best.end)}–${time(best.end + DRY_HOURS)}`
+          : haveForecast ? `🌧️ ${dayName.toLowerCase()} niet buiten drogen` : 'Geen weersverwachting, alleen op prijs';
+        const passed = day === now && best.start < now.getHours() ? ' (al voorbij)' : '';
+        return `<div style="display:flex;align-items:center;gap:14px;text-align:left">
+                  <div style="width:48px;height:48px;border-radius:50%;flex:0 0 48px;display:flex;align-items:center;justify-content:center;
+                    background:${best.canDry ? 'rgba(255,209,102,0.2)' : 'rgba(122,162,255,0.2)'}">
+                    <ha-icon icon="mdi:washing-machine" style="--mdc-icon-size:26px;color:${best.canDry ? '#ffd166' : '#7aa2ff'}"></ha-icon>
+                  </div>
+                  <div style="line-height:1.35">
+                    <div style="font-size:12px;opacity:.65">Wasadvies ${dayName.toLowerCase()}</div>
+                    <div style="font-size:18px;font-weight:700">Start ${time(best.start)} · klaar ${time(best.end)}${passed}</div>
+                    <div style="font-size:13px;opacity:.85">${dryLine} · gem. ${euro(best.avg)}/kWh</div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"advice"'
+    card:
+      - padding: 14px 16px
+    custom_fields:
+      advice:
+        - display: block
+        - width: 100%
