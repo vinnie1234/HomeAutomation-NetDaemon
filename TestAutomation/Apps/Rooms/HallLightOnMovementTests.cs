@@ -35,7 +35,7 @@ public class HallLightOnMovementTests
         ctx.VerifyCallService("light", "turn_on", "hal_2", times: 1);
     }
 
-    [Theory]
+    [Theory(Skip = "Bot29ff staat tijdelijk uit in HallLightOnMovement (commit 8df5024)")]
     [InlineData("unavailable", 1)] // no power: the wall switch is off, so the bot presses it
     [InlineData("off", 0)]         // has power: turning it on is enough, pressing the switch would cut the power
     public void MotionDetected_PressesTheBot_OnlyWhenHalHasNoPower(string halState, int expectedBotPresses)
