@@ -42,7 +42,7 @@ public class Laundry : BaseApp
 
     private void SetupWashingMachineMonitoring()
     {
-        Entities.Sensor.WasmachineWasherMachineState
+        Entities.Sensor.BadkamerWasmachineMachinestatus
             .StateChanges()
             .Where(x => x.Old?.State?.ToLower() is "run" or "running" &&
                         x.New?.State?.ToLower() is "stop" or "stopped" or "end")
