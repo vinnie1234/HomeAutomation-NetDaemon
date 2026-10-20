@@ -388,6 +388,17 @@ weather_hero:
     - sensor.moon_phase
     - sensor.thuis_pollentypen_52_035_53_gras
     - sensor.thuis_pollentypen_52_035_53_onkruid
+    - sensor.thuis_planten_52_035_53_ambrosia
+    - sensor.thuis_planten_52_035_53_berk
+    - sensor.thuis_planten_52_035_53_bijvoet
+    - sensor.thuis_planten_52_035_53_cottonwood
+    - sensor.thuis_planten_52_035_53_eik
+    - sensor.thuis_planten_52_035_53_els
+    - sensor.thuis_planten_52_035_53_es
+    - sensor.thuis_planten_52_035_53_grassen
+    - sensor.thuis_planten_52_035_53_hazelaar
+    - sensor.thuis_planten_52_035_53_olijfboom
+    - sensor.thuis_planten_52_035_53_pijnboom
     - person.vincent_maarschalkerweerd
     - person.carleen
     - input_boolean.sleepingvincent
@@ -637,14 +648,21 @@ weather_hero:
         const deg = v => isNaN(v) ? '–' : `${Math.round(v)}°`;
         const now = num('sensor.weer_thuis_temperatuur');
 
-        // Pollen: alle soorten (gras, bomen, onkruid) die er nu zijn, hoogste eerst; index 0 of onbekend wordt niet getoond
-        const pollenTypes = [['gras', 'Gras', 'mdi:grass'], ['onkruid', 'Onkruid', 'mdi:sprout-outline']];
+        // Pollen: alle soorten (planten en pollentypen) die er nu zijn, hoogste eerst; index 0 of onbekend wordt niet getoond
         const levels = ['Geen', 'Zeer laag', 'Laag', 'Matig', 'Hoog', 'Zeer hoog'];
         const colors = ['#4ade80', '#a3e635', '#facc15', '#fb923c', '#ff6b6b'];
-        const present = pollenTypes
-          .map(([key, label, icon]) => ({ label, icon, level: Math.round(num(`sensor.thuis_pollentypen_52_035_53_${key}`)) }))
-          .filter(p => p.level > 0)
-          .sort((a, b) => b.level - a.level);
+        const pollenNames = {
+          gras: 'Gras', onkruid: 'Onkruid', grassen: 'Grassen', berk: 'Berk', els: 'Els', es: 'Es', eik: 'Eik', hazelaar: 'Hazelaar',
+          olijfboom: 'Olijfboom', pijnboom: 'Pijnboom', cottonwood: 'Populier', ambrosia: 'Ambrosia', bijvoet: 'Bijvoet'
+        };
+        const pollenIcon = key => ['gras', 'grassen'].includes(key) ? 'mdi:grass' : ['onkruid', 'ambrosia', 'bijvoet'].includes(key) ? 'mdi:sprout-outline' : 'mdi:tree-outline';
+        const present = Object.entries(states)
+          .filter(([id]) => /^sensor\.thuis_(planten|pollentypen)_52_035_53_/.test(id))
+          .map(([id, st]) => ({ key: id.split('_').pop(), level: Math.round(parseFloat(st.state)) }))
+          .filter(p => pollenNames[p.key] && p.level > 0)
+          .map(p => ({ label: pollenNames[p.key], icon: pollenIcon(p.key), level: p.level }))
+          .sort((a, b) => b.level - a.level)
+          .slice(0, 3);
         const pill = p => `<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:12px;
               background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);font-size:12px;text-shadow:none">
               <ha-icon icon="${p.icon}" style="--mdc-icon-size:15px;color:${colors[p.level - 1]}"></ha-icon>

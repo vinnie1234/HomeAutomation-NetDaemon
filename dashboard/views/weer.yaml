@@ -46,9 +46,13 @@ sections:
             if (!isNaN(max)) parts.push(`↑ ${Math.round(max)}° ↓ ${Math.round(min)}°`);
             parts.push(states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on' ? 'regen verwacht' : 'droog');
             const levels = ['', 'zeer weinig', 'weinig', 'matig', 'veel', 'zeer veel'];
-            const pollen = [['gras', 'gras'], ['onkruid', 'onkruid']]
-              .map(([k, n]) => [n, Math.round(num(`sensor.thuis_pollentypen_52_035_53_${k}`))])
-              .filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0];
+            // Hoogste pollensoort uit alle plantensensoren (en gras/onkruid als die er zijn)
+            const names = { gras: 'gras', onkruid: 'onkruid', grassen: 'grassen', berk: 'berk', els: 'els', es: 'es', eik: 'eik',
+              hazelaar: 'hazelaar', olijfboom: 'olijfboom', pijnboom: 'pijnboom', cottonwood: 'populier', ambrosia: 'ambrosia', bijvoet: 'bijvoet' };
+            const pollen = Object.entries(states)
+              .filter(([id]) => /^sensor\.thuis_(planten|pollentypen)_52_035_53_/.test(id))
+              .map(([id, st]) => [names[id.split('_').pop()], Math.round(parseFloat(st.state))])
+              .filter(([n, v]) => n && v > 0).sort((a, b) => b[1] - a[1])[0];
             if (pollen) parts.push(`pollen: ${levels[pollen[1]]} ${pollen[0]}`);
             const uv = num('sensor.current_uv_index');
             if (uv >= 3) parts.push(`UV ${Math.round(uv)}`);
@@ -257,8 +261,13 @@ sections:
           ]]]
         label: |
           [[[
-            const main = states['sensor.thuis_pollentypen_52_035_53_belangrijkste_pollentypen_vandaag']?.state;
-            return main && !['unknown', 'unavailable', 'none', ''].includes(main) ? `Vooral: ${main}` : 'Geen bijzondere soorten vandaag';
+            const known = id => {
+              const v = states[id]?.state;
+              return v && !['unknown', 'unavailable', 'none', ''].includes(v) ? v : null;
+            };
+            const main = known('sensor.thuis_pollentypen_52_035_53_belangrijkste_pollentypen_vandaag');
+            const season = known('sensor.thuis_planten_52_035_53_planten_vandaag_in_het_seizoen');
+            return main ? `Vooral: ${main}` : season ? `In het seizoen: ${season}` : 'Geen bijzondere soorten vandaag';
           ]]]
         styles:
           grid:
