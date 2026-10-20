@@ -85,43 +85,151 @@ sections:
         grid_options:
           columns: 6
 
-      # Grootste verbruikers nu (alle lampen en stekkers met een vermogenssensor)
-      - type: custom:button-card
-        template: top_power
-        variables:
+      # Grootste verbruikers nu: per apparaat een klikbare regel, gesorteerd op vermogen
+      - type: heading
+        heading: Grootste verbruikers nu
+        heading_style: subtitle
+        icon: mdi:flash-alert-outline
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 1
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: sensor.koelkast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.tv_kast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV-kast
+            - entity_id: sensor.tv_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV
+            - entity_id: sensor.soundbar_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Soundbar
+            - entity_id: sensor.hue_play_links_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_midden_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_rechts_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_slaapkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_badkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.nachtkastje_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.keuken_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.berging_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hal_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.buiten_deur_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.sigaret_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plug_bureau_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Bureau
+            - entity_id: sensor.nestmini9818_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Nest Mini keuken
+            - entity_id: sensor.woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.energysocket_5c2faf02a546_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Stekker 1
+            - entity_id: sensor.energysocket_5c2faf0c7564_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Stekker 2
+            - entity_id: sensor.energysocket_5c2faf0d8364_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Stekker 3
+        sort:
+          method: state
+          numeric: true
+          reverse: true
           count: 5
-          sensors:
-            - sensor.koelkast_power
-            - sensor.tv_kast_power
-            - sensor.tv_power_meter
-            - sensor.soundbar_power_meter
-            - sensor.hue_play_links_power
-            - sensor.hue_play_midden_power
-            - sensor.hue_play_rechts_power
-            - sensor.plafond_woonkamer_power
-            - sensor.plafond_slaapkamer_power
-            - sensor.plafond_badkamer_power
-            - sensor.nachtkastje_power
-            - sensor.keuken_power
-            - sensor.berging_power
-            - sensor.hal_power
-            - sensor.buiten_deur_power
-            - sensor.sigaret_device_power
-            - sensor.plug_bureau_device_power
-            - sensor.nestmini9818_power
-            - sensor.woonkamer_power
-            - sensor.energysocket_5c2faf02a546_active_power
-            - sensor.energysocket_5c2faf0c7564_active_power
-            - sensor.energysocket_5c2faf0d8364_active_power
-          names:
-            sensor.tv_power_meter: TV
-            sensor.soundbar_power_meter: Soundbar
-            sensor.tv_kast_power: TV-kast
-            sensor.nestmini9818_power: Nest Mini keuken
-            sensor.plug_bureau_device_power: Bureau
-            sensor.energysocket_5c2faf02a546_active_power: Stekker 1
-            sensor.energysocket_5c2faf0c7564_active_power: Stekker 2
-            sensor.energysocket_5c2faf0d8364_active_power: Stekker 3
+        show_empty: false
 
   # Prijs en wasadvies
   - type: grid

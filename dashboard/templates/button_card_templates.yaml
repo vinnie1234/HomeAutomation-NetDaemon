@@ -1206,50 +1206,6 @@ hero_person:
       - overflow: visible
     grid:
       - grid-template-areas: '"pill"'
-
-# Grootste stroomverbruikers van nu: alle vermogenssensoren uit variables.sensors, gesorteerd, de top variables.count.
-# variables.names: optionele nette namen per sensor.
-top_power:
-  template: glass
-  triggers_update: all
-  show_icon: false
-  show_name: false
-  variables:
-    count: 5
-    sensors: []
-    names: {}
-  custom_fields:
-    list: |
-      [[[
-        const rows = variables.sensors
-          .map(id => ({ id, w: parseFloat(states[id]?.state) }))
-          .filter(r => !isNaN(r.w) && r.w > 0.5)
-          .sort((a, b) => b.w - a.w)
-          .slice(0, variables.count);
-        if (!rows.length) return '<div style="opacity:.6">Geen meetbaar verbruik</div>';
-        const max = rows[0].w;
-        const name = id => variables.names[id] ?? (states[id]?.attributes.friendly_name ?? id).replace(/ (power|vermogen|power meter)$/i, '');
-        return `<div style="text-align:left">
-                  <div style="font-size:15px;font-weight:600;margin-bottom:8px">Grootste verbruikers nu</div>
-                  ${rows.map(r => `<div style="display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin:7px 0">
-                      <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name(r.id)}</span>
-                      <span style="font-size:13px;font-weight:600">${r.w >= 100 ? Math.round(r.w) : r.w.toFixed(1).replace('.', ',')} W</span>
-                      <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
-                        <div style="width:${r.w / max * 100}%;height:100%;border-radius:3px;background:linear-gradient(90deg,#ffb060,#ff6b6b)"></div>
-                      </div>
-                    </div>`).join('')}
-                </div>`;
-      ]]]
-  styles:
-    card:
-      - padding: 16px
-    grid:
-      - grid-template-areas: '"list"'
-    custom_fields:
-      list:
-        - display: block
-        - width: 100%
-
 # Verwachting per uur als strook die je horizontaal doorschuift: tijd, icoon, temperatuurlijn, regen (mm en kans).
 # Bron: sensor.weer_verwachting_per_uur (template-sensor met het attribuut forecast, zie README).
 forecast_strip:
@@ -1631,5 +1587,41 @@ watchman_list:
       - grid-template-areas: '"list"'
     custom_fields:
       list:
+        - display: block
+        - width: 100%
+
+# Regel in "Grootste verbruikers nu": naam, vermogen en een balkje met het aandeel in het totale verbruik van het huis.
+# Tik opent de details (en geschiedenis) van het apparaat.
+power_row:
+  template: glass
+  triggers_update:
+    - sensor.p1_meter_3c39e72a64e8_active_power
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: more-info
+  custom_fields:
+    row: |
+      [[[
+        const w = parseFloat(entity?.state) || 0;
+        const total = Math.max(parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state) || 0, w, 1);
+        const name = variables.name ?? (entity?.attributes.friendly_name ?? '').replace(/ (power|vermogen|power meter)$/i, '');
+        return `<div style="display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center;text-align:left">
+                  <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                  <span style="font-size:13px;font-weight:600">${w >= 100 ? Math.round(w) : w.toFixed(1).replace('.', ',')} W
+                    <span style="font-weight:400;opacity:.55;font-size:11px">${Math.round(w / total * 100)}%</span></span>
+                  <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
+                    <div style="width:${Math.min(100, w / total * 100)}%;height:100%;border-radius:3px;background:linear-gradient(90deg,#ffb060,#ff6b6b)"></div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 10px 14px
+      - cursor: pointer
+    grid:
+      - grid-template-areas: '"row"'
+    custom_fields:
+      row:
         - display: block
         - width: 100%
