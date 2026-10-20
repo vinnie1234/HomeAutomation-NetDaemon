@@ -383,6 +383,8 @@ weather_hero:
     - sensor.keuken_timers
     - sensor.badkamer_speaker_timers
     - sensor.gang_speaker_1_timers
+    - sensor.woonkamer_timers
+    - sensor.hub_vincent_timers
     - weather.weer_thuis_waarnemingen
     - sun.sun
     - sensor.weer_thuis_temperatuur
@@ -661,7 +663,12 @@ weather_hero:
     # zodat de kaart niet elke seconde opnieuw getekend hoeft te worden.
     timers: |
       [[[
-        const speakers = [['sensor.keuken_timers', 'Keuken'], ['sensor.badkamer_speaker_timers', 'Badkamer'], ['sensor.gang_speaker_1_timers', 'Gang']];
+        const known = { 'sensor.keuken_timers': 'Keuken', 'sensor.badkamer_speaker_timers': 'Badkamer', 'sensor.gang_speaker_1_timers': 'Gang',
+                        'sensor.woonkamer_timers': 'Woonkamer', 'sensor.hub_vincent_timers': 'Slaapkamer' };
+        const speakers = Object.keys(states)
+          .filter(id => id.startsWith('sensor.') && id.endsWith('_timers'))
+          .map(id => [id, known[id] ?? (states[id].attributes.friendly_name ?? id)
+            .replace(/google home|timers?/gi, '').trim().split(/\s+/)[0] ?? id]);
         const seconds = d => typeof d === 'number' ? d : /^\d+:\d+(:\d+)?$/.test(String(d ?? ''))
           ? String(d).split(':').map(Number).reduce((total, part) => total * 60 + part) : NaN;
         const now = Date.now();
