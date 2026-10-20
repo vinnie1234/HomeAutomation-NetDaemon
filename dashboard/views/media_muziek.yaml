@@ -7,12 +7,12 @@ theme: Glass Home
 type: sections
 subview: true
 back_path: /dashboard-huis/media
-max_columns: 2
+max_columns: 3
 dense_section_placement: true
 sections:
   # Navigatie en Media-menu
   - type: grid
-    column_span: 2
+    column_span: 3
     cards:
       - !include ../navbar.yaml
       - !include ../cards/media_tabs.yaml
@@ -76,6 +76,7 @@ sections:
 
   # Per kamer: links de speaker (afspelen/pauze, volume), rechts "Speel hier"
   - type: grid
+    column_span: 2
     cards:
       - type: heading
         heading: Per kamer

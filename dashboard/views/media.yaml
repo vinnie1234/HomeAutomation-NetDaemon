@@ -5,12 +5,12 @@ path: media
 icon: mdi:television-play
 theme: Glass Home
 type: sections
-max_columns: 2
+max_columns: 3
 dense_section_placement: true
 sections:
   # Samenvatting: aandachtspunten en korte info
   - type: grid
-    column_span: 2
+    column_span: 3
     cards:
       - !include ../navbar.yaml
       - type: custom:button-card
@@ -41,6 +41,7 @@ sections:
 
   # Kies: TV, Muziek, Gaming of Series
   - type: grid
+    column_span: 2
     cards:
       - type: heading
         heading: Kies
