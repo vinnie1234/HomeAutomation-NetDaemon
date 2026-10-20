@@ -869,7 +869,7 @@ weather_hero:
           festive += row;
           // Sinterklaas op zijn witte paard (met mijter en staf) die over de daken rijdt
           festive += `<svg viewBox="-4 -14 66 66" style="position:absolute;bottom:${day ? 26 : 25}%;left:110%;width:92px;height:92px;animation:hero-sint 46s linear -8s infinite">
-              <g style="animation:hero-bob 0.9s ease-in-out infinite">
+              <g transform="translate(58 0) scale(-1 1)"><g style="animation:hero-bob 0.9s ease-in-out infinite">
                 <path d="M14 24 Q10 30 7 38" stroke="${day ? 'rgb(225,225,230)' : 'rgb(190,196,214)'}" stroke-width="3" fill="none" stroke-linecap="round"/>
                 <ellipse cx="29" cy="28" rx="16" ry="8.5" fill="${day ? 'rgb(246,246,248)' : 'rgb(214,220,236)'}"/>
                 <path d="M40 25 L47 11 L52 12 L46 28 Z" fill="${day ? 'rgb(246,246,248)' : 'rgb(214,220,236)'}"/><path d="M46 9 L56 13 L55 17 L48 15 Z" fill="${day ? 'rgb(246,246,248)' : 'rgb(214,220,236)'}"/>
@@ -880,7 +880,7 @@ weather_hero:
                 <circle cx="30.5" cy="5" r="3.4" fill="${dim('rgb(255,224,196)')}"/><path d="M27.5 6 Q30.5 12 33.5 6 Z" fill="#f8f9fa"/>
                 <path d="M27.4 3.6 L30.5 -6 L33.6 3.6 Z" fill="#c1121f"/><path d="M29.6 -2 h1.8 M30.5 -3 v2.4" stroke="#ffd166" stroke-width="0.8"/>
                 <path d="M41 26 V-6 q0 -5 -4 -5 q-3 0 -3 3" stroke="#ffd166" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-              </g></svg>`;
+              </g></g></svg>`;
           // Roetveegpieten in kleurrijk pak met kraag en pluim: één loopt met de cadeauzak achter Sinterklaas aan, één zwaait op een dak
           const piet = (suit, accent, sack) => `
               <path d="M9 7 Q15 1 22 6 L21 9 L10 9 Z" fill="${accent}"/><path d="M20 5 Q27 0 26 8" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
