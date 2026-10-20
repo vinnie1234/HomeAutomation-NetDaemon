@@ -261,6 +261,7 @@ sections:
             - light.hue_play_links
             - light.hue_play_midden
             - light.hue_play_rechts
+            - light.buiten_deur
           motion: binary_sensor.motionwoonkamer
         tap_action:
           action: navigate
@@ -340,18 +341,6 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#berging"
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: room
-        name: Buiten
-        icon: mdi:outdoor-lamp
-        variables:
-          lights:
-            - light.buiten_deur
-        tap_action:
-          action: navigate
-          navigation_path: "#buiten"
         grid_options:
           columns: 6
 
@@ -579,4 +568,3 @@ sections:
       - !include ../popups/badkamer.yaml
       - !include ../popups/gang.yaml
       - !include ../popups/berging.yaml
-      - !include ../popups/buiten.yaml

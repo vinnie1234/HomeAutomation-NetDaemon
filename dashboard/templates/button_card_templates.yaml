@@ -1078,8 +1078,24 @@ forecast_strip:
   entity: sensor.weer_verwachting_per_uur
   show_icon: false
   show_name: false
+  # Tik schuift de strook 6 uur verder (aan het eind terug naar het begin), dubbeltik schuift terug.
+  # Dit loopt via button-card zelf; slepen en het muiswiel werken binnen button-card niet betrouwbaar.
   tap_action:
-    action: none
+    action: javascript
+    javascript: |
+      [[[
+        const strip = this.shadowRoot?.querySelector('.strip');
+        if (!strip) return;
+        const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+        strip.scrollTo({ left: atEnd ? 0 : strip.scrollLeft + 348, behavior: 'smooth' });
+      ]]]
+  double_tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const strip = this.shadowRoot?.querySelector('.strip');
+        if (strip) strip.scrollTo({ left: Math.max(0, strip.scrollLeft - 348), behavior: 'smooth' });
+      ]]]
   custom_fields:
     strip: |
       [[[
@@ -1128,14 +1144,14 @@ forecast_strip:
         const labels = temps.map((t, i) =>
           `<text x="${i * col + col / 2}" y="${(y(t) - 7).toFixed(1)}" text-anchor="middle" fill="#f2f4f8" font-size="12" font-weight="600">${Math.round(t)}°</text>
            <circle cx="${i * col + col / 2}" cy="${y(t).toFixed(1)}" r="3" fill="#ffb060"/>`).join('');
-        // Muiswiel schuift horizontaal (op de pc kan dat anders niet); de pijltjes schuiven 6 uur op
-        const arrow = (dir, icon) => `<div onclick="this.parentElement.querySelector('.strip').scrollBy({ left: ${dir} * 348, behavior: 'smooth' })"
-            style="position:absolute;top:58px;${dir < 0 ? 'left:-4px' : 'right:-4px'};z-index:2;width:30px;height:30px;border-radius:50%;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;background:rgba(18,24,40,0.85);border:1px solid rgba(255,255,255,0.15)">
+        // Pijltjes als hint: tik op de kaart schuift verder, dubbeltik terug
+        const arrow = (dir, icon) => `<div style="position:absolute;top:58px;${dir < 0 ? 'left:-4px' : 'right:-4px'};z-index:2;width:30px;height:30px;
+            border-radius:50%;pointer-events:none;display:flex;align-items:center;justify-content:center;
+            background:rgba(18,24,40,0.85);border:1px solid rgba(255,255,255,0.15)">
             <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon></div>`;
-        return `<div style="position:relative">${arrow(-1, 'mdi:chevron-left')}${arrow(1, 'mdi:chevron-right')}
-                <div class="strip" onwheel="if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) { this.scrollLeft += event.deltaY; event.preventDefault(); }"
-                  style="overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+        return `<div style="font-size:11px;opacity:.5;text-align:right;margin:-4px 4px 6px">tik voor later · dubbeltik terug</div>
+                <div style="position:relative">${arrow(-1, 'mdi:chevron-left')}${arrow(1, 'mdi:chevron-right')}
+                <div class="strip" style="overflow-x:auto;overflow-y:hidden;touch-action:pan-x;-webkit-overflow-scrolling:touch;
                   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;padding-bottom:6px">
                   <div style="position:relative;width:${forecast.length * col}px">
                     <div style="display:flex">${columns}</div>
