@@ -81,72 +81,9 @@ sections:
         icon: mdi:clock-fast
         grid_options:
           columns: 6
-      # Prijs per uur uit het attribuut hourly_prices van de ANWB-sensor: één reeks, dus alle staven even breed
-      # en op gelijke afstand. De kleur per staaf volgt de prijs ten opzichte van het daggemiddelde
-      # (groen goedkoop, oranje normaal, rood duur); het gemiddelde zet de data_generator klaar voor de kleurfunctie.
-      - type: custom:apexcharts-card
-        graph_span: 24h
-        span:
-          start: day
-        hours_12: false
-        now:
-          show: true
-          label: Nu
-          color: "#ffffff"
-        header:
-          show: true
-          title: Prijs per uur vandaag
-        yaxis:
-          - min: 0
-            decimals: 2
-            apex_config:
-              tickAmount: 4
-        apex_config:
-          chart:
-            height: 280
-          plotOptions:
-            bar:
-              borderRadius: 3
-              columnWidth: "65%"
-          colors:
-            - "EVAL:function({ value }) { const avg = window.huisPrijsGemiddelde || 0; return value < avg * 0.95 ? '#4ade80' : value > avg * 1.05 ? '#ff6b6b' : '#ffb060'; }"
-          grid:
-            borderColor: "rgba(255, 255, 255, 0.06)"
-          legend:
-            show: true
-            position: bottom
-            showForSingleSeries: true
-            customLegendItems:
-              - Goedkoop
-              - Normaal
-              - Duur
-            markers:
-              fillColors:
-                - "#4ade80"
-                - "#ffb060"
-                - "#ff6b6b"
-          xaxis:
-            labels:
-              format: HH:mm
-          tooltip:
-            x:
-              format: HH:mm
-        series:
-          - entity: sensor.anwb_electricity_all_in_price_current
-            name: Prijs
-            type: column
-            unit: " €/kWh"
-            float_precision: 2
-            show:
-              in_header: false
-              legend_value: false
-            data_generator: |
-              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
-                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
-                .filter(([t, v]) => !isNaN(t) && !isNaN(v))
-                .sort((a, b) => a[0] - b[0]);
-              window.huisPrijsGemiddelde = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
-              return prices;
+      # Prijs per uur vandaag (eigen staafgrafiek, zie template price_bars)
+      - type: custom:button-card
+        template: price_bars
         grid_options:
           columns: full
       # Goedkoopste uur vandaag en het goedkoopste blok van 3 uur vanaf nu

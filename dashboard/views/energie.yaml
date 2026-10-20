@@ -13,9 +13,10 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
-      - !include ../cards/energie_tabs.yaml
       - type: custom:button-card
         template: summary
+        grid_options:
+          columns: full
         icon: mdi:lightning-bolt
         variables:
           level: |
@@ -49,6 +50,8 @@ sections:
             }
             return parts.join(' · ');
           ]]]
+      - !include ../cards/energie_tabs.yaml
+
   # Nu: verbruik of teruglevering, zon en sluipverbruik
   - type: grid
     cards:

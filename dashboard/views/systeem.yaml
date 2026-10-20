@@ -38,7 +38,7 @@ sections:
             const num = id => parseFloat(states[id]?.state);
             const parts = [];
             const ping = num('sensor.ping_round_trip_time_average');
-            if (!isNaN(ping)) parts.push(`ping ${Math.round(ping)} ms`);
+            if (!isNaN(ping)) parts.push(`ping ${Math.round(ping < 1 ? ping * 1000 : ping)} ms`);
             const temp = num('sensor.processor_temperature');
             if (!isNaN(temp)) parts.push(`Pi ${Math.round(temp)}°C`);
             const backup = new Date(states['sensor.backup_last_successful_automatic_backup']?.state);
@@ -166,47 +166,62 @@ sections:
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: ms
         entity: sensor.ping_round_trip_time_average
         name: Ping
         icon: mdi:timer-outline
         grid_options:
           columns: 4
       - type: custom:button-card
-        template: stat
+        template: ms
         entity: sensor.cloudflare_speed_test_latency
         name: Latency
         icon: mdi:timer-sync-outline
         grid_options:
           columns: 4
       - type: custom:button-card
-        template: stat
+        template: ms
         entity: sensor.cloudflare_speed_test_jitter
         name: Jitter
         icon: mdi:sine-wave
         grid_options:
           columns: 4
-      - type: custom:mini-graph-card
-        name: Ping laatste 24 uur
-        icon: mdi:chart-line
-        hours_to_show: 24
-        points_per_hour: 4
-        line_width: 2
-        smoothing: true
-        show:
-          fill: fade
-          labels: false
-          extrema: true
-        color_thresholds:
-          - value: 0
-            color: "#4ade80"
-          - value: 40
-            color: "#ffb060"
-          - value: 100
-            color: "#ff6b6b"
-        entities:
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        hours_12: false
+        header:
+          show: true
+          title: Ping laatste 24 uur
+        apex_config:
+          chart:
+            height: 180
+          legend:
+            show: false
+          stroke:
+            curve: smooth
+            width: 2
+          fill:
+            type: gradient
+            gradient:
+              opacityFrom: 0.4
+              opacityTo: 0.05
+          grid:
+            borderColor: "rgba(255, 255, 255, 0.06)"
+          xaxis:
+            labels:
+              format: HH:mm
+        series:
           - entity: sensor.ping_round_trip_time_average
             name: Ping
+            type: area
+            color: "#4ade80"
+            unit: " ms"
+            float_precision: 1
+            group_by:
+              func: avg
+              duration: 15min
+            # Gemeten in seconden: omrekenen naar milliseconden
+            transform: "return x < 1 ? x * 1000 : x;"
       # Doorklikken naar alle apparaten in het netwerk
       - type: custom:button-card
         template: glass

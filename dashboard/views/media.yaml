@@ -13,7 +13,6 @@ sections:
     column_span: 2
     cards:
       - !include ../navbar.yaml
-      - !include ../cards/media_tabs.yaml
       - type: custom:button-card
         template: summary
         icon: mdi:play-circle-outline
@@ -40,6 +39,7 @@ sections:
             if (ps && !['off', 'standby', 'unavailable', 'unknown'].includes(ps.state)) parts.push(`Speelt ${ps.attributes.media_title ?? 'op de PS5'}`);
             return parts.join(' · ') || 'Kies hieronder TV, Muziek, Gaming of Series';
           ]]]
+      - !include ../cards/media_tabs.yaml
 
   # Kies: TV, Muziek, Gaming of Series
   - type: grid

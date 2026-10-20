@@ -1,4 +1,4 @@
-# Energie → Kosten: per kwartier tot per jaar, het verloop en de bronnen.
+# Energie → Kosten: per kwartier tot per jaar en het verloop.
 title: Kosten
 path: energie-kosten
 icon: mdi:cash-multiple
@@ -15,9 +15,6 @@ sections:
     cards:
       - !include ../navbar.yaml
       - !include ../cards/energie_tabs.yaml
-      - type: energy-date-selection
-        grid_options:
-          columns: full
   # Kosten per periode
   - type: grid
     cards:
@@ -105,13 +102,3 @@ sections:
         entities:
           - entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
             name: Kosten
-      - type: heading
-        heading: Bronnen
-        heading_style: subtitle
-        icon: mdi:format-list-bulleted
-      - type: energy-sources-table
-        types:
-          - grid
-          - solar
-          - battery
-          - water

@@ -1128,7 +1128,14 @@ forecast_strip:
         const labels = temps.map((t, i) =>
           `<text x="${i * col + col / 2}" y="${(y(t) - 7).toFixed(1)}" text-anchor="middle" fill="#f2f4f8" font-size="12" font-weight="600">${Math.round(t)}°</text>
            <circle cx="${i * col + col / 2}" cy="${y(t).toFixed(1)}" r="3" fill="#ffb060"/>`).join('');
-        return `<div style="overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+        // Muiswiel schuift horizontaal (op de pc kan dat anders niet); de pijltjes schuiven 6 uur op
+        const arrow = (dir, icon) => `<div onclick="this.parentElement.querySelector('.strip').scrollBy({ left: ${dir} * 348, behavior: 'smooth' })"
+            style="position:absolute;top:58px;${dir < 0 ? 'left:-4px' : 'right:-4px'};z-index:2;width:30px;height:30px;border-radius:50%;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;background:rgba(18,24,40,0.85);border:1px solid rgba(255,255,255,0.15)">
+            <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon></div>`;
+        return `<div style="position:relative">${arrow(-1, 'mdi:chevron-left')}${arrow(1, 'mdi:chevron-right')}
+                <div class="strip" onwheel="if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) { this.scrollLeft += event.deltaY; event.preventDefault(); }"
+                  style="overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
                   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;padding-bottom:6px">
                   <div style="position:relative;width:${forecast.length * col}px">
                     <div style="display:flex">${columns}</div>
@@ -1141,7 +1148,7 @@ forecast_strip:
                       ${labels}
                     </svg>
                   </div>
-                </div>`;
+                </div></div>`;
       ]]]
   styles:
     card:
@@ -1286,3 +1293,77 @@ wash_advice:
       advice:
         - display: block
         - width: 100%
+
+# Prijs per uur vandaag als eigen staafgrafiek: 24 even brede staven, kleur per staaf ten opzichte van het
+# daggemiddelde (groen goedkoop, oranje normaal, rood duur), het huidige uur gemarkeerd. Bron: hourly_prices.
+price_bars:
+  template: glass
+  entity: sensor.anwb_electricity_all_in_price_current
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    bars: |
+      [[[
+        const now = new Date();
+        const prices = Object.entries(entity?.attributes.hourly_prices ?? {})
+          .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+          .filter(([t, v]) => !isNaN(t) && !isNaN(v) && t.toDateString() === now.toDateString())
+          .sort((a, b) => a[0] - b[0]);
+        if (!prices.length) return '<div style="opacity:.6;padding:8px">Nog geen prijzen voor vandaag.</div>';
+        const values = prices.map(([, v]) => v);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const max = Math.max(...values), min = Math.min(...values);
+        const color = v => v < avg * 0.95 ? '#4ade80' : v > avg * 1.05 ? '#ff6b6b' : '#ffb060';
+        const euro = v => v.toFixed(2).replace('.', ',');
+        const bars = prices.map(([t, v]) => {
+          const hour = t.getHours();
+          const current = hour === now.getHours();
+          const height = Math.max(6, v / max * 150);
+          const extreme = v === max || v === min;
+          return `<div title="${String(hour).padStart(2, '0')}:00 · € ${euro(v)}" style="flex:1;display:flex;flex-direction:column;
+                    align-items:center;justify-content:flex-end;height:190px;min-width:0">
+                    <span style="font-size:10px;margin-bottom:3px;white-space:nowrap;${current || extreme ? 'font-weight:700' : 'opacity:0'}">
+                      ${current || extreme ? euro(v) : ''}</span>
+                    <div style="width:70%;height:${height}px;border-radius:4px 4px 2px 2px;background:${color(v)};
+                      ${current ? 'box-shadow:0 0 0 2px #fff, 0 0 14px rgba(255,255,255,0.4);' : 'opacity:0.85;'}"></div>
+                    <span style="font-size:10px;margin-top:6px;height:12px;${current ? 'font-weight:700;color:var(--accent-color)' : 'opacity:.55'}">
+                      ${current ? 'nu' : hour % 3 === 0 ? String(hour).padStart(2, '0') : ''}</span>
+                  </div>`;
+        }).join('');
+        const legend = [['#4ade80', 'Goedkoop'], ['#ffb060', 'Normaal'], ['#ff6b6b', 'Duur']].map(([c, n]) =>
+          `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${c}"></span>${n}</span>`).join('');
+        return `<div style="text-align:left">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                    <span style="font-size:15px;font-weight:600">Prijs per uur vandaag</span>
+                    <span style="font-size:12px;opacity:.7">gemiddeld € ${euro(avg)} · laagste € ${euro(min)} · hoogste € ${euro(max)}</span>
+                  </div>
+                  <div style="position:relative">
+                    <div style="position:absolute;left:0;right:0;bottom:${18 + avg / max * 150}px;border-top:1px dashed rgba(255,255,255,0.25)"></div>
+                    <div style="display:flex;gap:2px;align-items:flex-end">${bars}</div>
+                  </div>
+                  <div style="display:flex;gap:16px;justify-content:center;font-size:12px;opacity:.8;margin-top:8px">${legend}</div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 16px
+    grid:
+      - grid-template-areas: '"bars"'
+    custom_fields:
+      bars:
+        - display: block
+        - width: 100%
+
+# Tijdsduur in milliseconden (ping, latency, jitter). Sommige sensoren meten in seconden (0,006 = 6 ms).
+ms:
+  template: stat
+  state_display: |
+    [[[
+      const v = parseFloat(entity.state);
+      if (isNaN(v)) return 'Onbekend';
+      const unit = entity.attributes.unit_of_measurement;
+      const ms = unit === 's' || (unit !== 'ms' && v < 1) ? v * 1000 : v;
+      return `${ms < 10 ? ms.toFixed(1).replace('.', ',') : Math.round(ms)} ms`;
+    ]]]
