@@ -316,21 +316,21 @@ sections:
                 type: custom:button-card
                 template: power_row
                 variables:
-                  name: Stekker 1
+                  name: Warmtepomp
             - entity_id: sensor.energysocket_5c2faf0c7564_active_power
               state: "> 0.5"
               options:
                 type: custom:button-card
                 template: power_row
                 variables:
-                  name: Stekker 2
+                  name: Ventilatie
             - entity_id: sensor.energysocket_5c2faf0d8364_active_power
               state: "> 0.5"
               options:
                 type: custom:button-card
                 template: power_row
                 variables:
-                  name: Stekker 3
+                  name: Gamehoek
         sort:
           method: state
           numeric: true
@@ -338,28 +338,28 @@ sections:
           count: 8
         show_empty: false
       - type: heading
-        heading: Stekkers
+        heading: Stopcontacten
         heading_style: subtitle
         icon: mdi:power-socket-eu
       - type: custom:button-card
         template: stat
         entity: sensor.energysocket_5c2faf02a546_active_power
-        name: Stekker 1
-        icon: mdi:power-socket-eu
+        name: Warmtepomp
+        icon: mdi:heat-pump-outline
         grid_options:
           columns: 4
       - type: custom:button-card
         template: stat
         entity: sensor.energysocket_5c2faf0c7564_active_power
-        name: Stekker 2
-        icon: mdi:power-socket-eu
+        name: Ventilatie
+        icon: mdi:fan
         grid_options:
           columns: 4
       - type: custom:button-card
         template: stat
         entity: sensor.energysocket_5c2faf0d8364_active_power
-        name: Stekker 3
-        icon: mdi:power-socket-eu
+        name: Gamehoek
+        icon: mdi:controller
         grid_options:
           columns: 4
       - type: heading
