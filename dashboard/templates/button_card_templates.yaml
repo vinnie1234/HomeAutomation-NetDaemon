@@ -477,6 +477,9 @@ weather_hero:
     @keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
     @keyframes hero-leg { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
     @keyframes hero-wave { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(25deg); } }
+    @keyframes hero-boat { from { transform: translateX(0); } to { transform: translateX(-150vw); } }
+    @keyframes hero-chimney { 0%, 15%, 85%, 100% { transform: translateY(26px); } 35%, 65% { transform: translateY(0); } }
+    @keyframes hero-present { 0% { transform: translateY(-30px); opacity: 0; } 15% { opacity: 1; } 80% { transform: translateY(26px); opacity: 1; } 100% { transform: translateY(32px); opacity: 0; } }
     @keyframes hero-hop-x { from { transform: translateX(0); } to { transform: translateX(130vw); } }
     @keyframes hero-hop-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
     @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
@@ -859,7 +862,7 @@ weather_hero:
             const lit = k => (i * 3 + k) % 4 !== 0;
             const windows = [0, 1, 2].map(r => [0, 1].map(c => `<rect x="${6 + c * 10}" y="${30 + r * 12}" width="6" height="8" rx="0.8"
                 fill="${lit(r * 2 + c) ? '#ffcf73' : dim('rgb(40,40,60)')}" ${lit(r * 2 + c) && !day ? 'style="filter:drop-shadow(0 0 3px #ffb347)"' : ''}/>`).join('')).join('');
-            row += `<svg viewBox="0 0 30 90" preserveAspectRatio="none" style="position:absolute;left:${x}%;bottom:0;width:${w}px;height:${h}px">
+            row += `<svg viewBox="0 0 30 90" preserveAspectRatio="none" style="position:absolute;left:${x}%;bottom:8%;width:${w}px;height:${h}px">
                 <polygon points="0,90 0,26 3,26 3,20 6,20 6,14 9,14 9,8 21,8 21,14 24,14 24,20 27,20 27,26 30,26 30,90" fill="${fill}"/>
                 <polygon points="9,8 21,8 21,10 9,10" fill="${snowCap}"/>${windows}
                 <rect x="11" y="74" width="8" height="16" rx="3" fill="${dim('rgb(60,30,24)')}"/>
@@ -867,8 +870,34 @@ weather_hero:
             x += w / 9;  // ongeveer de breedte in % op een gemiddelde kaart
           }
           festive += row;
+          // Gracht met kademuur en glinsterend water
+          let ripples = '';
+          for (let i = 0; i < 14; i++) {
+            ripples += `<div style="position:absolute;left:${rnd() * 96}%;bottom:${1 + rnd() * 5}%;width:${14 + rnd() * 26}px;height:2px;border-radius:1px;
+              background:rgba(255,${day ? 255 : 214},${day ? 255 : 150},${day ? 0.45 : 0.5});animation:hero-twinkle ${2 + rnd() * 2}s ease-in-out ${-rnd() * 3}s infinite"></div>`;
+          }
+          festive += `<div style="position:absolute;left:0;right:0;bottom:7.4%;height:1.2%;background:${dim('rgb(120,96,84)')}"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:7.4%;
+              background:linear-gradient(180deg, ${day ? 'rgba(52,96,140,0.95)' : 'rgba(14,24,48,0.95)'}, ${day ? 'rgba(30,60,100,0.98)' : 'rgba(6,10,26,0.98)'})"></div>${ripples}`;
+          // De stoomboot vaart langzaam door de gracht, met rook en vlaggetjes
+          let boatSmoke = '';
+          for (let i = 0; i < 4; i++) boatSmoke += `<circle cx="62" cy="4" r="${3 + i}" fill="rgba(235,235,240,${day ? 0.7 : 0.4})" style="animation:hero-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
+          festive += `<svg viewBox="0 -12 120 50" style="position:absolute;bottom:1%;left:105%;width:150px;height:62px;overflow:visible;animation:hero-boat 70s linear -20s infinite">
+              <g style="animation:hero-bob 2.4s ease-in-out infinite">
+                ${boatSmoke}
+                <path d="M14 8 L14 -10 M14 -10 L26 -6 L14 -2" stroke="${dim('rgb(60,40,30)')}" stroke-width="1" fill="#c1121f"/>
+                <path d="M14 -10 L26 -6 L14 -2 Z" fill="#c1121f"/><path d="M14 -7.2 L22 -5 L14 -3.6 Z" fill="#ffd166"/>
+                <path d="M100 8 L100 -6 M100 -6 L110 -3 L100 0" stroke="${dim('rgb(60,40,30)')}" stroke-width="1"/>
+                <path d="M100 -6 L110 -3 L100 0 Z" fill="#ae1c28"/><path d="M100 -4 L106.4 -2 L100 -2 Z" fill="#ffffff"/><path d="M100 -2 L106.4 -2 L110 -3" fill="none"/>
+                <rect x="58" y="2" width="9" height="13" fill="#1d1d24"/><rect x="58" y="6" width="9" height="3" fill="#c1121f"/>
+                <rect x="28" y="12" width="64" height="12" rx="2" fill="${dim('rgb(248,248,250)')}"/>
+                ${[34, 44, 54, 70, 80].map(wx => `<rect x="${wx}" y="15" width="6" height="5" rx="1" fill="#ffcf73" ${day ? '' : 'style="filter:drop-shadow(0 0 3px #ffb347)"'}/>`).join('')}
+                <path d="M4 24 L116 24 L106 36 L14 36 Z" fill="${dim('rgb(26,48,96)')}"/>
+                <path d="M4 24 L116 24 L114 27 L6 27 Z" fill="#c1121f"/>
+                <text x="60" y="33" text-anchor="middle" font-size="5.5" font-weight="700" fill="#ffd166" font-family="sans-serif">PAKJESBOOT 12</text>
+              </g></svg>`;
           // Sinterklaas op zijn witte paard (met mijter en staf) die over de daken rijdt
-          festive += `<svg viewBox="-4 -14 66 66" style="position:absolute;bottom:${day ? 26 : 25}%;left:110%;width:92px;height:92px;animation:hero-sint 46s linear -8s infinite">
+          festive += `<svg viewBox="-4 -14 66 66" style="position:absolute;bottom:33%;left:110%;width:92px;height:92px;animation:hero-sint 46s linear -8s infinite">
               <g transform="translate(58 0) scale(-1 1)"><g style="animation:hero-bob 0.9s ease-in-out infinite">
                 <path d="M14 24 Q10 30 7 38" stroke="${day ? 'rgb(225,225,230)' : 'rgb(190,196,214)'}" stroke-width="3" fill="none" stroke-linecap="round"/>
                 <ellipse cx="29" cy="28" rx="16" ry="8.5" fill="${day ? 'rgb(246,246,248)' : 'rgb(214,220,236)'}"/>
@@ -881,23 +910,69 @@ weather_hero:
                 <path d="M27.4 3.6 L30.5 -6 L33.6 3.6 Z" fill="#c1121f"/><path d="M29.6 -2 h1.8 M30.5 -3 v2.4" stroke="#ffd166" stroke-width="0.8"/>
                 <path d="M41 26 V-6 q0 -5 -4 -5 q-3 0 -3 3" stroke="#ffd166" stroke-width="1.4" fill="none" stroke-linecap="round"/>
               </g></g></svg>`;
-          // Roetveegpieten in kleurrijk pak met kraag en pluim: één loopt met de cadeauzak achter Sinterklaas aan, één zwaait op een dak
-          const piet = (suit, accent, sack) => `
-              <path d="M9 7 Q15 1 22 6 L21 9 L10 9 Z" fill="${accent}"/><path d="M20 5 Q27 0 26 8" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-              <circle cx="15.5" cy="12" r="4.6" fill="${dim('rgb(241,200,170)')}"/>
-              <ellipse cx="13" cy="13.6" rx="1.4" ry="0.8" fill="rgba(40,30,30,0.55)"/><ellipse cx="18.4" cy="11" rx="1.1" ry="0.7" fill="rgba(40,30,30,0.5)"/>
-              <circle cx="14" cy="11.4" r="0.6" fill="#222"/><circle cx="17.2" cy="11.4" r="0.6" fill="#222"/>
-              <path d="M9 17.5 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 L22 18.6 L9 18.6 Z" fill="#ffffff"/>
-              <path d="M10 18.5 L21 18.5 L22 30 L9 30 Z" fill="${suit}"/><path d="M10 18.5 L15.5 30 M21 18.5 L15.5 30" stroke="${accent}" stroke-width="1"/>
-              <rect x="10" y="30" width="5" height="10" fill="${accent}"/><rect x="16" y="30" width="5" height="10" fill="${suit}"/>
-              <ellipse cx="12.4" cy="41" rx="3.2" ry="1.6" fill="#1d1d24"/><ellipse cx="18.6" cy="41" rx="3.2" ry="1.6" fill="#1d1d24"/>
-              ${sack ? `<path d="M22 20 Q30 16 30 26 Q30 34 22 32 Z" fill="${dim('rgb(150,100,60)')}"/><path d="M22 20 Q24 18 23 16" stroke="${dim('rgb(110,70,40)')}" stroke-width="1.2" fill="none"/>`
-                     : `<path d="M21 20 L27 10" stroke="${suit}" stroke-width="2.6" stroke-linecap="round" style="transform-origin:21px 20px;animation:hero-wave 1.2s ease-in-out infinite"/>`}`;
-          festive += `<svg viewBox="0 -2 32 46" style="position:absolute;bottom:${day ? 26 : 25}%;left:110%;width:40px;height:56px;animation:hero-sint 46s linear 0s infinite">
-              <g style="animation:hero-bob 0.7s ease-in-out infinite">${piet('#7b2cbf', '#ffd166', true)}</g></svg>`;
-          festive += svgAt(66, 20, 36, 50, '0 -2 32 46', `<g style="animation:hero-bob 1.4s ease-in-out infinite">${piet('#2a9d8f', '#e63946', false)}</g>`);
+          // Zwarte pieten in kleurrijk pak met kraag en pluim: één loopt met de cadeauzak achter Sinterklaas aan, één zwaait op een dak
+              const piet = (suit, accent, sack) => `
+              <path d="M9 7 Q15 1 22 6 L21 9 L10 9 Z" fill="${accent}"/>
+              <path d="M20 5 Q27 0 26 8"
+                    stroke="#ffffff"
+                    stroke-width="1.6"
+                    fill="none"
+                    stroke-linecap="round"/>
+
+              <circle cx="15.5" cy="12" r="4.6" fill="${dim('#2b1b12')}"/>
+
+              <ellipse cx="13" cy="13.6" rx="1.4" ry="0.8" fill="rgba(0,0,0,0.35)"/>
+              <ellipse cx="18.4" cy="11" rx="1.1" ry="0.7" fill="rgba(0,0,0,0.25)"/>
+
+              <circle cx="14" cy="11.4" r="0.6" fill="#222"/>
+              <circle cx="17.2" cy="11.4" r="0.6" fill="#222"/>
+
+              <path d="M14 14.8 Q15.5 15.8 17 14.8"
+                    stroke="#b22222"
+                    stroke-width="0.5"
+                    fill="none"
+                    stroke-linecap="round"/>
+
+              <path d="M9 17.5 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 l1.5 1.4 l1.5 -1.4 L22 18.6 L9 18.6 Z"
+                    fill="#ffffff"/>
+
+              <path d="M10 18.5 L21 18.5 L22 30 L9 30 Z" fill="${suit}"/>
+              <path d="M10 18.5 L15.5 30 M21 18.5 L15.5 30"
+                    stroke="${accent}"
+                    stroke-width="1"/>
+
+              <rect x="10" y="30" width="5" height="10" fill="${accent}"/>
+              <rect x="16" y="30" width="5" height="10" fill="${suit}"/>
+
+              <ellipse cx="12.4" cy="41" rx="3.2" ry="1.6" fill="#1d1d24"/>
+              <ellipse cx="18.6" cy="41" rx="3.2" ry="1.6" fill="#1d1d24"/>
+
+              ${sack
+                ? `<path d="M22 20 Q30 16 30 26 Q30 34 22 32 Z" fill="${dim('rgb(150,100,60)')}"/>
+                   <path d="M22 20 Q24 18 23 16"
+                         stroke="${dim('rgb(110,70,40)')}"
+                         stroke-width="1.2"
+                         fill="none"/>`
+                : `<path d="M21 20 L27 10"
+                         stroke="${suit}"
+                         stroke-width="2.6"
+                         stroke-linecap="round"
+                         style="transform-origin:21px 20px;animation:hero-wave 1.2s ease-in-out infinite"/>`
+              }`;
+          festive += `<svg viewBox="0 -2 32 46" style="position:absolute;bottom:33%;left:110%;width:40px;height:56px;animation:hero-sint 46s linear 0s infinite">
+              <g style="animation:hero-bob 0.7s ease-in-out infinite">${piet('#c1121f', '#ffd166', true)}</g></svg>`;
+          festive += svgAt(66, 28, 36, 50, '0 -2 32 46', `<g style="animation:hero-bob 1.4s ease-in-out infinite">${piet('#1d4ed8', '#f77f00', false)}</g>`);
+          // Piet die uit een schoorsteen klimt, en een cadeautje dat in een andere schoorsteen valt
+          festive += svgAt(40, 30, 44, 60, '0 -8 32 46', `
+              <g style="animation:hero-chimney 6s ease-in-out infinite">${piet('#2d6a4f', '#7b2cbf', false)}</g>
+              <rect x="4" y="20" width="24" height="18" fill="${dim('rgb(110,52,40)')}"/><rect x="2" y="18" width="28" height="4" fill="${dim('rgb(86,40,32)')}"/>
+              <path d="M6 24 H26 M6 29 H26 M6 34 H26 M12 22 V24 M20 24 V29 M12 29 V34 M20 34 V38" stroke="${dim('rgb(80,36,28)')}" stroke-width="0.7"/>`);
+          festive += svgAt(86, 31, 30, 64, '0 0 20 44', `
+              <g style="animation:hero-present 4.5s ease-in infinite"><rect x="4" y="0" width="12" height="10" rx="1" fill="#e63946"/>
+                <rect x="9" y="0" width="2" height="10" fill="#ffd166"/><rect x="4" y="4" width="12" height="2" fill="#ffd166"/></g>
+              <rect x="2" y="30" width="16" height="14" fill="${dim('rgb(110,52,40)')}"/><rect x="0" y="28" width="20" height="4" fill="${dim('rgb(86,40,32)')}"/>`);
           // Schoen met een wortel bij een deur
-          festive += svgAt(8, 1, 34, 22, '0 0 34 22', `<path d="M2 20 L2 12 Q2 8 7 8 L12 8 L14 13 L28 15 Q32 16 32 20 Z" fill="${dim('rgb(120,70,40)')}"/>
+          festive += svgAt(8, 9, 34, 22, '0 0 34 22', `<path d="M2 20 L2 12 Q2 8 7 8 L12 8 L14 13 L28 15 Q32 16 32 20 Z" fill="${dim('rgb(120,70,40)')}"/>
               <path d="M8 8 L10 -2 L13 -1 L11 8 Z" fill="#f77f00"/><path d="M10 -2 l-3 -3 M11 -2 l1 -4 M12 -1 l3 -3" stroke="#2d6a4f" stroke-width="1"/>`);
           // Rood-witte vlaggetjes en vallende pepernoten
           festive += bunting(['#d62839', '#f8f9fa', '#ffd166']);
