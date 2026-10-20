@@ -52,7 +52,7 @@ sections:
             const pollen = Object.entries(states)
               .filter(([id]) => /^sensor\.thuis_(planten|pollentypen)_52_035_53_/.test(id))
               .map(([id, st]) => [names[id.split('_').pop()], Math.round(parseFloat(st.state))])
-              .filter(([n, v]) => n && v > 0).sort((a, b) => b[1] - a[1])[0];
+              .filter(([n, v]) => n && v >= 2).sort((a, b) => b[1] - a[1])[0];
             if (pollen) parts.push(`pollen: ${levels[pollen[1]]} ${pollen[0]}`);
             const uv = num('sensor.current_uv_index');
             if (uv >= 3) parts.push(`UV ${Math.round(uv)}`);
@@ -288,7 +288,7 @@ sections:
           label:
             - white-space: normal
             - text-align: left
-      # Alleen soorten die er nu zijn (index > 0); onbekend of 0 wordt niet getoond
+      # Alleen soorten vanaf 'Laag' (index 2 of hoger); geen, zeer laag of onbekend wordt niet getoond
       - type: custom:auto-entities
         card:
           type: grid
@@ -298,12 +298,12 @@ sections:
         filter:
           include:
             - entity_id: sensor.thuis_pollentypen_52_035_53_*
-              state: "> 0"
+              state: "> 1"
               options:
                 type: custom:button-card
                 template: pollen
             - entity_id: sensor.thuis_planten_52_035_53_*
-              state: "> 0"
+              state: "> 1"
               options:
                 type: custom:button-card
                 template: pollen

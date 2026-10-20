@@ -727,7 +727,7 @@ weather_hero:
         const deg = v => isNaN(v) ? '–' : `${Math.round(v)}°`;
         const now = num('sensor.weer_thuis_temperatuur');
 
-        // Pollen: alle soorten (planten en pollentypen) die er nu zijn, hoogste eerst; index 0 of onbekend wordt niet getoond
+        // Pollen: alle soorten (planten en pollentypen) vanaf 'Laag', hoogste eerst; geen, zeer laag of onbekend wordt niet getoond
         const levels = ['Geen', 'Zeer laag', 'Laag', 'Matig', 'Hoog', 'Zeer hoog'];
         const colors = ['#4ade80', '#a3e635', '#facc15', '#fb923c', '#ff6b6b'];
         const pollenNames = {
@@ -738,7 +738,7 @@ weather_hero:
         const present = Object.entries(states)
           .filter(([id]) => /^sensor\.thuis_(planten|pollentypen)_52_035_53_/.test(id))
           .map(([id, st]) => ({ key: id.split('_').pop(), level: Math.round(parseFloat(st.state)) }))
-          .filter(p => pollenNames[p.key] && p.level > 0)
+          .filter(p => pollenNames[p.key] && p.level >= 2)  // vanaf 'Laag'; 'Zeer laag' is niet de moeite
           .map(p => ({ label: pollenNames[p.key], icon: pollenIcon(p.key), level: p.level }))
           .sort((a, b) => b.level - a.level)
           .slice(0, 3);
