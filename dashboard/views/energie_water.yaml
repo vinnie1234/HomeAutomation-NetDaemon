@@ -1,0 +1,68 @@
+# Energie → Water: waterverbruik nu, per periode en de kosten.
+title: Water
+path: energie-water
+icon: mdi:water
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/energie
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Energie-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/energie_tabs.yaml
+      - type: energy-date-selection
+        grid_options:
+          columns: full
+  # Water nu
+  - type: grid
+    cards:
+      - type: heading
+        heading: Water
+        heading_style: title
+        icon: mdi:water-outline
+      - type: custom:button-card
+        template: stat
+        entity: sensor.watermeter_5c2faf0e9b0a_active_water_usage
+        name: Nu
+        icon: mdi:water-pump
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.watermeter_5c2faf0e9b0a_total_water_usage_cost
+        name: Kosten totaal
+        icon: mdi:cash
+        grid_options:
+          columns: 6
+      - type: custom:mini-graph-card
+        name: Waterverbruik vandaag
+        icon: mdi:water
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        show:
+          fill: fade
+          labels: false
+        color_thresholds:
+          - value: 0
+            color: "#38bdf8"
+        entities:
+          - entity: sensor.watermeter_5c2faf0e9b0a_active_water_usage
+            name: Water
+
+  # Verbruik per periode
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Verbruik
+        heading_style: title
+        icon: mdi:chart-bar
+      - type: energy-water-graph
+        grid_options:
+          columns: full

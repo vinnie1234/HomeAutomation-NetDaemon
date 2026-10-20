@@ -8,6 +8,10 @@ kiosk_mode:
 views:
   - !include views/home.yaml
   - !include views/energie.yaml
+  - !include views/energie_prijs.yaml
+  - !include views/energie_verbruik.yaml
+  - !include views/energie_kosten.yaml
+  - !include views/energie_water.yaml
   - !include views/media.yaml
   - !include views/media_tv.yaml
   - !include views/media_muziek.yaml

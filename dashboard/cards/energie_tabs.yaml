@@ -1,0 +1,52 @@
+# Menubalk bovenaan alle Energie-pagina's: Overzicht, Prijs, Verbruik & zon, Kosten en Water.
+type: grid
+columns: 5
+square: false
+grid_options:
+  columns: full
+cards:
+  - type: custom:button-card
+    template: tab
+    name: Overzicht
+    icon: mdi:view-dashboard-outline
+    variables:
+      path: /dashboard-huis/energie
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/energie
+  - type: custom:button-card
+    template: tab
+    name: Prijs
+    icon: mdi:currency-eur
+    variables:
+      path: /dashboard-huis/energie-prijs
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/energie-prijs
+  - type: custom:button-card
+    template: tab
+    name: Verbruik
+    icon: mdi:solar-power-variant
+    variables:
+      path: /dashboard-huis/energie-verbruik
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/energie-verbruik
+  - type: custom:button-card
+    template: tab
+    name: Kosten
+    icon: mdi:cash-multiple
+    variables:
+      path: /dashboard-huis/energie-kosten
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/energie-kosten
+  - type: custom:button-card
+    template: tab
+    name: Water
+    icon: mdi:water
+    variables:
+      path: /dashboard-huis/energie-water
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/energie-water

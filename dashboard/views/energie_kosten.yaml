@@ -1,0 +1,117 @@
+# Energie → Kosten: per kwartier tot per jaar, het verloop en de bronnen.
+title: Kosten
+path: energie-kosten
+icon: mdi:cash-multiple
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/energie
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Energie-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/energie_tabs.yaml
+      - type: energy-date-selection
+        grid_options:
+          columns: full
+  # Kosten per periode
+  - type: grid
+    cards:
+      - type: heading
+        heading: Kosten
+        heading_style: title
+        icon: mdi:cash-multiple
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
+        name: Nu (per uur)
+        icon: mdi:cash-clock
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_15_minute_energy_cost
+        name: Dit kwartier
+        icon: mdi:timer-outline
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_hourly_energy_cost
+        name: Dit uur
+        icon: mdi:clock-outline
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost
+        name: Vandaag
+        icon: mdi:calendar-today
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_weekly_energy_cost
+        name: Deze week
+        icon: mdi:calendar-week
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_monthly_energy_cost
+        name: Deze maand
+        icon: mdi:calendar-month
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_yearly_energy_cost
+        name: Dit jaar
+        icon: mdi:calendar
+        grid_options:
+          columns: 12
+
+  # Verloop en bronnen
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Actuele kosten
+        heading_style: title
+        icon: mdi:chart-line
+      - type: custom:mini-graph-card
+        name: Kosten per uur, laatste 24 uur
+        icon: mdi:cash-clock
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        smoothing: true
+        decimals: 2
+        show:
+          fill: fade
+          labels: false
+          extrema: true
+        color_thresholds:
+          - value: -10
+            color: "#4ade80"
+          - value: 0.2
+            color: "#ffb060"
+          - value: 0.5
+            color: "#ff6b6b"
+        entities:
+          - entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
+            name: Kosten
+      - type: heading
+        heading: Bronnen
+        heading_style: subtitle
+        icon: mdi:format-list-bulleted
+      - type: energy-sources-table
+        types:
+          - grid
+          - solar
+          - battery
+          - water
