@@ -397,7 +397,7 @@ sections:
         name: Schoonmaken over
         icon: mdi:spray-bottle
         variables:
-          max: 14
+          max: 7
           unit: dagen
       - type: custom:button-card
         template: progress
