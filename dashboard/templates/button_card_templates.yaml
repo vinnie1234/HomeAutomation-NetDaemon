@@ -674,11 +674,17 @@ weather_hero:
             .map(name => `@property ${name} { syntax: '<integer>'; inherits: true; initial-value: 0; }`).join(' ');
           document.head.appendChild(style);
         }
-        return speakers.map(([id, name]) => {
+        // Alle timers van alle speakers (attribuut timers), anders de eerstvolgende uit de toestand; eerst aflopend eerst
+        const timers = speakers.flatMap(([id, name]) => {
           const st = states[id];
-          const end = new Date(st?.state).getTime();
-          if (isNaN(end) || end < now - 300000) return '';
-          const timer = (st.attributes.timers ?? [])[0] ?? {};
+          const list = Array.isArray(st?.attributes.timers) && st.attributes.timers.length ? st.attributes.timers : st ? [{}] : [];
+          return list.map((timer, i) => {
+            const end = timer.fire_time ? Number(timer.fire_time) * (Number(timer.fire_time) < 1e12 ? 1000 : 1)
+              : new Date(timer.local_time_iso ?? (i === 0 ? st.state : NaN)).getTime();
+            return { id: `${id}:${timer.timer_id ?? i}`, name, timer, end };
+          });
+        }).filter(t => !isNaN(t.end) && t.end >= now - 300000).sort((x, y) => x.end - y.end);
+        return timers.map(({ id, name, timer, end }) => {
           let total = seconds(timer.duration);
           if (isNaN(total)) {
             // Geen duur bekend: rekenen vanaf het moment dat deze timer voor het eerst op het scherm stond
