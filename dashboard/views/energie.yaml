@@ -100,15 +100,14 @@ sections:
         grid_options:
           columns: 6
 
-      # Prijs per uur uit het attribuut hourly_prices van de ANWB-sensor.
-      # Drie reeksen (goedkoop / normaal / duur ten opzichte van het daggemiddelde),
-      # gestapeld zodat elk uur één staaf in de juiste kleur is.
+      # Prijs per uur uit het attribuut hourly_prices van de ANWB-sensor: één reeks, dus alle staven even breed
+      # en op gelijke afstand. De kleur per staaf volgt de prijs ten opzichte van het daggemiddelde
+      # (groen goedkoop, oranje normaal, rood duur); het gemiddelde zet de data_generator klaar voor de kleurfunctie.
       - type: custom:apexcharts-card
         graph_span: 24h
         span:
           start: day
         hours_12: false
-        stacked: true
         now:
           show: true
           label: Nu
@@ -127,12 +126,24 @@ sections:
           plotOptions:
             bar:
               borderRadius: 3
-              columnWidth: "80%"
+              columnWidth: "65%"
+          colors:
+            - "EVAL:function({ value }) { const avg = window.huisPrijsGemiddelde || 0; return value < avg * 0.95 ? '#4ade80' : value > avg * 1.05 ? '#ff6b6b' : '#ffb060'; }"
           grid:
             borderColor: "rgba(255, 255, 255, 0.06)"
           legend:
             show: true
             position: bottom
+            showForSingleSeries: true
+            customLegendItems:
+              - Goedkoop
+              - Normaal
+              - Duur
+            markers:
+              fillColors:
+                - "#4ade80"
+                - "#ffb060"
+                - "#ff6b6b"
           xaxis:
             labels:
               format: HH:mm
@@ -141,53 +152,20 @@ sections:
               format: HH:mm
         series:
           - entity: sensor.anwb_electricity_all_in_price_current
-            name: Goedkoop
+            name: Prijs
             type: column
-            color: "#4ade80"
             unit: " €/kWh"
             float_precision: 2
             show:
               in_header: false
+              legend_value: false
             data_generator: |
-              const band = 'cheap';
               const prices = Object.entries(entity.attributes.hourly_prices ?? {})
                 .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
-                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
-              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
-              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
-              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
-          - entity: sensor.anwb_electricity_all_in_price_current
-            name: Normaal
-            type: column
-            color: "#ffb060"
-            unit: " €/kWh"
-            float_precision: 2
-            show:
-              in_header: false
-            data_generator: |
-              const band = 'normal';
-              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
-                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
-                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
-              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
-              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
-              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
-          - entity: sensor.anwb_electricity_all_in_price_current
-            name: Duur
-            type: column
-            color: "#ff6b6b"
-            unit: " €/kWh"
-            float_precision: 2
-            show:
-              in_header: false
-            data_generator: |
-              const band = 'expensive';
-              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
-                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
-                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
-              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
-              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
-              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
+                .filter(([t, v]) => !isNaN(t) && !isNaN(v))
+                .sort((a, b) => a[0] - b[0]);
+              window.huisPrijsGemiddelde = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
+              return prices;
         grid_options:
           columns: full
 
@@ -290,7 +268,7 @@ sections:
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
         name: Kost nu
         icon: mdi:cash-clock
@@ -305,28 +283,28 @@ sections:
         heading_style: title
         icon: mdi:cash-multiple
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost
         name: Vandaag
         icon: mdi:calendar-today
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_weekly_energy_cost
         name: Deze week
         icon: mdi:calendar-week
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_monthly_energy_cost
         name: Deze maand
         icon: mdi:calendar-month
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_yearly_energy_cost
         name: Dit jaar
         icon: mdi:calendar
@@ -348,7 +326,7 @@ sections:
         grid_options:
           columns: 6
       - type: custom:button-card
-        template: stat
+        template: price
         entity: sensor.watermeter_5c2faf0e9b0a_total_water_usage_cost
         name: Kosten totaal
         icon: mdi:cash

@@ -17,6 +17,8 @@ sections:
       - type: custom:button-card
         template: summary
         icon: mdi:play-circle-outline
+        grid_options:
+          columns: full
         name: |
           [[[
             const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
@@ -39,13 +41,13 @@ sections:
             return parts.join(' · ') || 'Kies hieronder TV, Muziek, Gaming of Series';
           ]]]
 
+  # Kies: TV, Muziek, Gaming of Series
   - type: grid
-    column_span: 2
     cards:
       - type: heading
-        heading: Media
+        heading: Kies
         heading_style: title
-        icon: mdi:play-circle-outline
+        icon: mdi:view-dashboard-outline
 
       - type: custom:button-card
         template: media_tile
@@ -119,9 +121,13 @@ sections:
         grid_options:
           columns: 6
 
+  # Snel bedienen en wat er nu speelt
+  - type: grid
+    cards:
       - type: heading
         heading: Snel
-        heading_style: subtitle
+        heading_style: title
+        icon: mdi:lightning-bolt-outline
       - !include ../cards/bron_ps5.yaml
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
