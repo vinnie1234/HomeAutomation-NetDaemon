@@ -33,7 +33,7 @@ public class NetDaemonTests
 
         // Act
         var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
-        await Task.Delay(100);
+        await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1);
