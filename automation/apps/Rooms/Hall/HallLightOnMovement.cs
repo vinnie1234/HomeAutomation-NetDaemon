@@ -108,8 +108,8 @@ public class HallLightOnMovement : BaseApp
                     // Decided before TurnOn, because the state doesn't update right after the call.
                     var halHasNoPower = Entities.Light.Hal.State is "unavailable";
                     Entities.Light.Hal.TurnOn();
-                    if (halHasNoPower)
-                        Entities.Switch.Bot29ff.TurnOn();
+                    // if (halHasNoPower)
+                    //     Entities.Switch.Bot29ff.TurnOn();
                     
                     if(Entities.MediaPlayer.Tv.IsOff())
                         Entities.Light.GangSigaret.TurnOn();
@@ -160,7 +160,7 @@ public class HallLightOnMovement : BaseApp
                 case 4:
                     Entities.MediaPlayer.FriendsSpeakers.VolumeSet(0.5);
                     Entities.Light.Hal.TurnOn();
-                    Entities.Switch.Bot29ff.TurnOn();
+                    // Entities.Switch.Bot29ff.TurnOn();
                     Entities.Light.Hal2.TurnOff();
                     Notify.SendMusicToHome("http://192.168.50.189:8123/local/Friends.mp3");
 
