@@ -429,6 +429,7 @@ sections:
             - light.hue_play_midden
             - light.hue_play_rechts
             - light.buiten_deur
+            - light.koelkast
           motion: binary_sensor.motionwoonkamer
         tap_action:
           action: navigate
@@ -442,7 +443,6 @@ sections:
         variables:
           lights:
             - light.lampen_keuken
-            - light.koelkast
         tap_action:
           action: navigate
           navigation_path: "#keuken"
