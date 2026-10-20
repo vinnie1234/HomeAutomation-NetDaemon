@@ -422,8 +422,16 @@ weather_hero:
     @keyframes hero-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     @keyframes hero-rays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
     @keyframes hero-flash { 0%, 89%, 100% { opacity: 0; } 90%, 93% { opacity: 0.85; } 91.5% { opacity: 0.2; } }
+    @keyframes hero-timer-count { from { --timer-t: var(--timer-from); } to { --timer-t: 0; } }
+    .hero-countdown {
+      --timer-m: calc((var(--timer-t) - 30) / 60);
+      --timer-s: calc(var(--timer-t) - var(--timer-m) * 60);
+      counter-reset: timer-m var(--timer-m) timer-s var(--timer-s);
+      animation: hero-timer-count var(--timer-dur) linear forwards;
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-countdown::after { content: counter(timer-m) ":" counter(timer-s, decimal-leading-zero); }
     @keyframes hero-timer-color { 0%, 75% { background: rgba(255, 176, 96, 0.92); } 82%, 100% { background: rgba(255, 99, 99, 0.95); } }
-    @keyframes hero-timer-bar { from { transform: scaleX(var(--timer-left, 1)); } to { transform: scaleX(0); } }
     @keyframes hero-timer-blink { 50% { opacity: 0.35; } }
     @keyframes hero-timer-hide { to { opacity: 0; } }
     @keyframes hero-timer-show { to { opacity: 1; } }
@@ -645,7 +653,7 @@ weather_hero:
                 box-shadow: none !important;
                 backdrop-filter: none !important;
               }
-    # Lopende timers van de speakers: oranje pil die na 75% van de tijd rood wordt, met een aflopend balkje,
+    # Lopende timers van de speakers: oranje pil met aftellende minuten:seconden die na 75% van de tijd rood wordt,
     # de laatste 20 seconden knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
     # zodat de kaart niet elke seconde opnieuw getekend hoeft te worden.
     timers: |
@@ -655,6 +663,14 @@ weather_hero:
           ? String(d).split(':').map(Number).reduce((total, part) => total * 60 + part) : NaN;
         const now = Date.now();
         window.huisTimerStart = window.huisTimerStart ?? {};
+        // @property werkt niet in de shadow DOM van een kaart: de tel-variabelen eenmalig op paginaniveau registreren
+        if (typeof document !== 'undefined' && !document.getElementById('huis-timer-properties')) {
+          const style = document.createElement('style');
+          style.id = 'huis-timer-properties';
+          style.textContent = ['--timer-t', '--timer-m', '--timer-s']
+            .map(name => `@property ${name} { syntax: '<integer>'; inherits: true; initial-value: 0; }`).join(' ');
+          document.head.appendChild(style);
+        }
         return speakers.map(([id, name]) => {
           const st = states[id];
           const end = new Date(st?.state).getTime();
@@ -669,20 +685,18 @@ weather_hero:
           total = Math.max(total, 1);
           const left = Math.max(0, (end - now) / 1000);
           const elapsed = total - left;
-          const at = new Date(end).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
           const label = timer.label ? ` (${timer.label})` : '';
-          return `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px 9px;
+          return `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px;
                     border-radius:16px;color:#fff;overflow:hidden;font-size:16px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);
                     animation:hero-timer-color ${total}s linear ${-elapsed}s forwards,
                               hero-timer-blink 0.6s ease-in-out ${Math.max(0, left - 20)}s infinite">
                     <ha-icon icon="mdi:timer-outline" style="--mdc-icon-size:20px"></ha-icon>
-                    <span>${name}${label}</span>
+                    <span style="white-space:nowrap">${name}${label}</span>
                     <span style="position:relative">
-                      <span style="animation:hero-timer-hide 0s linear ${left}s forwards">· klaar om ${at}</span>
-                      <span style="position:absolute;left:0;top:0;white-space:nowrap;opacity:0;animation:hero-timer-show 0s linear ${left}s forwards">· klaar!</span>
+                      <span style="animation:hero-timer-hide 0s linear ${left}s forwards"><span class="hero-countdown"
+                        style="--timer-from:${Math.round(left)};--timer-dur:${left}s;font-size:19px;font-weight:700"></span></span>
+                      <span style="position:absolute;left:0;top:0;white-space:nowrap;opacity:0;font-size:19px;font-weight:700;animation:hero-timer-show 0s linear ${left}s forwards">klaar!</span>
                     </span>
-                    <span style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,0.85);transform-origin:left;
-                      --timer-left:${left / total};animation:hero-timer-bar ${left}s linear forwards"></span>
                   </div>`;
         }).join('');
       ]]]
