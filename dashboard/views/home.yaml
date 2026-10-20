@@ -68,6 +68,50 @@ sections:
       - type: custom:mushroom-chips-card
         alignment: start
         chips:
+          - type: conditional
+            conditions:
+              - condition: or
+                conditions:
+                  - condition: numeric_state
+                    entity: sensor.buiten_postnl_inkomende_pakketten
+                    above: 0
+                  - condition: numeric_state
+                    entity: sensor.buiten_dhl_inkomende_pakketten
+                    above: 0
+                  - condition: numeric_state
+                    entity: sensor.buiten_dpd_inkomende_pakketten
+                    above: 0
+                  - condition: numeric_state
+                    entity: sensor.buiten_gls_inkomende_pakketten
+                    above: 0
+            chip:
+              type: template
+              icon: mdi:package-variant-closed
+              icon_color: orange
+              content: |
+                {% set ns = namespace(n=0, next=none) %}
+                {% for c in ['postnl', 'dhl', 'dpd', 'gls'] %}
+                {% set ns.n = ns.n + (states('sensor.buiten_' ~ c ~ '_inkomende_pakketten') | int(0)) %}
+                {% set t = as_timestamp(states('sensor.buiten_' ~ c ~ '_volgende_bezorging'), none) %}
+                {% if t and (ns.next is none or t < ns.next) %}{% set ns.next = t %}{% endif %}
+                {% endfor %}
+                {{ ns.n }} {{ 'pakket' if ns.n == 1 else 'pakketten' }}{{ ' · ' ~ (ns.next | timestamp_custom('%H:%M')) if ns.next and (ns.next | timestamp_custom('%Y-%m-%d')) == now().strftime('%Y-%m-%d') else '' }}
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.buiten_postnl_brieven
+                above: 0
+            chip:
+              type: template
+              icon: mdi:email-outline
+              icon_color: orange
+              content: "{{ states('sensor.buiten_postnl_brieven') | int(0) }} {{ 'brief' if states('sensor.buiten_postnl_brieven') | int(0) == 1 else 'brieven' }}"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
           - type: template
             icon: |
               {{ {'Morning': 'mdi:weather-sunset-up', 'Day': 'mdi:white-balance-sunny', 'Evening': 'mdi:weather-sunset-down', 'Night': 'mdi:weather-night'}.get(states('input_select.housemodeselect'), 'mdi:home') }}
@@ -543,6 +587,18 @@ sections:
           - entity: calendar.feestdagen_in_nederland
             name: Feestdagen
             color: "#4ade80"
+          - entity: calendar.buiten_postnl_bezorgingen
+            name: PostNL
+            color: "#ff6200"
+          - entity: calendar.buiten_dhl_bezorgingen
+            name: DHL
+            color: "#ffcc00"
+          - entity: calendar.buiten_dpd_bezorgingen
+            name: DPD
+            color: "#dc0032"
+          - entity: calendar.buiten_gls_bezorgingen
+            name: GLS
+            color: "#3c6ec8"
         texts:
           fullDay: Hele dag
           noEvents: Geen afspraken

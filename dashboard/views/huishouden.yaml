@@ -46,6 +46,9 @@ sections:
             if (w && !['unknown', 'unavailable'].includes(w)) parts.push(`wasmachine ${washer[w] ?? w}`);
             const tomorrow = states['sensor.afval_morgen']?.state;
             if (!['Geen', 'unknown', 'unavailable', undefined].includes(tomorrow)) parts.push(`morgen ${tomorrow}`);
+            const parcels = ['postnl', 'dhl', 'dpd', 'gls']
+              .reduce((n, c) => n + (parseInt(states[`sensor.buiten_${c}_inkomende_pakketten`]?.state) || 0), 0);
+            if (parcels) parts.push(`${parcels} ${parcels === 1 ? 'pakket' : 'pakketten'} onderweg`);
             return parts.join(' · ');
           ]]]
 
@@ -463,6 +466,18 @@ sections:
           - entity: calendar.feestdagen_in_nederland
             name: Feestdagen
             color: "#4ade80"
+          - entity: calendar.buiten_postnl_bezorgingen
+            name: PostNL
+            color: "#ff6200"
+          - entity: calendar.buiten_dhl_bezorgingen
+            name: DHL
+            color: "#ffcc00"
+          - entity: calendar.buiten_dpd_bezorgingen
+            name: DPD
+            color: "#dc0032"
+          - entity: calendar.buiten_gls_bezorgingen
+            name: GLS
+            color: "#3c6ec8"
         texts:
           fullDay: Hele dag
           noEvents: Geen afspraken
@@ -470,6 +485,82 @@ sections:
           tomorrow: Morgen
           yesterday: Gisteren
           moreEvents: Meer afspraken
+
+  # Post en pakketten: per vervoerder wat er onderweg is, en de scans van de brieven van PostNL
+  - type: grid
+    cards:
+      - type: heading
+        heading: Post & pakketten
+        heading_style: title
+        icon: mdi:package-variant-closed
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_postnl_inkomende_pakketten
+        name: PostNL
+        variables:
+          key: postnl
+          color: 255, 98, 0
+          pickup: onderweg_naar_postnl_punt
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_dhl_inkomende_pakketten
+        name: DHL
+        variables:
+          key: dhl
+          color: 255, 204, 0
+          pickup: onderweg_naar_servicepoint
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_dpd_inkomende_pakketten
+        name: DPD
+        variables:
+          key: dpd
+          color: 220, 0, 50
+          pickup: onderweg_naar_parcelshop
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: carrier
+        entity: sensor.buiten_gls_inkomende_pakketten
+        name: GLS
+        variables:
+          key: gls
+          color: 60, 110, 200
+          pickup: onderweg_naar_parcelshop
+        grid_options:
+          columns: 6
+      - type: heading
+        heading: Brieven
+        heading_style: subtitle
+        icon: mdi:email-outline
+        badges:
+          - type: entity
+            entity: sensor.buiten_postnl_brieven
+            show_state: true
+            show_icon: false
+      # Scans van de brieven die vandaag of binnenkort komen (PostNL maakt per brief een image-entiteit)
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: image.buiten_postnl_brief_*
+              options:
+                type: picture-entity
+                show_state: false
+                show_name: true
+        sort:
+          method: last_changed
+          reverse: true
+          count: 4
+        show_empty: false
 
   # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
   - type: grid

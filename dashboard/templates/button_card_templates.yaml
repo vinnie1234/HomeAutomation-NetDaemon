@@ -2144,3 +2144,83 @@ power_row:
       row:
         - display: block
         - width: 100%
+
+# Vervoerder (Pakket-integratie): inkomende pakketten, volgende bezorging, klaar om af te halen en wat er onderweg is.
+# variables.key (postnl, dhl, dpd, gls), variables.color (r, g, b), variables.pickup (sensor voor "onderweg naar afhaalpunt").
+# Tik toont de inkomende pakketten, lang drukken ververst de gegevens bij de vervoerder.
+carrier:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    key: postnl
+    color: 255, 98, 0
+    pickup: onderweg_naar_postnl_punt
+  icon: mdi:package-variant-closed
+  tap_action:
+    action: more-info
+  hold_action:
+    action: javascript
+    haptic: medium
+    javascript: "[[[ hass.callService('button', 'press', { entity_id: `button.buiten_${variables.key}_verversen` }); ]]]"
+  custom_fields:
+    count: |
+      [[[
+        const n = parseInt(states[`sensor.buiten_${variables.key}_inkomende_pakketten`]?.state) || 0;
+        return n ? `${n} ${n === 1 ? 'pakket' : 'pakketten'}` : 'Niets onderweg';
+      ]]]
+  label: |
+    [[[
+      const parts = [];
+      const next = new Date(states[`sensor.buiten_${variables.key}_volgende_bezorging`]?.state);
+      if (!isNaN(next)) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const day = new Date(next); day.setHours(0, 0, 0, 0);
+        const diff = Math.round((day - today) / 86400000);
+        const time = next.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        const when = diff === 0 ? `vandaag ${time}` : diff === 1 ? `morgen ${time}`
+          : next.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+        parts.push(`Volgende: ${when}`);
+      }
+      const ready = parseInt(states[`sensor.buiten_${variables.key}_klaar_voor_afhalen`]?.state) || 0;
+      if (ready) parts.push(`${ready} klaar om af te halen`);
+      const pickup = parseInt(states[`sensor.buiten_${variables.key}_${variables.pickup}`]?.state) || 0;
+      if (pickup) parts.push(`${pickup} naar afhaalpunt`);
+      const out = parseInt(states[`sensor.buiten_${variables.key}_uitgaande_pakketten`]?.state) || 0;
+      if (out) parts.push(`${out} verstuurd`);
+      return parts.join(' · ') || 'Lang drukken om te verversen';
+    ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i count" "l l"'
+      - grid-template-columns: auto 1fr
+      - grid-template-rows: auto auto 1fr
+      - column-gap: 12px
+    card:
+      - min-height: 104px
+      - background: |
+          [[[
+            const n = parseInt(states[`sensor.buiten_${variables.key}_inkomende_pakketten`]?.state) || 0;
+            return n ? `linear-gradient(135deg, rgba(${variables.color}, 0.30), rgba(255, 255, 255, 0.04))` : 'rgba(255, 255, 255, 0.05)';
+          ]]]
+    img_cell:
+      - width: 42px
+      - height: 42px
+      - border-radius: 12px
+      - background: '[[[ return `rgba(${variables.color}, 0.25)`; ]]]'
+    icon:
+      - width: 24px
+      - color: '[[[ return `rgb(${variables.color})`; ]]]'
+    name:
+      - font-size: 13px
+      - opacity: 0.8
+    label:
+      - white-space: normal
+      - text-align: left
+      - font-size: 12px
+      - padding-top: 6px
+    custom_fields:
+      count:
+        - justify-self: start
+        - font-size: 18px
+        - font-weight: 700
