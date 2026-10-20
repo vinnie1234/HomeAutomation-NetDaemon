@@ -38,7 +38,7 @@ sections:
         label: |
           [[[
             const jaap = { cleaning: 'aan het zuigen', docked: 'in het dock', idle: 'staat stil', paused: 'gepauzeerd', returning: 'onderweg naar dock', error: 'probleem' };
-            const washer = { run: 'bezig', running: 'bezig', stop: 'klaar', end: 'klaar', pause: 'gepauzeerd', idle: 'staat klaar' };
+            const washer = { active: 'bezig', pause: 'gepauzeerd', idle: 'staat klaar' };
             const parts = [];
             const j = states['vacuum.jaap']?.state;
             if (j) parts.push(`Jaap ${jaap[j] ?? j}`);
@@ -291,8 +291,12 @@ sections:
           navigation_path: "#wasmachine"
         name: |
           [[[
-            const map = { run: 'Bezig met wassen', running: 'Bezig met wassen', stop: 'Klaar', end: 'Klaar', pause: 'Gepauzeerd', idle: 'Staat klaar' };
-            return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : entity.state);
+            if (entity.state === 'active') {
+              const phase = states['sensor.badkamer_wasmachine_voortgang'];
+              return phase && !['unknown', 'unavailable', 'idle'].includes(phase.state) ? `Bezig: ${hass.formatEntityState(phase)}` : 'Bezig met wassen';
+            }
+            const map = { pause: 'Gepauzeerd', idle: 'Staat klaar' };
+            return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : hass.formatEntityState(entity));
           ]]]
         label: |
           [[[
@@ -304,7 +308,7 @@ sections:
               .filter(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on')
               .map(k => `${k[0].toUpperCase()}${k.slice(1)} bijna op`);
             const parts = [];
-            if (['run', 'running'].includes(entity.state) && !isNaN(end)) {
+            if (entity.state === 'active' && !isNaN(end)) {
               const min = Math.max(0, Math.round((end - new Date()) / 60000));
               parts.push(`Klaar om ${end.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · nog ${min} min`);
             } else {
@@ -315,7 +319,7 @@ sections:
         custom_fields:
           ring: |
             [[[
-              const running = ['run', 'running'].includes(entity.state);
+              const running = ['active', 'pause'].includes(entity.state);
               const pct = running ? Math.min(100, parseFloat(states['sensor.badkamer_wasmachine_voortgangspercentage']?.state) || 0) : 0;
               return `<div style="width:64px;height:64px;border-radius:50%;
                         background:conic-gradient(#38bdf8 ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);

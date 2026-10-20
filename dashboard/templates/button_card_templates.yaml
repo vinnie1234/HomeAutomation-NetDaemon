@@ -2378,3 +2378,205 @@ vomit_chart:
       chart:
         - width: 100%
         - text-align: left
+
+# Opvallende melding op Home: gekleurde rand met gloed, groot icoon, titel en uitleg.
+# variables.color (r, g, b) en variables.pulse (true = het icoon pulseert, voor wat nu echt aandacht vraagt).
+alert:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    color: 56, 189, 248
+    pulse: false
+  styles:
+    grid:
+      - grid-template-areas: '"i n side" "i l side"'
+      - grid-template-columns: auto 1fr auto
+      - grid-template-rows: 1fr 1fr
+      - column-gap: 14px
+    card:
+      - min-height: 84px
+      - padding: 12px 16px
+      - background: '[[[ return `linear-gradient(135deg, rgba(${variables.color}, 0.28), rgba(${variables.color}, 0.08))`; ]]]'
+      - border: '[[[ return `1px solid rgba(${variables.color}, 0.55)`; ]]]'
+      - box-shadow: '[[[ return `0 0 24px rgba(${variables.color}, 0.25)`; ]]]'
+    img_cell:
+      - width: 52px
+      - height: 52px
+      - border-radius: 50%
+      - background: '[[[ return `rgba(${variables.color}, 0.30)`; ]]]'
+      - animation: '[[[ return variables.pulse ? "alert-pulse 1.6s ease-in-out infinite" : "none"; ]]]'
+    icon:
+      - width: 28px
+      - color: '[[[ return `rgb(${variables.color})`; ]]]'
+    name:
+      - justify-self: start
+      - align-self: end
+      - font-size: 16px
+      - font-weight: 700
+      - white-space: normal
+      - text-align: left
+    label:
+      - justify-self: start
+      - align-self: start
+      - font-size: 13px
+      - opacity: 0.85
+      - white-space: normal
+      - text-align: left
+    custom_fields:
+      side:
+        - align-self: center
+        - text-align: right
+  extra_styles: |
+    @keyframes alert-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba([[[ return variables.color ]]], 0.6); }
+      50% { box-shadow: 0 0 0 10px rgba([[[ return variables.color ]]], 0); }
+    }
+
+# Wasmachine bezig: fase (Wassen, Spoelen, Centrifugeren...), programma, voortgangsring en hoe lang nog.
+# Tik opent de wasmachine-pop-up op Huishouden.
+washer_live:
+  template: alert
+  entity: sensor.badkamer_wasmachine_machinestatus
+  variables:
+    color: |
+      [[[ return entity?.state === 'pause' ? '255, 176, 96' : '56, 189, 248'; ]]]
+  show_icon: false
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/huishouden#wasmachine
+  name: |
+    [[[
+      if (entity?.state === 'pause') return 'Wasmachine gepauzeerd';
+      const phase = states['sensor.badkamer_wasmachine_voortgang'];
+      const text = phase && !['unknown', 'unavailable', 'idle'].includes(phase.state) ? hass.formatEntityState(phase) : '';
+      return text ? `Wasmachine · ${text}` : 'Wasmachine draait';
+    ]]]
+  label: |
+    [[[
+      const parts = [];
+      const program = states['select.badkamer_wasmachine_programma'];
+      if (program && !['unknown', 'unavailable'].includes(program.state)) parts.push(hass.formatEntityState(program));
+      const temp = states['select.badkamer_wasmachine_wastemperatuur']?.state;
+      if (/^\d+$/.test(temp ?? '')) parts.push(`${temp}°`);
+      const spin = states['select.badkamer_wasmachine_centrifugesnelheid']?.state;
+      if (/^\d+$/.test(spin ?? '')) parts.push(`${spin} toeren`);
+      const end = new Date(states['sensor.badkamer_wasmachine_geschatte_eindtijd']?.state);
+      if (!isNaN(end)) parts.push(`klaar om ${end.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`);
+      return parts.join(' · ');
+    ]]]
+  custom_fields:
+    i: |
+      [[[
+        const pct = Math.min(100, parseFloat(states['sensor.badkamer_wasmachine_voortgangspercentage']?.state) || 0);
+        const rgb = entity?.state === 'pause' ? '255, 176, 96' : '56, 189, 248';
+        return `<div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(rgb(${rgb}) ${pct * 3.6}deg, rgba(255,255,255,0.10) 0);
+            display:flex;align-items:center;justify-content:center">
+            <div style="width:44px;height:44px;border-radius:50%;background:#121828;display:flex;align-items:center;justify-content:center;
+              font-size:14px;font-weight:700">${Math.round(pct)}%</div></div>`;
+      ]]]
+    side: |
+      [[[
+        const left = parseFloat(states['sensor.badkamer_wasmachine_resterende_tijd']?.state);
+        if (isNaN(left)) return '';
+        const h = Math.floor(left / 60), m = Math.round(left % 60);
+        const text = h ? `${h}:${String(m).padStart(2, '0')}` : `${m} min`;
+        return `<div style="font-size:11px;opacity:0.75">nog</div><div style="font-size:24px;font-weight:700;line-height:1.1">${text}</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n side" "i l side"'
+    custom_fields:
+      i:
+        - align-self: center
+
+# De was hangt buiten: hoe lang al, en rood met pulserend icoon als er regen verwacht wordt.
+# Tik = binnengehaald (na bevestiging).
+laundry_outside:
+  template: alert
+  entity: input_boolean.laundryhangingoutside
+  icon: mdi:tshirt-crew-outline
+  variables:
+    color: |
+      [[[ return states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on' ? '255, 107, 107' : '74, 222, 128'; ]]]
+    pulse: |
+      [[[ return states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on'; ]]]
+  tap_action:
+    action: perform-action
+    perform_action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.laundryhangingoutside
+    confirmation:
+      text: Is de was binnengehaald?
+  name: |
+    [[[
+      return states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on'
+        ? 'Regen verwacht, haal de was binnen!' : 'De was hangt buiten';
+    ]]]
+  label: |
+    [[[
+      const since = new Date(entity?.last_changed);
+      const minutes = Math.max(0, Math.round((Date.now() - since) / 60000));
+      const time = since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+      const duration = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} uur${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
+      return `Sinds ${time} (${duration}) · tik als hij binnen is`;
+    ]]]
+
+# Batterij onder 10%: per apparaat een rode melding (via auto-entities, alleen als er een is).
+battery_alert:
+  template: alert
+  variables:
+    color: 255, 107, 107
+    pulse: true
+  icon: mdi:battery-alert-variant-outline
+  tap_action:
+    action: more-info
+  name: |
+    [[[
+      const name = (entity?.attributes?.friendly_name ?? entity?.entity_id ?? '')
+        .replace(/\s*(battery( level)?|batterij\+?|accu)\s*$/i, '');
+      return `${name}: batterij bijna leeg`;
+    ]]]
+  label: |
+    [[[
+      const type = entity?.attributes?.battery_type;
+      return `Nog ${Math.round(parseFloat(entity?.state))}% · ${type ? `vervang de ${type}` : 'opladen of vervangen'}`;
+    ]]]
+
+# Problemen met de spullen van Pixel (voerbak, fontein) in één melding. Tik gaat naar de Pixel-pagina.
+pixel_alert:
+  template: alert
+  icon: mdi:cat
+  variables:
+    color: |
+      [[[
+        const food = states['sensor.zedar_food_storage_status']?.state;
+        const urgent = (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True';
+        return urgent ? '255, 107, 107' : '255, 176, 96';
+      ]]]
+    pulse: |
+      [[[
+        const food = states['sensor.zedar_food_storage_status']?.state;
+        return (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True';
+      ]]]
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/pixel
+  name: |
+    [[[
+      const issues = [];
+      const food = states['sensor.zedar_food_storage_status']?.state;
+      if (food && !['full', 'unknown', 'unavailable'].includes(food)) issues.push('Voer bijna op');
+      if (states['sensor.zedar_feed_block_status']?.state === 'True') issues.push('Voer zit vast');
+      if (states['switch.petsnowy_fountain_ison']?.state === 'off') issues.push('Fontein staat uit');
+      if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 0) issues.push('Waterbak schoonmaken');
+      if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 0) issues.push('Filter vervangen');
+      return issues.length ? `Pixel: ${issues.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase())}` : 'Pixel heeft alles';
+    ]]]
+  label: |
+    [[[
+      const food = states['sensor.zedar_food_storage_status']?.state;
+      if ((food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True')
+        return 'Kijk bij de voerbak · tik voor details';
+      return 'Tik om het af te vinken bij Pixel';
+    ]]]

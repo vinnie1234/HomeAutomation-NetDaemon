@@ -212,25 +212,6 @@ sections:
                 navigation_path: /dashboard-huis/weer
           - type: conditional
             conditions:
-              - condition: state
-                entity: sensor.badkamer_wasmachine_machinestatus
-                state:
-                  - run
-                  - running
-            chip:
-              type: template
-              icon: mdi:washing-machine
-              icon_color: cyan
-              content: |
-                {% set left = states('sensor.badkamer_wasmachine_resterende_tijd') %}
-                {% set end = states('sensor.badkamer_wasmachine_geschatte_eindtijd') if as_timestamp(states('sensor.badkamer_wasmachine_geschatte_eindtijd'), None) else ((now() + timedelta(minutes=left | int)).isoformat() if is_number(left) else '') %}
-                {% set pct = states('sensor.badkamer_wasmachine_voortgangspercentage') %}
-                Wasmachine{{ ' ' ~ pct ~ '%' if is_number(pct) else '' }}{{ ' · klaar ' ~ (as_timestamp(end) | timestamp_custom('%H:%M')) if as_timestamp(end, None) else '' }}
-              tap_action:
-                action: navigate
-                navigation_path: /dashboard-huis/huishouden
-          - type: conditional
-            conditions:
               - condition: or
                 conditions:
                   - condition: state
@@ -316,6 +297,99 @@ sections:
               tap_action:
                 action: navigate
                 navigation_path: /dashboard-huis/systeem
+
+      # Opvallende meldingen: alleen zichtbaar als ze nu spelen
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.badkamer_wasmachine_machinestatus
+            state:
+              - active
+              - pause
+        card:
+          type: custom:button-card
+          template: washer_live
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.laundryhangingoutside
+            state: "on"
+        card:
+          type: custom:button-card
+          template: laundry_outside
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.zedar_food_storage_status
+                state_not:
+                  - full
+                  - unknown
+                  - unavailable
+              - condition: state
+                entity: sensor.zedar_feed_block_status
+                state: "True"
+              - condition: state
+                entity: switch.petsnowy_fountain_ison
+                state: "off"
+              - condition: numeric_state
+                entity: sensor.petsnowy_fountain_cleaning_days_remaining
+                below: 1
+              - condition: numeric_state
+                entity: sensor.petsnowy_fountain_filter_days_remaining
+                below: 1
+        card:
+          type: custom:button-card
+          template: pixel_alert
+        grid_options:
+          columns: 12
+      - type: custom:auto-entities
+        card:
+          type: vertical-stack
+        card_param: cards
+        filter:
+          include:
+            - domain: sensor
+              attributes:
+                device_class: battery
+              state: "< 10"
+              options:
+                type: custom:button-card
+                template: battery_alert
+          exclude:
+            - state: unavailable
+            - state: unknown
+        sort:
+          method: state
+          numeric: true
+        show_empty: false
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: todo.dagelijks
+            above: 0
+        card:
+          type: todo-list
+          entity: todo.dagelijks
+          title: Te doen
+          hide_create: true
+          hide_completed: true
+          card_mod:
+            style: |
+              ha-card {
+                border: 1px solid rgba(167, 139, 250, 0.55);
+                box-shadow: 0 0 24px rgba(167, 139, 250, 0.25);
+                background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(167, 139, 250, 0.06));
+              }
+        grid_options:
+          columns: 12
 
   # Kamers: tik opent de pop-up, lang drukken zet alle lampen aan of uit
   - type: grid

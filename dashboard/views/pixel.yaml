@@ -407,6 +407,33 @@ sections:
         variables:
           max: 30
           unit: dagen
+      # Afvinken: zet de teller van de fontein terug (na bevestiging)
+      - type: custom:button-card
+        template: action
+        name: Waterbak schoongemaakt
+        icon: mdi:spray-bottle
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.snow_automatic_pet_water_fountain_waterpomp_reset
+          confirmation:
+            text: Is de waterbak schoongemaakt? Dan begint de teller opnieuw.
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Filter vervangen
+        icon: mdi:air-filter
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.snow_automatic_pet_water_fountain_filter_reset
+          confirmation:
+            text: Is het filter vervangen? Dan begint de teller opnieuw.
+        grid_options:
+          columns: 6
       - type: custom:button-card
         template: stat
         entity: sensor.snow_automatic_pet_water_fountain_water_pump_duration
