@@ -17,7 +17,7 @@ sections:
         template: weather_hero
         grid_options:
           columns: full
-      # Thema van de weerkaart kiezen om te testen; alleen zichtbaar met ?test in de URL (bijv. /dashboard-huis/home?test)
+      # Thema en tijd van de dag van de weerkaart kiezen om te testen; alleen zichtbaar met ?test in de URL (bijv. /dashboard-huis/home?test)
       - type: custom:button-card
         show_icon: false
         show_name: false
@@ -33,6 +33,15 @@ sections:
               features_position: inline
               features:
                 - type: select-options
+          tijd:
+            card:
+              type: tile
+              entity: input_select.tijd_van_de_dag
+              name: Tijd van de dag
+              icon: mdi:clock-outline
+              features_position: inline
+              features:
+                - type: select-options
         styles:
           card:
             - display: '[[[ return new URLSearchParams(window.location.search).has("test") ? "block" : "none"; ]]]'
@@ -42,9 +51,14 @@ sections:
             - padding: 0
             - cursor: default
           grid:
-            - grid-template-areas: '"select"'
+            - grid-template-areas: '"select tijd"'
+            - grid-template-columns: 1fr 1fr
+            - column-gap: 8px
           custom_fields:
             select:
+              - display: block
+              - width: 100%
+            tijd:
               - display: block
               - width: 100%
         grid_options:
