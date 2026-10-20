@@ -1,0 +1,53 @@
+# Glass Home – donker glas-thema voor het Huis-dashboard.
+Glass Home:
+  # Basis
+  primary-color: "#7aa2ff"
+  accent-color: "#ffb060"
+  primary-background-color: "#0b0f19"
+  secondary-background-color: "#121828"
+  primary-text-color: "#f2f4f8"
+  secondary-text-color: "rgba(242, 244, 248, 0.6)"
+  text-primary-color: "#ffffff"
+  disabled-text-color: "rgba(242, 244, 248, 0.35)"
+  divider-color: "rgba(255, 255, 255, 0.08)"
+  state-icon-color: "rgba(242, 244, 248, 0.7)"
+  app-header-background-color: "transparent"
+  app-header-text-color: "#f2f4f8"
+  lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.22), transparent 60%), #0b0f19 fixed"
+  mdc-theme-surface: "#121828"
+  rgb-primary-color: "122, 162, 255"
+
+  # Kaarten (glas)
+  card-background-color: "rgba(255, 255, 255, 0.06)"
+  ha-card-background: "rgba(255, 255, 255, 0.06)"
+  ha-card-border-radius: "24px"
+  ha-card-border-width: "1px"
+  ha-card-border-color: "rgba(255, 255, 255, 0.08)"
+  ha-card-box-shadow: "0 8px 32px rgba(0, 0, 0, 0.25)"
+  ha-dialog-border-radius: "28px"
+
+  # Bubble Card
+  bubble-main-background-color: "rgba(255, 255, 255, 0.06)"
+  bubble-secondary-background-color: "rgba(255, 255, 255, 0.10)"
+  bubble-pop-up-background-color: "rgba(14, 18, 30, 0.88)"
+  bubble-accent-color: "#ffb060"
+  bubble-border-radius: "24px"
+  bubble-button-border-radius: "20px"
+
+  # Mushroom chips
+  chip-background: "rgba(255, 255, 255, 0.08)"
+  chip-border-width: "0px"
+  chip-border-radius: "18px"
+  chip-height: "36px"
+  chip-font-size: "13px"
+  chip-icon-size: "18px"
+  chip-spacing: "8px"
+
+  # card-mod
+  card-mod-theme: Glass Home
+  card-mod-card: |
+    ha-card {
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+    }

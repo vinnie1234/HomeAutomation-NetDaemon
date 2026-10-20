@@ -1,0 +1,79 @@
+# Media → Gaming: wat speel ik nu, mijn PlayStation-gamercard en de spelbibliotheek over alle platforms.
+title: Gaming
+path: media-gaming
+icon: mdi:sony-playstation
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/media
+max_columns: 2
+dense_section_placement: true
+sections:
+  # Navigatie en Media-menu
+  - type: grid
+    column_span: 2
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_tabs.yaml
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: PlayStation
+        heading_style: title
+        icon: mdi:sony-playstation
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.playstation_5
+            state_not:
+              - "off"
+              - standby
+              - unavailable
+              - unknown
+        card:
+          type: picture-entity
+          entity: image.vinnie12349491_now_playing
+          name: Nu aan het spelen
+          show_state: false
+          show_name: true
+      - !include ../cards/bron_ps5.yaml
+      - type: custom:gaming-status-gamercard-card
+        title: ""
+        single_entity: ""
+        platform: playstation
+        recent_games_count: 2
+        show_game_count: true
+        show_completion_percent: true
+        show_game_completion: true
+        show_gamerscore: true
+        show_total_trophies: true
+        show_total_playtime: true
+        show_trophy_breakdown: true
+        image_style: official
+        exclude_zero_completion: false
+        show_achievement_hover: true
+        show_achievement_description: true
+        show_gamertags: false
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Mijn spellen
+        heading_style: title
+        icon: mdi:controller
+      - type: custom:gaming-status-library-card
+        title: ""
+        single_entity: ""
+        show_platform_steam: true
+        show_platform_xbox: true
+        show_platform_playstation: true
+        exclude_zero_completion: true
+        show_search: true
+        sort_by: recent
+        artwork_mode: cover
+        scroll_after: 4
+        show_total: true
+        show_field_title: true
+        show_field_percent: true
+        show_field_counts: true

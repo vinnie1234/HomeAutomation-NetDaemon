@@ -1,0 +1,13 @@
+# TV uit: de Tv-app zet daarna zelf de soundbar en PS5 uit
+type: custom:button-card
+template: action
+entity: media_player.tv
+name: Alles uit
+icon: mdi:power
+tap_action:
+  action: perform-action
+  perform_action: media_player.turn_off
+  target:
+    entity_id: media_player.tv
+grid_options:
+  columns: 4

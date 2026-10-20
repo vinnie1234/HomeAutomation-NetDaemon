@@ -1,0 +1,20 @@
+# Huis-dashboard (YAML-modus). Installatie: zie README.md in deze map.
+title: Huis
+button_card_templates: !include templates/button_card_templates.yaml
+# Kiosk Mode (HACS): geen HA-bovenbalk. Het HA-menu klap je uit via "Menu" in de navigatie.
+# Tijdelijk uitzetten: zet ?disable_km achter de URL.
+kiosk_mode:
+  hide_header: true
+views:
+  - !include views/home.yaml
+  - !include views/energie.yaml
+  - !include views/media.yaml
+  - !include views/media_tv.yaml
+  - !include views/media_muziek.yaml
+  - !include views/media_gaming.yaml
+  - !include views/media_series.yaml
+  - !include views/pixel.yaml
+  - !include views/huishouden.yaml
+  - !include views/weer.yaml
+  - !include views/systeem.yaml
+  - !include views/netwerk.yaml

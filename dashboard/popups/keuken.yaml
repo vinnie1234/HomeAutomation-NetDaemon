@@ -1,0 +1,50 @@
+# Pop-up keuken, opent via #keuken.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#keuken"
+name: Keuken
+icon: mdi:countertop-outline
+sub_button:
+  - name: Alles uit
+    icon: mdi:power
+    tap_action:
+      action: perform-action
+      perform_action: light.turn_off
+      target:
+        entity_id:
+          - light.lampen_keuken
+          - light.koelkast
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.lampen_keuken
+    name: Keukenlampen
+    icon: mdi:ceiling-light-multiple
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.koelkast
+    name: Koelkast
+    icon: mdi:fridge-outline
+    show_state: true
+    tap_action:
+      action: toggle
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Automatisering
+    icon: mdi:robot-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.netdaemon_kitchen_music_on_motion
+    name: Muziek bij beweging
+    icon: mdi:music-note-outline

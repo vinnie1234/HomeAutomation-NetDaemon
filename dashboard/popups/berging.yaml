@@ -1,0 +1,34 @@
+# Pop-up berging, opent via #berging.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#berging"
+name: Berging
+icon: mdi:archive-outline
+sub_button:
+  - entity: sensor.berging_temperature
+    show_state: true
+    show_icon: true
+    show_background: false
+  - entity: binary_sensor.berging_motion
+    show_icon: true
+    show_background: false
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: light.berging
+    name: Berging
+    icon: mdi:ceiling-light
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.berging_2
+    name: Berging 2
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle

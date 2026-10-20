@@ -1,0 +1,29 @@
+# Pop-up buiten, opent via #buiten.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#buiten"
+name: Buiten
+icon: mdi:home-outline
+entity: light.buiten_deur
+button_type: switch
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.buiten_deur
+    name: Voordeur
+    icon: mdi:outdoor-lamp
+    show_state: true
+    tap_action:
+      action: toggle
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Zon
+    icon: mdi:weather-sunset
+  - type: custom:button-card
+    template: sun

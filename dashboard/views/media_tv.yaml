@@ -1,0 +1,121 @@
+# Media → TV: bron kiezen, afstandsbediening, ambilight (Hue Sync Box) en soundbar.
+title: TV
+path: media-tv
+icon: mdi:television
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/media
+max_columns: 2
+dense_section_placement: true
+sections:
+  # Navigatie en Media-menu
+  - type: grid
+    column_span: 2
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_tabs.yaml
+
+  # Bron en afstandsbediening
+  - type: grid
+    cards:
+      - type: heading
+        heading: TV
+        heading_style: title
+        icon: mdi:television
+      - !include ../cards/bron_ps5.yaml
+      - !include ../cards/bron_google_tv.yaml
+      - !include ../cards/bron_alles_uit.yaml
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.tv
+        name: Samsung TV
+        icon: mdi:television
+        cover_background: true
+      - type: custom:tabbed-card
+        tabs:
+          - attributes:
+              label: Google TV
+              icon: mdi:google
+            card:
+              type: custom:universal-remote-card
+              platform: Android TV
+              remote_id: remote.tv_in_woonkamer
+              media_player_id: media_player.tv_in_woonkamer_2
+              rows:
+                - - power
+                  - back
+                  - home
+                  - play_pause
+                - - touchpad
+                - - volume_buttons
+          - attributes:
+              label: Samsung TV
+              icon: mdi:television
+            card:
+              type: custom:universal-remote-card
+              platform: Samsung TV
+              remote_id: remote.tv
+              media_player_id: media_player.tv
+              rows:
+                - - power
+                  - back
+                  - home
+                  - menu
+                - - dpad
+                - - volume_buttons
+                - - channel_down
+                  - channel_up
+
+  # Ambilight en geluid
+  - type: grid
+    cards:
+      - type: heading
+        heading: Ambilight
+        heading_style: title
+        icon: mdi:television-ambient-light
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sync_box_light_sync
+        name: Lichtsync
+        icon: mdi:television-ambient-light
+        show_state: true
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: number.sync_box_brightness
+        name: Helderheid
+        icon: mdi:brightness-6
+        show_state: true
+      - type: tile
+        entity: select.sync_box_sync_mode
+        name: Modus
+        icon: mdi:movie-open-play-outline
+        features_position: bottom
+        features:
+          - type: select-options
+      - type: tile
+        entity: select.sync_box_intensity
+        name: Intensiteit
+        icon: mdi:flash-outline
+        features_position: bottom
+        features:
+          - type: select-options
+      - type: tile
+        entity: select.sync_box_hdmi_input
+        name: HDMI-ingang
+        icon: mdi:video-input-hdmi
+        features_position: bottom
+        features:
+          - type: select-options
+
+      - type: heading
+        heading: Geluid
+        heading_style: title
+        icon: mdi:soundbar
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.soundbar
+        name: Soundbar
+        icon: mdi:soundbar

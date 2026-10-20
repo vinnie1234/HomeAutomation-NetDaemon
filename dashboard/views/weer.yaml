@@ -1,0 +1,262 @@
+# Weer: verwachting, buienradar, details, UV en pollen.
+title: Weer
+path: weer
+icon: mdi:weather-partly-cloudy
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Verwachting
+  - type: grid
+    cards:
+      - !include ../navbar.yaml
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.weer_thuis_waarschuwing_actief
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            ### ⚠️ Weerwaarschuwing {{ states('sensor.weer_thuis_waarschuwingscode') }}
+            {{ states('sensor.weer_thuis_waarschuwingen') }}
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(255, 107, 107, 0.18) !important;
+                border: 1px solid rgba(255, 107, 107, 0.4) !important;
+              }
+      - type: custom:clock-weather-card
+        entity: weather.weer_thuis
+        locale: nl
+        time_format: 24
+        forecast_rows: 5
+        hide_today_section: false
+      # Verwachting per uur (48 uur), horizontaal door te schuiven
+      - type: custom:button-card
+        template: forecast_strip
+      - type: custom:mini-graph-card
+        name: Temperatuur
+        icon: mdi:thermometer
+        hours_to_show: 48
+        points_per_hour: 2
+        line_width: 3
+        smoothing: true
+        show:
+          fill: fade
+          labels: false
+          extrema: true
+        color_thresholds:
+          - value: -5
+            color: "#7aa2ff"
+          - value: 10
+            color: "#4ade80"
+          - value: 20
+            color: "#ffb060"
+          - value: 28
+            color: "#ff6b6b"
+        entities:
+          - entity: sensor.weer_thuis_temperatuur
+            name: Buiten
+
+  # Buienradar
+  - type: grid
+    cards:
+      - type: heading
+        heading: Buienradar
+        heading_style: title
+        icon: mdi:radar
+      - type: picture-entity
+        entity: camera.neerslagradar
+        camera_view: auto
+        show_name: false
+        show_state: false
+      - type: custom:button-card
+        template: stat
+        entity: binary_sensor.weer_thuis_neerslag_verwacht
+        name: Neerslag verwacht
+        icon: mdi:weather-rainy
+        state_display: '[[[ return entity.state === "on" ? "Ja" : "Nee"; ]]]'
+        styles:
+          icon:
+            - color: '[[[ return entity.state === "on" ? "#38bdf8" : "#4ade80"; ]]]'
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_zonneschijnduur_per_10_min
+        name: Zonneschijn
+        icon: mdi:weather-sunny
+        grid_options:
+          columns: 6
+
+  # Details
+  - type: grid
+    cards:
+      - type: heading
+        heading: Details
+        heading_style: title
+        icon: mdi:information-outline
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_windsnelheid
+        name: Wind
+        icon: mdi:weather-windy
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_windrichting
+        name: Windrichting
+        icon: mdi:compass-outline
+        styles:
+          icon:
+            - transform: |
+                [[[ return `rotate(${parseFloat(states['sensor.weer_thuis_windrichting_graden']?.state) || 0}deg)`; ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_windstoten
+        name: Windstoten
+        icon: mdi:weather-windy-variant
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_luchtvochtigheid
+        name: Luchtvochtigheid
+        icon: mdi:water-percent
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_luchtdruk
+        name: Luchtdruk
+        icon: mdi:gauge
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.weer_thuis_zicht
+        name: Zicht
+        icon: mdi:eye-outline
+        grid_options:
+          columns: 6
+
+      - type: heading
+        heading: Zon en maan
+        heading_style: title
+        icon: mdi:weather-sunset
+      - type: custom:button-card
+        template: sun
+      - type: custom:button-card
+        template: stat
+        entity: sensor.moon_phase
+        name: Maan
+        icon: |
+          [[[
+            const icons = {
+              new_moon: 'mdi:moon-new', waxing_crescent: 'mdi:moon-waxing-crescent', first_quarter: 'mdi:moon-first-quarter',
+              waxing_gibbous: 'mdi:moon-waxing-gibbous', full_moon: 'mdi:moon-full', waning_gibbous: 'mdi:moon-waning-gibbous',
+              last_quarter: 'mdi:moon-last-quarter', waning_crescent: 'mdi:moon-waning-crescent'
+            };
+            return icons[entity.state] ?? 'mdi:moon-waning-crescent';
+          ]]]
+        state_display: |
+          [[[
+            const names = {
+              new_moon: 'Nieuwe maan', waxing_crescent: 'Wassende sikkel', first_quarter: 'Eerste kwartier',
+              waxing_gibbous: 'Wassende maan', full_moon: 'Volle maan', waning_gibbous: 'Afnemende maan',
+              last_quarter: 'Laatste kwartier', waning_crescent: 'Afnemende sikkel'
+            };
+            return names[entity.state] ?? entity.state;
+          ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.current_uv_index
+        name: UV-index
+        icon: mdi:sun-wireless
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const uv = parseFloat(entity.state);
+                  return uv >= 6 ? '#ff6b6b' : uv >= 3 ? '#ffb060' : '#4ade80';
+                ]]]
+        grid_options:
+          columns: 6
+
+      - type: heading
+        heading: Pollen
+        heading_style: title
+        icon: mdi:flower-pollen
+      # Samenvatting: algemeen risico en de belangrijkste soorten van vandaag
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        entity: sensor.thuis_pollentypen_52_035_53_algemeen_pollenrisico_vandaag
+        icon: mdi:flower-pollen-outline
+        show_label: true
+        name: |
+          [[[
+            const levels = ['Geen pollen', 'Zeer weinig pollen', 'Weinig pollen', 'Matig veel pollen', 'Veel pollen', 'Zeer veel pollen'];
+            const n = Math.round(parseFloat(entity.state));
+            if (!isNaN(n)) return levels[n] ?? entity.state;
+            return ['unknown', 'unavailable'].includes(entity.state) ? 'Pollen onbekend' : entity.state;
+          ]]]
+        label: |
+          [[[
+            const main = states['sensor.thuis_pollentypen_52_035_53_belangrijkste_pollentypen_vandaag']?.state;
+            return main && !['unknown', 'unavailable', 'none', ''].includes(main) ? `Vooral: ${main}` : 'Geen bijzondere soorten vandaag';
+          ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          card:
+            - height: 76px
+          icon:
+            - width: 30px
+            - color: |
+                [[[
+                  const n = parseFloat(entity.state);
+                  return isNaN(n) ? 'rgba(242, 244, 248, 0.5)' : n >= 4 ? '#ff6b6b' : n >= 3 ? '#fb923c' : n >= 2 ? '#facc15' : '#4ade80';
+                ]]]
+          name:
+            - font-size: 16px
+          label:
+            - white-space: normal
+            - text-align: left
+      # Alleen soorten die er nu zijn (index > 0); onbekend of 0 wordt niet getoond
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: sensor.thuis_pollentypen_52_035_53_*
+              state: "> 0"
+              options:
+                type: custom:button-card
+                template: pollen
+            - entity_id: sensor.thuis_planten_52_035_53_*
+              state: "> 0"
+              options:
+                type: custom:button-card
+                template: pollen
+          exclude:
+            - entity_id: "*algemeen*"
+            - entity_id: "*belangrijkste*"
+            - entity_id: "*in_het_seizoen*"
+        sort:
+          method: state
+          numeric: true
+          reverse: true
+        show_empty: false

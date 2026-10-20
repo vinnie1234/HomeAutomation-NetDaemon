@@ -1,0 +1,331 @@
+# Energie: stroomprijs (ANWB), live verbruik, kosten en water. Alleen het hele huis, niet per kamer.
+title: Energie
+path: energie
+icon: mdi:lightning-bolt
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Prijs
+  - type: grid
+    column_span: 2
+    cards:
+      - !include ../navbar.yaml
+      - type: heading
+        heading: Stroomprijs
+        heading_style: title
+        icon: mdi:currency-eur
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Nu
+        icon: mdi:lightning-bolt
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const now = parseFloat(entity.state);
+                  const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+                  if (isNaN(now) || isNaN(avg)) return 'var(--accent-color)';
+                  return now < avg * 0.95 ? '#4ade80' : now > avg * 1.05 ? '#ff6b6b' : '#ffb060';
+                ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_average_today
+        name: Gemiddeld
+        icon: mdi:approximately-equal
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_lowest_today
+        name: Laagste
+        icon: mdi:arrow-down-bold-circle-outline
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_highest_today
+        name: Hoogste
+        icon: mdi:arrow-up-bold-circle-outline
+        styles:
+          icon:
+            - color: "#ff6b6b"
+        grid_options:
+          columns: 6
+
+      # Prijs per uur uit het attribuut hourly_prices van de ANWB-sensor.
+      # Drie reeksen (goedkoop / normaal / duur ten opzichte van het daggemiddelde),
+      # gestapeld zodat elk uur één staaf in de juiste kleur is.
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        span:
+          start: day
+        hours_12: false
+        stacked: true
+        now:
+          show: true
+          label: Nu
+          color: "#ffffff"
+        header:
+          show: true
+          title: Prijs per uur vandaag
+        yaxis:
+          - min: 0
+            decimals: 2
+            apex_config:
+              tickAmount: 4
+        apex_config:
+          chart:
+            height: 280
+          plotOptions:
+            bar:
+              borderRadius: 3
+              columnWidth: "80%"
+          grid:
+            borderColor: "rgba(255, 255, 255, 0.06)"
+          legend:
+            show: true
+            position: bottom
+          xaxis:
+            labels:
+              format: HH:mm
+          tooltip:
+            x:
+              format: HH:mm
+        series:
+          - entity: sensor.anwb_electricity_all_in_price_current
+            name: Goedkoop
+            type: column
+            color: "#4ade80"
+            unit: " €/kWh"
+            float_precision: 2
+            show:
+              in_header: false
+            data_generator: |
+              const band = 'cheap';
+              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
+                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
+              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
+              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
+          - entity: sensor.anwb_electricity_all_in_price_current
+            name: Normaal
+            type: column
+            color: "#ffb060"
+            unit: " €/kWh"
+            float_precision: 2
+            show:
+              in_header: false
+            data_generator: |
+              const band = 'normal';
+              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
+                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
+              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
+              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
+          - entity: sensor.anwb_electricity_all_in_price_current
+            name: Duur
+            type: column
+            color: "#ff6b6b"
+            unit: " €/kWh"
+            float_precision: 2
+            show:
+              in_header: false
+            data_generator: |
+              const band = 'expensive';
+              const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+                .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
+                .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+              const avg = prices.reduce((sum, [, v]) => sum + v, 0) / (prices.length || 1);
+              const bandOf = v => v < avg * 0.95 ? 'cheap' : v > avg * 1.05 ? 'expensive' : 'normal';
+              return prices.map(([t, v]) => [t, bandOf(v) === band ? v : null]);
+        grid_options:
+          columns: full
+
+      # Goedkoopste uur vandaag en het goedkoopste blok van 3 uur vanaf nu
+      - type: custom:button-card
+        template: stat
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Goedkoopste uur vandaag
+        icon: mdi:clock-check-outline
+        state_display: |
+          [[[
+            const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+              .map(([time, p]) => [new Date(time), parseFloat(p.all_in_price)])
+              .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+            if (!prices.length) return '–';
+            const [t, v] = prices.reduce((min, p) => p[1] < min[1] ? p : min);
+            return `${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · € ${v.toFixed(2).replace('.', ',')}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 8
+      - type: custom:button-card
+        template: stat
+        entity: sensor.p1_meter_3c39e72a64e8_active_tariff
+        name: Tarief nu
+        icon: mdi:swap-horizontal
+        state_display: '[[[ return entity.state === "1" ? "Dal" : entity.state === "2" ? "Normaal" : entity.state; ]]]'
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Beste moment voor de wasmachine (3 uur)
+        icon: mdi:washing-machine
+        state_display: |
+          [[[
+            const hour = 3600000;
+            const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+              .map(([time, p]) => [new Date(time).getTime(), parseFloat(p.all_in_price)])
+              .filter(([t, v]) => t >= Date.now() - hour && !isNaN(v))
+              .sort((a, b) => a[0] - b[0]);
+            let best = null;
+            for (let i = 0; i + 2 < prices.length; i++) {
+              const avg = (prices[i][1] + prices[i + 1][1] + prices[i + 2][1]) / 3;
+              if (!best || avg < best.avg) best = { start: prices[i][0], avg };
+            }
+            if (!best) return 'Morgen weer bekend';
+            const start = new Date(Math.max(best.start, Date.now()));
+            return `Vanaf ${start.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · gem. € ${best.avg.toFixed(2).replace('.', ',')}`;
+          ]]]
+        grid_options:
+          columns: 12
+
+  # Live verbruik
+  - type: grid
+    cards:
+      - type: heading
+        heading: Nu
+        heading_style: title
+        icon: mdi:home-lightning-bolt-outline
+      - type: gauge
+        entity: sensor.p1_meter_3c39e72a64e8_active_power
+        name: Verbruik
+        unit: W
+        min: 0
+        max: 4000
+        needle: true
+        severity:
+          green: 0
+          yellow: 1500
+          red: 2500
+      - type: custom:mini-graph-card
+        name: Laatste 24 uur
+        icon: mdi:chart-areaspline
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        smoothing: true
+        show:
+          fill: fade
+          labels: false
+          extrema: true
+        color_thresholds:
+          - value: 0
+            color: "#4ade80"
+          - value: 1500
+            color: "#ffb060"
+          - value: 2500
+            color: "#ff6b6b"
+        entities:
+          - entity: sensor.p1_meter_3c39e72a64e8_active_power
+            name: Verbruik
+      - type: custom:button-card
+        template: stat
+        entity: sensor.all_standby_power
+        name: Sluipverbruik
+        icon: mdi:power-sleep
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
+        name: Kost nu
+        icon: mdi:cash-clock
+        grid_options:
+          columns: 6
+
+  # Kosten
+  - type: grid
+    cards:
+      - type: heading
+        heading: Kosten
+        heading_style: title
+        icon: mdi:cash-multiple
+      - type: custom:button-card
+        template: stat
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost
+        name: Vandaag
+        icon: mdi:calendar-today
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_weekly_energy_cost
+        name: Deze week
+        icon: mdi:calendar-week
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_monthly_energy_cost
+        name: Deze maand
+        icon: mdi:calendar-month
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_yearly_energy_cost
+        name: Dit jaar
+        icon: mdi:calendar
+        grid_options:
+          columns: 6
+
+  # Water
+  - type: grid
+    cards:
+      - type: heading
+        heading: Water
+        heading_style: title
+        icon: mdi:water-outline
+      - type: custom:button-card
+        template: stat
+        entity: sensor.watermeter_5c2faf0e9b0a_active_water_usage
+        name: Nu
+        icon: mdi:water-pump
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.watermeter_5c2faf0e9b0a_total_water_usage_cost
+        name: Kosten totaal
+        icon: mdi:cash
+        grid_options:
+          columns: 6
+      - type: custom:mini-graph-card
+        name: Waterverbruik vandaag
+        icon: mdi:water
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        show:
+          fill: fade
+          labels: false
+        color_thresholds:
+          - value: 0
+            color: "#38bdf8"
+        entities:
+          - entity: sensor.watermeter_5c2faf0e9b0a_active_water_usage
+            name: Water

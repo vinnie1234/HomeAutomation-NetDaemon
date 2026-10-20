@@ -1,0 +1,26 @@
+type: custom:button-card
+template: action
+entity: remote.tv_in_woonkamer
+name: Google TV
+icon: mdi:google
+tap_action:
+  action: javascript
+  javascript: |
+    [[[
+      if (entity.state === 'on') {
+        hass.callService('remote', 'turn_off', { entity_id: 'remote.tv_in_woonkamer' });
+        return;
+      }
+      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' });
+      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
+      hass.callService('remote', 'turn_on', { entity_id: 'remote.tv_in_woonkamer' });
+    ]]]
+state:
+  - value: "on"
+    styles:
+      card:
+        - background: rgba(66, 133, 244, 0.30)
+      icon:
+        - color: "#ffffff"
+grid_options:
+  columns: 4

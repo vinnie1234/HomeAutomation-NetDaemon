@@ -1,0 +1,279 @@
+# Systeem: NetDaemon, updates, back-ups, netwerk, Raspberry Pi en afwezigheid. Apparaten: subpagina Netwerk.
+# In de navigatie alleen zichtbaar voor admins.
+title: Systeem
+path: systeem
+icon: mdi:cog
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # NetDaemon en Home Assistant
+  - type: grid
+    cards:
+      - !include ../navbar.yaml
+      - type: heading
+        heading: Home Assistant
+        heading_style: title
+        icon: mdi:home-assistant
+      - type: custom:button-card
+        template: stat
+        entity: sensor.active_issues
+        name: Problemen
+        icon: mdi:alert-circle-outline
+        styles:
+          icon:
+            - color: '[[[ return parseInt(entity.state) > 0 ? "#ffb060" : "#4ade80"; ]]]'
+        tap_action:
+          action: navigate
+          navigation_path: /config/repairs
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.backup_last_successful_automatic_backup
+        name: Laatste back-up
+        icon: mdi:backup-restore
+        grid_options:
+          columns: 6
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Updates beschikbaar
+        filter:
+          include:
+            - domain: update
+              state: "on"
+        sort:
+          method: name
+        show_empty: false
+
+      - type: heading
+        heading: NetDaemon
+        heading_style: title
+        icon: mdi:robot-outline
+      - type: custom:button-card
+        template: action
+        name: NetDaemon herstarten
+        icon: mdi:restart
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.restartnetdaemon
+          confirmation:
+            text: NetDaemon herstarten?
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Apps
+          state_color: true
+        filter:
+          include:
+            - entity_id: input_boolean.netdaemon_*
+        sort:
+          method: name
+
+  # Netwerk en Raspberry Pi
+  - type: grid
+    cards:
+      - type: heading
+        heading: Netwerk
+        heading_style: title
+        icon: mdi:router-wireless
+      - type: custom:button-card
+        template: stat
+        entity: binary_sensor.rt_ax88u_internet
+        name: Internet
+        icon: mdi:web
+        state_display: '[[[ return entity.state === "on" ? "Verbonden" : "Geen verbinding"; ]]]'
+        styles:
+          icon:
+            - color: '[[[ return entity.state === "on" ? "#4ade80" : "#ff6b6b"; ]]]'
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.routeruptime
+        name: Router aan sinds
+        icon: mdi:router
+        grid_options:
+          columns: 6
+      # De Cloudflare-test meet ongeveer 4,5× te laag; daarom wordt de download hier gecorrigeerd
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_90th_percentile_down
+        name: Download
+        icon: mdi:download
+        state_display: |
+          [[[
+            const v = parseFloat(entity.state) * 4.5;
+            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_90th_percentile_up
+        name: Upload
+        icon: mdi:upload
+        styles:
+          icon:
+            - color: "#7aa2ff"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.ping_round_trip_time_average
+        name: Ping
+        icon: mdi:timer-outline
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_latency
+        name: Latency
+        icon: mdi:timer-sync-outline
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_jitter
+        name: Jitter
+        icon: mdi:sine-wave
+        grid_options:
+          columns: 4
+      - type: custom:mini-graph-card
+        name: Ping laatste 24 uur
+        icon: mdi:chart-line
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        smoothing: true
+        show:
+          fill: fade
+          labels: false
+          extrema: true
+        color_thresholds:
+          - value: 0
+            color: "#4ade80"
+          - value: 40
+            color: "#ffb060"
+          - value: 100
+            color: "#ff6b6b"
+        entities:
+          - entity: sensor.ping_round_trip_time_average
+            name: Ping
+      # Doorklikken naar alle apparaten in het netwerk
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        icon: mdi:devices
+        show_label: true
+        name: Apparaten in het netwerk
+        label: |
+          [[[
+            const devices = Object.values(states)
+              .filter(s => s.entity_id.startsWith('device_tracker.') && s.attributes.ip);
+            const online = devices.filter(s => s.state === 'home').length;
+            return `${online} verbonden · ${devices.length - online} offline`;
+          ]]]
+        custom_fields:
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.6"></ha-icon>'
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/netwerk
+        styles:
+          grid:
+            - grid-template-areas: '"i n arrow" "i l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - height: 76px
+          icon:
+            - width: 28px
+            - color: var(--accent-color)
+          custom_fields:
+            arrow:
+              - align-self: center
+
+      - type: heading
+        heading: Raspberry Pi
+        heading_style: title
+        icon: mdi:raspberry-pi
+      - type: custom:button-card
+        template: progress
+        entity: sensor.processor_use
+        name: Processor
+        icon: mdi:cpu-64-bit
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: progress
+        entity: sensor.memory_use_percent
+        name: Geheugen
+        icon: mdi:memory
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: progress
+        entity: sensor.disk_use_percent
+        name: Schijf
+        icon: mdi:harddisk
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: stat
+        entity: sensor.processor_temperature
+        name: Temperatuur
+        icon: mdi:thermometer
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.last_boot
+        name: Opgestart
+        icon: mdi:power
+        grid_options:
+          columns: 6
+
+  # Afwezigheid
+  - type: grid
+    cards:
+      - type: heading
+        heading: Afwezigheid
+        heading_style: title
+        icon: mdi:home-export-outline
+      - type: entities
+        state_color: true
+        entities:
+          - entity: input_boolean.away
+            name: Niemand thuis
+          - entity: input_boolean.disableautoaway
+            name: Automatisch weg uitzetten
+          - entity: input_boolean.holliday
+            name: Vakantie
+          - entity: input_boolean.onvacation
+            name: Op reis
+          - entity: input_boolean.working
+            name: Aan het werk
+          - entity: input_boolean.disablereset
+            name: Reset uitzetten
+          - type: section
+            label: Kantoordagen
+          - entity: input_boolean.officeday_monday
+            name: Maandag
+          - entity: input_boolean.officeday_tuesday
+            name: Dinsdag
+          - entity: input_boolean.officeday_wednesday
+            name: Woensdag
+          - entity: input_boolean.officeday_thursday
+            name: Donderdag
+          - entity: input_boolean.officeday_friday
+            name: Vrijdag

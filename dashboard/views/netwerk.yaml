@@ -1,0 +1,122 @@
+# Netwerk (subpagina van Systeem): alle apparaten met een IP-adres, hoe ze verbonden zijn en of ze online zijn.
+title: Netwerk
+path: netwerk
+icon: mdi:lan
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/systeem
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Samenvatting per verbindingstype
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: action
+        name: Terug naar Systeem
+        icon: mdi:arrow-left
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/systeem
+        styles:
+          grid:
+            - grid-template-areas: '"i n"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 10px
+          card:
+            - height: 48px
+          name:
+            - justify-self: start
+        grid_options:
+          columns: 6
+      - type: heading
+        heading: Apparaten in het netwerk
+        heading_style: title
+        icon: mdi:lan
+      - type: custom:button-card
+        template: network_count
+        name: Verbonden
+        icon: mdi:check-network-outline
+        variables:
+          kind: all
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: network_count
+        name: Kabel
+        icon: mdi:ethernet
+        variables:
+          kind: wired
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: network_count
+        name: 5 GHz
+        icon: mdi:wifi
+        variables:
+          kind: 5ghz
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: network_count
+        name: 2,4 GHz
+        icon: mdi:wifi-strength-2
+        variables:
+          kind: 2ghz
+        grid_options:
+          columns: 3
+
+  # Verbonden apparaten
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Online
+        heading_style: subtitle
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - domain: device_tracker
+              state: home
+              attributes:
+                ip: "*"
+              options:
+                type: custom:button-card
+                template: network_device
+        sort:
+          method: name
+        show_empty: false
+
+  # Offline apparaten
+  - type: grid
+    cards:
+      - type: heading
+        heading: Offline
+        heading_style: subtitle
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 1
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - domain: device_tracker
+              state: not_home
+              attributes:
+                ip: "*"
+              options:
+                type: custom:button-card
+                template: network_device
+        sort:
+          method: last_changed
+          reverse: true
+        show_empty: false
