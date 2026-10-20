@@ -2659,3 +2659,106 @@ price_alert:
       const advice = negative ? 'Verbruik nu, terugleveren kost geld' : 'Stel grote verbruikers uit';
       return until ? `${advice} · tot ${until.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : advice;
     ]]]
+
+# Thuiswerken: stroom en kosten van vandaag en deze maand (NetDaemon HomeWorkEnergyTracker). Tik opent #thuiswerken.
+homework_tile:
+  template: glass
+  entity: sensor.thuiswerken_energie
+  triggers_update:
+    - sensor.thuiswerken_energie
+  icon: mdi:laptop-account
+  name: Thuiswerken
+  show_label: true
+  tap_action:
+    action: navigate
+    navigation_path: "#thuiswerken"
+  label: |
+    [[[
+      const a = entity?.attributes ?? {};
+      const euro = v => `€ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
+      const kwh = v => `${(Number(v) || 0).toFixed(1).replace('.', ',')} kWh`;
+      const today = a.dagen?.find(d => d.datum === new Date().toLocaleDateString('sv-SE'));
+      const parts = [];
+      if (today) parts.push(`Vandaag ${euro(today.kosten)} · ${kwh(today.verbruik_kwh)}${a.actief ? ' · meet nu' : ''}`);
+      else parts.push(a.actief ? 'Meet nu' : 'Vandaag niet thuisgewerkt');
+      parts.push(`Deze maand ${euro(a.maand_kosten)} over ${a.maand_dagen ?? 0} ${a.maand_dagen === 1 ? 'dag' : 'dagen'}`);
+      return parts.join('<br>');
+    ]]]
+  custom_fields:
+    arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+  styles:
+    grid:
+      - grid-template-areas: '"i n arrow" "i l arrow"'
+      - grid-template-columns: auto 1fr auto
+      - column-gap: 14px
+    card:
+      - min-height: 76px
+    img_cell:
+      - width: 44px
+      - height: 44px
+      - border-radius: 12px
+      - background: '[[[ return entity?.attributes?.actief ? "rgba(74, 222, 128, 0.25)" : "rgba(255, 255, 255, 0.08)"; ]]]'
+    icon:
+      - width: 24px
+      - color: '[[[ return entity?.attributes?.actief ? "#4ade80" : "var(--primary-text-color)"; ]]]'
+    label:
+      - white-space: normal
+      - text-align: left
+      - line-height: 1.4
+
+# Thuiswerken per dag: werktijd, netto kWh (afname, teruglevering, wasmachine apart) en kosten, met een balk per dag.
+# Bovenaan het totaal van deze maand.
+homework_days:
+  template: glass
+  entity: sensor.thuiswerken_energie
+  triggers_update:
+    - sensor.thuiswerken_energie
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    list: |
+      [[[
+        const a = entity?.attributes ?? {};
+        const days = (a.dagen ?? []).filter(d => d.minuten > 0);
+        const euro = v => `€ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
+        const num = (v, d = 1) => (Number(v) || 0).toFixed(d).replace('.', ',');
+        const hours = m => `${Math.floor(m / 60)}u${String(Math.round(m % 60)).padStart(2, '0')}`;
+        const stat = (label, value) => `<div style="flex:1;min-width:0;padding:10px;border-radius:14px;background:rgba(255,255,255,0.06)">
+            <div style="font-size:11px;opacity:0.65">${label}</div><div style="font-size:18px;font-weight:700">${value}</div></div>`;
+        const month = new Date().toLocaleDateString('nl-NL', { month: 'long' });
+        const average = a.maand_dagen ? a.maand_kosten / a.maand_dagen : 0;
+        let out = `<div style="display:flex;gap:8px;margin-bottom:12px">
+            ${stat(`Kosten ${month}`, euro(a.maand_kosten))}${stat('Stroom', `${num(a.maand_kwh)} kWh`)}
+            ${stat('Dagen', a.maand_dagen ?? 0)}${stat('Per dag', euro(average))}</div>`;
+        if (!days.length) return out + '<div style="opacity:0.6;padding:8px">Nog geen thuiswerkdagen gemeten.</div>';
+
+        const max = Math.max(...days.map(d => Math.abs(d.kosten)), 0.01);
+        for (const d of days) {
+          const date = new Date(`${d.datum}T12:00:00`);
+          const earned = d.kosten < 0;
+          const details = [`↓ ${num(d.afname_kwh)}`];
+          if (d.teruglevering_kwh > 0) details.push(`↑ ${num(d.teruglevering_kwh)}`);
+          if (d.wasmachine_kwh > 0) details.push(`wasmachine −${num(d.wasmachine_kwh)}`);
+          out += `<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 2px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+              <span style="font-size:13px;font-weight:600">${date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                <span style="font-weight:400;opacity:0.6"> · ${hours(d.minuten)}</span></span>
+              <span style="font-size:14px;font-weight:700;color:${earned ? '#4ade80' : 'inherit'}">${euro(d.kosten)}</span>
+              <span style="font-size:11px;opacity:0.65">${num(d.verbruik_kwh)} kWh (${details.join(' · ')})</span>
+              <span></span>
+              <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
+                <div style="width:${Math.abs(d.kosten) / max * 100}%;height:100%;border-radius:3px;
+                  background:${earned ? '#4ade80' : 'linear-gradient(90deg,#ffb060,#ff6b6b)'}"></div></div>
+            </div>`;
+        }
+        return out + `<div style="font-size:11px;opacity:0.5;padding-top:8px;text-align:left">
+            Op thuiswerkdagen terwijl 'werken' aan staat en je thuis bent. Afname tegen de all-in prijs, teruglevering tegen de
+            beursprijs, de wasmachine telt niet mee.</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - width: 100%

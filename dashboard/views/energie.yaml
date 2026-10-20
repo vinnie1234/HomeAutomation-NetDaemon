@@ -188,3 +188,19 @@ sections:
         icon: mdi:calendar-month
         grid_options:
           columns: 6
+      - type: custom:button-card
+        template: homework_tile
+        grid_options:
+          columns: 12
+
+  # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#thuiswerken"
+        name: Thuiswerken
+        icon: mdi:laptop-account
+        cards:
+          - type: custom:button-card
+            template: homework_days
