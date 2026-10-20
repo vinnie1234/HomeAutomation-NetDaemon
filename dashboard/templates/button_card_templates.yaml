@@ -1189,7 +1189,7 @@ forecast_strip:
     strip: |
       [[[
         // Veegbewegingen niet doorgeven aan Swipe Navigation (die zou anders van tab wisselen); scrollen blijft werken
-        if (this && !this._swipeBlocked) {
+        if (typeof HTMLElement !== 'undefined' && this instanceof HTMLElement && this.shadowRoot && !this._swipeBlocked) {
           ['touchstart', 'touchmove', 'touchend'].forEach(type => this.addEventListener(type, e => e.stopPropagation(), { passive: true }));
           this._swipeBlocked = true;
         }
