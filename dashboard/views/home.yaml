@@ -488,6 +488,8 @@ sections:
             text: Alle lampen in huis uitzetten?
         grid_options:
           columns: 6
+      - type: custom:button-card
+        template: vomit_button
 
       # Energie en Pixel in één oogopslag
       - type: custom:button-card

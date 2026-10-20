@@ -2224,3 +2224,157 @@ carrier:
         - justify-self: start
         - font-size: 18px
         - font-weight: 700
+
+# Pixel gekotst: tik telt er een bij, lang drukken maakt de laatste ongedaan (na bevestiging).
+# Het label toont hoe vaak het in twee weken gebeurde en wanneer het laatst (uit sensor.pixel_gekotst_momenten van NetDaemon).
+vomit_button:
+  template: glass
+  entity: counter.pixel_gekotst
+  triggers_update:
+    - counter.pixel_gekotst
+    - sensor.pixel_gekotst_momenten
+  name: Pixel gekotst
+  icon: mdi:emoticon-sick-outline
+  show_label: true
+  tap_action:
+    action: perform-action
+    perform_action: counter.increment
+    target:
+      entity_id: counter.pixel_gekotst
+    haptic: success
+  hold_action:
+    action: perform-action
+    perform_action: counter.decrement
+    target:
+      entity_id: counter.pixel_gekotst
+    confirmation:
+      text: De laatste keer gekotst weghalen?
+  label: |
+    [[[
+      const moments = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
+        .map(x => new Date(x)).filter(d => !isNaN(d));
+      if (!moments.length) return 'Niet gekotst in de afgelopen 2 weken';
+      const last = moments[moments.length - 1];
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const day = new Date(last); day.setHours(0, 0, 0, 0);
+      const diff = Math.round((today - day) / 86400000);
+      const time = last.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+      const when = diff === 0 ? `vandaag ${time}` : diff === 1 ? `gisteren ${time}`
+        : `${last.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`;
+      return `${moments.length}× in 2 weken · laatst ${when}`;
+    ]]]
+  custom_fields:
+    plus: '+1'
+  styles:
+    grid:
+      - grid-template-areas: '"i n plus" "i l plus"'
+      - grid-template-columns: auto 1fr auto
+      - grid-template-rows: 1fr 1fr
+      - column-gap: 12px
+    card:
+      - height: 72px
+      - padding: 10px 14px
+    img_cell:
+      - width: 42px
+      - height: 42px
+      - border-radius: 12px
+      - background: rgba(255, 140, 80, 0.20)
+    icon:
+      - width: 24px
+      - color: '#ff9f5a'
+    name:
+      - justify-self: start
+      - align-self: end
+      - font-size: 14px
+      - font-weight: 600
+    label:
+      - justify-self: start
+      - align-self: start
+      - font-size: 12px
+      - opacity: 0.75
+    custom_fields:
+      plus:
+        - padding: 6px 12px
+        - border-radius: 12px
+        - background: rgba(255, 140, 80, 0.25)
+        - color: '#ffb27a'
+        - font-weight: 700
+
+# Tijdlijn van twee weken: elke dag is een kolom, een stip per keer gekotst op het tijdstip van die dag.
+# Dagen met meldingen worden breder (meer meldingen = breder), zodat de tijden op die dag uit elkaar staan.
+vomit_chart:
+  template: glass
+  triggers_update:
+    - sensor.pixel_gekotst_momenten
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    chart: |
+      [[[
+        const moments = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
+          .map(x => new Date(x)).filter(d => !isNaN(d));
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const key = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const byDay = {};
+        for (const m of moments) (byDay[key(m)] ??= []).push(m);
+
+        let cols = '', dotIndex = 0;
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(today); d.setDate(d.getDate() - i);
+          const list = (byDay[key(d)] ?? []).sort((a, b) => a - b);
+          const n = list.length;
+          const weekend = d.getDay() === 0 || d.getDay() === 6;
+          const isToday = i === 0;
+
+          // Hulplijnen om 6, 12 en 18 uur op dagen met meldingen (met cijfers als de dag breed genoeg is)
+          let ticks = '';
+          if (n) for (const h of [6, 12, 18]) {
+            ticks += `<div style="position:absolute;left:${h / 24 * 100}%;top:18px;bottom:22px;border-left:1px dotted rgba(255,255,255,0.18)"></div>
+              ${n > 1 ? `<div style="position:absolute;left:${h / 24 * 100}%;bottom:22px;transform:translateX(-50%);font-size:8px;opacity:0.45">${h}</div>` : ''}`;
+          }
+
+          // Een stip per keer, de tijd er afwisselend boven en onder zodat ze niet over elkaar vallen
+          let dots = '';
+          list.forEach(m => {
+            const pos = (m.getHours() * 60 + m.getMinutes()) / 1440 * 100;
+            const time = m.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+            const above = dotIndex++ % 2 === 0;
+            // Aan de rand van de dag naar binnen uitlijnen, zodat de tijd niet over de buurdag valt
+            const shift = pos < 18 ? '-6px' : pos > 82 ? 'calc(-100% + 6px)' : '-50%';
+            dots += `<div title="${d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })} ${time}"
+                style="position:absolute;left:${pos}%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;
+                background:#ff9f5a;box-shadow:0 0 10px rgba(255,140,80,0.8)"></div>
+              <div style="position:absolute;left:${pos}%;top:${above ? 'calc(50% - 22px)' : 'calc(50% + 10px)'};transform:translateX(${shift});
+                font-size:10px;font-weight:600;color:#ffcfa8;white-space:nowrap">${time}</div>`;
+          });
+
+          // Lege dagen zijn smal: alleen maandag krijgt een label, zodat je de weken ziet
+          const label = n || isToday || (d.getDay() === 1 && i > 1)
+            ? `${d.toLocaleDateString('nl-NL', { weekday: 'short' })} ${d.getDate()}`
+            : '';
+          cols += `<div style="flex:${n ? 4 + (n - 1) * 3 : 1} 1 0;min-width:0;position:relative;
+              border-left:1px solid rgba(255,255,255,0.07);
+              background:${n ? 'rgba(255,140,80,0.10)' : weekend ? 'rgba(255,255,255,0.03)' : 'transparent'}">
+              ${ticks}${dots}
+              <div style="position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:${n ? 11 : 9}px;
+                white-space:nowrap;overflow:${n ? 'hidden' : 'visible'};${isToday ? 'font-weight:700;color:var(--accent-color)' : `opacity:${n ? 0.9 : 0.5}`}">${isToday && !n ? 'nu' : label}</div>
+            </div>`;
+        }
+
+        const total = moments.length;
+        const header = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span style="font-size:13px;opacity:0.8">Laatste 2 weken</span>
+            <span style="font-size:13px;font-weight:600">${total ? `${total}× gekotst` : 'Niet gekotst 🎉'}</span></div>`;
+        return `${header}<div style="display:flex;height:120px;border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.15)">${cols}</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"chart"'
+    card:
+      - padding: 12px 14px
+    custom_fields:
+      chart:
+        - width: 100%
+        - text-align: left
