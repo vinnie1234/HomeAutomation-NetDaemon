@@ -2580,3 +2580,44 @@ pixel_alert:
         return 'Kijk bij de voerbak · tik voor details';
       return 'Tik om het af te vinken bij Pixel';
     ]]]
+
+# Stroom extreem duur of negatief, met dezelfde grenzen als de melding van NetDaemon (Alarm.cs): boven € 0,55 of onder € 0.
+# Toont de prijs nu en tot hoe laat het zo blijft (uit hourly_prices). Tik gaat naar de prijzen.
+price_alert:
+  template: alert
+  entity: sensor.anwb_electricity_all_in_price_current
+  variables:
+    color: |
+      [[[ return parseFloat(entity?.state) < 0 ? '56, 189, 248' : '255, 107, 107'; ]]]
+    pulse: true
+  icon: |
+    [[[ return parseFloat(entity?.state) < 0 ? 'mdi:cash-minus' : 'mdi:flash-alert'; ]]]
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/energie_prijs
+  name: |
+    [[[
+      const price = parseFloat(entity?.state);
+      const euro = `€ ${price.toFixed(2).replace('.', ',')}`;
+      return price < 0 ? `Stroom is negatief: ${euro}` : `Stroom is extreem duur: ${euro}`;
+    ]]]
+  label: |
+    [[[
+      const price = parseFloat(entity?.state);
+      const negative = price < 0;
+      const extreme = v => negative ? v < 0 : v > 0.55;
+      // Tot wanneer: de uren vanaf nu waarin de prijs over de grens blijft
+      const hours = Object.entries(entity?.attributes?.hourly_prices ?? {})
+        .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+        .filter(([t, v]) => !isNaN(t) && !isNaN(v))
+        .sort((a, b) => a[0] - b[0]);
+      const now = new Date();
+      let until = null;
+      for (const [t, v] of hours) {
+        if (t.getTime() + 3600000 <= now.getTime()) continue;
+        if (!extreme(v)) break;
+        until = new Date(t.getTime() + 3600000);
+      }
+      const advice = negative ? 'Verbruik nu, terugleveren kost geld' : 'Stel grote verbruikers uit';
+      return until ? `${advice} · tot ${until.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : advice;
+    ]]]
