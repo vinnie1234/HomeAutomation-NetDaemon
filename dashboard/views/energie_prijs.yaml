@@ -14,6 +14,7 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
+      - !include ../cards/energie_samenvatting.yaml
       - !include ../cards/energie_tabs.yaml
 
   # Prijzen
