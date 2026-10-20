@@ -27,8 +27,7 @@ routes:
     badge:
       show: |
         [[[
-          return parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0
-            || !['full', 'unavailable', 'unknown'].includes(states['sensor.zedar_food_storage_status']?.state);
+          return !['full', 'unavailable', 'unknown'].includes(states['sensor.zedar_food_storage_status']?.state);
         ]]]
       color: "#ff6b6b"
   - url: /dashboard-huis/huishouden

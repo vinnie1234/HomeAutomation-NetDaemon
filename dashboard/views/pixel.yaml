@@ -19,7 +19,6 @@ sections:
         variables:
           level: |
             [[[
-              if (parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0) return 'bad';
               const food = states['sensor.zedar_food_storage_status']?.state;
               if (food && food !== 'full') return 'bad';
               return parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2
@@ -28,7 +27,6 @@ sections:
         name: |
           [[[
             const issues = [];
-            if (parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0) issues.push('kattenbak');
             const food = states['sensor.zedar_food_storage_status']?.state;
             if (food && food !== 'full') issues.push('voer');
             if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2) issues.push('filter fontein');
@@ -262,24 +260,27 @@ sections:
           ]]]
         grid_options:
           columns: 6
+      # Laatste melding van de kattenbak (event-entiteit: de toestand is het tijdstip, het type staat in event_type)
       - type: custom:button-card
         template: stat
-        entity: sensor.petsnowy_litterbox_errors
-        name: Storingen
-        icon: mdi:alert-circle-outline
+        entity: event.snow_self_cleaning_litter_box_device_notifications
+        name: Laatste melding
+        icon: mdi:bell-outline
         state_display: |
           [[[
-            const n = parseInt(entity.state);
-            if (isNaN(n)) return 'Niet bereikbaar';
-            return n === 0 ? 'Geen' : `${n} ${n === 1 ? 'storing' : 'storingen'}`;
+            const type = entity?.attributes.event_type;
+            const at = new Date(entity?.state);
+            if (!type || isNaN(at)) return 'Geen';
+            const when = at.toDateString() === new Date().toDateString()
+              ? at.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+              : at.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            return `${type.replace(/_/g, ' ')} · ${when}`;
           ]]]
         styles:
-          icon:
-            - color: |
-                [[[
-                  const n = parseInt(entity.state);
-                  return isNaN(n) ? 'rgba(242, 244, 248, 0.4)' : n > 0 ? '#ff6b6b' : '#4ade80';
-                ]]]
+          state:
+            - font-size: 15px
+            - white-space: normal
+            - text-align: left
         grid_options:
           columns: 6
       - type: custom:button-card
@@ -296,23 +297,6 @@ sections:
         icon: mdi:timer-outline
         grid_options:
           columns: 6
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.petsnowy_litterbox_filter_remaining
-            state_not:
-              - unavailable
-              - unknown
-        card:
-          type: custom:button-card
-          template: progress
-          entity: sensor.petsnowy_litterbox_filter_remaining
-          name: Filter kattenbak
-          icon: mdi:air-filter
-          variables:
-            max: 30
-            unit: dagen
 
       - type: custom:button-card
         template: stat

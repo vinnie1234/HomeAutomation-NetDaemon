@@ -387,7 +387,6 @@ weather_hero:
     - sensor.weer_thuis_windsnelheid
     - sensor.moon_phase
     - sensor.thuis_pollentypen_52_035_53_gras
-    - sensor.thuis_pollentypen_52_035_53_bomen
     - sensor.thuis_pollentypen_52_035_53_onkruid
     - person.vincent_maarschalkerweerd
     - person.carleen
@@ -639,7 +638,7 @@ weather_hero:
         const now = num('sensor.weer_thuis_temperatuur');
 
         // Pollen: alle soorten (gras, bomen, onkruid) die er nu zijn, hoogste eerst; index 0 of onbekend wordt niet getoond
-        const pollenTypes = [['gras', 'Gras', 'mdi:grass'], ['bomen', 'Bomen', 'mdi:tree-outline'], ['onkruid', 'Onkruid', 'mdi:sprout-outline']];
+        const pollenTypes = [['gras', 'Gras', 'mdi:grass'], ['onkruid', 'Onkruid', 'mdi:sprout-outline']];
         const levels = ['Geen', 'Zeer laag', 'Laag', 'Matig', 'Hoog', 'Zeer hoog'];
         const colors = ['#4ade80', '#a3e635', '#facc15', '#fb923c', '#ff6b6b'];
         const present = pollenTypes

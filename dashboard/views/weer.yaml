@@ -46,7 +46,7 @@ sections:
             if (!isNaN(max)) parts.push(`↑ ${Math.round(max)}° ↓ ${Math.round(min)}°`);
             parts.push(states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on' ? 'regen verwacht' : 'droog');
             const levels = ['', 'zeer weinig', 'weinig', 'matig', 'veel', 'zeer veel'];
-            const pollen = [['gras', 'gras'], ['bomen', 'bomen'], ['onkruid', 'onkruid']]
+            const pollen = [['gras', 'gras'], ['onkruid', 'onkruid']]
               .map(([k, n]) => [n, Math.round(num(`sensor.thuis_pollentypen_52_035_53_${k}`))])
               .filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0];
             if (pollen) parts.push(`pollen: ${levels[pollen[1]]} ${pollen[0]}`);

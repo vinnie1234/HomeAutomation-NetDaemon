@@ -293,7 +293,10 @@ sections:
           ]]]
         label: |
           [[[
-            const end = new Date(states['sensor.badkamer_wasmachine_geschatte_eindtijd']?.state);
+            const left = states['sensor.badkamer_wasmachine_resterende_tijd']?.state ?? '';
+            const leftMinutes = /^\d+:\d+/.test(left) ? left.split(':').map(Number).reduce((h, m) => h * 60 + m) : parseFloat(left);
+            let end = new Date(states['sensor.badkamer_wasmachine_geschatte_eindtijd']?.state);
+            if (isNaN(end) && !isNaN(leftMinutes)) end = new Date(Date.now() + leftMinutes * 60000);
             const low = ['wasmiddel', 'wasverzachter']
               .filter(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on')
               .map(k => `${k[0].toUpperCase()}${k.slice(1)} bijna op`);
@@ -374,14 +377,9 @@ sections:
           ]]]
         label: |
           [[[
-            const known = id => {
-              const v = states[id]?.state;
-              return v && !['unknown', 'unavailable', 'none', 'None', ''].includes(v) ? v : null;
-            };
-            return [
-              known('sensor.next_battery_replacement') && `Volgende: ${known('sensor.next_battery_replacement')}`,
-              known('sensor.batteries_to_buy') && `Kopen: ${known('sensor.batteries_to_buy')}`
-            ].filter(Boolean).join(' · ');
+            const low = Object.entries(states)
+              .filter(([id, st]) => st.attributes?.device_class === 'battery' && parseFloat(st.state) < 30).length;
+            return low ? `${low} onder 30%` : '';
           ]]]
         styles:
           grid:
@@ -418,22 +416,6 @@ sections:
         sort:
           method: state
           numeric: true
-        show_empty: false
-      # Batterijtrends (BatteryTrendAnalyzer): welke batterijen het eerst leeg zijn
-      - type: custom:auto-entities
-        card:
-          type: entities
-          title: Eerst aan de beurt
-        filter:
-          include:
-            - entity_id: sensor.*_battery_days_remaining
-          exclude:
-            - state: unavailable
-            - state: unknown
-        sort:
-          method: state
-          numeric: true
-          count: 6
         show_empty: false
 
   # Taken en agenda
