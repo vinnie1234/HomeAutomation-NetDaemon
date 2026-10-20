@@ -14,10 +14,17 @@ sections:
     cards:
       - !include ../navbar.yaml
       - type: custom:button-card
-        triggers_update: all
-        template: glass
+        template: summary
         icon: mdi:cat
-        show_label: true
+        variables:
+          level: |
+            [[[
+              if (parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0) return 'bad';
+              const food = states['sensor.zedar_food_storage_status']?.state;
+              if (food && food !== 'full') return 'bad';
+              return parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2
+                || parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1 ? 'warn' : 'ok';
+            ]]]
         name: |
           [[[
             const issues = [];
@@ -36,40 +43,6 @@ sections:
             if (!isNaN(visits)) parts.push(`${visits}× naar de bak`);
             return parts.join(' · ');
           ]]]
-        styles:
-          grid:
-            - grid-template-areas: '"i n" "i l"'
-            - grid-template-columns: auto 1fr
-            - column-gap: 16px
-          card:
-            - height: 96px
-            - padding: 18px
-          img_cell:
-            - width: 60px
-            - height: 60px
-            - border-radius: 50%
-            - background: |
-                [[[
-                  const bad = parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0
-                    || (states['sensor.zedar_food_storage_status']?.state ?? 'full') !== 'full';
-                  return bad ? 'rgba(255, 107, 107, 0.2)' : 'rgba(74, 222, 128, 0.2)';
-                ]]]
-          icon:
-            - width: 34px
-            - color: |
-                [[[
-                  const bad = parseInt(states['sensor.petsnowy_litterbox_errors']?.state) > 0
-                    || (states['sensor.zedar_food_storage_status']?.state ?? 'full') !== 'full';
-                  return bad ? '#ff6b6b' : '#4ade80';
-                ]]]
-          name:
-            - font-size: 18px
-            - white-space: normal
-            - text-align: left
-          label:
-            - font-size: 13px
-            - white-space: normal
-            - text-align: left
 
   # Eten
   - type: grid

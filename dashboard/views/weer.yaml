@@ -7,10 +7,57 @@ type: sections
 max_columns: 3
 dense_section_placement: true
 sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: |
+          [[[
+            const icons = { sunny: 'mdi:weather-sunny', 'clear-night': 'mdi:weather-night', partlycloudy: 'mdi:weather-partly-cloudy',
+              cloudy: 'mdi:weather-cloudy', rainy: 'mdi:weather-rainy', pouring: 'mdi:weather-pouring', fog: 'mdi:weather-fog',
+              lightning: 'mdi:weather-lightning', 'lightning-rainy': 'mdi:weather-lightning-rainy', snowy: 'mdi:weather-snowy',
+              windy: 'mdi:weather-windy' };
+            return icons[states['weather.weer_thuis']?.state] ?? 'mdi:weather-partly-cloudy';
+          ]]]
+        variables:
+          level: |
+            [[[
+              if (states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on') return 'bad';
+              return states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on' ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const names = { 'clear-night': 'Helder', cloudy: 'Bewolkt', fog: 'Mist', hail: 'Hagel', lightning: 'Onweer',
+              'lightning-rainy': 'Onweersbuien', partlycloudy: 'Half bewolkt', pouring: 'Stortregen', rainy: 'Regen',
+              snowy: 'Sneeuw', 'snowy-rainy': 'Natte sneeuw', sunny: 'Zonnig', windy: 'Winderig', 'windy-variant': 'Winderig' };
+            const t = parseFloat(states['sensor.weer_thuis_temperatuur']?.state);
+            const head = `${names[states['weather.weer_thuis']?.state] ?? 'Weer'}${isNaN(t) ? '' : ', ' + t.toFixed(1).replace('.', ',') + '°'}`;
+            return states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on'
+              ? `${head} · weerwaarschuwing ${states['sensor.weer_thuis_waarschuwingscode']?.state ?? ''}` : head;
+          ]]]
+        label: |
+          [[[
+            const num = id => parseFloat(states[id]?.state);
+            const parts = [];
+            const max = num('sensor.weer_thuis_max_temperatuur_vandaag'), min = num('sensor.weer_thuis_min_temperatuur_vandaag');
+            if (!isNaN(max)) parts.push(`↑ ${Math.round(max)}° ↓ ${Math.round(min)}°`);
+            parts.push(states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on' ? 'regen verwacht' : 'droog');
+            const levels = ['', 'zeer weinig', 'weinig', 'matig', 'veel', 'zeer veel'];
+            const pollen = [['gras', 'gras'], ['bomen', 'bomen'], ['onkruid', 'onkruid']]
+              .map(([k, n]) => [n, Math.round(num(`sensor.thuis_pollentypen_52_035_53_${k}`))])
+              .filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0];
+            if (pollen) parts.push(`pollen: ${levels[pollen[1]]} ${pollen[0]}`);
+            const uv = num('sensor.current_uv_index');
+            if (uv >= 3) parts.push(`UV ${Math.round(uv)}`);
+            return parts.join(' · ');
+          ]]]
+
   # Verwachting
   - type: grid
     cards:
-      - !include ../navbar.yaml
       - type: conditional
         conditions:
           - condition: state

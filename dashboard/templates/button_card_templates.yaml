@@ -1153,3 +1153,37 @@ forecast_strip:
         - display: block
         - width: 100%
         - overflow: hidden
+
+# Samenvatting bovenaan een pagina: icoon in een cirkel, een kop (aandachtspunten of "alles in orde") en korte info.
+# Per kaart: icon, name (kop), label (korte info) en variables.level ("ok", "warn" of "bad") voor de kleur.
+summary:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    level: ok
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 16px
+    card:
+      - min-height: 96px
+      - padding: 18px
+    img_cell:
+      - width: 60px
+      - height: 60px
+      - border-radius: 50%
+      - background: |
+          [[[ return { bad: 'rgba(255, 107, 107, 0.2)', warn: 'rgba(255, 176, 96, 0.2)' }[variables.level] ?? 'rgba(74, 222, 128, 0.2)'; ]]]
+    icon:
+      - width: 34px
+      - color: '[[[ return { bad: "#ff6b6b", warn: "#ffb060" }[variables.level] ?? "#4ade80"; ]]]'
+    name:
+      - font-size: 18px
+      - white-space: normal
+      - text-align: left
+    label:
+      - font-size: 13px
+      - white-space: normal
+      - text-align: left

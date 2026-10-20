@@ -8,10 +8,50 @@ type: sections
 max_columns: 3
 dense_section_placement: true
 sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:server-network
+        variables:
+          level: |
+            [[[
+              if (states['binary_sensor.rt_ax88u_internet']?.state === 'off') return 'bad';
+              const updates = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').length;
+              return parseInt(states['sensor.active_issues']?.state) > 0 || updates ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const issues = [];
+            if (states['binary_sensor.rt_ax88u_internet']?.state === 'off') issues.push('geen internet');
+            const problems = parseInt(states['sensor.active_issues']?.state) || 0;
+            if (problems) issues.push(`${problems} ${problems === 1 ? 'probleem' : 'problemen'}`);
+            const updates = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').length;
+            if (updates) issues.push(`${updates} ${updates === 1 ? 'update' : 'updates'}`);
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Alles draait goed';
+          ]]]
+        label: |
+          [[[
+            const num = id => parseFloat(states[id]?.state);
+            const parts = [];
+            const ping = num('sensor.ping_round_trip_time_average');
+            if (!isNaN(ping)) parts.push(`ping ${Math.round(ping)} ms`);
+            const temp = num('sensor.processor_temperature');
+            if (!isNaN(temp)) parts.push(`Pi ${Math.round(temp)}°C`);
+            const backup = new Date(states['sensor.backup_last_successful_automatic_backup']?.state);
+            if (!isNaN(backup)) {
+              const days = Math.floor((Date.now() - backup) / 86400000);
+              parts.push(`back-up ${days === 0 ? 'vandaag' : days === 1 ? 'gisteren' : days + ' dagen geleden'}`);
+            }
+            return parts.join(' · ');
+          ]]]
+
   # NetDaemon en Home Assistant
   - type: grid
     cards:
-      - !include ../navbar.yaml
       - type: heading
         heading: Home Assistant
         heading_style: title

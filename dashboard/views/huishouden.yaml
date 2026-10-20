@@ -7,10 +7,51 @@ type: sections
 max_columns: 3
 dense_section_placement: true
 sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:home-heart
+        variables:
+          level: |
+            [[[
+              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0) return 'bad';
+              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on');
+              return low || !['Geen', 'unknown', 'unavailable', undefined].includes(states['sensor.afval_vandaag']?.state) ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const issues = [];
+            if (states['binary_sensor.jaap_bin_full']?.state === 'on') issues.push('bak van Jaap legen');
+            const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+            if (crit) issues.push(`${crit} ${crit === 1 ? 'batterij' : 'batterijen'} vervangen`);
+            ['wasmiddel', 'wasverzachter'].forEach(k => {
+              if (states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') issues.push(`${k} kopen`);
+            });
+            const today = states['sensor.afval_vandaag']?.state;
+            if (!['Geen', 'unknown', 'unavailable', undefined].includes(today)) issues.push(`${today} buiten zetten`);
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Alles op orde in huis';
+          ]]]
+        label: |
+          [[[
+            const jaap = { cleaning: 'aan het zuigen', docked: 'in het dock', idle: 'staat stil', paused: 'gepauzeerd', returning: 'onderweg naar dock', error: 'probleem' };
+            const washer = { run: 'bezig', running: 'bezig', stop: 'klaar', end: 'klaar', pause: 'gepauzeerd', idle: 'staat klaar' };
+            const parts = [];
+            const j = states['vacuum.jaap']?.state;
+            if (j) parts.push(`Jaap ${jaap[j] ?? j}`);
+            const w = states['sensor.badkamer_wasmachine_machinestatus']?.state;
+            if (w && !['unknown', 'unavailable'].includes(w)) parts.push(`wasmachine ${washer[w] ?? w}`);
+            const tomorrow = states['sensor.afval_morgen']?.state;
+            if (!['Geen', 'unknown', 'unavailable', undefined].includes(tomorrow)) parts.push(`morgen ${tomorrow}`);
+            return parts.join(' · ');
+          ]]]
+
   # Jaap en afval
   - type: grid
     cards:
-      - !include ../navbar.yaml
       - type: heading
         heading: Jaap
         heading_style: title

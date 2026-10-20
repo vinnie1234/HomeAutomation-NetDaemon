@@ -7,11 +7,51 @@ type: sections
 max_columns: 3
 dense_section_placement: true
 sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:lightning-bolt
+        variables:
+          level: |
+            [[[
+              const now = parseFloat(states['sensor.anwb_electricity_all_in_price_current']?.state);
+              const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+              return now > avg * 1.05 ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const now = parseFloat(states['sensor.anwb_electricity_all_in_price_current']?.state);
+            const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+            if (isNaN(now)) return 'Stroomprijs onbekend';
+            const kind = now < avg * 0.95 ? 'goedkoop' : now > avg * 1.05 ? 'duur' : 'normaal';
+            return `Stroom is nu ${kind} · € ${now.toFixed(2).replace('.', ',')} per kWh`;
+          ]]]
+        label: |
+          [[[
+            const euro = v => `€ ${v.toFixed(2).replace('.', ',')}`;
+            const power = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state);
+            const cost = parseFloat(states['sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost']?.state);
+            const parts = [];
+            if (!isNaN(power)) parts.push(power < 0 ? `${Math.round(-power)} W teruglevering` : `${Math.round(power)} W verbruik`);
+            if (!isNaN(cost)) parts.push(`vandaag ${euro(cost)}`);
+            const upcoming = Object.entries(states['sensor.anwb_electricity_all_in_price_current']?.attributes.hourly_prices ?? {})
+              .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+              .filter(([t, v]) => t.getTime() >= Date.now() - 3600000 && !isNaN(v));
+            if (upcoming.length) {
+              const [t, v] = upcoming.reduce((min, p) => p[1] < min[1] ? p : min);
+              parts.push(`goedkoopst om ${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} (${euro(v)})`);
+            }
+            return parts.join(' · ');
+          ]]]
+
   # Prijs
   - type: grid
     column_span: 2
     cards:
-      - !include ../navbar.yaml
       - type: heading
         heading: Stroomprijs
         heading_style: title
