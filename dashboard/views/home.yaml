@@ -17,6 +17,38 @@ sections:
         template: weather_hero
         grid_options:
           columns: full
+      # Thema van de weerkaart kiezen om te testen; alleen zichtbaar met ?test in de URL (bijv. /dashboard-huis/home?test)
+      - type: custom:button-card
+        show_icon: false
+        show_name: false
+        tap_action:
+          action: none
+        custom_fields:
+          select:
+            card:
+              type: tile
+              entity: input_select.weerkaart_thema
+              name: Thema weerkaart
+              icon: mdi:palette-outline
+              features_position: inline
+              features:
+                - type: select-options
+        styles:
+          card:
+            - display: '[[[ return new URLSearchParams(window.location.search).has("test") ? "block" : "none"; ]]]'
+            - background: none
+            - border: none
+            - box-shadow: none
+            - padding: 0
+            - cursor: default
+          grid:
+            - grid-template-areas: '"select"'
+          custom_fields:
+            select:
+              - display: block
+              - width: 100%
+        grid_options:
+          columns: full
 
       # Meldingen: alleen zichtbaar als ze nu relevant zijn
       - type: custom:mushroom-chips-card

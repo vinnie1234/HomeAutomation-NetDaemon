@@ -370,7 +370,8 @@ sun:
         - display: block
         - width: 100%
 
-# Weer-hero voor Home: een realistische lucht van het weer van nu.
+# Weer-hero voor Home: een realistische lucht van het weer van nu, aangekleed per seizoen of feestdag
+# (input_select.weerkaart_thema, "Automatisch" volgt de datum en sensor.season) en met KNMI-weerwaarschuwingen.
 # - Zon op de echte plek (azimut = links/rechts, hoogte = hoe hoog), gouden uur bij een lage zon.
 # - Lucht en wolken volgen de bewolking in %: overdag nooit donker, bij veel wolken licht grijsblauw.
 # - Wolken zijn afbeeldingen (www/clouds, gemaakt met tools/generate_clouds.py) in drie diepte-lagen, getint per weer.
@@ -380,6 +381,11 @@ sun:
 weather_hero:
   triggers_update:
     - weather.weer_thuis
+    - input_select.weerkaart_thema
+    - sensor.season
+    - binary_sensor.weer_thuis_waarschuwing_actief
+    - sensor.weer_thuis_waarschuwingscode
+    - sensor.weer_thuis_waarschuwingen
     - sensor.keuken_timers
     - sensor.badkamer_speaker_timers
     - sensor.gang_speaker_1_timers
@@ -437,6 +443,32 @@ weather_hero:
     @keyframes hero-timer-blink { 50% { opacity: 0.35; } }
     @keyframes hero-timer-hide { to { opacity: 0; } }
     @keyframes hero-timer-show { to { opacity: 1; } }
+    @keyframes hero-petal {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(60px, 170px) rotate(180deg); }
+      100% { transform: translate(20px, 360px) rotate(360deg); }
+    }
+    @keyframes hero-leaf {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(40px, 90px) rotate(120deg); }
+      50% { transform: translate(-10px, 180px) rotate(200deg); }
+      75% { transform: translate(50px, 270px) rotate(300deg); }
+      100% { transform: translate(10px, 370px) rotate(400deg); }
+    }
+    @keyframes hero-firefly {
+      0%, 100% { transform: translate(0, 0); opacity: 0.1; }
+      30% { opacity: 1; }
+      50% { transform: translate(18px, -12px); opacity: 0.4; }
+      70% { opacity: 1; }
+    }
+    @keyframes hero-birds { from { transform: translateX(0); } to { transform: translateX(130vw); } }
+    @keyframes hero-spark {
+      0% { transform: rotate(var(--angle)) translateX(0); opacity: 0; }
+      8% { opacity: 1; }
+      70% { opacity: 0.9; }
+      100% { transform: rotate(var(--angle)) translateX(46px) translateY(14px); opacity: 0; }
+    }
+    @keyframes hero-warning { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
     @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
   custom_fields:
     sky: |
@@ -593,23 +625,215 @@ weather_hero:
             </svg>`;
         }
 
-        // Horizon: zachte heuvels in lagen; verder weg lichter (luchtperspectief)
+        // ---------- Thema: seizoen of feestdag ----------
+        // Keuze uit input_select.weerkaart_thema; "Automatisch" volgt de datum (feestdagen) en anders sensor.season.
+        // Sinterklaas: 1 nov t/m 5 dec · Kerst: 6 dec t/m 6 jan · Nieuwjaar: 31 dec en 1 jan · Pasen: Goede Vrijdag t/m Tweede Paasdag.
+        const today = new Date();
+        const easterSunday = y => {
+          const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+          const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+          const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+          const month = Math.floor((h + l - 7 * m + 114) / 31), dayOfMonth = ((h + l - 7 * m + 114) % 31) + 1;
+          return new Date(y, month - 1, dayOfMonth);
+        };
+        const dayOnly = dt => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+        const easter = easterSunday(today.getFullYear());
+        const daysFromEaster = Math.round((dayOnly(today) - easter) / 86400000);
+        const month = today.getMonth() + 1, date = today.getDate();
+        const autoTheme = () => {
+          if ((month === 12 && date === 31) || (month === 1 && date === 1)) return 'nieuwjaar';
+          if (month === 11 || (month === 12 && date <= 5)) return 'sinterklaas';
+          if ((month === 12 && date >= 6) || (month === 1 && date <= 6)) return 'kerst';
+          if (daysFromEaster >= -2 && daysFromEaster <= 1) return 'pasen';
+          const season = { spring: 'lente', summer: 'zomer', autumn: 'herfst', winter: 'winter' }[states['sensor.season']?.state];
+          return season ?? (month <= 2 || month === 12 ? 'winter' : month <= 5 ? 'lente' : month <= 8 ? 'zomer' : 'herfst');
+        };
+        const choice = String(states['input_select.weerkaart_thema']?.state ?? '').toLowerCase();
+        const theme = ['lente', 'zomer', 'herfst', 'winter', 'sinterklaas', 'pasen', 'kerst', 'nieuwjaar'].includes(choice) ? choice : autoTheme();
+        const wintry = ['winter', 'kerst', 'sinterklaas', 'nieuwjaar'].includes(theme);
+        const springy = ['lente', 'pasen'].includes(theme);
+
+        // Horizon: zachte heuvels in lagen in de kleur van het seizoen; verder weg lichter (luchtperspectief)
+        const hillY = (x, base, amp, freq, phase) => base + Math.sin(x / freq + phase) * amp + Math.sin(x / (freq * 0.4) + phase * 2) * amp * 0.35;
         const hill = (base, amp, freq, phase, color) => {
           let d = `M0,100 L0,${base}`;
-          for (let x = 0; x <= 100; x += 2) {
-            d += ` L${x},${(base + Math.sin(x / freq + phase) * amp + Math.sin(x / (freq * 0.4) + phase * 2) * amp * 0.35).toFixed(2)}`;
-          }
+          for (let x = 0; x <= 100; x += 2) d += ` L${x},${hillY(x, base, amp, freq, phase).toFixed(2)}`;
           return `<path d="${d} L100,100 Z" fill="${color}"/>`;
         };
-        const ground = day ? [22, 30, 38] : [4, 6, 12];
+        const seasonGround = { lente: [40, 92, 52], pasen: [44, 98, 56], zomer: [74, 92, 38], herfst: [96, 56, 28],
+                               winter: [58, 68, 86], kerst: [58, 68, 86], nieuwjaar: [52, 58, 80], sinterklaas: [52, 46, 62] }[theme];
+        // Winterse thema's: een besneeuwd landschap (licht blauwwit, 's nachts blauwgrijs) in plaats van groen of bruin
+        const ground = wintry ? (day ? [206, 216, 232] : [40, 48, 70])
+          : day ? mix([22, 30, 38], seasonGround, 0.55) : mix([4, 6, 12], seasonGround, 0.18);
+        const snowCap = day ? 'rgba(240,246,255,0.92)' : 'rgba(170,185,215,0.55)';
+        const layers3 = [[62, 6, 11, 1.3, 0.35], [74, 5, 8, 4.1, 0.65], [86, 4, 6, 2.2, 0.9]];
         out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:38%">
-            ${hill(62, 6, 11, 1.3, rgb(mix(bottom, ground, 0.35)))}
-            ${hill(74, 5, 8, 4.1, rgb(mix(bottom, ground, 0.65)))}
-            ${hill(86, 4, 6, 2.2, rgb(mix(bottom, ground, 0.9)))}
+            ${layers3.map(([b, a, f, p, m]) => hill(b, a, f, p, rgb(mix(bottom, ground, m)))).join('')}
           </svg>`;
+
+        // Bomen en huizen op de voorste heuvel (HTML, zodat ze niet mee uitrekken met de heuvel)
+        const groundTop = x => 62 + hillY(x, 86, 4, 6, 2.2) * 0.38;  // in % van de kaarthoogte
+        const night = c => day ? c : rgb(mix(c.match(/\d+/g).map(Number), [5, 8, 18], 0.65));
+        const crowns = { lente: ['rgb(249,197,213)', 'rgb(253,226,234)', 'rgb(240,170,195)'], pasen: ['rgb(249,197,213)', 'rgb(253,236,200)', 'rgb(214,236,190)'],
+                         zomer: ['rgb(47,107,58)', 'rgb(62,128,66)', 'rgb(38,92,50)'], herfst: ['rgb(217,105,43)', 'rgb(184,68,42)', 'rgb(224,160,48)'] }[theme];
+        const tree = (x, size) => {
+          const top = groundTop(x);
+          if (crowns) {
+            const crown = night(crowns[Math.floor(rnd() * crowns.length)]);
+            return `<div style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-100%);width:${size}px;height:${size * 1.25}px">
+                      <div style="position:absolute;left:46%;bottom:0;width:8%;height:40%;background:${night('rgb(70,50,40)')}"></div>
+                      <div style="position:absolute;left:0;top:0;width:100%;height:80%;border-radius:50%;background:${crown};
+                        box-shadow:inset -${size / 6}px -${size / 8}px 0 rgba(0,0,0,0.18)"></div>
+                    </div>`;
+          }
+          if (theme === 'winter') {
+            return `<svg viewBox="0 0 20 24" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-100%);width:${size}px;height:${size * 1.2}px">
+                      <path d="M10 24 V9 M10 14 L4 8 M10 12 L16 6 M10 17 L15 13 M6 10 L5 6 M14 8 L15 4" stroke="${night('rgb(72,62,58)')}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+                    </svg>`;
+          }
+          // Kerst en Sinterklaas: dennen met sneeuw (met kerst ook lichtjes)
+          const lights = theme === 'kerst' ? [[7, 15], [13, 13], [10, 9], [6, 19], [14, 19], [10, 17]].map(([cx, cy], i) =>
+            `<circle cx="${cx}" cy="${cy}" r="0.9" fill="${['#ff5a5a', '#ffd166', '#7ee787', '#7aa2ff'][i % 4]}" style="animation:hero-twinkle ${1 + rnd() * 1.5}s ease-in-out ${-rnd() * 2}s infinite"/>`).join('') : '';
+          return `<svg viewBox="0 0 20 24" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-100%);width:${size}px;height:${size * 1.2}px;overflow:visible">
+                    <path d="M10 1 L16 10 H13 L18 17 H14 L19 22 H1 L6 17 H2 L7 10 H4 Z" fill="${night('rgb(30,82,58)')}"/>
+                    <path d="M10 1 L13 5.5 H7 Z M6 10 H14 L13.2 11 H6.8 Z" fill="${snowCap}"/>
+                    <rect x="9" y="22" width="2" height="2" fill="${night('rgb(70,50,40)')}"/>${lights}
+                  </svg>`;
+        };
+        const house = (x, size, chimney) => {
+          const top = groundTop(x);
+          const glow = day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
+          return `<svg viewBox="0 0 24 22" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-96%);width:${size}px;height:${size * 0.92}px;overflow:visible">
+                    ${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
+                    <path d="M2 11 L12 3 L22 11 Z" fill="${night('rgb(120,48,40)')}"/>
+                    ${wintry ? `<path d="M2 11 L12 3 L22 11 L20.5 11 L12 4.6 L3.5 11 Z" fill="${snowCap}"/>` : ''}
+                    <rect x="4" y="11" width="16" height="11" fill="${night('rgb(168,140,112)')}"/>
+                    <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>
+                    <rect x="14" y="15" width="3" height="7" fill="${night('rgb(96,64,46)')}"/>
+                  </svg>`;
+        };
+        let scene = '';
+        if (theme === 'sinterklaas') {
+          [[10, 34, true], [19, 28, false], [70, 30, true], [80, 36, true], [90, 26, false]].forEach(([x, s, c]) => { scene += house(x, s, c); });
+          [28, 62].forEach(x => { scene += tree(x, 22); });
+        } else if (theme === 'kerst' || theme === 'nieuwjaar') {
+          scene += house(76, 36, true);
+          [[12, 30], [20, 22], [62, 26], [88, 32], [94, 22]].forEach(([x, s]) => { scene += tree(x, s); });
+        } else {
+          [[8, 26], [15, 20], [66, 24], [74, 30], [86, 22], [93, 28]].forEach(([x, s]) => { scene += tree(x, s * (0.9 + rnd() * 0.3)); });
+          if (theme === 'pasen') {
+            // Paaseieren in het gras
+            [[24, '#ff9ec7'], [33, '#ffd166'], [55, '#7ec8ff'], [81, '#b6e388']].forEach(([x, c]) => {
+              scene += `<div style="position:absolute;left:${x}%;top:${groundTop(x)}%;transform:translate(-50%,-80%);width:10px;height:13px;border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
+                background:repeating-linear-gradient(0deg, ${c} 0 3px, rgba(255,255,255,0.85) 3px 4px);box-shadow:0 1px 2px rgba(0,0,0,0.3)"></div>`;
+            });
+          }
+        }
+        out += scene;
+
+        // Deeltjes van het seizoen (niet bij zware regen of onweer)
+        const calm = !storm && w !== 'pouring';
+        if (springy && calm && !rain) {
+          for (let i = 0; i < 16; i++) {
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:-6%;width:7px;height:5px;border-radius:60% 40% 60% 40%;
+              background:${['#f9c5d5', '#fde2ea', '#ffffff'][i % 3]};opacity:0.9;
+              animation:hero-petal ${9 + rnd() * 7}s linear ${-rnd() * 15}s infinite"></div>`;
+          }
+        }
+        if (theme === 'herfst' && calm) {
+          const leaves = Math.round(10 + Math.min(14, windSpeed));
+          for (let i = 0; i < leaves; i++) {
+            out += `<ha-icon icon="mdi:leaf" style="position:absolute;left:${rnd() * 100}%;top:-8%;--mdc-icon-size:${12 + rnd() * 8}px;
+              color:${['#d9692b', '#b8442a', '#e0a030', '#c9772f'][i % 4]};
+              animation:hero-leaf ${Math.max(5, 12 - windSpeed / 2) + rnd() * 5}s linear ${-rnd() * 14}s infinite"></ha-icon>`;
+          }
+        }
+        if (theme === 'zomer' && !day && !rain) {
+          for (let i = 0; i < 18; i++) {
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:${55 + rnd() * 35}%;width:3px;height:3px;border-radius:50%;
+              background:#e8ff8a;box-shadow:0 0 8px 3px rgba(220,255,120,0.7);
+              animation:hero-firefly ${4 + rnd() * 4}s ease-in-out ${-rnd() * 6}s infinite"></div>`;
+          }
+        }
+        if (springy && day && !rain && !storm) {
+          // Een zwerm vogels in V-vorm die langzaam overvliegt
+          out += `<svg viewBox="0 0 60 20" style="position:absolute;top:20%;left:-15%;width:90px;height:30px;animation:hero-birds 40s linear -12s infinite">
+              ${[[30, 6], [22, 10], [38, 10], [14, 14], [46, 14]].map(([x, y]) => `<path d="M${x - 3} ${y} Q${x - 1.5} ${y - 2} ${x} ${y} Q${x + 1.5} ${y - 2} ${x + 3} ${y}" stroke="rgba(20,30,45,0.75)" stroke-width="0.9" fill="none"/>`).join('')}
+            </svg>`;
+        }
+
+        // Kerst: lampjesslinger langs de bovenrand
+        if (theme === 'kerst') {
+          let wire = 'M0,4';
+          const bulbs = [];
+          for (let x = 0; x <= 100; x += 1) wire += ` L${x},${(4 + Math.abs(Math.sin(x / 100 * Math.PI * 5)) * 7).toFixed(2)}`;
+          for (let x = 3; x < 100; x += 5) bulbs.push([x, 4 + Math.abs(Math.sin(x / 100 * Math.PI * 5)) * 7]);
+          out += `<svg viewBox="0 0 100 20" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:100%;height:56px;overflow:visible">
+              <path d="${wire}" stroke="rgba(30,40,30,0.85)" stroke-width="0.35" fill="none" vector-effect="non-scaling-stroke"/>
+            </svg>`;
+          bulbs.forEach(([x, y], i) => {
+            const c = ['#ff5a5a', '#ffd166', '#7ee787', '#7aa2ff', '#ff9ec7'][i % 5];
+            out += `<div style="position:absolute;left:${x}%;top:${y / 20 * 56 + 2}px;width:7px;height:10px;border-radius:50% 50% 45% 45%;transform:translateX(-50%);
+              background:${c};box-shadow:0 0 10px 3px ${c};animation:hero-twinkle ${1.2 + rnd() * 1.6}s ease-in-out ${-rnd() * 2}s infinite"></div>`;
+          });
+        }
+
+        // Nieuwjaar: vuurwerk
+        if (theme === 'nieuwjaar') {
+          [[22, 22, '#ffd166'], [48, 14, '#ff5a5a'], [74, 24, '#7ee787'], [62, 34, '#7aa2ff'], [36, 30, '#ff9ec7']].forEach(([x, y, c], b) => {
+            let sparks = '';
+            for (let i = 0; i < 16; i++) {
+              sparks += `<div style="position:absolute;left:0;top:0;width:3px;height:3px;border-radius:50%;background:${c};box-shadow:0 0 6px ${c};
+                --angle:${i * 22.5}deg;animation:hero-spark 3.2s ease-out ${b * 0.8}s infinite"></div>`;
+            }
+            out += `<div style="position:absolute;left:${x}%;top:${y}%">${sparks}</div>`;
+          });
+        }
+
+        // Winter: ijsbloemen langs de randen
+        if (theme === 'winter') {
+          out += `<div style="position:absolute;inset:0;pointer-events:none;border-radius:28px;
+            background:radial-gradient(ellipse at 0% 0%, rgba(230,242,255,0.45), transparent 22%),
+                       radial-gradient(ellipse at 100% 0%, rgba(230,242,255,0.35), transparent 18%),
+                       radial-gradient(ellipse at 0% 100%, rgba(230,242,255,0.3), transparent 20%),
+                       radial-gradient(ellipse at 100% 100%, rgba(230,242,255,0.4), transparent 22%);
+            box-shadow:inset 0 0 40px rgba(220,236,255,0.35)"></div>`;
+        }
 
         // Donkere waas linksonder zodat de tekst altijd leesbaar is
         out += `<div style="position:absolute;inset:0;background:linear-gradient(15deg, rgba(5,8,18,0.62) 0%, rgba(5,8,18,0.18) 45%, transparent 75%)"></div>`;
+        // Label linksboven: het thema (met aftellen naar pakjesavond of kerst), en een eventuele weerwaarschuwing
+        const nightsTo = (monthIndex, day) => {
+          let target = new Date(today.getFullYear(), monthIndex, day);
+          if (target < dayOnly(today)) target = new Date(today.getFullYear() + 1, monthIndex, day);
+          return Math.ceil((target - dayOnly(today)) / 86400000);
+        };
+        const labels = {
+          lente: '🌸 Lente', zomer: '☀️ Zomer', herfst: '🍂 Herfst', winter: '❄️ Winter', pasen: '🐣 Pasen',
+          sinterklaas: month === 12 && date === 5 ? '🎁 Pakjesavond!' : `🎁 Sinterklaas · nog ${nightsTo(11, 5)} nachtjes`,
+          kerst: month === 12 && date >= 25 && date <= 26 ? '🎄 Fijne kerst!'
+            : month === 12 && date < 25 ? `🎄 Kerst · nog ${nightsTo(11, 25)} nachtjes` : '🎄 Kerst',
+          nieuwjaar: month === 12 && date === 31 ? '🥂 Oudejaarsdag' : '🎆 Gelukkig nieuwjaar!'
+        };
+        let badges = `<div style="display:inline-block;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);
+            font-size:12px;color:#fff;white-space:nowrap">${labels[theme]}</div>`;
+
+        // Weerwaarschuwing (KNMI): pulserende rand en een banner in de kleur van de code
+        if (states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on') {
+          const code = String(states['sensor.weer_thuis_waarschuwingscode']?.state ?? '').toLowerCase();
+          const color = code.includes('rood') || code.includes('red') ? '#ff4d4d'
+            : code.includes('oranje') || code.includes('orange') ? '#ff9f1c' : '#ffd60a';
+          const name = code.includes('rood') || code.includes('red') ? 'Code rood' : code.includes('oranje') || code.includes('orange') ? 'Code oranje' : 'Code geel';
+          const text = String(states['sensor.weer_thuis_waarschuwingen']?.state ?? '').replace(/^(unknown|unavailable)$/, '');
+          badges += `<div style="margin-top:6px;max-width:340px;padding:6px 12px;border-radius:12px;background:${color};color:#14161c;
+              font-size:13px;font-weight:700;box-shadow:0 4px 18px ${color}88;white-space:normal;line-height:1.25">
+              ⚠️ ${name}${text ? `<span style="font-weight:500"> · ${text.length > 90 ? text.slice(0, 88) + '…' : text}</span>` : ''}</div>`;
+          out += `<div style="position:absolute;inset:0;border-radius:28px;pointer-events:none;box-shadow:inset 0 0 0 3px ${color}, inset 0 0 40px ${color}55;
+              animation:hero-warning 2.4s ease-in-out infinite"></div>
+            <div style="position:absolute;inset:0;background:rgba(10,12,20,0.15)"></div>`;
+        }
+        out += `<div style="position:absolute;left:16px;top:${theme === 'kerst' ? 46 : 16}px;z-index:2;text-align:left">${badges}</div>`;
+
         return out;
       ]]]
     clock:
