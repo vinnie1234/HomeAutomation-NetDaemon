@@ -380,6 +380,7 @@ sun:
 # De klok is een geneste markdown-kaart; die werkt zichzelf elke minuut bij.
 weather_hero:
   triggers_update:
+    - input_boolean.laundryhangingoutside
     - weather.weer_thuis
     - input_select.weerkaart_thema
     - input_select.tijd_van_de_dag
@@ -474,6 +475,8 @@ weather_hero:
     @keyframes hero-smoke { 0% { transform: translate(0, 0) scale(0.6); opacity: 0.8; } 100% { transform: translate(-14px, -40px) scale(2.2); opacity: 0; } }
     @keyframes hero-sleigh { 0% { transform: translate(0, 0); } 50% { transform: translate(85vw, -10px); } 100% { transform: translate(170vw, 6px); } }
     @keyframes hero-sint { from { transform: translateX(0); } to { transform: translateX(-140vw); } }
+    @keyframes hero-sway { 0%, 100% { transform: rotate(calc(var(--swing) * -0.5)); } 50% { transform: rotate(var(--swing)); } }
+    @keyframes hero-drip { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
     @keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
     @keyframes hero-leg { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
     @keyframes hero-wave { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(25deg); } }
@@ -1035,6 +1038,37 @@ weather_hero:
           festive += bunting(['#ffadc7', '#bde0fe', '#fff1a8', '#caffbf', '#e0c3fc']);
         }
         out += festive;
+
+        // ---------- De was hangt buiten: waslijn met wapperende was (harder bij wind, druppels bij regen) ----------
+        if (states['input_boolean.laundryhangingoutside']?.state === 'on') {
+          const swing = Math.min(28, 4 + windSpeed * 1.6);         // graden heen en weer
+          const pace = Math.max(0.7, 2.6 - windSpeed * 0.12);      // seconden per slag
+          const peg = x => `<rect x="${x - 0.8}" y="9.2" width="1.6" height="3" rx="0.4" fill="${dim('rgb(214,170,110)')}"/>`;
+          // Elk kledingstuk hangt aan de lijn (y = 10) en zwaait om dat punt
+          const piece = (x, body, delay) => `<g style="transform-origin:${x}px 10px;transform-box:view-box;--swing:${swing}deg;
+              animation:hero-sway ${pace + rnd() * 0.6}s ease-in-out ${-delay}s infinite">${body}${peg(x - 3)}${peg(x + 3)}</g>`;
+          const shirt = x => `<path d="M${x - 6} 10 L${x - 9.5} 13.5 L${x - 7.5} 16 L${x - 5.5} 14.5 L${x - 5.5} 26 L${x + 5.5} 26 L${x + 5.5} 14.5
+              L${x + 7.5} 16 L${x + 9.5} 13.5 L${x + 6} 10 Q${x} 13 ${x - 6} 10 Z" fill="${dim('rgb(96,165,250)')}"/>`;
+          const pants = x => `<path d="M${x - 5} 10 L${x + 5} 10 L${x + 5.6} 29 L${x + 1.6} 29 L${x} 16 L${x - 1.6} 29 L${x - 5.6} 29 Z" fill="${dim('rgb(55,65,81)')}"/>`;
+          const towel = x => `<rect x="${x - 5.5}" y="10" width="11" height="15" rx="0.8" fill="${dim('rgb(251,191,36)')}"/>
+              <rect x="${x - 5.5}" y="21" width="11" height="1.4" fill="${dim('rgb(255,255,255)')}" opacity="0.7"/>`;
+          const socks = x => `<path d="M${x - 4} 10 L${x - 1.5} 10 L${x - 1.5} 17 L${x + 0.5} 19 L${x - 0.5} 20.5 L${x - 4} 18.5 Z" fill="${dim('rgb(244,114,182)')}"/>
+              <path d="M${x + 1.5} 10 L${x + 4} 10 L${x + 4} 17 L${x + 6} 19 L${x + 5} 20.5 L${x + 1.5} 18.5 Z" fill="${dim('rgb(244,114,182)')}"/>`;
+          // Bij regen druppelt de was
+          let drips = '';
+          if (rain) for (let i = 0; i < 8; i++) {
+            const x = 18 + rnd() * 74;
+            drips += `<ellipse cx="${x}" cy="27" rx="0.6" ry="1" fill="rgba(180,215,255,0.85)"
+                style="animation:hero-drip ${0.9 + rnd() * 0.8}s ease-in ${-rnd() * 2}s infinite"/>`;
+          }
+          // Tussen de klok (links) en de temperatuur (rechts): meeschalend, zodat hij ook op de telefoon vrij staat
+          out += `<svg viewBox="0 0 110 44" style="position:absolute;left:max(44%, 255px);bottom:${groundBottom(44) - 3}%;
+              width:clamp(120px, 16%, 200px);transform:translateX(-50%);overflow:visible;pointer-events:none;
+              filter:drop-shadow(0 3px 4px rgba(0,0,0,0.25))">` + `
+              <path d="M8 44 L8 6 M102 44 L102 6" stroke="${dim('rgb(120,90,60)')}" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M8 8 Q55 13 102 8" stroke="${dim('rgb(230,230,230)')}" stroke-width="0.5" fill="none"/>
+              ${piece(24, shirt(24), 0)}${piece(45, pants(45), 0.4)}${piece(64, towel(64), 0.8)}${piece(82, socks(82), 1.1)}${drips}</svg>`;
+        }
 
 
         // Deeltjes van het seizoen (niet bij zware regen of onweer)
