@@ -1188,11 +1188,6 @@ forecast_strip:
   custom_fields:
     strip: |
       [[[
-        // Veegbewegingen niet doorgeven aan Swipe Navigation (die zou anders van tab wisselen); scrollen blijft werken
-        if (typeof HTMLElement !== 'undefined' && this instanceof HTMLElement && this.shadowRoot && !this._swipeBlocked) {
-          ['touchstart', 'touchmove', 'touchend'].forEach(type => this.addEventListener(type, e => e.stopPropagation(), { passive: true }));
-          this._swipeBlocked = true;
-        }
         const forecast = (entity?.attributes.forecast ?? []).slice(0, 48);
         if (!forecast.length) return '<div style="opacity:.6;padding:8px">Nog geen verwachting. Voeg de template-sensor toe (zie README).</div>';
         const icons = {
