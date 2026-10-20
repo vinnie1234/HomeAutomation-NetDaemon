@@ -31,7 +31,7 @@ sections:
             if (food && food !== 'full') issues.push('voer');
             if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2) issues.push('filter fontein');
             if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1) issues.push('fontein schoonmaken');
-            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat ze nodig heeft';
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat hij nodig heeft';
           ]]]
         label: |
           [[[
