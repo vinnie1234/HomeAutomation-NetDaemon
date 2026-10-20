@@ -24,8 +24,9 @@ public class LivingRoomLights : BaseApp
         INotify notify,
         IScheduler scheduler,
         IOptions<AppConfiguration> config,
-        ILivingRoomPresenceService livingRoomPresenceService)
-        : base(ha, logger, notify, scheduler)
+        ILivingRoomPresenceService livingRoomPresenceService,
+        IOptions<AppConfig> appConfig)
+        : base(ha, logger, notify, scheduler, appConfig)
     {
         _config = config.Value;
         HaContext.Events.Where(x => x.EventType == "hue_event").Subscribe(x =>

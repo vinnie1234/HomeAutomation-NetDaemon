@@ -1,0 +1,206 @@
+# Media → Muziek: Spotify bovenaan, per kamer een speaker met eigen bediening (afspelen, volume)
+# en een knop "Speel hier", plus snel een playlist starten.
+title: Muziek
+path: media-muziek
+icon: mdi:music
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/media
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Media-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_samenvatting.yaml
+      - !include ../cards/media_tabs.yaml
+
+  # Wat speelt er
+  - type: grid
+    cards:
+      - type: heading
+        heading: Muziek
+        heading_style: title
+        icon: mdi:spotify
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.spotifyplus_vincent_maarschalkerweerd
+        name: Spotify
+        icon: mdi:spotify
+        cover_background: true
+
+      - type: heading
+        heading: Snel starten
+        heading_style: subtitle
+      - type: markdown
+        text_only: true
+        content: Speelt in de kamer waar de muziek nu al speelt, anders waar het laatst beweging was.
+        card_mod:
+          style: |
+            ha-card { font-size: 12px; opacity: 0.6; padding: 0 4px; }
+      - type: custom:button-card
+        template: playlist
+        name: Radio NL
+        icon: mdi:radio
+        variables:
+          playlist: https://open.spotify.com/playlist/6oZLDHU5xcpk3lwe8ZXnqd
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: playlist
+        name: Douche
+        icon: mdi:shower
+        variables:
+          playlist: https://open.spotify.com/playlist/0VoOMsxNecfLRkaTvxbrHA
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: playlist
+        name: Thuis
+        icon: mdi:home-heart
+        variables:
+          playlist: https://open.spotify.com/playlist/15Z0BX6l9vvMddjiNb1DUf
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Overal stil
+        icon: mdi:pause-circle-outline
+        tap_action:
+          action: perform-action
+          perform_action: media_player.media_pause
+          target:
+            entity_id: media_player.spotifyplus_vincent_maarschalkerweerd
+
+  # Per kamer: links de speaker (afspelen/pauze, volume), rechts "Speel hier"
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Per kamer
+        heading_style: title
+        icon: mdi:speaker-multiple
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.woonkamer
+        name: Woonkamer
+        icon: mdi:sofa-outline
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.woonkamer
+        grid_options:
+          columns: 3
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.nestmini9818
+        name: Keuken
+        icon: mdi:countertop-outline
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.nestmini9818
+        variables:
+          playlist: https://open.spotify.com/playlist/15Z0BX6l9vvMddjiNb1DUf
+        grid_options:
+          columns: 3
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.googlehome0351
+        name: Badkamer
+        icon: mdi:shower-head
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.googlehome0351
+        variables:
+          playlist: https://open.spotify.com/playlist/0VoOMsxNecfLRkaTvxbrHA
+        grid_options:
+          columns: 3
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.friends_speakers
+        name: Gang
+        icon: mdi:door-open
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.friends_speakers
+        grid_options:
+          columns: 3
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.hub_vincent
+        name: Slaapkamer
+        icon: mdi:bed-outline
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.hub_vincent
+        grid_options:
+          columns: 3
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.hele_huis
+        name: Hele huis
+        icon: mdi:home-sound-in-outline
+        grid_options:
+          columns: 9
+      - type: custom:button-card
+        template: play_here
+        entity: media_player.hele_huis
+        grid_options:
+          columns: 3
+
+      - type: heading
+        heading: Niet storen
+        heading_style: subtitle
+        icon: mdi:bell-off-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.woonkamer_do_not_disturb
+        name: Woonkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.keuken_do_not_disturb
+        name: Keuken
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.badkamer_speaker_do_not_disturb
+        name: Badkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.gang_speaker_1_do_not_disturb
+        name: Gang
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.hub_vincent_do_not_disturb
+        name: Slaapkamer
+        icon: mdi:bell-off-outline
+        grid_options:
+          columns: 6

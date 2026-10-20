@@ -1,0 +1,126 @@
+# Pop-up slaapkamer, opent via #slaapkamer.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#slaapkamer"
+name: Slaapkamer
+icon: mdi:bed-outline
+entity: light.slaapkamer
+button_type: switch
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.plafondslaapkamer
+    name: Plafond
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.nachtkastje
+    name: Nachtkastje
+    icon: mdi:lamp
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: horizontal-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: light.bureau
+        name: Bureau
+        icon: mdi:desk
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: light.bureau_2
+        name: Bureaulamp
+        icon: mdi:desk-lamp
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Rolgordijn
+    icon: mdi:roller-shade
+  - type: custom:bubble-card
+    card_type: cover
+    entity: cover.rollerblind_0003
+    name: Rolgordijn
+    icon_open: mdi:roller-shade
+    icon_close: mdi:roller-shade-closed
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Sfeer
+    icon: mdi:palette-outline
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: custom:button-card
+        template: action
+        entity: scene.slaapkamer_ontspannen
+        name: Ontspannen
+        icon: mdi:sofa-single-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.slaapkamer_ontspannen
+      - type: custom:button-card
+        template: action
+        entity: scene.slaapkamer_lezen
+        name: Lezen
+        icon: mdi:book-open-variant-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.slaapkamer_lezen
+      - type: custom:button-card
+        template: action
+        entity: scene.slaapkamer_nachtlampje
+        name: Nachtlampje
+        icon: mdi:weather-night
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.slaapkamer_nachtlampje
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Slapen
+    icon: mdi:sleep
+  - type: horizontal-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.sleepingvincent
+        name: Vincent slaapt
+        icon: mdi:sleep
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.sleepingcarleen
+        name: Carleen slaapt
+        icon: mdi:sleep
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: switch.hub_vincent_do_not_disturb
+    name: Nest Hub niet storen
+    icon: mdi:bell-off-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.disablelightautomationbedroom
+    name: Automatisch licht pauzeren
+    icon: mdi:motion-sensor-off

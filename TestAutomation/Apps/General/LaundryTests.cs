@@ -46,10 +46,10 @@ public class LaundryTests
         SetWasHangtBuiten(false);
 
         // Default: wasmachine is running
-        _ctx.HaContext.GetState("sensor.wasmachine_washer_machine_state")
+        _ctx.HaContext.GetState("sensor.badkamer_wasmachine_machinestatus")
             .Returns(new EntityState
             {
-                EntityId = "sensor.wasmachine_washer_machine_state",
+                EntityId = "sensor.badkamer_wasmachine_machinestatus",
                 State = "run"
             });
 
@@ -166,7 +166,7 @@ public class LaundryTests
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.wasmachine_washer_machine_state")
+        _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -196,7 +196,7 @@ public class LaundryTests
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.wasmachine_washer_machine_state")
+        _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -223,7 +223,7 @@ public class LaundryTests
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.wasmachine_washer_machine_state")
+        _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -256,7 +256,7 @@ public class LaundryTests
         var app = CreateApp();
 
         // Act
-        _ctx.ChangeStateFor("sensor.wasmachine_washer_machine_state")
+        _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
             .FromState("run")
             .ToState("stop");
         _ctx.HaContextMock.ProcessPendingOperations();

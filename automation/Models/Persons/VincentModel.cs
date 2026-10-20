@@ -1,4 +1,6 @@
 using System.Reactive.Disposables;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.Models.Persons;
 
@@ -12,8 +14,12 @@ public class VincentModel: IPerson
     public string? DirectionOfTravel { get; set; }
     public string? State { get; set; }
 
-    public VincentModel(IEntities entities)
+    /// <summary>Vincent's WhatsApp "lid" identifier, from <c>config.json</c> (<see cref="Automation.Configuration.WhatsAppConfig"/>).</summary>
+    public string Whatsapp { get; }
+
+    public VincentModel(IEntities entities, IOptions<AppConfig> config)
     {
+        Whatsapp = config.Value.Whatsapp.Vincent;
         IsSleeping = entities.InputBoolean.Sleepingvincent.IsOn();
         IsDriving = entities.BinarySensor.VincentPhoneAndroidAuto.IsOn();
         IsHome = entities.InputBoolean.Awayvincent.IsOff();

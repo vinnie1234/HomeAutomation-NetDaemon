@@ -1,0 +1,138 @@
+# Media: overzicht met vier tegels (TV, Muziek, Gaming, Series) die elk een eigen subpagina openen,
+# snelle bronknoppen en wat er nu speelt.
+title: Media
+path: media
+icon: mdi:television-play
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_samenvatting.yaml
+      - !include ../cards/media_tabs.yaml
+
+  # Kies: TV, Muziek, Gaming of Series
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Kies
+        heading_style: title
+        icon: mdi:view-dashboard-outline
+
+      - type: custom:button-card
+        template: media_tile
+        name: TV
+        icon: mdi:television
+        variables:
+          color: 122, 162, 255
+        label: |
+          [[[
+            const tv = states['media_player.tv'];
+            if (!tv || ['off', 'unavailable', 'unknown'].includes(tv.state)) return 'Uit · afstandsbediening en ambilight';
+            const ps5 = states['switch.ps5_vincent_power']?.state === 'on';
+            const google = states['remote.tv_in_woonkamer']?.state === 'on';
+            return `Aan · ${ps5 ? 'PlayStation' : google ? 'Google TV' : tv.attributes.source ?? 'Samsung TV'}`;
+          ]]]
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/media-tv
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: media_tile
+        name: Muziek
+        icon: mdi:music
+        variables:
+          color: 74, 222, 128
+        label: |
+          [[[
+            const s = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+            if (s?.state !== 'playing') return 'Stil · per kamer bedienen';
+            return [s.attributes.media_title, s.attributes.source].filter(Boolean).join(' · ');
+          ]]]
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/media-muziek
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: media_tile
+        name: Gaming
+        icon: mdi:sony-playstation
+        variables:
+          color: 0, 112, 209
+        label: |
+          [[[
+            const ps = states['media_player.playstation_5'];
+            if (ps && !['off', 'standby', 'unavailable', 'unknown'].includes(ps.state))
+              return `Speelt: ${ps.attributes.media_title ?? states['sensor.ps5_vincent_activity']?.state ?? 'PS5'}`;
+            return 'Gamercard en spellen';
+          ]]]
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/media-gaming
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: media_tile
+        name: Series
+        icon: mdi:movie-roll
+        variables:
+          color: 255, 176, 96
+        label: |
+          [[[
+            const next = states['sensor.trakt_next_to_watch_only_aired'];
+            const show = next?.attributes.data?.[1];
+            return show?.title ? `Volgende: ${show.title}` : 'Wat kijken we?';
+          ]]]
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/media-series
+        grid_options:
+          columns: 6
+
+  # Snel bedienen en wat er nu speelt
+  - type: grid
+    cards:
+      - type: heading
+        heading: Snel
+        heading_style: title
+        icon: mdi:lightning-bolt-outline
+      - !include ../cards/bron_ps5.yaml
+      - !include ../cards/bron_google_tv.yaml
+      - !include ../cards/bron_alles_uit.yaml
+
+      # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.spotifyplus_vincent_maarschalkerweerd
+            state: playing
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.spotifyplus_vincent_maarschalkerweerd
+          name: Spotify
+          icon: mdi:spotify
+          cover_background: true
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.tv
+            state_not:
+              - "off"
+              - unavailable
+              - unknown
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.tv
+          name: Samsung TV
+          icon: mdi:television
+          cover_background: true

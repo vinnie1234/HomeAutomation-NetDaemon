@@ -1,5 +1,6 @@
 using Automation.Extensions;
 using Microsoft.Reactive.Testing;
+using TestAutomation.Helpers;
 using Xunit;
 
 namespace TestAutomation.Apps.Helpers;
@@ -90,5 +91,24 @@ public class SchedulerExtensionsTests
             action => scheduler.ScheduleCronNl("10 58 23 31 12 *", action, hasSeconds: true));
 
         Assert.Equal(new TimeSpan(23, 58, 10), Assert.Single(runs).TimeOfDay);
+    }
+
+    [Fact]
+    public void RunDaily_RunsOnce_WhenTheTimerFiresSlightlyEarly()
+    {
+        // A real timer can fire a few milliseconds early: at 12:00 the clock may still read 11:59:59.995.
+        // The next run must then be tomorrow, not today's 12:00 again (which fed Pixel the 12:00 feed three times).
+        var inner = SchedulerAt(new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.Zero)); // 11:00 Dutch time
+        var scheduler = new EarlyClockScheduler(inner, TimeSpan.FromMilliseconds(5));
+        var runs = 0;
+
+        using var _ = scheduler.RunDaily(new TimeSpan(12, 0, 0), () =>
+        {
+            // Stop a runaway repeat instead of looping forever in the test scheduler
+            if (++runs > 10) throw new InvalidOperationException("The daily action keeps repeating");
+        });
+        inner.AdvanceTo(new DateTimeOffset(2026, 10, 21, 9, 0, 0, TimeSpan.Zero).UtcTicks); // 11:00 the next day
+
+        Assert.Equal(1, runs);
     }
 }

@@ -40,8 +40,9 @@ public class AwayManager : BaseApp
         ILogger<AwayManager> logger,
         INotify notify,
         IScheduler scheduler,
-        IOptions<AppConfiguration> config)
-        : base(ha, logger, notify, scheduler)
+        IOptions<AppConfiguration> config,
+        IOptions<AppConfig> appConfig)
+        : base(ha, logger, notify, scheduler, appConfig)
     {
         _config = config.Value;
 

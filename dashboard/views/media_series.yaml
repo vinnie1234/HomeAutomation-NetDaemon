@@ -1,0 +1,53 @@
+# Media → Series: volgende aflevering en wat binnenkort uitkomt (Trakt).
+title: Series
+path: media-series
+icon: mdi:movie-roll
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/media
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Media-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_samenvatting.yaml
+      - !include ../cards/media_tabs.yaml
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Verder kijken
+        heading_style: title
+        icon: mdi:play-box-multiple-outline
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_next_to_watch_only_aired
+        title: Volgende aflevering
+        image_style: fanart
+        max: 4
+
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Binnenkort
+        heading_style: title
+        icon: mdi:calendar-star
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_upcoming_shows
+        title: Nieuwe afleveringen
+        image_style: poster
+        max: 6
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_next_to_watch_only_upcoming
+        title: Komende afleveringen
+        image_style: poster
+        max: 6
+      - type: custom:upcoming-media-card
+        entity: sensor.trakt_upcoming_movies
+        title: Films binnenkort
+        image_style: poster
+        max: 6

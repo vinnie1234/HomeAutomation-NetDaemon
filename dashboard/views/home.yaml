@@ -1,0 +1,557 @@
+# Home: begroeting, meldingen, kamers, snelle acties en wat er nu speelt.
+# De kamer-pop-ups staan onderaan; ze zijn onzichtbaar tot een tegel #kamer opent.
+title: Home
+path: home
+icon: mdi:home
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Weer-hero en meldingen
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: weather_hero
+        grid_options:
+          columns: full
+
+      # Meldingen: alleen zichtbaar als ze nu relevant zijn
+      - type: custom:mushroom-chips-card
+        alignment: start
+        chips:
+          - type: template
+            icon: |
+              {{ {'Morning': 'mdi:weather-sunset-up', 'Day': 'mdi:white-balance-sunny', 'Evening': 'mdi:weather-sunset-down', 'Night': 'mdi:weather-night'}.get(states('input_select.housemodeselect'), 'mdi:home') }}
+            icon_color: amber
+            content: |
+              {{ {'Morning': 'Ochtend', 'Day': 'Dag', 'Evening': 'Avond', 'Night': 'Nacht'}.get(states('input_select.housemodeselect'), states('input_select.housemodeselect')) }}
+            tap_action:
+              action: more-info
+            entity: input_select.housemodeselect
+          - type: template
+            icon: mdi:lightning-bolt
+            icon_color: |
+              {% set now_price = states('sensor.anwb_electricity_all_in_price_current') | float(0) %}
+              {% set avg = states('sensor.anwb_electricity_all_in_price_average_today') | float(0) %}
+              {{ 'green' if now_price < avg * 0.9 else 'red' if now_price > avg * 1.1 else 'orange' }}
+            content: |
+              € {{ '%.2f' | format(states('sensor.anwb_electricity_all_in_price_current') | float(0)) | replace('.', ',') }} /kWh
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-huis/energie
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.away
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:home-export-outline
+              icon_color: blue
+              content: Niemand thuis
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.holliday
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:palm-tree
+              icon_color: teal
+              content: Vakantie
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.afval_vandaag
+                state_not:
+                  - Geen
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:trash-can
+              icon_color: red
+              content: "Vandaag: {{ states('sensor.afval_vandaag') }}"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.afval_morgen
+                state_not:
+                  - Geen
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:trash-can-outline
+              icon_color: orange
+              content: "Morgen: {{ states('sensor.afval_morgen') }}"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.weer_thuis_waarschuwing_actief
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:alert
+              icon_color: red
+              content: "Weerwaarschuwing {{ states('sensor.weer_thuis_waarschuwingscode') }}"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/weer
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.weer_thuis_neerslag_verwacht
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:weather-pouring
+              icon_color: blue
+              content: Regen verwacht
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/weer
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.badkamer_wasmachine_machinestatus
+                state:
+                  - run
+                  - running
+            chip:
+              type: template
+              icon: mdi:washing-machine
+              icon_color: cyan
+              content: |
+                {% set left = states('sensor.badkamer_wasmachine_resterende_tijd') %}
+                {% set end = states('sensor.badkamer_wasmachine_geschatte_eindtijd') if as_timestamp(states('sensor.badkamer_wasmachine_geschatte_eindtijd'), None) else ((now() + timedelta(minutes=left | int)).isoformat() if is_number(left) else '') %}
+                {% set pct = states('sensor.badkamer_wasmachine_voortgangspercentage') %}
+                Wasmachine{{ ' ' ~ pct ~ '%' if is_number(pct) else '' }}{{ ' · klaar ' ~ (as_timestamp(end) | timestamp_custom('%H:%M')) if as_timestamp(end, None) else '' }}
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: or
+                conditions:
+                  - condition: state
+                    entity: binary_sensor.badkamer_wasmachine_wasmiddel_bijna_op
+                    state: "on"
+                  - condition: state
+                    entity: binary_sensor.badkamer_wasmachine_wasverzachter_bijna_op
+                    state: "on"
+            chip:
+              type: template
+              icon: mdi:bottle-tonic-outline
+              icon_color: orange
+              content: |
+                {{ 'Wasmiddel' if is_state('binary_sensor.badkamer_wasmachine_wasmiddel_bijna_op', 'on') else 'Wasverzachter' }} bijna op
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: vacuum.jaap
+                state: cleaning
+            chip:
+              type: template
+              icon: mdi:robot-vacuum
+              icon_color: green
+              content: Jaap is aan het zuigen
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.jaap_bin_full
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:delete-alert-outline
+              icon_color: red
+              content: Bak van Jaap is vol
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.zedar_food_storage_status
+                state_not:
+                  - full
+                  - unknown
+                  - unavailable
+            chip:
+              type: template
+              icon: mdi:food-drumstick-off-outline
+              icon_color: orange
+              content: Voer van Pixel bijna op
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/pixel
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.battery_devices_critical
+                above: 0
+            chip:
+              type: template
+              icon: mdi:battery-alert-variant-outline
+              icon_color: red
+              content: "{{ states('sensor.battery_devices_critical') }} batterij(en) bijna leeg"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.active_issues
+                above: 0
+            chip:
+              type: template
+              icon: mdi:alert-circle-outline
+              icon_color: orange
+              content: "{{ states('sensor.active_issues') }} probleem/problemen"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/systeem
+
+  # Kamers: tik opent de pop-up, lang drukken zet alle lampen aan of uit
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Kamers
+        heading_style: title
+      - type: custom:button-card
+        template: room
+        name: Woonkamer
+        icon: mdi:sofa-outline
+        variables:
+          lights:
+            - light.plafond_woonkamer
+            - light.hanglamp
+            - light.bank
+            - light.hue_filament_bulb_1
+            - light.hue_filament_bulb_2
+            - light.tv_light
+            - light.hue_play_links
+            - light.hue_play_midden
+            - light.hue_play_rechts
+            - light.buiten_deur
+          motion: binary_sensor.motionwoonkamer
+        tap_action:
+          action: navigate
+          navigation_path: "#woonkamer"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: room
+        name: Keuken
+        icon: mdi:countertop-outline
+        variables:
+          lights:
+            - light.lampen_keuken
+            - light.koelkast
+        tap_action:
+          action: navigate
+          navigation_path: "#keuken"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: room
+        name: Slaapkamer
+        icon: mdi:bed-outline
+        variables:
+          lights:
+            - light.plafondslaapkamer
+            - light.nachtkastje
+            - light.bureau
+            - light.bureau_2
+        tap_action:
+          action: navigate
+          navigation_path: "#slaapkamer"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: room
+        name: Badkamer
+        icon: mdi:shower-head
+        variables:
+          lights:
+            - light.plafond_badkamer
+            - light.badkamer_spiegel
+          temperature: sensor.badkamer_temperature
+          motion: binary_sensor.badkamer_motion
+        tap_action:
+          action: navigate
+          navigation_path: "#badkamer"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: room
+        name: Gang
+        icon: mdi:door-open
+        variables:
+          lights:
+            - light.hal
+            - light.hal_2
+            - light.gang_sigaret
+            - light.gang
+          temperature: sensor.gang_temperature
+          motion: binary_sensor.gang_motion
+        tap_action:
+          action: navigate
+          navigation_path: "#gang"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: room
+        name: Berging
+        icon: mdi:archive-outline
+        variables:
+          lights:
+            - light.berging
+            - light.berging_2
+          temperature: sensor.berging_temperature
+          motion: binary_sensor.berging_motion
+        tap_action:
+          action: navigate
+          navigation_path: "#berging"
+        grid_options:
+          columns: 6
+
+  # Snelle acties
+  - type: grid
+    cards:
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.smart_series_4000_97ae_toothbrush_state
+            state: running
+        card:
+          type: custom:button-card
+          template: toothbrush
+      - type: heading
+        heading: Snel
+        heading_style: title
+      - type: custom:button-card
+        template: action
+        name: Film
+        icon: mdi:movie-open-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_movie_2
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: TV kijken
+        icon: mdi:television-classic
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.tv_kijken
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        entity: input_boolean.datenight
+        name: Date night
+        icon: mdi:heart-outline
+        tap_action:
+          action: toggle
+        state:
+          - value: "on"
+            icon: mdi:heart
+            styles:
+              card:
+                - background: rgba(255, 107, 129, 0.25)
+              icon:
+                - color: "#ff6b81"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Alles uit
+        icon: mdi:power
+        tap_action:
+          action: perform-action
+          perform_action: light.turn_off
+          target:
+            entity_id: all
+          confirmation:
+            text: Alle lampen in huis uitzetten?
+        grid_options:
+          columns: 6
+
+      # Energie en Pixel in één oogopslag
+      - type: custom:button-card
+        template: info
+        name: Energie
+        icon: mdi:lightning-bolt
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/energie
+        custom_fields:
+          v: |
+            [[[
+              const p = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state);
+              return isNaN(p) ? '–' : `${Math.round(Math.abs(p))} W`;
+            ]]]
+        label: |
+          [[[
+            const price = parseFloat(states['sensor.anwb_electricity_all_in_price_current']?.state);
+            const cost = parseFloat(states['sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost']?.state);
+            const euro = v => isNaN(v) ? '–' : `€ ${v.toFixed(2).replace('.', ',')}`;
+            const p = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state);
+            return `${p < 0 ? 'Teruglevering · ' : ''}${euro(price)} /kWh · vandaag ${euro(cost)}`;
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const now = parseFloat(states['sensor.anwb_electricity_all_in_price_current']?.state);
+                  const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+                  if (isNaN(now) || isNaN(avg)) return 'var(--accent-color)';
+                  return now < avg * 0.9 ? '#4ade80' : now > avg * 1.1 ? '#ff6b6b' : '#ffb060';
+                ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: info
+        name: Pixel
+        icon: mdi:cat
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/pixel
+        custom_fields:
+          v: |
+            [[[
+              const n = Math.round(parseFloat(states['input_number.pixeltotalamountfeedday']?.state));
+              return isNaN(n) ? '–' : `${n} ${n === 1 ? 'portie' : 'porties'}`;
+            ]]]
+        label: |
+          [[[
+            const litter = {
+              pet_into: 'Pixel zit in de bak',
+              cleaning: 'Bak wordt schoongemaakt',
+              emptying: 'Bak wordt geleegd',
+              standby: 'Bak is schoon'
+            };
+            const status = states['sensor.snow_self_cleaning_litter_box_status']?.state;
+            const fed = ['input_datetime.pixellastautomatedfeed', 'input_datetime.pixellastmanualfeed']
+              .map(e => new Date((states[e]?.state ?? '').replace(' ', 'T')))
+              .filter(d => !isNaN(d))
+              .sort((a, b) => b - a)[0];
+            const fedText = fed ? `gevoerd ${fed.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : '';
+            return [litter[status] ?? status, fedText].filter(Boolean).join(' · ');
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const food = states['sensor.zedar_food_storage_status']?.state;
+                  return food && food !== 'full' ? '#ff6b6b' : '#4ade80';
+                ]]]
+        grid_options:
+          columns: 6
+
+      - type: heading
+        heading: Vandaag
+        heading_style: title
+        icon: mdi:calendar-today
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/huishouden
+      - type: custom:week-planner-card
+        days: 1
+        startingDay: today
+        showNavigation: false
+        compact: true
+        locale: nl
+        calendars:
+          - entity: calendar.vincentmaarschalkerweerd_gmail_com
+            name: Vincent
+            color: "#7aa2ff"
+          - entity: calendar.carleen_vincent
+            name: Carleen & Vincent
+            color: "#ff8fab"
+          - entity: calendar.birthdays
+            name: Verjaardagen
+            color: "#ffb060"
+          - entity: calendar.feestdagen_in_nederland
+            name: Feestdagen
+            color: "#4ade80"
+        texts:
+          fullDay: Hele dag
+          noEvents: Geen afspraken
+          today: Vandaag
+          tomorrow: Morgen
+          yesterday: Gisteren
+          moreEvents: Meer afspraken
+
+      # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.playstation_5
+            state: playing
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.playstation_5
+          name: PlayStation 5
+          icon: mdi:sony-playstation
+          cover_background: true
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.spotify_vincent_maarschalkerweerd
+            state: playing
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.spotify_vincent_maarschalkerweerd
+          name: Spotify
+          icon: mdi:spotify
+          cover_background: true
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.tv
+            state_not:
+              - "off"
+              - unavailable
+              - unknown
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.tv
+          name: TV
+          icon: mdi:television
+          cover_background: true
+
+  # Kamer-pop-ups (onzichtbaar tot ze geopend worden)
+  - type: grid
+    cards:
+      - !include ../popups/woonkamer.yaml
+      - !include ../popups/keuken.yaml
+      - !include ../popups/slaapkamer.yaml
+      - !include ../popups/badkamer.yaml
+      - !include ../popups/gang.yaml
+      - !include ../popups/berging.yaml

@@ -1,0 +1,25 @@
+# Samenvatting van Media, bovenaan alle Media-pagina's (boven de tabbalk).
+type: custom:button-card
+template: summary
+icon: mdi:play-circle-outline
+name: |
+  [[[
+    const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+    const tv = states['media_player.tv'];
+    const tvOn = tv && !['off', 'unavailable', 'unknown'].includes(tv.state);
+    const ps5 = states['switch.ps5_vincent_power']?.state === 'on';
+    const google = states['remote.tv_in_woonkamer']?.state === 'on';
+    const parts = [];
+    if (tvOn) parts.push(`TV aan · ${ps5 ? 'PlayStation' : google ? 'Google TV' : tv.attributes.source ?? 'Samsung TV'}`);
+    if (spotify?.state === 'playing') parts.push(`Muziek${spotify.attributes.source ? ' in ' + spotify.attributes.source : ''}`);
+    return parts.length ? parts.join(' · ') : 'Alles staat uit';
+  ]]]
+label: |
+  [[[
+    const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+    const ps = states['media_player.playstation_5'];
+    const parts = [];
+    if (spotify?.state === 'playing') parts.push([spotify.attributes.media_title, spotify.attributes.media_artist].filter(Boolean).join(' – '));
+    if (ps && !['off', 'standby', 'unavailable', 'unknown'].includes(ps.state)) parts.push(`Speelt ${ps.attributes.media_title ?? 'op de PS5'}`);
+    return parts.join(' · ') || 'Kies hieronder TV, Muziek, Gaming of Series';
+  ]]]

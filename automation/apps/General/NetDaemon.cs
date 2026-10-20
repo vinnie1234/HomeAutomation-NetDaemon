@@ -26,7 +26,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     public NetDaemon(IHaContext ha, ILogger<NetDaemon> logger,
         INotify notify, IScheduler scheduler, IDataRepository storage,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
         _storage = storage;
@@ -47,8 +47,9 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
         // typed null keeps the stored JSON readable as IReadOnlyList<double> next time.
         _storage.Save<IReadOnlyList<double>?>("NetDaemonRestart", null);
 
-        if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn() && Vincent.IsHome)
-            Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
+        // TODO: temporarily disabled (frequent restarts during WhatsApp assistant debugging) - re-enable the speaker announcement
+        // if (!Entities.InputBoolean.Sleepingvincent.IsOn() && !Entities.InputBoolean.Sleepingcarleen.IsOn() && Vincent.IsHome)
+        //     Notify.NotifyHouse("Het huis is opnieuw opgestart", "Het huis is opnieuw opgestart", true);
         Notify.NotifyDiscord("Het huis is opnieuw opgestart", [_config.Discord.Logs]);
 
         Entities.InputButton.Restartnetdaemon.StateChanges().Subscribe(_ =>

@@ -1,4 +1,6 @@
 ﻿using System.Reactive.Concurrency;
+using Automation.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -19,8 +21,9 @@ public class PcManager : BaseApp
         IHaContext ha,
         ILogger<PcManager> logger,
         INotify notify,
-        IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         Entities.InputButton.StartPc
             .StateChanges()

@@ -1,0 +1,79 @@
+# Template-sensoren voor Home Assistant (kopieer naar /config/template.yaml; configuration.yaml: template: !include template.yaml).
+# Opgeschoond: RouterUptime, PixelHaveFood, StatusPetSnowy en Remaining Time zijn weg, die lazen niet meer bestaande
+# sensoren (het dashboard gebruikt sensor.rt_ax88u_uptime en de nieuwe wasmachine-entiteiten direct).
+- sensor:
+    - name: "PSNImage"
+      state: "{% if states('sensor.ps5_vincent_activity') == 'playing' %} {{state_attr('sensor.ps5_vincent_activity', 'title_image') }} {% else %} https://www.nicepng.com/png/full/10-104138_blue-playstation-logo-png-playstation-logo-no-background.png {% endif %}"
+    - name: "PS5TurnOn"
+      state: "{{ 'on' if states('switch.ps5_vincent_power') == 'on' else 'off' }}"
+    - name: "EnergyAllInprice"
+      unique_id: "EnergyAllInPrice"
+      unit_of_measurement: "€/kWh"
+      state: "{{states('sensor.energyzero_today_energy_current_hour_price') | float + 0.13}}"
+    - name: "pc_cpubelasting"
+      state: "{{ states('sensor.vincent_pc_cpubelasting')|float(0) }}"
+      unit_of_measurement: "PERCENTAGE"
+    - name: "pc_geheugengebruik"
+      state: "{{ states('sensor.vincent_pc_geheugengebruik')|float(0) }}"
+      unit_of_measurement: "PERCENTAGE"
+    - name: "pc_gpubelasting"
+      state: "{{ states('sensor.vincent_pc_gpubelasting')|float(0) }}"
+      unit_of_measurement: "PERCENTAGE"
+    - name: "pc_gputemperatuur"
+      state: "{{ states('sensor.vincent_pc_gputemperatuur')|float(0) }}"
+      unit_of_measurement: "TEMPERATURE"
+    - name: "pc_huidigekloksnelheid"
+      state: "{{ states('sensor.vincent_pc_huidigekloksnelheid')|float(0) }}"
+    - name: "pc_opslag_c"
+      state: "{{ states('sensor.vincent_pc_opslag_c')|float(0) }}"
+    - name: "pc_opslag_d"
+      state: "{{ states('sensor.vincent_pc_opslag_d')|float(0) }}"
+    - default_entity_id: sensor.paper_pickup_day
+      state:
+        '{% set current = strptime(states(''sensor.afval_papier''), ''%Y-%m-%d'')
+        %} {%- set days = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag",
+        "Zaterdag", "Zondag"] %} {{ as_timestamp(current) | timestamp_custom(days[current.weekday()]
+        + '' %d %B'', True)}}'
+      name: paper_pickup_day
+    - default_entity_id: sensor.pmd_pickup_day
+      state:
+        '{% set current = strptime(states(''sensor.afval_pmd''), ''%Y-%m-%d'')
+        %} {%- set days = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag",
+        "Zaterdag", "Zondag"] %} {{ as_timestamp(current) | timestamp_custom(days[current.weekday()]
+        + '' %d %B'', True)}}'
+      name: pmd_pickup_day
+    - default_entity_id: sensor.alarm_time
+      state:
+        '{% set alarm = states(''sensor.hub_vincent_alarms'') %} {% set current
+        = strptime(alarm[:19], ''%Y-%m-%dT%H:%M:%S'') %} {%- set days = ["Maandag",
+        "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"] %} {{ as_timestamp(current)
+        | timestamp_custom(days[current.weekday()] + '' %d %B %H:%M'', True)}}'
+      name: alarm_time
+    - name: EnergyUsages
+      state: >
+        {% set verbruik = states('sensor.p1_meter_3c39e72a64e8_active_power') | float %}
+        {% set productie_raw = states('sensor.p1_meter_vermogen') | float %}
+        {% set productie = productie_raw * -1 if productie_raw < 0 else 0 %}
+        {{ verbruik + productie }}
+
+# Verwachting per uur voor de weerstrook op de Weer-pagina van het dashboard.
+# Haalt bij het opstarten en elk uur om 5 over de verwachting voor 48 uur op.
+- trigger:
+    - trigger: time_pattern
+      minutes: 5
+    - trigger: homeassistant
+      event: start
+  action:
+    - action: weather.get_forecasts
+      data:
+        type: hourly
+      target:
+        entity_id: weather.weer_thuis
+      response_variable: verwachting
+  sensor:
+    - name: Weer verwachting per uur
+      unique_id: weer_verwachting_per_uur
+      icon: mdi:weather-partly-cloudy
+      state: "{{ now().isoformat() }}"
+      attributes:
+        forecast: "{{ verwachting['weather.weer_thuis'].forecast[:48] }}"

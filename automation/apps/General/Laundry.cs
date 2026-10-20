@@ -28,7 +28,7 @@ public class Laundry : BaseApp
         INotify notify,
         IScheduler scheduler,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         SetupWashingMachineMonitoring();
         SetupLaundryOutsideToggleMonitoring();
@@ -42,7 +42,7 @@ public class Laundry : BaseApp
 
     private void SetupWashingMachineMonitoring()
     {
-        Entities.Sensor.WasmachineWasherMachineState
+        Entities.Sensor.BadkamerWasmachineMachinestatus
             .StateChanges()
             .Where(x => x.Old?.State?.ToLower() is "run" or "running" &&
                         x.New?.State?.ToLower() is "stop" or "stopped" or "end")

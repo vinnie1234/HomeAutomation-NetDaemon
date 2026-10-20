@@ -1,0 +1,52 @@
+# Menubalk bovenaan alle Media-pagina's: Media (overzicht), TV, Muziek, Gaming en Series.
+type: grid
+columns: 5
+square: false
+grid_options:
+  columns: full
+cards:
+  - type: custom:button-card
+    template: tab
+    name: Media
+    icon: mdi:view-dashboard-outline
+    variables:
+      path: /dashboard-huis/media
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media
+  - type: custom:button-card
+    template: tab
+    name: TV
+    icon: mdi:television
+    variables:
+      path: /dashboard-huis/media-tv
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media-tv
+  - type: custom:button-card
+    template: tab
+    name: Muziek
+    icon: mdi:music
+    variables:
+      path: /dashboard-huis/media-muziek
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media-muziek
+  - type: custom:button-card
+    template: tab
+    name: Gaming
+    icon: mdi:sony-playstation
+    variables:
+      path: /dashboard-huis/media-gaming
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media-gaming
+  - type: custom:button-card
+    template: tab
+    name: Series
+    icon: mdi:movie-roll
+    variables:
+      path: /dashboard-huis/media-series
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media-series

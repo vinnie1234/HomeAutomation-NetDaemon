@@ -1,0 +1,632 @@
+# Huishouden: Jaap (stofzuiger), wasmachine, afval, taken, agenda en batterijen.
+title: Huishouden
+path: huishouden
+icon: mdi:broom
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:home-heart
+        variables:
+          level: |
+            [[[
+              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0) return 'bad';
+              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on');
+              return low || !['Geen', 'unknown', 'unavailable', undefined].includes(states['sensor.afval_vandaag']?.state) ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const issues = [];
+            if (states['binary_sensor.jaap_bin_full']?.state === 'on') issues.push('bak van Jaap legen');
+            const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+            if (crit) issues.push(`${crit} ${crit === 1 ? 'batterij' : 'batterijen'} vervangen`);
+            ['wasmiddel', 'wasverzachter'].forEach(k => {
+              if (states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') issues.push(`${k} kopen`);
+            });
+            const today = states['sensor.afval_vandaag']?.state;
+            if (!['Geen', 'unknown', 'unavailable', undefined].includes(today)) issues.push(`${today} buiten zetten`);
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Alles op orde in huis';
+          ]]]
+        label: |
+          [[[
+            const jaap = { cleaning: 'aan het zuigen', docked: 'in het dock', idle: 'staat stil', paused: 'gepauzeerd', returning: 'onderweg naar dock', error: 'probleem' };
+            const washer = { run: 'bezig', running: 'bezig', stop: 'klaar', end: 'klaar', pause: 'gepauzeerd', idle: 'staat klaar' };
+            const parts = [];
+            const j = states['vacuum.jaap']?.state;
+            if (j) parts.push(`Jaap ${jaap[j] ?? j}`);
+            const w = states['sensor.badkamer_wasmachine_machinestatus']?.state;
+            if (w && !['unknown', 'unavailable'].includes(w)) parts.push(`wasmachine ${washer[w] ?? w}`);
+            const tomorrow = states['sensor.afval_morgen']?.state;
+            if (!['Geen', 'unknown', 'unavailable', undefined].includes(tomorrow)) parts.push(`morgen ${tomorrow}`);
+            return parts.join(' · ');
+          ]]]
+
+  # Jaap en afval
+  - type: grid
+    cards:
+      - type: heading
+        heading: Jaap
+        heading_style: title
+        icon: mdi:robot-vacuum
+      # Jaap: status met batterijring, en de bediening eronder (eigen kaart, onafhankelijk van extra sensoren)
+      - type: custom:button-card
+        template: glass
+        entity: vacuum.jaap
+        triggers_update: all
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: more-info
+        name: |
+          [[[
+            const map = {
+              cleaning: 'Aan het zuigen', docked: 'In het dock', idle: 'Staat stil', paused: 'Gepauzeerd',
+              returning: 'Gaat terug naar het dock', error: 'Heeft een probleem', unavailable: 'Niet bereikbaar'
+            };
+            return map[entity.state] ?? entity.state;
+          ]]]
+        label: |
+          [[[
+            const parts = [];
+            if (states['binary_sensor.jaap_bin_full']?.state === 'on') parts.push('Bak is vol!');
+            if (states['binary_sensor.woonkamer_jaap_opladen']?.state === 'on') parts.push('Laadt op');
+            const missions = parseInt(states['sensor.jaap_totaal_aantal_missies']?.state);
+            if (!isNaN(missions)) parts.push(`${missions} missies`);
+            return parts.join(' · ');
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const battery = parseFloat(states['sensor.jaap_battery_level']?.state ?? entity.attributes.battery_level);
+              const pct = isNaN(battery) ? 0 : battery;
+              const color = pct < 20 ? '#ff6b6b' : pct < 50 ? '#ffb060' : '#4ade80';
+              const cleaning = entity.state === 'cleaning';
+              return `<div style="width:72px;height:72px;border-radius:50%;
+                        background:conic-gradient(${color} ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                        display:flex;align-items:center;justify-content:center">
+                        <div style="width:60px;height:60px;border-radius:50%;background:#121828;display:flex;flex-direction:column;
+                          align-items:center;justify-content:center">
+                          <ha-icon icon="mdi:robot-vacuum" style="--mdc-icon-size:24px;color:${cleaning ? '#4ade80' : 'rgba(242,244,248,0.7)'}"></ha-icon>
+                          <span style="font-size:11px;font-weight:600">${isNaN(battery) ? '–' : Math.round(battery) + '%'}</span>
+                        </div>
+                      </div>`;
+            ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"ring n" "ring l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 16px
+          card:
+            - height: 100px
+          name:
+            - align-self: end
+            - font-size: 17px
+          label:
+            - align-self: start
+            - white-space: normal
+            - text-align: left
+            - color: '[[[ return states["binary_sensor.jaap_bin_full"]?.state === "on" ? "#ff6b6b" : "var(--secondary-text-color)"; ]]]'
+      - type: custom:button-card
+        template: action
+        name: Start
+        icon: mdi:play
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.start
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Pauze
+        icon: mdi:pause
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.pause
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Naar dock
+        icon: mdi:home-import-outline
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.return_to_base
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: custom:button-card
+        template: action
+        name: Zoek
+        icon: mdi:map-marker-question-outline
+        tap_action:
+          action: perform-action
+          perform_action: vacuum.locate
+          target:
+            entity_id: vacuum.jaap
+        grid_options:
+          columns: 3
+      - type: heading
+        heading: Ruimte zuigen
+        heading_style: subtitle
+      - type: custom:button-card
+        template: action
+        name: Woonkamer
+        icon: mdi:sofa-outline
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.vacuumcleanwoonkamer
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Bank
+        icon: mdi:sofa
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.vacuumcleanbank
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Gang
+        icon: mdi:door-open
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.vacuumcleangang
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Slaapkamer
+        icon: mdi:bed-outline
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.vacuumcleanslaapkamer
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Kattenbak
+        icon: mdi:cat
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.vacuumcleankattenbak
+        grid_options:
+          columns: 6
+
+      - type: heading
+        heading: Afval
+        heading_style: title
+        icon: mdi:trash-can-outline
+      - type: custom:button-card
+        template: stat
+        entity: sensor.afval_pmd
+        name: PMD
+        show_label: true
+        label: |
+          [[[
+            const n = parseInt(states['sensor.garbage_placed_pmd']?.state);
+            return isNaN(n) ? '' : `${n}× buiten gezet`;
+          ]]]
+        icon: mdi:recycle
+        state_display: &afval_datum |
+          [[[
+            const d = new Date(entity.state);
+            if (isNaN(d)) return ['unknown', 'unavailable'].includes(entity.state) ? 'Onbekend' : entity.state;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const day = new Date(d); day.setHours(0, 0, 0, 0);
+            const diff = Math.round((day - today) / 86400000);
+            const date = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+            return diff === 0 ? 'Vandaag' : diff === 1 ? 'Morgen' : `${date} · over ${diff} dagen`;
+          ]]]
+        styles:
+          icon:
+            - color: "#ffb060"
+          state:
+            - font-size: 17px
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.afval_papier
+        name: Papier
+        show_label: true
+        label: |
+          [[[
+            const n = parseInt(states['sensor.garbage_placed_papier']?.state);
+            return isNaN(n) ? '' : `${n}× buiten gezet`;
+          ]]]
+        icon: mdi:newspaper-variant-outline
+        state_display: *afval_datum
+        styles:
+          icon:
+            - color: "#7aa2ff"
+          state:
+            - font-size: 17px
+        grid_options:
+          columns: 6
+
+  # Wasmachine en batterijen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Wasmachine
+        heading_style: title
+        icon: mdi:washing-machine
+      # Compact: status met voortgangsring; tik opent de pop-up #wasmachine met bediening en instellingen
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        entity: sensor.badkamer_wasmachine_machinestatus
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: navigate
+          navigation_path: "#wasmachine"
+        name: |
+          [[[
+            const map = { run: 'Bezig met wassen', running: 'Bezig met wassen', stop: 'Klaar', end: 'Klaar', pause: 'Gepauzeerd', idle: 'Staat klaar' };
+            return map[entity.state] ?? (['off', 'unavailable'].includes(entity.state) ? 'Uit' : entity.state);
+          ]]]
+        label: |
+          [[[
+            const left = states['sensor.badkamer_wasmachine_resterende_tijd']?.state ?? '';
+            const leftMinutes = /^\d+:\d+/.test(left) ? left.split(':').map(Number).reduce((h, m) => h * 60 + m) : parseFloat(left);
+            let end = new Date(states['sensor.badkamer_wasmachine_geschatte_eindtijd']?.state);
+            if (isNaN(end) && !isNaN(leftMinutes)) end = new Date(Date.now() + leftMinutes * 60000);
+            const low = ['wasmiddel', 'wasverzachter']
+              .filter(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on')
+              .map(k => `${k[0].toUpperCase()}${k.slice(1)} bijna op`);
+            const parts = [];
+            if (['run', 'running'].includes(entity.state) && !isNaN(end)) {
+              const min = Math.max(0, Math.round((end - new Date()) / 60000));
+              parts.push(`Klaar om ${end.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · nog ${min} min`);
+            } else {
+              parts.push('Tik om te starten of in te stellen');
+            }
+            return [...parts, ...low].join(' · ');
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const running = ['run', 'running'].includes(entity.state);
+              const pct = running ? Math.min(100, parseFloat(states['sensor.badkamer_wasmachine_voortgangspercentage']?.state) || 0) : 0;
+              return `<div style="width:64px;height:64px;border-radius:50%;
+                        background:conic-gradient(#38bdf8 ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                        display:flex;align-items:center;justify-content:center">
+                        <div style="width:52px;height:52px;border-radius:50%;background:#121828;display:flex;
+                          align-items:center;justify-content:center">
+                          ${running
+                            ? `<span style="font-size:15px;font-weight:700">${Math.round(pct)}%</span>`
+                            : '<ha-icon icon="mdi:washing-machine" style="--mdc-icon-size:26px;opacity:0.6"></ha-icon>'}
+                        </div>
+                      </div>`;
+            ]]]
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+        styles:
+          grid:
+            - grid-template-areas: '"ring n arrow" "ring l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - height: 88px
+          name:
+            - align-self: end
+            - font-size: 16px
+          label:
+            - align-self: start
+            - white-space: normal
+            - text-align: left
+            - color: |
+                [[[
+                  const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on');
+                  return low ? '#ffb060' : 'var(--secondary-text-color)';
+                ]]]
+          custom_fields:
+            arrow:
+              - align-self: center
+      - type: custom:button-card
+        template: wash_advice
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.laundryhangingoutside
+        name: Was hangt buiten
+        icon: mdi:hanger
+
+      - type: heading
+        heading: Batterijen
+        heading_style: title
+        icon: mdi:battery-heart-variant
+      # Eén samenvatting; onbekende waarden worden weggelaten
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        icon: mdi:battery-heart-variant
+        show_label: true
+        name: |
+          [[[
+            const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+            const warn = parseInt(states['sensor.battery_devices_warning']?.state) || 0;
+            if (crit) return `${crit} ${crit === 1 ? 'batterij' : 'batterijen'} bijna leeg`;
+            if (warn) return `${warn} ${warn === 1 ? 'batterij' : 'batterijen'} binnenkort vervangen`;
+            return 'Alle batterijen in orde';
+          ]]]
+        label: |
+          [[[
+            const low = Object.entries(states)
+              .filter(([id, st]) => st.attributes?.device_class === 'battery' && parseFloat(st.state) < 30).length;
+            return low ? `${low} onder 30%` : '';
+          ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          card:
+            - min-height: 72px
+          icon:
+            - width: 30px
+            - color: |
+                [[[
+                  const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
+                  const warn = parseInt(states['sensor.battery_devices_warning']?.state) || 0;
+                  return crit ? '#ff6b6b' : warn ? '#ffb060' : '#4ade80';
+                ]]]
+          name:
+            - font-size: 16px
+          label:
+            - white-space: normal
+            - text-align: left
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Bijna leeg
+        filter:
+          include:
+            - attributes:
+                device_class: battery
+              state: "< 30"
+          exclude:
+            - state: unavailable
+            - state: unknown
+        sort:
+          method: state
+          numeric: true
+        show_empty: false
+
+  # Taken en agenda
+  - type: grid
+    cards:
+      - type: heading
+        heading: Vandaag doen
+        heading_style: title
+        icon: mdi:checkbox-marked-circle-outline
+      - type: todo-list
+        entity: todo.dagelijks
+      - type: heading
+        heading: Agenda
+        heading_style: title
+        icon: mdi:calendar
+      - type: custom:week-planner-card
+        days: 7
+        startingDay: today
+        showNavigation: true
+        compact: true
+        locale: nl
+        hideWeekend: false
+        hideDaysWithoutEvents: false
+        columns:
+          extraLarge: 2
+          large: 2
+          medium: 2
+          small: 1
+          extraSmall: 1
+        weather:
+          entity: weather.weer_thuis
+          showCondition: true
+          showTemperature: true
+          showLowTemperature: true
+        calendars:
+          - entity: calendar.vincentmaarschalkerweerd_gmail_com
+            name: Vincent
+            color: "#7aa2ff"
+          - entity: calendar.carleen_vincent
+            name: Carleen & Vincent
+            color: "#ff8fab"
+          - entity: calendar.birthdays
+            name: Verjaardagen
+            color: "#ffb060"
+          - entity: calendar.feestdagen_in_nederland
+            name: Feestdagen
+            color: "#4ade80"
+        texts:
+          fullDay: Hele dag
+          noEvents: Geen afspraken
+          today: Vandaag
+          tomorrow: Morgen
+          yesterday: Gisteren
+          moreEvents: Meer afspraken
+
+  # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#wasmachine"
+        name: Wasmachine
+        icon: mdi:washing-machine
+        sub_button:
+          - entity: sensor.badkamer_wasmachine_voortgangspercentage
+            show_state: true
+            show_icon: false
+            show_background: false
+        cards:
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:button-card
+                template: action
+                name: Starten
+                icon: mdi:play
+                tap_action:
+                  action: perform-action
+                  perform_action: button.press
+                  target:
+                    entity_id: button.badkamer_wasmachine_starten
+              - type: custom:button-card
+                template: action
+                name: Pauzeren
+                icon: mdi:pause
+                tap_action:
+                  action: perform-action
+                  perform_action: button.press
+                  target:
+                    entity_id: button.badkamer_wasmachine_pauzeren
+              - type: custom:button-card
+                template: action
+                name: Stoppen
+                icon: mdi:stop
+                tap_action:
+                  action: perform-action
+                  perform_action: button.press
+                  target:
+                    entity_id: button.badkamer_wasmachine_stoppen
+                  confirmation:
+                    text: Wasmachine stoppen?
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Programma
+            icon: mdi:tshirt-crew-outline
+          - type: tile
+            entity: select.badkamer_wasmachine_programma
+            name: Programma
+            icon: mdi:tshirt-crew-outline
+            features_position: bottom
+            features:
+              - type: select-options
+          - type: tile
+            entity: select.badkamer_wasmachine_wastemperatuur
+            name: Temperatuur
+            icon: mdi:thermometer-water
+            features_position: bottom
+            features:
+              - type: select-options
+          - type: tile
+            entity: select.badkamer_wasmachine_centrifugesnelheid
+            name: Centrifuge
+            icon: mdi:rotate-3d-variant
+            features_position: bottom
+            features:
+              - type: select-options
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Planning
+            icon: mdi:clock-outline
+          - type: entities
+            entities:
+              - entity: time.badkamer_wasmachine_klaar_om
+                name: Klaar om
+              - entity: number.badkamer_wasmachine_uitgestelde_start
+                name: Uitgestelde start
+          # Zet "klaar om" op het einde van het wasadvies (het advies op deze pagina onthoudt zijn uitkomst)
+          - type: custom:button-card
+            template: action
+            name: Klaar volgens wasadvies
+            icon: mdi:washing-machine-alert
+            tap_action:
+              action: javascript
+              javascript: |
+                [[[
+                  const advice = window.huisWasAdvies;
+                  if (!advice) return;
+                  const hour = String(advice.end % 24).padStart(2, '0');
+                  hass.callService('time', 'set_value', { entity_id: 'time.badkamer_wasmachine_klaar_om', time: `${hour}:00:00` });
+                ]]]
+            label: |
+              [[[
+                const advice = window.huisWasAdvies;
+                return advice ? `klaar om ${String(advice.end % 24).padStart(2, '0')}:00` : 'eerst het wasadvies openen';
+              ]]]
+            show_label: true
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Opties
+            icon: mdi:tune-variant
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_voorwas
+            name: Voorwas
+            icon: mdi:numeric-1-circle-outline
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_intensief
+            name: Intensief
+            icon: mdi:arm-flex-outline
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.badkamer_wasmachine_bubble_soak
+            name: Bubble soak
+            icon: mdi:chart-bubble
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Voorraad en onderhoud
+            icon: mdi:bottle-tonic-outline
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: stat
+                entity: binary_sensor.badkamer_wasmachine_wasmiddel_bijna_op
+                name: Wasmiddel
+                icon: mdi:bottle-tonic-outline
+                state_display: '[[[ return entity.state === "on" ? "Bijna op" : "Genoeg"; ]]]'
+                styles:
+                  icon:
+                    - color: '[[[ return entity.state === "on" ? "#ff6b6b" : "#4ade80"; ]]]'
+              - type: custom:button-card
+                template: stat
+                entity: binary_sensor.badkamer_wasmachine_wasverzachter_bijna_op
+                name: Wasverzachter
+                icon: mdi:bottle-tonic-plus-outline
+                state_display: '[[[ return entity.state === "on" ? "Bijna op" : "Genoeg"; ]]]'
+                styles:
+                  icon:
+                    - color: '[[[ return entity.state === "on" ? "#ff6b6b" : "#4ade80"; ]]]'
+          - type: custom:button-card
+            template: stat
+            entity: sensor.badkamer_wasmachine_trommelreiniging_over
+            name: Trommelreiniging over
+            icon: mdi:washing-machine-alert

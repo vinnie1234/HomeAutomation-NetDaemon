@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Concentus" Version="2.2.2" />
         <PackageReference Include="FluentAssertions" Version="8.11.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
         <PackageReference Include="NetDaemon.AppModel" Version="26.36.0" />
@@ -31,6 +32,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\automation\Automation.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 

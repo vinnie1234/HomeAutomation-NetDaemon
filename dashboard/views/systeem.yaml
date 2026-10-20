@@ -1,0 +1,497 @@
+# Systeem: NetDaemon, updates, back-ups, netwerk, Raspberry Pi en afwezigheid. Apparaten: subpagina Netwerk.
+# In de navigatie alleen zichtbaar voor admins.
+title: Systeem
+path: systeem
+icon: mdi:cog
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Samenvatting: aandachtspunten en korte info
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:server-network
+        variables:
+          level: |
+            [[[
+              if (states['binary_sensor.rt_ax88u_internet']?.state === 'off') return 'bad';
+              const updates = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').length;
+              return parseInt(states['sensor.active_issues']?.state) > 0 || updates ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const issues = [];
+            if (states['binary_sensor.rt_ax88u_internet']?.state === 'off') issues.push('geen internet');
+            const problems = parseInt(states['sensor.active_issues']?.state) || 0;
+            if (problems) issues.push(`${problems} ${problems === 1 ? 'probleem' : 'problemen'}`);
+            const updates = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').length;
+            if (updates) issues.push(`${updates} ${updates === 1 ? 'update' : 'updates'}`);
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Alles draait goed';
+          ]]]
+        label: |
+          [[[
+            const num = id => parseFloat(states[id]?.state);
+            const parts = [];
+            const ping = num('sensor.ping_round_trip_time_average');
+            if (!isNaN(ping)) parts.push(`ping ${Math.round(ping < 1 ? ping * 1000 : ping)} ms`);
+            const temp = num('sensor.processor_temperature');
+            if (!isNaN(temp)) parts.push(`Pi ${Math.round(temp)}°C`);
+            const backup = new Date(states['sensor.backup_last_successful_automatic_backup']?.state);
+            if (!isNaN(backup)) {
+              const days = Math.floor((Date.now() - backup) / 86400000);
+              parts.push(`back-up ${days === 0 ? 'vandaag' : days === 1 ? 'gisteren' : days + ' dagen geleden'}`);
+            }
+            return parts.join(' · ');
+          ]]]
+
+  # NetDaemon en Home Assistant
+  - type: grid
+    cards:
+      - type: heading
+        heading: Home Assistant
+        heading_style: title
+        icon: mdi:home-assistant
+      - type: custom:button-card
+        template: stat
+        entity: sensor.active_issues
+        name: Problemen
+        icon: mdi:alert-circle-outline
+        styles:
+          icon:
+            - color: '[[[ return parseInt(entity.state) > 0 ? "#ffb060" : "#4ade80"; ]]]'
+        tap_action:
+          action: navigate
+          navigation_path: /config/repairs
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.backup_last_successful_automatic_backup
+        name: Laatste back-up
+        icon: mdi:backup-restore
+        grid_options:
+          columns: 6
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Updates beschikbaar
+        filter:
+          include:
+            - domain: update
+              state: "on"
+        sort:
+          method: name
+        show_empty: false
+
+      - type: heading
+        heading: Watchman
+        heading_style: title
+        icon: mdi:shield-search
+      # Watchman: automatiseringen en scripts die naar verdwenen entiteiten of acties verwijzen
+      - type: custom:button-card
+        template: glass
+        triggers_update:
+          - sensor.watchman_missing_entities
+          - sensor.watchman_missing_actions
+        icon: mdi:shield-search
+        show_label: true
+        name: |
+          [[[
+            const ents = parseInt(states['sensor.watchman_missing_entities']?.state) || 0;
+            const acts = parseInt(states['sensor.watchman_missing_actions']?.state) || 0;
+            return ents || acts ? `${ents} ontbrekende entiteiten · ${acts} acties` : 'Geen verwijzingen naar verdwenen dingen';
+          ]]]
+        label: |
+          [[[
+            const list = states['sensor.watchman_missing_entities']?.attributes.entities ?? [];
+            const names = list.slice(0, 4).map(e => e.id ?? e.entity_id ?? e).join(', ') + (list.length > 4 ? ` en ${list.length - 4} meer` : '');
+            return list.length ? `${names} · tik om op te lossen` : '';
+          ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#watchman"
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          icon:
+            - width: 28px
+            - color: |
+                [[[
+                  const n = (parseInt(states['sensor.watchman_missing_entities']?.state) || 0) + (parseInt(states['sensor.watchman_missing_actions']?.state) || 0);
+                  return n ? '#ffb060' : '#4ade80';
+                ]]]
+          label:
+            - white-space: normal
+            - text-align: left
+            - font-size: 12px
+
+      - type: heading
+        heading: Instellingen
+        heading_style: title
+        icon: mdi:tune-vertical
+      - type: custom:button-card
+        template: action
+        name: Dagritme en licht instellen
+        icon: mdi:clock-edit-outline
+        tap_action:
+          action: navigate
+          navigation_path: "#instellingen"
+      - type: heading
+        heading: NetDaemon
+        heading_style: title
+        icon: mdi:robot-outline
+      - type: custom:button-card
+        template: action
+        name: NetDaemon herstarten
+        icon: mdi:restart
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.restartnetdaemon
+          confirmation:
+            text: NetDaemon herstarten?
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Apps
+          state_color: true
+        filter:
+          include:
+            - entity_id: input_boolean.netdaemon_*
+        sort:
+          method: name
+
+  # Netwerk en Raspberry Pi
+  - type: grid
+    cards:
+      - type: heading
+        heading: Netwerk
+        heading_style: title
+        icon: mdi:router-wireless
+      - type: custom:button-card
+        template: stat
+        entity: binary_sensor.rt_ax88u_internet
+        name: Internet
+        icon: mdi:web
+        state_display: '[[[ return entity.state === "on" ? "Verbonden" : "Geen verbinding"; ]]]'
+        styles:
+          icon:
+            - color: '[[[ return entity.state === "on" ? "#4ade80" : "#ff6b6b"; ]]]'
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.rt_ax88u_uptime
+        name: Router draait
+        icon: mdi:router
+        # Uptime in seconden (of een opstarttijdstip); getoond als "6 dagen, 4 uur"
+        state_display: |
+          [[[
+            const v = parseFloat(entity?.state);
+            const since = isNaN(v) || entity?.attributes.device_class === 'timestamp' ? new Date(entity?.state) : null;
+            const seconds = since ? (Date.now() - since) / 1000 : v;
+            if (isNaN(seconds)) return 'Onbekend';
+            const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600);
+            if (days > 0) return `${days} ${days === 1 ? 'dag' : 'dagen'}, ${hours} uur`;
+            return hours > 0 ? `${hours} uur` : `${Math.max(1, Math.round(seconds / 60))} min`;
+          ]]]
+        grid_options:
+          columns: 6
+      # De Cloudflare-test meet ongeveer 4,5× te laag; daarom worden download en upload hier gecorrigeerd
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_90th_percentile_down
+        name: Download
+        icon: mdi:download
+        state_display: |
+          [[[
+            const v = parseFloat(entity.state) * 4.5;
+            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.cloudflare_speed_test_90th_percentile_up
+        name: Upload
+        icon: mdi:upload
+        state_display: |
+          [[[
+            const v = parseFloat(entity?.state) * 4.5;
+            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#7aa2ff"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: ms
+        entity: sensor.ping_round_trip_time_average
+        name: Ping
+        icon: mdi:timer-outline
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: ms
+        entity: sensor.cloudflare_speed_test_latency
+        name: Latency
+        icon: mdi:timer-sync-outline
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: ms
+        entity: sensor.cloudflare_speed_test_jitter
+        name: Jitter
+        icon: mdi:sine-wave
+        grid_options:
+          columns: 4
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        hours_12: false
+        header:
+          show: true
+          title: Ping laatste 24 uur
+        apex_config:
+          chart:
+            height: 180
+          legend:
+            show: false
+          stroke:
+            curve: smooth
+            width: 2
+          fill:
+            type: gradient
+            gradient:
+              opacityFrom: 0.4
+              opacityTo: 0.05
+          grid:
+            borderColor: "rgba(255, 255, 255, 0.06)"
+          xaxis:
+            labels:
+              format: HH:mm
+        series:
+          - entity: sensor.ping_round_trip_time_average
+            name: Ping
+            type: area
+            color: "#4ade80"
+            unit: " ms"
+            float_precision: 1
+            group_by:
+              func: avg
+              duration: 15min
+            # Gemeten in seconden: omrekenen naar milliseconden
+            transform: "return x < 1 ? x * 1000 : x;"
+      # Doorklikken naar alle apparaten in het netwerk
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        icon: mdi:devices
+        show_label: true
+        name: Apparaten in het netwerk
+        label: |
+          [[[
+            const devices = Object.values(states)
+              .filter(s => s.entity_id.startsWith('device_tracker.') && s.attributes.ip);
+            const online = devices.filter(s => s.state === 'home').length;
+            return `${online} verbonden · ${devices.length - online} offline`;
+          ]]]
+        custom_fields:
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.6"></ha-icon>'
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/netwerk
+        styles:
+          grid:
+            - grid-template-areas: '"i n arrow" "i l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - height: 76px
+          icon:
+            - width: 28px
+            - color: var(--accent-color)
+          custom_fields:
+            arrow:
+              - align-self: center
+
+      - type: heading
+        heading: Raspberry Pi
+        heading_style: title
+        icon: mdi:raspberry-pi
+      - type: custom:button-card
+        template: progress
+        entity: sensor.processor_use
+        name: Processor
+        icon: mdi:cpu-64-bit
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: progress
+        entity: sensor.memory_use_percent
+        name: Geheugen
+        icon: mdi:memory
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: progress
+        entity: sensor.disk_use_percent
+        name: Schijf
+        icon: mdi:harddisk
+        variables:
+          max: 100
+          unit: "%"
+      - type: custom:button-card
+        template: stat
+        entity: sensor.processor_temperature
+        name: Temperatuur
+        icon: mdi:thermometer
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.last_boot
+        name: Opgestart
+        icon: mdi:power
+        grid_options:
+          columns: 6
+
+  # Afwezigheid
+  - type: grid
+    cards:
+      - type: heading
+        heading: Afwezigheid
+        heading_style: title
+        icon: mdi:home-export-outline
+      - type: entities
+        state_color: true
+        entities:
+          - entity: input_boolean.away
+            name: Niemand thuis
+          - entity: input_boolean.awayvincent
+            name: Vincent weg
+          - entity: input_boolean.awaycarleen
+            name: Carleen weg
+          - entity: input_boolean.disableautoaway
+            name: Automatisch weg uitzetten
+          - entity: input_boolean.holliday
+            name: Vakantie
+          - entity: input_boolean.onvacation
+            name: Op reis
+          - entity: input_boolean.working
+            name: Aan het werk
+          - entity: input_boolean.disablereset
+            name: Reset uitzetten
+          - type: section
+            label: Kantoordagen
+          - entity: input_boolean.officeday_monday
+            name: Maandag
+          - entity: input_boolean.officeday_tuesday
+            name: Dinsdag
+          - entity: input_boolean.officeday_wednesday
+            name: Woensdag
+          - entity: input_boolean.officeday_thursday
+            name: Donderdag
+          - entity: input_boolean.officeday_friday
+            name: Vrijdag
+
+  # Pop-up: dagritme (HouseStateManager) en helderheid dag/nacht (badkamer en hal)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#instellingen"
+        name: Instellingen
+        icon: mdi:tune-vertical
+        cards:
+          - type: entities
+            entities:
+              - type: section
+                label: Dag begint
+              - entity: input_datetime.daytimeoffice
+                name: Kantoordag
+                icon: mdi:office-building-outline
+              - entity: input_datetime.daytimehomework
+                name: Thuiswerkdag
+                icon: mdi:home-account
+              - entity: input_datetime.daytimeweekend
+                name: Weekend
+                icon: mdi:calendar-weekend
+              - type: section
+                label: Nacht begint
+              - entity: input_datetime.nighttimeweekdays
+                name: Doordeweeks
+                icon: mdi:weather-night
+              - entity: input_datetime.nighttimeweekends
+                name: Weekend
+                icon: mdi:weather-night
+              - type: section
+                label: Helderheid bij beweging
+              - entity: input_number.bathroomlightdaytime
+                name: Badkamer overdag
+              - entity: input_number.bathroomlightnighttime
+                name: Badkamer 's nachts
+              - entity: input_number.halllightdaytime
+                name: Hal overdag
+              - entity: input_number.halllightnighttime
+                name: Hal 's nachts
+
+  # Pop-up: Watchman, wat ontbreekt waar, met een gok voor de vervanger en knoppen om het op te lossen
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#watchman"
+        name: Watchman
+        icon: mdi:shield-search
+        cards:
+          - type: custom:button-card
+            template: watchman_list
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              # Studio Code Server (add-on); open het bestand met Ctrl+P en spring naar de regel met Ctrl+G
+              - type: custom:button-card
+                template: action
+                name: Open VS Code
+                icon: mdi:microsoft-visual-studio-code
+                tap_action:
+                  action: navigate
+                  navigation_path: /hassio/ingress/a0d7b954_vscode
+              - type: custom:button-card
+                template: action
+                name: Automatiseringen
+                icon: mdi:robot-outline
+                tap_action:
+                  action: navigate
+                  navigation_path: /config/automation/dashboard
+              - type: custom:button-card
+                template: action
+                name: Entiteiten
+                icon: mdi:format-list-bulleted
+                tap_action:
+                  action: navigate
+                  navigation_path: /config/entities
+              - type: custom:button-card
+                template: action
+                name: Nieuw rapport
+                icon: mdi:refresh
+                tap_action:
+                  action: perform-action
+                  perform_action: button.press
+                  target:
+                    entity_id: button.watchman_report

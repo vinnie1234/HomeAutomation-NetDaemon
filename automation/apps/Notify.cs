@@ -1,9 +1,11 @@
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Reactive.Disposables;
+using Automation.Configuration;
 using Automation.Enum;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Persons;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.CircuitBreaker;
 using static System.Enum;
@@ -36,7 +38,8 @@ public class Notify : INotify
     /// <param name="ha">The Home Assistant context.</param>
     /// <param name="storage">The data repository for storing notification history.</param>
     /// <param name="logger">The logger instance.</param>
-    public Notify(IHaContext ha, IDataRepository storage, ILogger<Notify> logger)
+    /// <param name="config">The app configuration.</param>
+    public Notify(IHaContext ha, IDataRepository storage, ILogger<Notify> logger, IOptions<AppConfig> config)
     {
         _ha = ha;
         _storage = storage;
@@ -44,8 +47,8 @@ public class Notify : INotify
         _entities = new Entities(ha);
         _services = new Services(ha);
         _discordResiliencePipeline = CreateDiscordResiliencePipeline();
-        _vincentModel = new VincentModel(_entities);
-        _carleen = new CarleenModel(_entities);
+        _vincentModel = new VincentModel(_entities, config);
+        _carleen = new CarleenModel(_entities, config);
     }
 
     /// <summary>

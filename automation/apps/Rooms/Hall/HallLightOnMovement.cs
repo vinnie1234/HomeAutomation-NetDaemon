@@ -1,5 +1,7 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Helpers;
+using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
 namespace Automation.apps.Rooms.Hall;
@@ -30,8 +32,9 @@ public class HallLightOnMovement : BaseApp
         ILogger<HallLightOnMovement> logger,
         INotify notify,
         IScheduler scheduler,
-        ICircadianLightingService circadianLightingService)
-        : base(ha, logger, notify, scheduler)
+        ICircadianLightingService circadianLightingService,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         _circadianLightingService = circadianLightingService;
         InitializeLights();

@@ -1,0 +1,316 @@
+# Energie → Overzicht: samenvatting, nu, prijs met wasadvies en de energieverdeling.
+# Details staan in de tabs Prijs, Verbruik & zon, Kosten en Water.
+title: Energie
+path: energie
+icon: mdi:lightning-bolt
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Energie-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/energie_samenvatting.yaml
+      - !include ../cards/energie_tabs.yaml
+
+  # Nu: verbruik of teruglevering, zon en sluipverbruik
+  - type: grid
+    cards:
+      - type: heading
+        heading: Nu
+        heading_style: title
+        icon: mdi:home-lightning-bolt-outline
+      - type: gauge
+        entity: sensor.p1_meter_3c39e72a64e8_active_power
+        name: Verbruik
+        unit: W
+        min: 0
+        max: 4000
+        needle: true
+        severity:
+          green: 0
+          yellow: 1500
+          red: 2500
+      - type: custom:mini-graph-card
+        name: Laatste 24 uur
+        icon: mdi:chart-areaspline
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        smoothing: true
+        show:
+          fill: fade
+          labels: false
+          extrema: true
+        color_thresholds:
+          - value: 0
+            color: "#4ade80"
+          - value: 1500
+            color: "#ffb060"
+          - value: 2500
+            color: "#ff6b6b"
+        entities:
+          - entity: sensor.p1_meter_3c39e72a64e8_active_power
+            name: Verbruik
+      - type: custom:button-card
+        template: stat
+        entity: sensor.power_production_now
+        name: Zon nu
+        icon: mdi:solar-power-variant
+        state_display: |
+          [[[
+            const w = parseFloat(entity.state) * 4;
+            return isNaN(w) ? '–' : `${Math.round(w)} W`;
+          ]]]
+        styles:
+          icon:
+            - color: "#ffd166"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.all_standby_power
+        name: Sluipverbruik
+        icon: mdi:power-sleep
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
+        name: Kost nu
+        icon: mdi:cash-clock
+        grid_options:
+          columns: 6
+
+      # Grootste verbruikers nu: per apparaat een klikbare regel, gesorteerd op vermogen
+      - type: heading
+        heading: Grootste verbruikers nu
+        heading_style: subtitle
+        icon: mdi:flash-alert-outline
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 1
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: sensor.koelkast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.tv_kast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV-kast
+            - entity_id: sensor.tv_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV
+            - entity_id: sensor.soundbar_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Soundbar
+            - entity_id: sensor.hue_play_links_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_midden_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_rechts_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_slaapkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_badkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.nachtkastje_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.keuken_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.berging_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hal_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.buiten_deur_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.sigaret_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plug_bureau_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Bureau
+            - entity_id: sensor.nestmini9818_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Nest Mini keuken
+            - entity_id: sensor.woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.energysocket_5c2faf02a546_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Warmtepomp
+            - entity_id: sensor.energysocket_5c2faf0c7564_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Ventilatie
+            - entity_id: sensor.energysocket_5c2faf0d8364_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Gamehoek
+        sort:
+          method: state
+          numeric: true
+          reverse: true
+          count: 5
+        show_empty: false
+
+  # Prijs en wasadvies
+  - type: grid
+    cards:
+      - type: heading
+        heading: Stroomprijs
+        heading_style: title
+        icon: mdi:currency-eur
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Nu
+        icon: mdi:lightning-bolt
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const now = parseFloat(entity.state);
+                  const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+                  if (isNaN(now) || isNaN(avg)) return 'var(--accent-color)';
+                  return now < avg * 0.95 ? '#4ade80' : now > avg * 1.05 ? '#ff6b6b' : '#ffb060';
+                ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_average_today
+        name: Gemiddeld
+        icon: mdi:approximately-equal
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_lowest_today
+        name: Laagste
+        icon: mdi:arrow-down-bold-circle-outline
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_highest_today
+        name: Hoogste
+        icon: mdi:arrow-up-bold-circle-outline
+        styles:
+          icon:
+            - color: "#ff6b6b"
+        grid_options:
+          columns: 6
+      # Wasadvies: prijs én buiten drogen (zie template wash_advice)
+      - type: custom:button-card
+        template: wash_advice
+        grid_options:
+          columns: 12
+
+  # Verdeling en kosten van vandaag
+  - type: grid
+    cards:
+      - type: heading
+        heading: Verdeling
+        heading_style: title
+        icon: mdi:transmission-tower
+      - type: energy-distribution
+        link_dashboard: false
+      - type: heading
+        heading: Kosten
+        heading_style: subtitle
+        icon: mdi:cash-multiple
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_daily_energy_cost
+        name: Vandaag
+        icon: mdi:calendar-today
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_monthly_energy_cost
+        name: Deze maand
+        icon: mdi:calendar-month
+        grid_options:
+          columns: 6

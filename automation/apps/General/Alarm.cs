@@ -36,7 +36,7 @@ public class Alarm : BaseApp
         IEntityManager entityManager,
         IOptions<AppConfig> config,
         IDataRepository storage)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
         _entityManager = entityManager;

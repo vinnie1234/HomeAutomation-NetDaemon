@@ -1,0 +1,382 @@
+# Energie → Verbruik & zon: verbruik, zonneproductie en verwachting, per apparaat en bronnen.
+title: Verbruik & zon
+path: energie-verbruik
+icon: mdi:solar-power-variant
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/energie
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Energie-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/energie_samenvatting.yaml
+      - !include ../cards/energie_tabs.yaml
+      - type: energy-date-selection
+        grid_options:
+          columns: full
+  # Grafieken
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Verbruik
+        heading_style: title
+        icon: mdi:home-lightning-bolt-outline
+      - type: energy-usage-graph
+        grid_options:
+          columns: full
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        span:
+          start: day
+        hours_12: false
+        now:
+          show: true
+          label: Nu
+          color: "#ffffff"
+        header:
+          show: true
+          title: Zonneproductie en verbruik vandaag
+          show_states: true
+          colorize_states: true
+          standard_format: true
+        apex_config:
+          chart:
+            type: area
+            height: 300
+          legend:
+            show: false
+          stroke:
+            curve: smooth
+            width: 2
+          fill:
+            type: gradient
+            gradient:
+              shadeIntensity: 1
+              opacityFrom: 0.45
+              opacityTo: 0.05
+              stops:
+                - 100
+          grid:
+            borderColor: "rgba(255, 255, 255, 0.06)"
+          xaxis:
+            labels:
+              format: HH:mm
+          yaxis:
+            min: 0
+        all_series_config:
+          type: area
+          stroke_width: 2
+          unit: W
+          show:
+            legend_value: false
+        series:
+          - entity: sensor.energyusages
+            name: Verbruik
+            color: "#ff6b6b"
+          - entity: sensor.power_production_now
+            name: Zonneproductie
+            transform: return x * 4;
+            color: "#4ade80"
+        grid_options:
+          columns: full
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        span:
+          start: day
+        hours_12: false
+        now:
+          show: true
+          label: Nu
+          color: "#ffffff"
+        header:
+          show: true
+          title: Zonneproductie en verwachting
+          show_states: true
+          colorize_states: true
+          standard_format: true
+        apex_config:
+          chart:
+            type: area
+            height: 300
+          legend:
+            show: false
+          stroke:
+            curve: smooth
+            width: 2
+          fill:
+            type: gradient
+            gradient:
+              shadeIntensity: 1
+              opacityFrom: 0.45
+              opacityTo: 0.05
+              stops:
+                - 100
+          grid:
+            borderColor: "rgba(255, 255, 255, 0.06)"
+          xaxis:
+            labels:
+              format: HH:mm
+          yaxis:
+            min: 0
+        all_series_config:
+          type: area
+          stroke_width: 2
+          unit: W
+          show:
+            legend_value: false
+        series:
+          - entity: sensor.energy_current_hour
+            name: Verwacht
+            transform: return x * 4 * 1000;
+            color: "#ffb060"
+          - entity: sensor.power_production_now
+            name: Zonneproductie
+            transform: return x * 4;
+            color: "#4ade80"
+        grid_options:
+          columns: full
+      - type: heading
+        heading: Per apparaat
+        heading_style: subtitle
+        icon: mdi:devices
+      - type: energy-devices-detail-graph
+        grid_options:
+          columns: full
+
+  # Netbalans en bronnen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Zonneverwachting
+        heading_style: title
+        icon: mdi:solar-power-variant
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_today
+        name: Vandaag
+        icon: mdi:weather-sunny
+        styles:
+          icon:
+            - color: "#ffd166"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_today_remaining
+        name: Nog te gaan
+        icon: mdi:timer-sand
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energy_production_tomorrow
+        name: Morgen
+        icon: mdi:weather-sunny-alert
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.power_highest_peak_time_today
+        name: Piek vandaag
+        icon: mdi:chart-bell-curve
+        state_display: |
+          [[[
+            const t = new Date(entity?.state);
+            return isNaN(t) ? 'Onbekend' : t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+          ]]]
+        grid_options:
+          columns: 6
+      # Grootste verbruikers nu: per apparaat een klikbare regel, gesorteerd op vermogen
+      - type: heading
+        heading: Grootste verbruikers nu
+        heading_style: subtitle
+        icon: mdi:flash-alert-outline
+      - type: custom:auto-entities
+        card:
+          type: grid
+          columns: 1
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: sensor.koelkast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.tv_kast_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV-kast
+            - entity_id: sensor.tv_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: TV
+            - entity_id: sensor.soundbar_power_meter
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Soundbar
+            - entity_id: sensor.hue_play_links_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_midden_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hue_play_rechts_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_slaapkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plafond_badkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.nachtkastje_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.keuken_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.berging_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.hal_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.buiten_deur_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.sigaret_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.plug_bureau_device_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Bureau
+            - entity_id: sensor.nestmini9818_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Nest Mini keuken
+            - entity_id: sensor.woonkamer_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+            - entity_id: sensor.energysocket_5c2faf02a546_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Warmtepomp
+            - entity_id: sensor.energysocket_5c2faf0c7564_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Ventilatie
+            - entity_id: sensor.energysocket_5c2faf0d8364_active_power
+              state: "> 0.5"
+              options:
+                type: custom:button-card
+                template: power_row
+                variables:
+                  name: Gamehoek
+        sort:
+          method: state
+          numeric: true
+          reverse: true
+          count: 8
+        show_empty: false
+      - type: heading
+        heading: Stopcontacten
+        heading_style: subtitle
+        icon: mdi:power-socket-eu
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf02a546_active_power
+        name: Warmtepomp
+        icon: mdi:heat-pump-outline
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf0c7564_active_power
+        name: Ventilatie
+        icon: mdi:fan
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: stat
+        entity: sensor.energysocket_5c2faf0d8364_active_power
+        name: Gamehoek
+        icon: mdi:controller
+        grid_options:
+          columns: 4
+      - type: heading
+        heading: Netbalans
+        heading_style: title
+        icon: mdi:scale-balance
+      - type: energy-grid-neutrality-gauge
+      - type: energy-distribution
+        link_dashboard: false
+      - type: heading
+        heading: Bronnen
+        heading_style: subtitle
+        icon: mdi:format-list-bulleted
+      - type: energy-sources-table
+        show_only_totals: true
+        types:
+          - grid
+          - solar
+          - battery
+          - water

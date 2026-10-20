@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Enum;
+using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
 namespace Automation.apps.General;
@@ -28,8 +30,9 @@ public class HouseStateManager : BaseApp
         IHaContext ha,
         ILogger<HouseStateManager> logger,
         INotify notify,
-        IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         SetSleepingOffFromAlarm();
         SetDayTime();

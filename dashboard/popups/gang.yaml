@@ -1,0 +1,74 @@
+# Pop-up gang en hal, opent via #gang.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#gang"
+name: Gang
+icon: mdi:door-open
+sub_button:
+  - entity: sensor.gang_temperature
+    show_state: true
+    show_icon: true
+    show_background: false
+  - entity: binary_sensor.gang_motion
+    show_icon: true
+    show_background: false
+  - name: Alles uit
+    icon: mdi:power
+    tap_action:
+      action: perform-action
+      perform_action: light.turn_off
+      target:
+        entity_id:
+          - light.hal
+          - light.hal_2
+          - light.gang_sigaret
+          - light.gang
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.hal
+    name: Hal
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.hal_2
+    name: Hal 2
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.gang_sigaret
+    name: Sigaret
+    icon: mdi:wall-sconce-round-outline
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: light.gang
+    name: Gang (stekker)
+    icon: mdi:power-socket-eu
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Automatisering
+    icon: mdi:robot-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.disablelightautomationhall
+    name: Automatisch licht pauzeren
+    icon: mdi:motion-sensor-off

@@ -1,0 +1,134 @@
+# Energie → Prijs: prijzen van nu en vandaag, per uur en de historie.
+title: Prijs
+path: energie-prijs
+icon: mdi:currency-eur
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/energie
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Energie-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/energie_samenvatting.yaml
+      - !include ../cards/energie_tabs.yaml
+
+  # Prijzen
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Stroomprijs
+        heading_style: title
+        icon: mdi:currency-eur
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Nu
+        icon: mdi:lightning-bolt
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const now = parseFloat(entity.state);
+                  const avg = parseFloat(states['sensor.anwb_electricity_all_in_price_average_today']?.state);
+                  if (isNaN(now) || isNaN(avg)) return 'var(--accent-color)';
+                  return now < avg * 0.95 ? '#4ade80' : now > avg * 1.05 ? '#ff6b6b' : '#ffb060';
+                ]]]
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_average_today
+        name: Gemiddeld
+        icon: mdi:approximately-equal
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_lowest_today
+        name: Laagste
+        icon: mdi:arrow-down-bold-circle-outline
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_all_in_price_highest_today
+        name: Hoogste
+        icon: mdi:arrow-up-bold-circle-outline
+        styles:
+          icon:
+            - color: "#ff6b6b"
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.anwb_electricity_market_price_current
+        name: Marktprijs
+        icon: mdi:chart-line-variant
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: price
+        entity: sensor.energyzero_today_energy_next_hour_price
+        name: Volgend uur
+        icon: mdi:clock-fast
+        grid_options:
+          columns: 6
+      # Prijs per uur vandaag (eigen staafgrafiek, zie template price_bars)
+      - type: custom:button-card
+        template: price_bars
+        grid_options:
+          columns: full
+      # Goedkoopste uur vandaag en het goedkoopste blok van 3 uur vanaf nu
+      - type: custom:button-card
+        template: stat
+        entity: sensor.anwb_electricity_all_in_price_current
+        name: Goedkoopste uur vandaag
+        icon: mdi:clock-check-outline
+        state_display: |
+          [[[
+            const prices = Object.entries(entity.attributes.hourly_prices ?? {})
+              .map(([time, p]) => [new Date(time), parseFloat(p.all_in_price)])
+              .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+            if (!prices.length) return '–';
+            const [t, v] = prices.reduce((min, p) => p[1] < min[1] ? p : min);
+            return `${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · € ${v.toFixed(2).replace('.', ',')}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#4ade80"
+        grid_options:
+          columns: 8
+      - type: custom:button-card
+        template: stat
+        entity: sensor.p1_meter_3c39e72a64e8_active_tariff
+        name: Tarief nu
+        icon: mdi:swap-horizontal
+        state_display: '[[[ return entity.state === "1" ? "Dal" : entity.state === "2" ? "Normaal" : entity.state; ]]]'
+        grid_options:
+          columns: 4
+
+  # Historie
+  - type: grid
+    cards:
+      - type: heading
+        heading: Afgelopen week
+        heading_style: title
+        icon: mdi:history
+      - type: statistics-graph
+        entities:
+          - sensor.anwb_electricity_all_in_price_current
+        days_to_show: 7
+        period: hour
+        chart_type: line
+        stat_types:
+          - mean
+        hide_legend: true

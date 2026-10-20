@@ -48,7 +48,7 @@ public class BathRoomLights : BaseApp
         ISpotcast spotcast,
         IOptions<AppConfig> config,
         ICircadianLightingService circadianLightingService)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
         _spotcast = spotcast;

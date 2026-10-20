@@ -1,0 +1,29 @@
+# PS5: staat hij uit, dan dezelfde stappen als de Gaming-app (TV aan op HDMI2, soundbar aan); staat hij aan, dan uit
+type: custom:button-card
+template: action
+entity: switch.ps5_vincent_power
+name: PS5
+icon: mdi:sony-playstation
+tap_action:
+  action: javascript
+  javascript: |
+    [[[
+      if (entity.state === 'on') {
+        hass.callService('switch', 'turn_off', { entity_id: 'switch.ps5_vincent_power' });
+        return;
+      }
+      hass.callService('switch', 'turn_on', { entity_id: 'switch.ps5_vincent_power' });
+      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' });
+      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
+      setTimeout(() => hass.callService('media_player', 'select_source',
+        { entity_id: 'media_player.tv', source: 'HDMI2' }), 8000);
+    ]]]
+state:
+  - value: "on"
+    styles:
+      card:
+        - background: rgba(0, 112, 209, 0.35)
+      icon:
+        - color: "#ffffff"
+grid_options:
+  columns: 4

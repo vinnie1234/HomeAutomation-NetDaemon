@@ -1,6 +1,8 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Enum;
 using Automation.Models.Persons;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps;
 
@@ -73,11 +75,13 @@ public class BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for scheduling tasks.</param>
+    /// <param name="config">The app configuration, from which <see cref="Vincent"/> and <see cref="Carleen"/> get their WhatsApp IDs.</param>
     protected BaseApp(
         IHaContext haContext,
         ILogger logger,
         INotify notify,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
     {
         HaContext = haContext;
         Logger = logger;
@@ -86,8 +90,8 @@ public class BaseApp
         Entities = new Entities(haContext);
         Services = new Services(haContext);
 
-        Vincent = new VincentModel(Entities);
-        Carleen = new CarleenModel(Entities);
+        Vincent = new VincentModel(Entities, config);
+        Carleen = new CarleenModel(Entities, config);
         HouseSitter = new HouseSitterModel(Entities);
     }
     

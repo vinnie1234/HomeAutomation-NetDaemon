@@ -1,0 +1,192 @@
+# Pop-up woonkamer, opent via #woonkamer.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#woonkamer"
+name: Woonkamer
+icon: mdi:sofa-outline
+entity: light.woonkamer
+button_type: switch
+sub_button:
+  - entity: binary_sensor.motionwoonkamer
+    show_icon: true
+    show_background: false
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.plafond_woonkamer
+    name: Plafond
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.hanglamp
+    name: Hanglamp
+    icon: mdi:ceiling-light-multiple-outline
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.bank
+    name: Bank
+    icon: mdi:floor-lamp
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.hue_filament_bulb_1
+    name: Filament 1
+    icon: mdi:lightbulb-variant-outline
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.hue_filament_bulb_2
+    name: Filament 2
+    icon: mdi:lightbulb-variant-outline
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.buiten_deur
+    name: Voordeur
+    icon: mdi:outdoor-lamp
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.tv_light
+    name: TV-lamp
+    icon: mdi:television-ambient-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: horizontal-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: light.hue_play_links
+        name: Play L
+        icon: mdi:led-strip-variant
+        tap_action:
+          action: toggle
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: light.hue_play_midden
+        name: Play M
+        icon: mdi:led-strip-variant
+        tap_action:
+          action: toggle
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: light.hue_play_rechts
+        name: Play R
+        icon: mdi:led-strip-variant
+        tap_action:
+          action: toggle
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Sfeer
+    icon: mdi:palette-outline
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_movie_2
+        name: Film
+        icon: mdi:movie-open-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_movie_2
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_ontspannen
+        name: Ontspannen
+        icon: mdi:sofa-single-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_ontspannen
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_lezen
+        name: Lezen
+        icon: mdi:book-open-variant-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_lezen
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_concentreren
+        name: Focus
+        icon: mdi:head-lightbulb-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_concentreren
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_helder
+        name: Helder
+        icon: mdi:white-balance-sunny
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_helder
+      - type: custom:button-card
+        template: action
+        entity: scene.woonkamer_nachtlampje
+        name: Nachtlampje
+        icon: mdi:weather-night
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.woonkamer_nachtlampje
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Automatisering
+    icon: mdi:robot-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.disablelightautomationlivingroom
+    name: Automatisch licht pauzeren
+    icon: mdi:motion-sensor-off
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.datenight
+    name: Date night
+    icon: mdi:heart-outline

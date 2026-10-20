@@ -78,7 +78,7 @@ public class KitchenMusicOnMotion : BaseApp
         IScheduler scheduler,
         ISpotcast spotcast,
         IOptions<AppConfig> config)
-        : base(ha, logger, notify, scheduler)
+        : base(ha, logger, notify, scheduler, config)
     {
         _spotcast = spotcast;
         _config = config.Value;

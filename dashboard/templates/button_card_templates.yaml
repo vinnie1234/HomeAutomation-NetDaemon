@@ -1,0 +1,1632 @@
+# Gedeelde button-card templates. Elke kaart op het dashboard bouwt hierop voort,
+# zodat stijl en gedrag op één plek staan.
+
+# Glazen basiskaart.
+glass:
+  show_state: false
+  styles:
+    card:
+      - border-radius: 24px
+      - padding: 14px
+      - background: rgba(255, 255, 255, 0.06)
+      - border: 1px solid rgba(255, 255, 255, 0.08)
+      - box-shadow: none
+      - transition: all 0.4s ease
+    name:
+      - justify-self: start
+      - font-weight: 600
+      - font-size: 15px
+    label:
+      - justify-self: start
+      - font-size: 12px
+      - opacity: 0.7
+
+# Kamertegel. Gloeit in de kleur van de lampen die aan staan.
+# Tik opent de pop-up (navigation_path per kaart), lang drukken zet alles aan of uit.
+# variables.lights: lijst met lampen, variables.temperature / variables.motion: optionele sensoren.
+room:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    lights: []
+    temperature: null
+    motion: null
+  hold_action:
+    haptic: heavy
+    action: javascript
+    javascript: |
+      [[[
+        const on = variables.lights.filter(e => states[e]?.state === 'on');
+        hass.callService('light', on.length ? 'turn_off' : 'turn_on', {
+          entity_id: on.length ? on : variables.lights
+        });
+      ]]]
+  label: |
+    [[[
+      const on = variables.lights.filter(e => states[e]?.state === 'on').length;
+      const parts = [on === 0 ? 'Alles uit' : on === 1 ? '1 lamp aan' : `${on} lampen aan`];
+      const t = variables.temperature ? parseFloat(states[variables.temperature]?.state) : NaN;
+      if (!isNaN(t)) parts.push(`${t.toFixed(1).replace('.', ',')}°`);
+      return parts.join(' · ');
+    ]]]
+  custom_fields:
+    motion: |
+      [[[
+        return variables.motion && states[variables.motion]?.state === 'on'
+          ? '<ha-icon icon="mdi:motion-sensor" style="width:18px;color:#7aa2ff"></ha-icon>'
+          : '';
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i motion" "n n" "l l"'
+      - grid-template-columns: 1fr auto
+      - grid-template-rows: 1fr auto auto
+    card:
+      - height: 118px
+      - background: |
+          [[[
+            const on = variables.lights.map(e => states[e]).filter(s => s?.state === 'on');
+            if (!on.length) return 'rgba(255, 255, 255, 0.05)';
+            const rgb = (on.find(s => s.attributes.rgb_color)?.attributes.rgb_color ?? [255, 176, 96]).join(',');
+            return `linear-gradient(135deg, rgba(${rgb}, 0.38) 0%, rgba(${rgb}, 0.10) 55%, rgba(255, 255, 255, 0.04) 100%)`;
+          ]]]
+      - box-shadow: |
+          [[[
+            const on = variables.lights.map(e => states[e]).filter(s => s?.state === 'on');
+            if (!on.length) return 'none';
+            const rgb = (on.find(s => s.attributes.rgb_color)?.attributes.rgb_color ?? [255, 176, 96]).join(',');
+            return `0 10px 36px rgba(${rgb}, 0.30)`;
+          ]]]
+    img_cell:
+      - justify-self: start
+      - width: 42px
+      - height: 42px
+      - border-radius: 50%
+      - background: rgba(255, 255, 255, 0.10)
+    icon:
+      - width: 22px
+      - color: |
+          [[[
+            const on = variables.lights.map(e => states[e]).filter(s => s?.state === 'on');
+            if (!on.length) return 'rgba(242, 244, 248, 0.6)';
+            const rgb = (on.find(s => s.attributes.rgb_color)?.attributes.rgb_color ?? [255, 176, 96]).join(',');
+            return `rgb(${rgb})`;
+          ]]]
+    custom_fields:
+      motion:
+        - align-self: start
+        - justify-self: end
+
+# Persoon met foto, thuis/weg/slaapt.
+# variables.sleeping: input_boolean die aangeeft of deze persoon slaapt.
+person:
+  template: glass
+  show_entity_picture: true
+  show_label: true
+  variables:
+    sleeping: null
+  name: '[[[ return entity.attributes.friendly_name.split(" ")[0]; ]]]'
+  label: |
+    [[[
+      if (variables.sleeping && states[variables.sleeping]?.state === 'on') return '😴 Slaapt';
+      return entity.state === 'home' ? 'Thuis' : entity.state === 'not_home' ? 'Weg' : entity.state;
+    ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 12px
+    card:
+      - height: 76px
+    img_cell:
+      - width: 48px
+      - height: 48px
+    entity_picture:
+      - width: 48px
+      - height: 48px
+      - border-radius: 50%
+      - object-fit: cover
+      - border: |
+          [[[ return `2px solid ${entity.state === 'home' ? '#4ade80' : 'rgba(255, 255, 255, 0.25)'}`; ]]]
+      - filter: '[[[ return entity.state === "home" ? "none" : "grayscale(0.8)"; ]]]'
+    icon:
+      - width: 28px
+
+# Actieknop (scène of snelle actie). Acties worden per kaart opgegeven.
+action:
+  template: glass
+  show_label: false
+  styles:
+    grid:
+      - grid-template-areas: '"i" "n"'
+      - row-gap: 6px
+    card:
+      - height: 84px
+      - padding: 10px
+    name:
+      - justify-self: center
+      - font-size: 13px
+    icon:
+      - width: 24px
+      - color: var(--accent-color)
+
+# Informatietegel (energie, Pixel). Tik navigeert naar de bijbehorende pagina.
+info:
+  template: glass
+  triggers_update: all
+  show_label: true
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "v v" "l l"'
+      - grid-template-columns: auto 1fr
+      - grid-template-rows: auto 1fr auto
+      - column-gap: 10px
+    card:
+      - height: 140px
+    img_cell:
+      - justify-self: start
+      - width: 36px
+      - height: 36px
+      - border-radius: 50%
+      - background: rgba(255, 255, 255, 0.10)
+    icon:
+      - width: 20px
+    name:
+      - font-size: 13px
+      - opacity: 0.8
+    label:
+      - white-space: normal
+      - text-align: left
+    custom_fields:
+      v:
+        - justify-self: start
+        - align-self: center
+        - font-size: 28px
+        - font-weight: 700
+        - letter-spacing: -0.5px
+
+# Waardetegel: icoon + naam bovenaan, grote toestand eronder (met eenheid).
+stat:
+  template: glass
+  show_state: true
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "s s"'
+      - grid-template-columns: auto 1fr
+      - grid-template-rows: auto 1fr
+      - column-gap: 10px
+    card:
+      - height: 100px
+    img_cell:
+      - justify-self: start
+      - width: 34px
+      - height: 34px
+      - border-radius: 50%
+      - background: rgba(255, 255, 255, 0.10)
+    icon:
+      - width: 18px
+    name:
+      - font-size: 13px
+      - font-weight: 500
+      - opacity: 0.8
+    state:
+      - justify-self: start
+      - align-self: end
+      - font-size: 22px
+      - font-weight: 700
+      - letter-spacing: -0.3px
+
+# Voortgangsbalk, bijv. dagen tot filter vervangen.
+# variables.max: waarde die 100% is, variables.unit: tekst achter de waarde.
+progress:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    max: 30
+    unit: dagen
+  label: |
+    [[[
+      const v = parseFloat(entity.state);
+      return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${variables.unit}`;
+    ]]]
+  custom_fields:
+    bar: |
+      [[[
+        const v = parseFloat(entity.state);
+        const pct = isNaN(v) ? 0 : Math.max(0, Math.min(100, v / variables.max * 100));
+        const color = pct < 15 ? '#ff6b6b' : pct < 35 ? '#ffb060' : '#4ade80';
+        return `<div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.1);overflow:hidden">
+                  <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width 0.6s"></div>
+                </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n l" "bar bar bar"'
+      - grid-template-columns: auto 1fr auto
+      - row-gap: 10px
+      - column-gap: 10px
+    card:
+      - height: 86px
+    icon:
+      - width: 20px
+    label:
+      - justify-self: end
+      - font-size: 13px
+      - opacity: 0.9
+    custom_fields:
+      bar:
+        - display: block
+        - width: 100%
+
+# Prijstegel: toont de toestand als "€ 0,39".
+price:
+  template: stat
+  state_display: |
+    [[[
+      const v = parseFloat(entity.state);
+      return isNaN(v) ? '–' : `€ ${v.toFixed(2).replace('.', ',')}`;
+    ]]]
+
+# Pollen (Google Pollen-index 0-5): naam, niveau en een balk van 5 blokjes.
+pollen:
+  template: glass
+  show_label: true
+  name: |
+    [[[
+      const names = {
+        gras: 'Gras', bomen: 'Bomen', onkruid: 'Onkruid', grassen: 'Grassen', berk: 'Berk', els: 'Els',
+        es: 'Es', eik: 'Eik', hazelaar: 'Hazelaar', olijfboom: 'Olijfboom', pijnboom: 'Pijnboom',
+        ambrosia: 'Ambrosia', bijvoet: 'Bijvoet', cottonwood: 'Populier'
+      };
+      const key = entity.entity_id.split('_').pop();
+      return names[key] ?? key;
+    ]]]
+  label: |
+    [[[
+      const levels = ['Geen', 'Zeer laag', 'Laag', 'Matig', 'Hoog', 'Zeer hoog'];
+      return levels[Math.round(parseFloat(entity.state))] ?? entity.state;
+    ]]]
+  custom_fields:
+    bar: |
+      [[[
+        const level = Math.round(parseFloat(entity.state)) || 0;
+        const colors = ['#4ade80', '#a3e635', '#facc15', '#fb923c', '#ff6b6b'];
+        return `<div style="display:flex;gap:4px">${colors.map((c, i) =>
+          `<div style="flex:1;height:6px;border-radius:3px;background:${i < level ? c : 'rgba(255,255,255,0.1)'}"></div>`
+        ).join('')}</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"n l" "bar bar"'
+      - grid-template-columns: 1fr auto
+      - row-gap: 10px
+    card:
+      - height: 72px
+    label:
+      - justify-self: end
+      - font-size: 13px
+      - opacity: 0.9
+    custom_fields:
+      bar:
+        - display: block
+        - width: 100%
+
+# Zonneboog: waar staat de zon tussen opkomst en ondergang, en hoeveel daglicht is er nog.
+# Gebruikt sun.sun; de tijden van vandaag worden afgeleid uit next_rising / next_setting.
+sun:
+  template: glass
+  entity: sun.sun
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  custom_fields:
+    arc: |
+      [[[
+        const DAY = 86400000;
+        const now = new Date();
+        const isToday = d => d.toDateString() === now.toDateString();
+        const nextRise = new Date(entity.attributes.next_rising);
+        const nextSet = new Date(entity.attributes.next_setting);
+        const above = entity.state === 'above_horizon';
+        const rise = above || !isToday(nextRise) ? new Date(nextRise - DAY) : nextRise;
+        const set = above ? nextSet : isToday(nextSet) ? nextSet : new Date(nextSet - DAY);
+        const time = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        const span = ms => `${Math.floor(ms / 3600000)}u ${Math.round(ms % 3600000 / 60000)}m`;
+
+        const f = Math.max(0, Math.min(1, (now - rise) / (set - rise)));
+        const x = 100 - 90 * Math.cos(Math.PI * f);
+        const y = 95 - 90 * Math.sin(Math.PI * f);
+        const text = above
+          ? `Nog ${span(set - now)} daglicht`
+          : `Zon komt op over ${span(nextRise - now)}`;
+
+        return `
+          <svg viewBox="0 0 200 110" style="width:100%;max-height:150px">
+            <defs>
+              <linearGradient id="sunArc" x1="0" x2="1">
+                <stop offset="0" stop-color="#ff9a5a"/><stop offset="0.5" stop-color="#ffd166"/><stop offset="1" stop-color="#ff6f61"/>
+              </linearGradient>
+            </defs>
+            <path d="M10,95 A90,90 0 0,1 190,95" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" stroke-dasharray="3 4"/>
+            ${above ? `<path d="M10,95 A90,90 0 0,1 ${x.toFixed(1)},${y.toFixed(1)}" fill="none" stroke="url(#sunArc)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="#ffd166" style="filter:drop-shadow(0 0 8px #ffd166)"/>` : ''}
+            <line x1="0" y1="95" x2="200" y2="95" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;align-items:end;margin-top:-6px">
+            <div style="text-align:left"><div style="font-size:12px;opacity:.6">Zon op</div><div style="font-size:20px;font-weight:700">${time(rise)}</div></div>
+            <div style="font-size:13px;opacity:.8;padding-bottom:3px">${text}</div>
+            <div style="text-align:right"><div style="font-size:12px;opacity:.6">Zon onder</div><div style="font-size:20px;font-weight:700">${time(set)}</div></div>
+          </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"arc"'
+    card:
+      - padding: 16px 18px
+    custom_fields:
+      arc:
+        - display: block
+        - width: 100%
+
+# Weer-hero voor Home: een realistische lucht van het weer van nu.
+# - Zon op de echte plek (azimut = links/rechts, hoogte = hoe hoog), gouden uur bij een lage zon.
+# - Lucht en wolken volgen de bewolking in %: overdag nooit donker, bij veel wolken licht grijsblauw.
+# - Wolken zijn afbeeldingen (www/clouds, gemaakt met tools/generate_clouds.py) in drie diepte-lagen, getint per weer.
+# - Nacht: sterren en de maan in de juiste fase. Regen schuin met de wind, sneeuw, mist, onweer met bliksem.
+# Alleen opnieuw tekenen bij weer, zon en personen, zodat de animaties niet steeds herstarten.
+# De klok is een geneste markdown-kaart; die werkt zichzelf elke minuut bij.
+weather_hero:
+  triggers_update:
+    - weather.weer_thuis
+    - sensor.keuken_timers
+    - sensor.badkamer_speaker_timers
+    - sensor.gang_speaker_1_timers
+    - sensor.woonkamer_timers
+    - sensor.hub_vincent_timers
+    - weather.weer_thuis_waarnemingen
+    - sun.sun
+    - sensor.weer_thuis_temperatuur
+    - sensor.weer_thuis_bewolking
+    - sensor.weer_thuis_windsnelheid
+    - sensor.moon_phase
+    - sensor.thuis_pollentypen_52_035_53_gras
+    - sensor.thuis_pollentypen_52_035_53_onkruid
+    - sensor.thuis_planten_52_035_53_ambrosia
+    - sensor.thuis_planten_52_035_53_berk
+    - sensor.thuis_planten_52_035_53_bijvoet
+    - sensor.thuis_planten_52_035_53_cottonwood
+    - sensor.thuis_planten_52_035_53_eik
+    - sensor.thuis_planten_52_035_53_els
+    - sensor.thuis_planten_52_035_53_es
+    - sensor.thuis_planten_52_035_53_grassen
+    - sensor.thuis_planten_52_035_53_hazelaar
+    - sensor.thuis_planten_52_035_53_olijfboom
+    - sensor.thuis_planten_52_035_53_pijnboom
+    - person.vincent_maarschalkerweerd
+    - person.carleen
+    - input_boolean.sleepingvincent
+    - input_boolean.sleepingcarleen
+  show_icon: false
+  show_name: false
+  show_state: false
+  tap_action:
+    action: none
+  extra_styles: |
+    @keyframes hero-drift { from { transform: translateX(-40px); } to { transform: translateX(40px); } }
+    @keyframes hero-rain { from { transform: translateY(-40px); } to { transform: translateY(360px); } }
+    @keyframes hero-snow {
+      0% { transform: translate(0, -20px); }
+      50% { transform: translate(16px, 160px); }
+      100% { transform: translate(0, 360px); }
+    }
+    @keyframes hero-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+    @keyframes hero-rays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+    @keyframes hero-flash { 0%, 89%, 100% { opacity: 0; } 90%, 93% { opacity: 0.85; } 91.5% { opacity: 0.2; } }
+    @keyframes hero-timer-count { from { --timer-t: var(--timer-from); } to { --timer-t: 0; } }
+    .hero-countdown {
+      --timer-m: calc((var(--timer-t) - 30) / 60);
+      --timer-s: calc(var(--timer-t) - var(--timer-m) * 60);
+      counter-reset: timer-m var(--timer-m) timer-s var(--timer-s);
+      animation: hero-timer-count var(--timer-dur) linear forwards;
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-countdown::after { content: counter(timer-m) ":" counter(timer-s, decimal-leading-zero); }
+    @keyframes hero-timer-color { 0%, 75% { background: rgba(255, 176, 96, 0.92); } 82%, 100% { background: rgba(255, 99, 99, 0.95); } }
+    @keyframes hero-timer-blink { 50% { opacity: 0.35; } }
+    @keyframes hero-timer-hide { to { opacity: 0; } }
+    @keyframes hero-timer-show { to { opacity: 1; } }
+    @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
+  custom_fields:
+    sky: |
+      [[[
+        // Weer van nu: de waarnemingen zijn actueler dan de verwachting
+        const observed = states['weather.weer_thuis_waarnemingen']?.state;
+        const w = observed && !['unknown', 'unavailable'].includes(observed) ? observed : states['weather.weer_thuis']?.state ?? 'cloudy';
+        const sun = states['sun.sun'];
+        const day = sun?.state === 'above_horizon';
+        const elevation = parseFloat(sun?.attributes.elevation ?? 30);
+        const azimuth = parseFloat(sun?.attributes.azimuth ?? 180);
+        const rain = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'hail'].includes(w);
+        const snow = ['snowy', 'snowy-rainy'].includes(w);
+        const storm = ['lightning', 'lightning-rainy'].includes(w);
+        const fog = w === 'fog';
+        const windSpeed = parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) || 3;
+
+        // Bewolking in % (oktas 0-8 worden omgerekend); zonder sensor een schatting uit het weertype
+        let cover = parseFloat(states['sensor.weer_thuis_bewolking']?.state);
+        if (!isNaN(cover) && cover <= 8 && ['cloudy', 'rainy', 'pouring', 'fog'].includes(w)) cover *= 12.5;
+        if (isNaN(cover)) cover = { sunny: 5, 'clear-night': 5, partlycloudy: 45, windy: 40, cloudy: 90, fog: 95 }[w] ?? 95;
+        const t = Math.min(1, cover / 100);
+
+        const mix = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
+        const rgb = c => `rgb(${c.join(',')})`;
+        const rgba = (c, a) => `rgba(${c.join(',')},${a})`;
+        let seed = 31;
+        const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+
+        // Lucht: helder blauw → licht grijsblauw bij bewolking (overdag nooit donker), regen iets donkerder
+        const golden = day ? Math.max(0, Math.min(1, (12 - elevation) / 12)) : 0;
+        const twilight = !day && elevation > -8 ? (elevation + 8) / 8 : 0;
+        let top, bottom;
+        if (day) {
+          top = rain || storm ? [88, 102, 120] : mix([30, 104, 204], [128, 148, 170], t);
+          bottom = rain || storm ? [140, 152, 168] : mix([150, 206, 246], [200, 210, 222], t);
+        } else {
+          const night = cover > 70 ? [[12, 16, 26], [30, 36, 50]] : [[4, 7, 22], [20, 30, 64]];
+          top = mix(night[0], [36, 42, 92], twilight);
+          bottom = mix(night[1], [214, 120, 112], twilight * (1 - t * 0.6));
+        }
+        let out = `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${rgb(top)} 0%, ${rgb(mix(top, bottom, 0.55))} 55%, ${rgb(bottom)} 100%)"></div>`;
+        if (golden > 0) {
+          const g = golden * (1 - t * 0.5);
+          out += `<div style="position:absolute;inset:0;background:linear-gradient(0deg, rgba(255,150,90,${0.55 * g}) 0%, rgba(255,120,150,${0.25 * g}) 35%, transparent 70%)"></div>`;
+        }
+
+        // Nacht: sterren en de maan in de juiste fase (alleen bij weinig bewolking)
+        if (!day && cover < 75 && !rain && !storm) {
+          for (let i = 0; i < 80; i++) {
+            const size = 0.6 + rnd() * rnd() * 2.4;
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:${rnd() * 70}%;width:${size}px;height:${size}px;border-radius:50%;
+              background:#fff;opacity:${(1 - t) * (0.4 + rnd() * 0.6)};box-shadow:0 0 ${size * 2}px rgba(255,255,255,0.8);
+              animation:hero-twinkle ${2 + rnd() * 5}s ease-in-out ${-rnd() * 6}s infinite"></div>`;
+          }
+          const phase = states['sensor.moon_phase']?.state ?? 'full_moon';
+          const lit = { new_moon: 0, waxing_crescent: 0.25, first_quarter: 0.5, waxing_gibbous: 0.75, full_moon: 1,
+                        waning_gibbous: 0.75, last_quarter: 0.5, waning_crescent: 0.25 }[phase] ?? 1;
+          const waxing = phase.startsWith('waxing') || phase === 'first_quarter';
+          out += `<div style="position:absolute;right:14%;top:13%;width:54px;height:54px;border-radius:50%;overflow:hidden;
+              background:radial-gradient(circle at 38% 35%, #fbf8ee 0%, #e9e3d0 55%, #cdc5ae 100%);
+              box-shadow:0 0 70px 18px rgba(240,236,220,${0.1 + lit * 0.18})">
+              <div style="position:absolute;inset:0;border-radius:50%;transform:translateX(${lit * 56 * (waxing ? -1 : 1)}px);
+                background:${rgb(top)};opacity:${lit === 1 ? 0 : 0.95};filter:blur(2px)"></div>
+            </div>`;
+        }
+
+        // Zon op de echte plek (oost links, west rechts, hoogte = elevatie); gloed zwakker naarmate het bewolkter is
+        if (day && cover < 85 && !rain && !storm) {
+          const x = Math.max(8, Math.min(92, (azimuth - 90) / 180 * 100));
+          const y = Math.max(12, Math.min(80, 82 - elevation * 1.3));
+          const warm = golden > 0.4;
+          const strength = 1 - t * 0.8;
+          out += `<div style="position:absolute;left:${x}%;top:${y}%;width:600px;height:600px;transform:translate(-50%,-50%);
+              background:radial-gradient(circle, ${warm ? `rgba(255,180,110,${0.6 * strength})` : `rgba(255,248,220,${0.6 * strength})`} 0%, transparent 55%)"></div>
+            <div style="position:absolute;left:${x}%;top:${y}%;width:56px;height:56px;border-radius:50%;transform:translate(-50%,-50%);
+              opacity:${0.4 + strength * 0.6};
+              background:radial-gradient(circle, #ffffff 0%, ${warm ? '#ffd6a0' : '#fff7dc'} 60%, ${warm ? '#ffab66' : '#ffeeb8'} 100%);
+              box-shadow:0 0 36px 16px ${warm ? 'rgba(255,170,90,0.65)' : 'rgba(255,248,215,0.75)'}"></div>`;
+        }
+
+        // Wolken: echte wolkenafbeeldingen (www/clouds, gemaakt met tools/generate_clouds.py), getint per weer.
+        // Wolkendek bij veel bewolking, daarvoor losse stapelwolken in drie diepte-lagen; snelheid volgt de wind.
+        const dark = rain || storm;
+        let tint = day
+          ? (dark ? 'brightness(0.6) saturate(0.7)' : t > 0.7 ? 'brightness(0.92) saturate(0.85)' : '')
+          : 'brightness(0.3) saturate(0.6)';
+        if (golden > 0) tint += ` sepia(${(0.18 * golden).toFixed(2)}) saturate(${(1 + 0.25 * golden).toFixed(2)})`;
+        const speed = Math.max(20, 70 - windSpeed * 3);
+        const sprite = (file, x, y, width, opacity, blur, duration) =>
+          `<img src="/local/huis/clouds/${file}.webp" onerror="this.remove()" style="position:absolute;left:${x}%;top:${y}%;width:${width}px;
+            opacity:${opacity};filter:${tint || 'none'}${blur ? ` blur(${blur}px)` : ''};pointer-events:none;
+            animation:hero-drift ${duration}s ease-in-out ${-rnd() * duration}s infinite alternate">`;
+        if (t > 0.55) {
+          const deck = Math.min(1, (t - 0.45) * 1.8);
+          for (let i = 0; i < 3; i++) {
+            out += sprite(`stratus_${(i % 2) + 1}`, -35 + i * 42, -28 + rnd() * 22, 1200, (deck * 0.95).toFixed(2), 0, speed * 2.5);
+          }
+        }
+        const count = Math.min(9, Math.round(cover / 11));
+        const layers = [
+          { share: 0.4, width: 300, opacity: day ? 0.8 : 0.7, blur: 1.2, top: [-2, 28], speed: speed * 1.6 },
+          { share: 0.35, width: 470, opacity: 0.92, blur: 0.4, top: [-12, 30], speed: speed * 1.25 },
+          { share: 0.25, width: 680, opacity: 1, blur: 0, top: [-22, 22], speed }
+        ];
+        for (const layer of layers) {
+          const n = Math.round(count * layer.share);
+          for (let i = 0; i < n; i++) {
+            const x = -20 + (i + rnd() * 0.8) / Math.max(1, n) * 100;
+            const y = layer.top[0] + rnd() * (layer.top[1] - layer.top[0]);
+            out += sprite(`cumulus_${1 + Math.floor(rnd() * 5)}`, x, y, layer.width * (0.85 + rnd() * 0.3), layer.opacity, layer.blur, layer.speed + rnd() * 20);
+          }
+        }
+
+        // Gouden uur: warm licht van de kant waar de zon staat valt over de wolken
+        if (golden > 0 && day) {
+          const sx = Math.max(5, Math.min(95, (azimuth - 90) / 180 * 100));
+          out += `<div style="position:absolute;inset:0;mix-blend-mode:soft-light;
+            background:radial-gradient(ellipse 70% 90% at ${sx}% 100%, rgba(255,150,80,${(0.75 * golden).toFixed(2)}) 0%, rgba(255,120,150,${(0.35 * golden).toFixed(2)}) 45%, transparent 75%)"></div>`;
+        }
+
+        // Regen: twee lagen, schuin met de wind
+        if (rain) {
+          const tilt = Math.min(25, windSpeed * 2);
+          const drops = w === 'pouring' ? 160 : 90;
+          out += `<div style="position:absolute;inset:-20%;transform:rotate(${tilt}deg)">`;
+          for (let i = 0; i < drops; i++) {
+            const front = rnd() > 0.6;
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:-40px;width:${front ? 1.6 : 1}px;height:${front ? 22 + rnd() * 10 : 12 + rnd() * 8}px;
+              background:linear-gradient(transparent, rgba(210,225,255,${front ? 0.7 : 0.35}));
+              animation:hero-rain ${(front ? 0.45 : 0.75) + rnd() * 0.3}s linear ${-rnd() * 2}s infinite"></div>`;
+          }
+          out += `</div>`;
+        }
+        if (snow) {
+          for (let i = 0; i < 70; i++) {
+            const size = 2 + rnd() * 5;
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:-20px;width:${size}px;height:${size}px;border-radius:50%;
+              background:rgba(255,255,255,0.9);filter:blur(${size > 5 ? 1.5 : 0}px);
+              animation:hero-snow ${5 + rnd() * 6}s linear ${-rnd() * 10}s infinite"></div>`;
+          }
+        }
+        if (fog) {
+          for (let i = 0; i < 4; i++) {
+            out += `<div style="position:absolute;left:-20%;width:140%;top:${25 + i * 16}%;height:80px;border-radius:40px;
+              background:rgba(230,234,240,0.25);filter:blur(20px);animation:hero-fog ${16 + i * 6}s ease-in-out infinite alternate"></div>`;
+          }
+        }
+        if (storm) {
+          out += `<div style="position:absolute;inset:0;background:#e8eeff;animation:hero-flash 8s linear infinite"></div>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:58%;top:10%;width:56px;height:62%;
+              animation:hero-flash 8s linear infinite;filter:drop-shadow(0 0 8px #cfe0ff)">
+              <polyline points="50,0 38,38 55,40 35,100" fill="none" stroke="#f4f8ff" stroke-width="3"/>
+            </svg>`;
+        }
+
+        // Horizon: zachte heuvels in lagen; verder weg lichter (luchtperspectief)
+        const hill = (base, amp, freq, phase, color) => {
+          let d = `M0,100 L0,${base}`;
+          for (let x = 0; x <= 100; x += 2) {
+            d += ` L${x},${(base + Math.sin(x / freq + phase) * amp + Math.sin(x / (freq * 0.4) + phase * 2) * amp * 0.35).toFixed(2)}`;
+          }
+          return `<path d="${d} L100,100 Z" fill="${color}"/>`;
+        };
+        const ground = day ? [22, 30, 38] : [4, 6, 12];
+        out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:38%">
+            ${hill(62, 6, 11, 1.3, rgb(mix(bottom, ground, 0.35)))}
+            ${hill(74, 5, 8, 4.1, rgb(mix(bottom, ground, 0.65)))}
+            ${hill(86, 4, 6, 2.2, rgb(mix(bottom, ground, 0.9)))}
+          </svg>`;
+
+        // Donkere waas linksonder zodat de tekst altijd leesbaar is
+        out += `<div style="position:absolute;inset:0;background:linear-gradient(15deg, rgba(5,8,18,0.62) 0%, rgba(5,8,18,0.18) 45%, transparent 75%)"></div>`;
+        return out;
+      ]]]
+    clock:
+      card:
+        type: markdown
+        text_only: true
+        content: |
+          {% set h = now().hour %}
+          {% set greeting = 'Goedenacht' if h < 6 else 'Goedemorgen' if h < 12 else 'Goedemiddag' if h < 18 else 'Goedenavond' %}
+          {% set days = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'] %}
+          {% set months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'] %}
+          ## {{ greeting }} {{ (user or '').split(' ')[0] }}
+          # {{ now().strftime('%H:%M') }}
+          {% set alarm = as_timestamp(states('sensor.hub_vincent_alarms'), 0) %}
+          {{ days[now().weekday()] | capitalize }} {{ now().day }} {{ months[now().month - 1] }}{{ ' · ⏰ ' ~ (alarm | timestamp_custom('%H:%M')) if 0 < alarm - now().timestamp() < 86400 else '' }}{{ ' · 🎄' if is_state('binary_sensor.kerst', 'on') else '' }}
+        card_mod:
+          style:
+            ha-markdown$: |
+              :host, ha-markdown-element { overflow: visible !important; }
+              h1 {
+                font-size: clamp(52px, 9vw, 84px);
+                font-weight: 200;
+                letter-spacing: -3px;
+                line-height: 1;
+                margin: 2px 0 6px 0;
+                color: #fff;
+                text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+              }
+              h2 {
+                font-size: 18px;
+                font-weight: 500;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.85);
+              }
+              p {
+                font-size: 15px;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.75);
+              }
+            .: |
+              ha-card {
+                background: none !important;
+                border: none !important;
+                box-shadow: none !important;
+                backdrop-filter: none !important;
+                overflow: visible !important;
+                padding: 2px 8px !important;
+              }
+    # Lopende timers van de speakers: oranje pil met aftellende minuten:seconden die na 75% van de tijd rood wordt,
+    # de laatste 20 seconden knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
+    # zodat de kaart niet elke seconde opnieuw getekend hoeft te worden.
+    timers: |
+      [[[
+        const known = { 'sensor.keuken_timers': 'Keuken', 'sensor.badkamer_speaker_timers': 'Badkamer', 'sensor.gang_speaker_1_timers': 'Gang',
+                        'sensor.woonkamer_timers': 'Woonkamer', 'sensor.hub_vincent_timers': 'Slaapkamer' };
+        const speakers = Object.keys(states)
+          .filter(id => id.startsWith('sensor.') && id.endsWith('_timers'))
+          .map(id => [id, known[id] ?? (states[id].attributes.friendly_name ?? id)
+            .replace(/google home|timers?/gi, '').trim().split(/\s+/)[0] ?? id]);
+        const seconds = d => typeof d === 'number' ? d : /^\d+:\d+(:\d+)?$/.test(String(d ?? ''))
+          ? String(d).split(':').map(Number).reduce((total, part) => total * 60 + part) : NaN;
+        const now = Date.now();
+        window.huisTimerStart = window.huisTimerStart ?? {};
+        // @property werkt niet in de shadow DOM van een kaart: de tel-variabelen eenmalig op paginaniveau registreren
+        if (typeof document !== 'undefined' && !document.getElementById('huis-timer-properties')) {
+          const style = document.createElement('style');
+          style.id = 'huis-timer-properties';
+          style.textContent = ['--timer-t', '--timer-m', '--timer-s']
+            .map(name => `@property ${name} { syntax: '<integer>'; inherits: true; initial-value: 0; }`).join(' ');
+          document.head.appendChild(style);
+        }
+        // Alle timers van alle speakers (attribuut timers), anders de eerstvolgende uit de toestand; eerst aflopend eerst
+        const timers = speakers.flatMap(([id, name]) => {
+          const st = states[id];
+          const list = Array.isArray(st?.attributes.timers) && st.attributes.timers.length ? st.attributes.timers : st ? [{}] : [];
+          return list.map((timer, i) => {
+            const end = timer.fire_time ? Number(timer.fire_time) * (Number(timer.fire_time) < 1e12 ? 1000 : 1)
+              : new Date(timer.local_time_iso ?? (i === 0 ? st.state : NaN)).getTime();
+            return { id: `${id}:${timer.timer_id ?? i}`, name, timer, end };
+          });
+        }).filter(t => !isNaN(t.end) && t.end >= now - 300000).sort((x, y) => x.end - y.end);
+        return timers.map(({ id, name, timer, end }) => {
+          let total = seconds(timer.duration);
+          if (isNaN(total)) {
+            // Geen duur bekend: rekenen vanaf het moment dat deze timer voor het eerst op het scherm stond
+            window.huisTimerStart[id + end] = window.huisTimerStart[id + end] ?? now;
+            total = (end - window.huisTimerStart[id + end]) / 1000;
+          }
+          total = Math.max(total, 1);
+          const left = Math.max(0, (end - now) / 1000);
+          const elapsed = total - left;
+          const label = timer.label ? ` (${timer.label})` : '';
+          return `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px;
+                    border-radius:16px;color:#fff;overflow:hidden;font-size:16px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);
+                    animation:hero-timer-color ${total}s linear ${-elapsed}s forwards,
+                              hero-timer-blink 0.6s ease-in-out ${Math.max(0, left - 20)}s infinite">
+                    <ha-icon icon="mdi:timer-outline" style="--mdc-icon-size:20px"></ha-icon>
+                    <span style="white-space:nowrap">${name}${label}</span>
+                    <span style="position:relative">
+                      <span style="animation:hero-timer-hide 0s linear ${left}s forwards"><span class="hero-countdown"
+                        style="--timer-from:${Math.round(left)};--timer-dur:${left}s;font-size:19px;font-weight:700"></span></span>
+                      <span style="position:absolute;left:0;top:0;white-space:nowrap;opacity:0;font-size:19px;font-weight:700;animation:hero-timer-show 0s linear ${left}s forwards">klaar!</span>
+                    </span>
+                  </div>`;
+        }).join('');
+      ]]]
+    temp: |
+      [[[
+        const names = {
+          'clear-night': 'Helder', cloudy: 'Bewolkt', fog: 'Mist', hail: 'Hagel', lightning: 'Onweer',
+          'lightning-rainy': 'Onweersbuien', partlycloudy: 'Half bewolkt', pouring: 'Stortregen', rainy: 'Regen',
+          snowy: 'Sneeuw', 'snowy-rainy': 'Natte sneeuw', sunny: 'Zonnig', windy: 'Winderig', 'windy-variant': 'Winderig'
+        };
+        const num = id => parseFloat(states[id]?.state);
+        const deg = v => isNaN(v) ? '–' : `${Math.round(v)}°`;
+        const now = num('sensor.weer_thuis_temperatuur');
+
+        // Pollen: alle soorten (planten en pollentypen) vanaf 'Laag', hoogste eerst; geen, zeer laag of onbekend wordt niet getoond
+        const levels = ['Geen', 'Zeer laag', 'Laag', 'Matig', 'Hoog', 'Zeer hoog'];
+        const colors = ['#4ade80', '#a3e635', '#facc15', '#fb923c', '#ff6b6b'];
+        const pollenNames = {
+          gras: 'Gras', onkruid: 'Onkruid', grassen: 'Grassen', berk: 'Berk', els: 'Els', es: 'Es', eik: 'Eik', hazelaar: 'Hazelaar',
+          olijfboom: 'Olijfboom', pijnboom: 'Pijnboom', cottonwood: 'Populier', ambrosia: 'Ambrosia', bijvoet: 'Bijvoet'
+        };
+        const pollenIcon = key => ['gras', 'grassen'].includes(key) ? 'mdi:grass' : ['onkruid', 'ambrosia', 'bijvoet'].includes(key) ? 'mdi:sprout-outline' : 'mdi:tree-outline';
+        const present = Object.entries(states)
+          .filter(([id]) => /^sensor\.thuis_(planten|pollentypen)_52_035_53_/.test(id))
+          .map(([id, st]) => ({ key: id.split('_').pop(), level: Math.round(parseFloat(st.state)) }))
+          .filter(p => pollenNames[p.key] && p.level >= 2)  // vanaf 'Laag'; 'Zeer laag' is niet de moeite
+          .map(p => ({ label: pollenNames[p.key], icon: pollenIcon(p.key), level: p.level }))
+          .sort((a, b) => b.level - a.level)
+          .slice(0, 3);
+        const pill = p => `<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:12px;
+              background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);font-size:12px;text-shadow:none">
+              <ha-icon icon="${p.icon}" style="--mdc-icon-size:15px;color:${colors[p.level - 1]}"></ha-icon>
+              <span>${p.label} · ${levels[p.level]}</span>
+              <span style="display:inline-flex;gap:2px">${colors.map((c, i) =>
+                `<span style="width:4px;height:9px;border-radius:2px;background:${i < p.level ? c : 'rgba(255,255,255,0.2)'}"></span>`).join('')}</span>
+            </div>`;
+        const pollen = present.length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:10px">${present.map(pill).join('')}</div>`
+          : '';
+        return `<div style="text-align:right;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,0.45)">
+                  <div style="font-size:48px;font-weight:300;line-height:1">${isNaN(now) ? '–' : now.toFixed(1).replace('.', ',') + '°'}</div>
+                  <div style="font-size:15px;margin-top:4px">${names[[states['weather.weer_thuis_waarnemingen']?.state, states['weather.weer_thuis']?.state].find(v => names[v])] ?? ''}</div>
+                  <div style="font-size:13px;opacity:0.8;margin-top:2px">
+                    ↑ ${deg(num('sensor.weer_thuis_max_temperatuur_vandaag'))} &nbsp; ↓ ${deg(num('sensor.weer_thuis_min_temperatuur_vandaag'))}
+                  </div>
+                  ${pollen}
+                </div>`;
+      ]]]
+    # Personen als geneste kaarten, zodat je erop kunt tikken om slapen aan of uit te zetten
+    persons:
+      card:
+        type: custom:button-card
+        show_icon: false
+        show_name: false
+        tap_action:
+          action: none
+        styles:
+          card:
+            - cursor: default
+            - background: none
+            - border: none
+            - box-shadow: none
+            - backdrop-filter: none
+            - padding: 0
+          grid:
+            - display: flex
+            - flex-wrap: wrap
+            - justify-content: flex-end
+            - gap: 6px
+        custom_fields:
+          v:
+            card:
+              type: custom:button-card
+              template: hero_person
+              entity: person.vincent_maarschalkerweerd
+              variables:
+                sleeping: input_boolean.sleepingvincent
+                battery: sensor.vincent_phone_battery_level
+                charging: binary_sensor.vincent_phone_is_charging
+                distance: sensor.thuis_sm_s938b_distance
+                direction: sensor.thuis_sm_s938b_direction_of_travel
+          c:
+            card:
+              type: custom:button-card
+              template: hero_person
+              entity: person.carleen
+              variables:
+                sleeping: input_boolean.sleepingcarleen
+                battery: sensor.carleen_mobiel_battery_level
+                charging: sensor.carleen_mobiel_battery_state
+  styles:
+    card:
+      - cursor: default
+      - height: 320px
+      - padding: 0
+      - overflow: hidden
+      - border-radius: 28px
+      - border: none
+      - background: "#0b0f19"
+    grid:
+      - grid-template-areas: '"clock persons" "clock temp" "timers temp"'
+      - grid-template-columns: 1fr auto
+      - grid-template-rows: auto 1fr auto
+    custom_fields:
+      sky:
+        - position: absolute
+        - inset: 0
+        - overflow: hidden
+        - pointer-events: none
+      clock:
+        - z-index: 1
+        - align-self: end
+        - justify-self: start
+        - padding: 0 0 18px 10px
+        - text-align: left
+      timers:
+        - z-index: 1
+        - justify-self: start
+        - align-self: end
+        - padding: 0 0 16px 18px
+        - text-align: left
+      persons:
+        - z-index: 1
+        - justify-self: end
+        - padding: 16px 16px 0 0
+      temp:
+        - z-index: 1
+        - align-self: end
+        - justify-self: end
+        - padding: 0 22px 24px 0
+
+# Apparaat in het netwerk (device_tracker van de router): naam, IP en hoe het verbonden is.
+network_device:
+  template: glass
+  show_label: true
+  tap_action:
+    action: more-info
+  name: '[[[ return entity.attributes.friendly_name ?? entity.entity_id; ]]]'
+  icon: |
+    [[[
+      const c = String(entity.attributes.connection_type ?? '').toLowerCase();
+      if (entity.state !== 'home') return 'mdi:lan-disconnect';
+      if (c.includes('wire') || c.includes('lan') || c.includes('kabel')) return 'mdi:ethernet';
+      if (c.includes('5')) return 'mdi:wifi';
+      if (c.includes('2')) return 'mdi:wifi-strength-2';
+      return 'mdi:devices';
+    ]]]
+  label: |
+    [[[
+      const c = String(entity.attributes.connection_type ?? '').toLowerCase();
+      const kind = c.includes('wire') || c.includes('lan') ? 'Kabel'
+        : c.includes('5') ? '5 GHz' : c.includes('2') ? '2,4 GHz' : (entity.attributes.connection_type ?? '');
+      return [entity.attributes.ip, entity.state === 'home' ? kind : 'Offline'].filter(Boolean).join(' · ');
+    ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 12px
+    card:
+      - height: 64px
+      - padding: 10px 14px
+      - opacity: '[[[ return entity.state === "home" ? 1 : 0.55; ]]]'
+    img_cell:
+      - width: 38px
+      - height: 38px
+      - border-radius: 50%
+      - background: rgba(255, 255, 255, 0.08)
+    icon:
+      - width: 20px
+      - color: |
+          [[[
+            const c = String(entity.attributes.connection_type ?? '').toLowerCase();
+            if (entity.state !== 'home') return 'rgba(242, 244, 248, 0.4)';
+            return c.includes('wire') || c.includes('lan') ? '#7aa2ff' : c.includes('5') ? '#4ade80' : '#ffb060';
+          ]]]
+    name:
+      - font-size: 14px
+      - white-space: nowrap
+      - overflow: hidden
+      - text-overflow: ellipsis
+      - max-width: 100%
+    label:
+      - font-family: monospace
+      - font-size: 12px
+
+# Teller: aantal verbonden apparaten, eventueel per verbindingstype (variables.kind: all, wired, 5ghz, 2ghz).
+network_count:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    kind: all
+  label: |
+    [[[
+      const kindOf = s => {
+        const c = String(s.attributes.connection_type ?? '').toLowerCase();
+        return c.includes('wire') || c.includes('lan') ? 'wired' : c.includes('5') ? '5ghz' : c.includes('2') ? '2ghz' : 'other';
+      };
+      const online = Object.values(states).filter(s =>
+        s.entity_id.startsWith('device_tracker.') && s.attributes.ip && s.state === 'home');
+      const n = variables.kind === 'all' ? online.length : online.filter(s => kindOf(s) === variables.kind).length;
+      return String(n);
+    ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "l l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 10px
+    card:
+      - height: 96px
+    icon:
+      - width: 20px
+      - color: var(--accent-color)
+    name:
+      - font-size: 13px
+      - opacity: 0.8
+    label:
+      - font-size: 28px
+      - font-weight: 700
+      - opacity: 1
+      - align-self: end
+
+# Knop "Speel hier" naast de speaker van een kamer (entity = de speaker).
+# Speelt Spotify al ergens anders, dan verhuist de muziek naar deze speaker; anders start variables.playlist hier.
+# Groen als de muziek nu op deze speaker speelt.
+play_here:
+  template: action
+  triggers_update: all
+  variables:
+    spotify: media_player.spotifyplus_vincent_maarschalkerweerd
+    playlist: https://open.spotify.com/playlist/6oZLDHU5xcpk3lwe8ZXnqd
+  icon: mdi:music-note-plus
+  name: '[[[ return entity.state === "playing" ? "Speelt hier" : "Speel hier"; ]]]'
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const spotify = states[variables.spotify];
+        const name = (entity.attributes.friendly_name ?? '').toLowerCase();
+        const source = (spotify?.attributes.source_list ?? []).find(s => s.toLowerCase() === name);
+        if (spotify?.state === 'playing' && source) {
+          hass.callService('media_player', 'select_source', { entity_id: variables.spotify, source });
+          return;
+        }
+        const deviceId = hass.entities?.[entity.entity_id]?.device_id;
+        hass.callService('spotcast', 'play_media', {
+          media_player: deviceId ? { device_id: deviceId } : { entity_id: entity.entity_id },
+          spotify_uri: spotify?.state === 'playing' && spotify.attributes.sp_context_uri
+            ? spotify.attributes.sp_context_uri
+            : variables.playlist,
+          data: { shuffle: true }
+        });
+      ]]]
+  styles:
+    card:
+      - height: 100%
+      - min-height: 64px
+      - background: '[[[ return entity.state === "playing" ? "rgba(74, 222, 128, 0.22)" : "rgba(255, 255, 255, 0.06)"; ]]]'
+    icon:
+      - color: '[[[ return entity.state === "playing" ? "#4ade80" : "var(--accent-color)"; ]]]'
+    name:
+      - font-size: 12px
+
+# Grote tegel op de Media-overzichtspagina. variables.color: kleur van de gloed (r, g, b).
+media_tile:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    color: 122, 162, 255
+  styles:
+    grid:
+      - grid-template-areas: '"i" "n" "l"'
+      - grid-template-rows: 1fr auto auto
+      - justify-items: start
+    card:
+      - height: 150px
+      - padding: 18px
+      - background: |
+          [[[ return `linear-gradient(140deg, rgba(${variables.color}, 0.38) 0%, rgba(${variables.color}, 0.08) 60%, rgba(255, 255, 255, 0.03) 100%)`; ]]]
+      - box-shadow: '[[[ return `0 10px 34px rgba(${variables.color}, 0.18)`; ]]]'
+    img_cell:
+      - justify-self: start
+      - align-self: start
+      - width: 48px
+      - height: 48px
+      - border-radius: 14px
+      - background: '[[[ return `rgba(${variables.color}, 0.25)`; ]]]'
+    icon:
+      - width: 26px
+      - color: '[[[ return `rgb(${variables.color})`; ]]]'
+    name:
+      - font-size: 19px
+      - font-weight: 700
+    label:
+      - font-size: 12px
+      - opacity: 0.8
+      - white-space: nowrap
+      - overflow: hidden
+      - text-overflow: ellipsis
+      - max-width: 100%
+
+# Snel een playlist starten. Speelt waar de muziek nu al speelt, anders in de kamer met de laatste beweging,
+# anders in de woonkamer. variables.playlist: Spotify-URL.
+playlist:
+  template: action
+  variables:
+    spotify: media_player.spotifyplus_vincent_maarschalkerweerd
+    playlist: ""
+    rooms:
+      - [binary_sensor.motionwoonkamer, media_player.woonkamer]
+      - [binary_sensor.badkamer_motion, media_player.googlehome0351]
+      - [binary_sensor.gang_motion, media_player.friends_speakers]
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const spotify = states[variables.spotify];
+        const speakers = Object.values(states).filter(s => s.entity_id.startsWith('media_player.'));
+        const current = spotify?.state === 'playing'
+          ? speakers.find(s => (s.attributes.friendly_name ?? '').toLowerCase() === (spotify.attributes.source ?? '').toLowerCase())
+          : null;
+        const lastMotion = variables.rooms
+          .map(([motion, speaker]) => ({ speaker, at: new Date(states[motion]?.last_changed ?? 0) }))
+          .sort((a, b) => b.at - a.at)[0];
+        const target = current?.entity_id ?? lastMotion?.speaker ?? 'media_player.woonkamer';
+        const deviceId = hass.entities?.[target]?.device_id;
+        hass.callService('spotcast', 'play_media', {
+          media_player: deviceId ? { device_id: deviceId } : { entity_id: target },
+          spotify_uri: variables.playlist,
+          data: { shuffle: true }
+        });
+      ]]]
+
+# Oral-B tandenborstel: status, poetstijd als ring (2 minuten = vol), kwadrant, druk en batterij.
+toothbrush:
+  template: glass
+  triggers_update:
+    - sensor.smart_series_4000_97ae_toothbrush_state
+    - sensor.smart_series_4000_97ae_time
+    - sensor.smart_series_4000_97ae_sector
+    - sensor.smart_series_4000_97ae_pressure
+    - sensor.smart_series_4000_97ae_battery
+    - sensor.smart_series_4000_97ae_mode
+  entity: sensor.smart_series_4000_97ae_toothbrush_state
+  show_icon: false
+  show_label: true
+  name: |
+    [[[
+      const map = { running: 'Aan het poetsen', idle: 'Klaar', charging: 'Laadt op', 'power off': 'Uit', unavailable: 'Niet in de buurt' };
+      return map[entity.state] ?? entity.state;
+    ]]]
+  label: |
+    [[[
+      const s = id => states[`sensor.smart_series_4000_97ae_${id}`]?.state;
+      const modes = { daily_clean: 'Dagelijks', sensitive: 'Gevoelig', massage: 'Massage', whitening: 'Whitening',
+                      deep_clean: 'Dieptereiniging', tongue_cleaning: 'Tong', turbo: 'Turbo', off: 'Uit' };
+      const pressure = { normal: 'Druk goed', high: 'Te hard!', low: 'Druk laag' };
+      const parts = [];
+      if (s('mode') && !['unknown', 'unavailable'].includes(s('mode'))) parts.push(modes[s('mode')] ?? s('mode'));
+      if (entity.state === 'running' && s('pressure')) parts.push(pressure[s('pressure')] ?? s('pressure'));
+      const battery = parseInt(s('battery'));
+      if (!isNaN(battery)) parts.push(`🔋 ${battery}%`);
+      return parts.join(' · ');
+    ]]]
+  custom_fields:
+    ring: |
+      [[[
+        const sec = parseInt(states['sensor.smart_series_4000_97ae_time']?.state) || 0;
+        const pct = Math.min(100, sec / 120 * 100);
+        const sector = parseInt(String(states['sensor.smart_series_4000_97ae_sector']?.state ?? '').replace(/\D/g, '')) || 0;
+        const running = entity.state === 'running';
+        const tooHard = states['sensor.smart_series_4000_97ae_pressure']?.state === 'high';
+        const color = tooHard ? '#ff6b6b' : pct >= 100 ? '#4ade80' : '#7aa2ff';
+        const quadrants = [1, 2, 3, 4].map(q =>
+          `<div style="width:8px;height:8px;border-radius:2px;background:${running && q === sector ? color : q < sector || pct >= 100 ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.12)'}"></div>`).join('');
+        return `<div style="width:86px;height:86px;border-radius:50%;
+                  background:conic-gradient(${color} ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                  display:flex;align-items:center;justify-content:center">
+                  <div style="width:70px;height:70px;border-radius:50%;background:#121828;display:flex;flex-direction:column;
+                    align-items:center;justify-content:center;gap:4px">
+                    <span style="font-size:18px;font-weight:700">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}</span>
+                    <div style="display:grid;grid-template-columns:8px 8px;gap:2px">${quadrants}</div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"ring n" "ring l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 16px
+    card:
+      - height: 112px
+    name:
+      - align-self: end
+      - font-size: 17px
+    label:
+      - align-self: start
+      - white-space: normal
+      - text-align: left
+
+
+# Tab in de menubalk van Media. Licht op als je op die pagina bent (variables.path).
+tab:
+  template: glass
+  variables:
+    path: ""
+  styles:
+    grid:
+      - grid-template-areas: '"i" "n"'
+      - row-gap: 4px
+    card:
+      - height: 62px
+      - padding: 8px 4px
+      - background: |
+          [[[ return window.location.pathname === variables.path ? 'rgba(255, 176, 96, 0.22)' : 'rgba(255, 255, 255, 0.05)'; ]]]
+      - border: |
+          [[[ return window.location.pathname === variables.path ? '1px solid rgba(255, 176, 96, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'; ]]]
+    icon:
+      - width: 22px
+      - color: '[[[ return window.location.pathname === variables.path ? "var(--accent-color)" : "var(--secondary-text-color)"; ]]]'
+    name:
+      - justify-self: center
+      - font-size: 12px
+      - font-weight: 500
+
+# Persoon in de weer-hero: foto (of letter), naam, telefoonbatterij en thuis/weg/slaapt (met afstand en richting).
+# Tik zet slapen aan of uit (variables.sleeping), lang drukken toont de persoon.
+# Optioneel: variables.battery / charging (telefoon) en distance / direction (Proximity-sensoren van de zone Thuis).
+hero_person:
+  show_icon: false
+  show_name: false
+  variables:
+    sleeping: null
+    battery: null
+    charging: null
+    distance: null
+    direction: null
+  tap_action:
+    action: javascript
+    haptic: medium
+    javascript: "[[[ hass.callService('input_boolean', 'toggle', { entity_id: variables.sleeping }); ]]]"
+  hold_action:
+    action: more-info
+  triggers_update: all
+  custom_fields:
+    pill: |
+      [[[
+        const home = entity?.state === 'home';
+        const asleep = states[variables.sleeping]?.state === 'on';
+        const first = (entity?.attributes.friendly_name ?? '?').split(' ')[0];
+        let status = asleep ? 'Slaapt' : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
+
+        // Onderweg: afstand tot huis en of de persoon naar huis komt
+        const d = states[variables.distance];
+        const meters = parseFloat(d?.state) * (d?.attributes.unit_of_measurement === 'km' ? 1000 : 1);
+        if (!home && !isNaN(meters)) {
+          const dist = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1).replace('.', ',')} km` : `${Math.round(meters)} m`;
+          const dir = { towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '';
+          status = `${dist}${dir}`;
+        }
+
+        // Telefoonbatterij: klein, rood als hij bijna leeg is, bliksem als hij laadt
+        const level = parseInt(states[variables.battery]?.state);
+        const charging = ['on', 'charging'].includes(states[variables.charging]?.state);
+        const batteryHtml = isNaN(level) ? '' : ` · <span style="color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
+
+        const ring = asleep ? 'rgba(167,139,250,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
+        const avatar = entity?.attributes.entity_picture
+          ? `<img src="${entity.attributes.entity_picture}" style="width:30px;height:30px;border-radius:50%;object-fit:cover">`
+          : `<div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;
+               align-items:center;justify-content:center;font-weight:700">${first[0]}</div>`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:20px;
+                  background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);color:#fff;box-shadow:inset 0 0 0 2px ${ring}">
+                  ${avatar}
+                  <div style="line-height:1.15;text-align:left">
+                    <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}</div>
+                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}${batteryHtml}</div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - cursor: pointer
+      - background: none
+      - border: none
+      - box-shadow: none
+      - backdrop-filter: none
+      - padding: 0
+      - overflow: visible
+    grid:
+      - grid-template-areas: '"pill"'
+# Verwachting per uur als strook die je horizontaal doorschuift: tijd, icoon, temperatuurlijn, regen (mm en kans).
+# Bron: sensor.weer_verwachting_per_uur (template-sensor met het attribuut forecast, zie README).
+forecast_strip:
+  template: glass
+  entity: sensor.weer_verwachting_per_uur
+  show_icon: false
+  show_name: false
+  # Tik schuift de strook 6 uur verder (aan het eind terug naar het begin), dubbeltik schuift terug.
+  # Dit loopt via button-card zelf; slepen en het muiswiel werken binnen button-card niet betrouwbaar.
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const strip = this.shadowRoot?.querySelector('.strip');
+        if (!strip) return;
+        const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+        strip.scrollTo({ left: atEnd ? 0 : strip.scrollLeft + 348, behavior: 'smooth' });
+      ]]]
+  double_tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const strip = this.shadowRoot?.querySelector('.strip');
+        if (strip) strip.scrollTo({ left: Math.max(0, strip.scrollLeft - 348), behavior: 'smooth' });
+      ]]]
+  custom_fields:
+    strip: |
+      [[[
+        const forecast = (entity?.attributes.forecast ?? []).slice(0, 48);
+        if (!forecast.length) return '<div style="opacity:.6;padding:8px">Nog geen verwachting. Voeg de template-sensor toe (zie README).</div>';
+        const icons = {
+          sunny: ['mdi:weather-sunny', '#ffd166'], 'clear-night': ['mdi:weather-night', '#c7d2fe'],
+          partlycloudy: ['mdi:weather-partly-cloudy', '#ffe08a'], cloudy: ['mdi:weather-cloudy', '#cbd5e1'],
+          rainy: ['mdi:weather-rainy', '#7aa2ff'], pouring: ['mdi:weather-pouring', '#5b8cff'],
+          lightning: ['mdi:weather-lightning', '#facc15'], 'lightning-rainy': ['mdi:weather-lightning-rainy', '#facc15'],
+          snowy: ['mdi:weather-snowy', '#e2e8f0'], 'snowy-rainy': ['mdi:weather-snowy-rainy', '#bfdbfe'],
+          fog: ['mdi:weather-fog', '#cbd5e1'], hail: ['mdi:weather-hail', '#bfdbfe'],
+          windy: ['mdi:weather-windy', '#cbd5e1'], 'windy-variant': ['mdi:weather-windy-variant', '#cbd5e1']
+        };
+        const days = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+        const col = 58;
+        const temps = forecast.map(f => parseFloat(f.temperature));
+        const min = Math.min(...temps), max = Math.max(...temps);
+        const y = t => 14 + (1 - (t - min) / Math.max(1, max - min)) * 46;
+        const points = temps.map((t, i) => `${i * col + col / 2},${y(t).toFixed(1)}`).join(' ');
+        const area = `0,74 ${points} ${forecast.length * col},74`;
+
+        const columns = forecast.map((f, i) => {
+          const d = new Date(f.datetime);
+          const hour = d.getHours();
+          const night = hour < 7 || hour >= 20;
+          let [icon, color] = icons[f.condition] ?? ['mdi:weather-cloudy', '#cbd5e1'];
+          if (f.condition === 'partlycloudy' && night) icon = 'mdi:weather-night-partly-cloudy';
+          const mm = parseFloat(f.precipitation) || 0;
+          const chance = f.precipitation_probability;
+          const bar = Math.min(28, mm * 7);
+          const label = i === 0 ? 'Nu' : hour === 0 ? days[d.getDay()] : `${String(hour).padStart(2, '0')}:00`;
+          return `<div style="flex:0 0 ${col}px;display:flex;flex-direction:column;align-items:center;scroll-snap-align:start;
+                    ${hour === 0 && i > 0 ? 'border-left:1px solid rgba(255,255,255,0.15);' : ''}">
+                    <span style="font-size:12px;${hour === 0 || i === 0 ? 'font-weight:700;color:var(--accent-color)' : 'opacity:.7'}">${label}</span>
+                    <ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color};margin:6px 0 2px"></ha-icon>
+                    <div style="height:78px"></div>
+                    <div style="height:30px;display:flex;align-items:flex-end">
+                      <div style="width:18px;height:${bar}px;border-radius:4px 4px 0 0;background:linear-gradient(#7aa2ff,#3b6fe0)"></div>
+                    </div>
+                    <span style="font-size:11px;color:#9db8ff;height:14px">${mm > 0 ? mm.toFixed(1).replace('.', ',') : ''}</span>
+                    <span style="font-size:10px;opacity:.55;height:13px">${chance != null && chance > 0 ? chance + '%' : ''}</span>
+                  </div>`;
+        }).join('');
+
+        const labels = temps.map((t, i) =>
+          `<text x="${i * col + col / 2}" y="${(y(t) - 7).toFixed(1)}" text-anchor="middle" fill="#f2f4f8" font-size="12" font-weight="600">${Math.round(t)}°</text>
+           <circle cx="${i * col + col / 2}" cy="${y(t).toFixed(1)}" r="3" fill="#ffb060"/>`).join('');
+        // Pijltjes als hint: tik op de kaart schuift verder, dubbeltik terug
+        const arrow = (dir, icon) => `<div style="position:absolute;top:58px;${dir < 0 ? 'left:-4px' : 'right:-4px'};z-index:2;width:30px;height:30px;
+            border-radius:50%;pointer-events:none;display:flex;align-items:center;justify-content:center;
+            background:rgba(18,24,40,0.85);border:1px solid rgba(255,255,255,0.15)">
+            <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon></div>`;
+        return `<div style="font-size:11px;opacity:.5;text-align:right;margin:-4px 4px 6px">veeg of tik voor later · dubbeltik terug</div>
+                <div style="position:relative">${arrow(-1, 'mdi:chevron-left')}${arrow(1, 'mdi:chevron-right')}
+                <div class="strip" style="overflow-x:auto;overflow-y:hidden;touch-action:pan-x;-webkit-overflow-scrolling:touch;
+                  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;padding-bottom:6px">
+                  <div style="position:relative;width:${forecast.length * col}px">
+                    <div style="display:flex">${columns}</div>
+                    <svg width="${forecast.length * col}" height="78" style="position:absolute;left:0;top:50px;overflow:visible">
+                      <defs><linearGradient id="tempFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0" stop-color="rgba(255,176,96,0.35)"/><stop offset="1" stop-color="rgba(255,176,96,0)"/>
+                      </linearGradient></defs>
+                      <polygon points="${area}" fill="url(#tempFill)"/>
+                      <polyline points="${points}" fill="none" stroke="#ffb060" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                      ${labels}
+                    </svg>
+                  </div>
+                </div></div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 10px 8px
+    grid:
+      - grid-template-areas: '"strip"'
+    custom_fields:
+      strip:
+        - display: block
+        - width: 100%
+        - overflow: hidden
+
+# Samenvatting bovenaan een pagina: icoon in een cirkel, een kop (aandachtspunten of "alles in orde") en korte info.
+# Per kaart: icon, name (kop), label (korte info) en variables.level ("ok", "warn" of "bad") voor de kleur.
+summary:
+  template: glass
+  triggers_update: all
+  show_label: true
+  variables:
+    level: ok
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 16px
+    card:
+      - min-height: 96px
+      - padding: 18px
+    img_cell:
+      - width: 60px
+      - height: 60px
+      - border-radius: 50%
+      - background: |
+          [[[ return { bad: 'rgba(255, 107, 107, 0.2)', warn: 'rgba(255, 176, 96, 0.2)' }[variables.level] ?? 'rgba(74, 222, 128, 0.2)'; ]]]
+    icon:
+      - width: 34px
+      - color: '[[[ return { bad: "#ff6b6b", warn: "#ffb060" }[variables.level] ?? "#4ade80"; ]]]'
+    name:
+      - font-size: 18px
+      - white-space: normal
+      - text-align: left
+    label:
+      - font-size: 13px
+      - white-space: normal
+      - text-align: left
+
+# Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.
+# - Starten kan vanaf 08:00, het programma duurt 3 uur.
+# - Buiten drogen kan als de 3 uur na het einde droog zijn en vóór zonsondergang vallen;
+#   zonnig telt het zwaarst, dan half bewolkt/winderig, dan bewolkt.
+# - Een moment met buiten drogen mag tot ~€ 0,10/kWh duurder zijn dan een moment zonder.
+# - Na 20:00 het advies voor morgen (als die prijzen er zijn).
+# Bronnen: hourly_prices van de ANWB-sensor en sensor.weer_verwachting_per_uur (template-sensor, zie README).
+wash_advice:
+  template: glass
+  triggers_update:
+    - sensor.anwb_electricity_all_in_price_current
+    - sensor.weer_verwachting_per_uur
+    - sun.sun
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    advice: |
+      [[[
+        const WASH_HOURS = 3, DRY_HOURS = 3, EARLIEST = 8, DRY_BONUS = 0.10;
+        const time = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+        const euro = v => `€ ${v.toFixed(2).replace('.', ',')}`;
+
+        // Welke dag: vandaag, of morgen na 20:00 als die prijzen er al zijn
+        const prices = Object.entries(states['sensor.anwb_electricity_all_in_price_current']?.attributes.hourly_prices ?? {})
+          .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+          .filter(([t, v]) => !isNaN(t) && !isNaN(v));
+        const now = new Date();
+        const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+        const hasTomorrow = prices.some(([t]) => t.toDateString() === tomorrow.toDateString());
+        const day = now.getHours() >= 20 && hasTomorrow ? tomorrow : now;
+        const dayName = day === now ? 'Vandaag' : 'Morgen';
+        const priceAt = {};
+        prices.filter(([t]) => t.toDateString() === day.toDateString()).forEach(([t, v]) => { priceAt[t.getHours()] = v; });
+
+        // Zonsondergang van die dag (sun.sun geeft de eerstvolgende; zo nodig een dag terug of verder rekenen)
+        const nextSetting = new Date(states['sun.sun']?.attributes.next_setting ?? NaN);
+        let sunset = 18;
+        if (!isNaN(nextSetting)) {
+          const s = new Date(nextSetting);
+          while (s.toDateString() !== day.toDateString() && s > day) s.setDate(s.getDate() - 1);
+          while (s.toDateString() !== day.toDateString() && s < day) s.setDate(s.getDate() + 1);
+          sunset = s.getHours() + s.getMinutes() / 60;
+        }
+
+        // Droogweer per uur uit de verwachting
+        const quality = { sunny: 1, partlycloudy: 0.75, windy: 0.7, 'windy-variant': 0.6, cloudy: 0.4, fog: 0.15 };
+        const forecast = {};
+        (states['sensor.weer_verwachting_per_uur']?.attributes.forecast ?? []).forEach(f => {
+          const t = new Date(f.datetime);
+          if (t.toDateString() !== day.toDateString()) return;
+          const dry = !(parseFloat(f.precipitation) > 0) && !(f.precipitation_probability >= 40) && quality[f.condition] !== undefined;
+          forecast[t.getHours()] = { dry, quality: quality[f.condition] ?? 0, condition: f.condition };
+        });
+        const haveForecast = Object.keys(forecast).length > 0;
+
+        // Alle starttijden vanaf 08:00 langs
+        let best = null;
+        for (let start = EARLIEST; start + WASH_HOURS <= 24; start++) {
+          const wash = [...Array(WASH_HOURS).keys()].map(i => priceAt[start + i]);
+          if (wash.some(v => v === undefined)) continue;
+          const avg = wash.reduce((a, b) => a + b, 0) / WASH_HOURS;
+          const end = start + WASH_HOURS;
+          const dryHours = [...Array(DRY_HOURS).keys()].map(i => forecast[end + i]);
+          const canDry = haveForecast && end + DRY_HOURS <= sunset && dryHours.every(h => h?.dry);
+          const dryQuality = canDry ? dryHours.reduce((a, h) => a + h.quality, 0) / DRY_HOURS : 0;
+          const score = avg - (canDry ? DRY_BONUS * dryQuality : 0);
+          if (!best || score < best.score) best = { start, end, avg, canDry, dryQuality, score };
+        }
+        if (!best) return '<div style="opacity:.6">Nog geen prijzen voor vandaag.</div>';
+        window.huisWasAdvies = { start: best.start, end: best.end, day: day.toDateString() };
+
+        const sunny = best.dryQuality >= 0.85 ? '☀️' : best.dryQuality >= 0.6 ? '🌤️' : '☁️';
+        const dryLine = best.canDry
+          ? `${sunny} Buiten drogen ${time(best.end)}–${time(best.end + DRY_HOURS)}`
+          : haveForecast ? `🌧️ ${dayName.toLowerCase()} niet buiten drogen` : 'Geen weersverwachting, alleen op prijs';
+        const passed = day === now && best.start < now.getHours() ? ' (al voorbij)' : '';
+        return `<div style="display:flex;align-items:center;gap:14px;text-align:left">
+                  <div style="width:48px;height:48px;border-radius:50%;flex:0 0 48px;display:flex;align-items:center;justify-content:center;
+                    background:${best.canDry ? 'rgba(255,209,102,0.2)' : 'rgba(122,162,255,0.2)'}">
+                    <ha-icon icon="mdi:washing-machine" style="--mdc-icon-size:26px;color:${best.canDry ? '#ffd166' : '#7aa2ff'}"></ha-icon>
+                  </div>
+                  <div style="line-height:1.35">
+                    <div style="font-size:12px;opacity:.65">Wasadvies ${dayName.toLowerCase()}</div>
+                    <div style="font-size:18px;font-weight:700">Start ${time(best.start)} · klaar ${time(best.end)}${passed}</div>
+                    <div style="font-size:13px;opacity:.85">${dryLine} · gem. ${euro(best.avg)}/kWh</div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"advice"'
+    card:
+      - padding: 14px 16px
+    custom_fields:
+      advice:
+        - display: block
+        - width: 100%
+
+# Prijs per uur vandaag als eigen staafgrafiek: 24 even brede staven, kleur per staaf ten opzichte van het
+# daggemiddelde (groen goedkoop, oranje normaal, rood duur), het huidige uur gemarkeerd. Bron: hourly_prices.
+price_bars:
+  template: glass
+  entity: sensor.anwb_electricity_all_in_price_current
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    bars: |
+      [[[
+        const now = new Date();
+        const prices = Object.entries(entity?.attributes.hourly_prices ?? {})
+          .map(([t, p]) => [new Date(t), parseFloat(p.all_in_price)])
+          .filter(([t, v]) => !isNaN(t) && !isNaN(v) && t.toDateString() === now.toDateString())
+          .sort((a, b) => a[0] - b[0]);
+        if (!prices.length) return '<div style="opacity:.6;padding:8px">Nog geen prijzen voor vandaag.</div>';
+        const values = prices.map(([, v]) => v);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const max = Math.max(...values), min = Math.min(...values);
+        const color = v => v < avg * 0.95 ? '#4ade80' : v > avg * 1.05 ? '#ff6b6b' : '#ffb060';
+        const euro = v => v.toFixed(2).replace('.', ',');
+        const bars = prices.map(([t, v]) => {
+          const hour = t.getHours();
+          const current = hour === now.getHours();
+          const height = Math.max(6, v / max * 150);
+          const extreme = v === max || v === min;
+          return `<div title="${String(hour).padStart(2, '0')}:00 · € ${euro(v)}" style="flex:1;display:flex;flex-direction:column;
+                    align-items:center;justify-content:flex-end;height:190px;min-width:0">
+                    <span style="font-size:10px;margin-bottom:3px;white-space:nowrap;${current || extreme ? 'font-weight:700' : 'opacity:0'}">
+                      ${current || extreme ? euro(v) : ''}</span>
+                    <div style="width:70%;height:${height}px;border-radius:4px 4px 2px 2px;background:${color(v)};
+                      ${current ? 'box-shadow:0 0 0 2px #fff, 0 0 14px rgba(255,255,255,0.4);' : 'opacity:0.85;'}"></div>
+                    <span style="font-size:10px;margin-top:6px;height:12px;${current ? 'font-weight:700;color:var(--accent-color)' : 'opacity:.55'}">
+                      ${current ? 'nu' : hour % 3 === 0 ? String(hour).padStart(2, '0') : ''}</span>
+                  </div>`;
+        }).join('');
+        const legend = [['#4ade80', 'Goedkoop'], ['#ffb060', 'Normaal'], ['#ff6b6b', 'Duur']].map(([c, n]) =>
+          `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${c}"></span>${n}</span>`).join('');
+        return `<div style="text-align:left">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                    <span style="font-size:15px;font-weight:600">Prijs per uur vandaag</span>
+                    <span style="font-size:12px;opacity:.7">gemiddeld € ${euro(avg)} · laagste € ${euro(min)} · hoogste € ${euro(max)}</span>
+                  </div>
+                  <div style="position:relative">
+                    <div style="position:absolute;left:0;right:0;bottom:${18 + avg / max * 150}px;border-top:1px dashed rgba(255,255,255,0.25)"></div>
+                    <div style="display:flex;gap:2px;align-items:flex-end">${bars}</div>
+                  </div>
+                  <div style="display:flex;gap:16px;justify-content:center;font-size:12px;opacity:.8;margin-top:8px">${legend}</div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 16px
+    grid:
+      - grid-template-areas: '"bars"'
+    custom_fields:
+      bars:
+        - display: block
+        - width: 100%
+
+# Tijdsduur in milliseconden (ping, latency, jitter). Sommige sensoren meten in seconden (0,006 = 6 ms).
+ms:
+  template: stat
+  state_display: |
+    [[[
+      const v = parseFloat(entity.state);
+      if (isNaN(v)) return 'Onbekend';
+      const unit = entity.attributes.unit_of_measurement;
+      const ms = unit === 's' || (unit !== 'ms' && v < 1) ? v * 1000 : v;
+      return `${ms < 10 ? ms.toFixed(1).replace('.', ',') : Math.round(ms)} ms`;
+    ]]]
+
+# Watchman-lijst: per ontbrekende entiteit of actie waar hij gebruikt wordt (bestand:regel) en een gok voor de vervanger
+# (een bestaande entiteit van hetzelfde domein met de meeste overeenkomende woorden in de naam).
+# Tik op de kaart om de lijst te kopiëren (om te plakken, bijvoorbeeld in een chat om hem te laten oplossen).
+watchman_list:
+  template: glass
+  triggers_update:
+    - sensor.watchman_missing_entities
+    - sensor.watchman_missing_actions
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const items = (key, attr) => (states[key]?.attributes[attr] ?? []).map(i => `${i.id ?? i.entity_id ?? i}  ->  ${i.occurrences ?? ''}`);
+        const text = [...items('sensor.watchman_missing_entities', 'entities'),
+                      ...items('sensor.watchman_missing_actions', 'actions'), ...items('sensor.watchman_missing_actions', 'services')].join('\n');
+        const copy = t => navigator.clipboard?.writeText(t).catch(() => {}) ?? Promise.resolve();
+        copy(text).then(() => hass.callService('persistent_notification', 'create', {
+          title: 'Watchman', message: 'De lijst met ontbrekende entiteiten en acties is gekopieerd.', notification_id: 'watchman_kopie' }));
+      ]]]
+  custom_fields:
+    list: |
+      [[[
+        const tokens = id => id.split(/[._]/).filter(t => t.length > 1);
+        const guess = (id) => {
+          const [domain] = id.split('.');
+          const want = tokens(id).slice(1);
+          let best = null;
+          for (const other of Object.keys(states)) {
+            if (!other.startsWith(domain + '.')) continue;
+            const have = tokens(other).slice(1);
+            // Gelijk woord telt 1, een woord dat in een ander woord zit (machine / machinestatus) telt 0,5
+            const shared = want.reduce((sum, t) => sum + (have.includes(t) ? 1
+              : have.some(h => t.length >= 4 && h.length >= 4 && (h.includes(t) || t.includes(h))) ? 0.5 : 0), 0);
+            const score = shared / Math.max(want.length, have.length);
+            if (shared && (!best || score > best.score)) best = { id: other, score };
+          }
+          return best && best.score >= 0.34 ? best.id : null;
+        };
+        const occurrences = text => String(text ?? '').split(/,\s*/).filter(Boolean)
+          .map(o => `<code style="font-size:11px;background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:6px">${o}</code>`).join(' ');
+        const row = (item, kind) => {
+          const id = item.id ?? item.entity_id ?? item;
+          const suggestion = kind === 'entiteit' ? guess(id) : null;
+          return `<div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+                    <div style="font-size:13px;font-weight:600;word-break:break-all">${id}
+                      <span style="font-size:11px;font-weight:400;opacity:.6">· ${kind}</span></div>
+                    <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${occurrences(item.occurrences)}</div>
+                    ${suggestion ? `<div style="font-size:12px;margin-top:5px;color:#4ade80">Misschien: ${suggestion}</div>` : ''}
+                  </div>`;
+        };
+        const ents = states['sensor.watchman_missing_entities']?.attributes.entities ?? [];
+        const acts = states['sensor.watchman_missing_actions']?.attributes.actions ?? states['sensor.watchman_missing_actions']?.attributes.services ?? [];
+        if (!ents.length && !acts.length) return '<div style="padding:8px;opacity:.7">Niets ontbreekt. 🎉</div>';
+        return `<div>
+                  <div style="font-size:12px;opacity:.6;text-align:left;margin-bottom:4px">Tik op deze lijst om hem te kopiëren</div>
+                  ${ents.map(e => row(e, 'entiteit')).join('')}${acts.map(a => row(a, 'actie')).join('')}
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - display: block
+        - width: 100%
+
+# Regel in "Grootste verbruikers nu": naam, vermogen en een balkje met het aandeel in het huisverbruik (P1-meter);
+# bij teruglevering is dat totaal onbekend en valt het percentage weg.
+# Tik opent de details (en geschiedenis) van het apparaat.
+power_row:
+  template: glass
+  triggers_update:
+    - sensor.p1_meter_3c39e72a64e8_active_power
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: more-info
+  custom_fields:
+    row: |
+      [[[
+        const w = parseFloat(entity?.state) || 0;
+        // Aandeel in het huisverbruik volgens de P1-meter. Bij teruglevering (zonnepanelen) is die netto te laag of negatief;
+        // dan is het echte totaal onbekend en tonen we geen percentage, maar een vaste schaal tot 1500 W.
+        const grid = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state) || 0;
+        const known = grid > w;
+        const total = known ? grid : 1500;
+        const name = variables.name ?? (entity?.attributes.friendly_name ?? '').replace(/ (power|vermogen|power meter)$/i, '');
+        return `<div style="display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center;text-align:left">
+                  <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                  <span style="font-size:13px;font-weight:600">${w >= 100 ? Math.round(w) : w.toFixed(1).replace('.', ',')} W
+                    ${known ? `<span style="font-weight:400;opacity:.55;font-size:11px">${Math.round(w / total * 100)}%</span>` : ''}</span>
+                  <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
+                    <div style="width:${Math.min(100, w / total * 100)}%;height:100%;border-radius:3px;background:linear-gradient(90deg,#ffb060,#ff6b6b)"></div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 10px 14px
+      - cursor: pointer
+    grid:
+      - grid-template-areas: '"row"'
+    custom_fields:
+      row:
+        - display: block
+        - width: 100%

@@ -27,4 +27,5 @@ public class AppConfig
     public RoombaConfig Roomba { get; set; } = new();
     public TwitterConfig Twitter { get; set; } = new();
     public NetDaemonLoggingConfig NetDaemonLogging { get; set; } = new();
+    public WhatsAppConfig Whatsapp { get; set; } = new();
 }

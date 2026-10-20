@@ -1,0 +1,470 @@
+# Pixel: eten (Zedar A600), kattenbak (PetSnowy) en water (PetSnowy fontein).
+# Hoeveelheden zijn porties. De voedermomenten pas je aan in de pop-up #voedermomenten.
+title: Pixel
+path: pixel
+icon: mdi:cat
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Samenvatting: is alles in orde?
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:cat
+        variables:
+          level: |
+            [[[
+              const food = states['sensor.zedar_food_storage_status']?.state;
+              if (food && food !== 'full') return 'bad';
+              return parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2
+                || parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1 ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const issues = [];
+            const food = states['sensor.zedar_food_storage_status']?.state;
+            if (food && food !== 'full') issues.push('voer');
+            if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2) issues.push('filter fontein');
+            if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1) issues.push('fontein schoonmaken');
+            return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat ze nodig heeft';
+          ]]]
+        label: |
+          [[[
+            const portions = Math.round(parseFloat(states['input_number.pixeltotalamountfeedday']?.state) || 0);
+            const visits = parseInt(states['sensor.snow_self_cleaning_litter_box_number_of_excretion']?.state);
+            const parts = [`${portions} ${portions === 1 ? 'portie' : 'porties'} gegeten vandaag`];
+            if (!isNaN(visits)) parts.push(`${visits}× naar de bak`);
+            return parts.join(' · ');
+          ]]]
+
+  # Eten
+  - type: grid
+    cards:
+      - type: heading
+        heading: Eten
+        heading_style: title
+        icon: mdi:food-drumstick-outline
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        show_icon: false
+        show_label: true
+        name: Vandaag gegeten
+        label: |
+          [[[
+            const food = { full: 'Voerbak is vol', lack: 'Voer raakt op', empty: 'Voerbak is leeg' };
+            const s = states['sensor.zedar_food_storage_status']?.state;
+            return food[s] ?? 'Voerbak: onbekend';
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const today = parseFloat(states['input_number.pixeltotalamountfeedday']?.state) || 0;
+              const planned = ['first', 'second', 'third', 'fourth']
+                .map(n => parseFloat(states[`input_number.pixelfeed${n}amount`]?.state) || 0)
+                .reduce((a, b) => a + b, 0);
+              const pct = planned ? Math.min(100, today / planned * 100) : 0;
+              return `<div style="width:120px;height:120px;border-radius:50%;
+                        background:conic-gradient(#ffb060 ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                        display:flex;align-items:center;justify-content:center">
+                        <div style="width:96px;height:96px;border-radius:50%;background:#121828;
+                          display:flex;flex-direction:column;align-items:center;justify-content:center">
+                          <span style="font-size:28px;font-weight:700">${Math.round(today)}</span>
+                          <span style="font-size:12px;opacity:0.6">van ${Math.round(planned)} porties</span>
+                        </div>
+                      </div>`;
+            ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"ring n" "ring l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 18px
+          card:
+            - height: 150px
+          name:
+            - align-self: end
+            - font-size: 18px
+          label:
+            - align-self: start
+            - font-size: 13px
+            - color: |
+                [[[
+                  const s = states['sensor.zedar_food_storage_status']?.state;
+                  return s && s !== 'full' ? '#ff6b6b' : 'var(--secondary-text-color)';
+                ]]]
+
+      # Alle voedermomenten gesorteerd op tijd; tik om tijden en porties aan te passen
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        show_icon: false
+        name: Voedermomenten
+        show_label: true
+        label: Tik om aan te passen
+        tap_action:
+          action: navigate
+          navigation_path: "#voedermomenten"
+        custom_fields:
+          rows: |
+            [[[
+              const now = new Date().getHours() * 60 + new Date().getMinutes();
+              const skip = states['input_boolean.pixelskipnextautofeed']?.state === 'on';
+              const feeds = ['first', 'second', 'third', 'fourth']
+                .map(n => ({
+                  time: (states[`input_datetime.pixelfeed${n}time`]?.state ?? '').slice(0, 5),
+                  amount: Math.round(parseFloat(states[`input_number.pixelfeed${n}amount`]?.state) || 0)
+                }))
+                .filter(f => /^\d\d:\d\d$/.test(f.time))
+                .sort((a, b) => a.time.localeCompare(b.time));
+              const minutes = t => parseInt(t.slice(0, 2)) * 60 + parseInt(t.slice(3));
+              const next = feeds.find(f => minutes(f.time) > now) ?? feeds[0];
+              // Gegeten of gemist: de porties van vandaag moeten minstens de som zijn van alle momenten tot en met dit moment
+              const eaten = parseFloat(states['input_number.pixeltotalamountfeedday']?.state) || 0;
+              let planned = 0;
+              return feeds.map(f => {
+                const done = minutes(f.time) <= now;
+                if (done) planned += f.amount;
+                const fed = done && eaten >= planned;
+                const missed = done && !fed;
+                const isNext = f === next;
+                const icon = fed ? 'mdi:check-circle' : missed ? 'mdi:close-circle' : isNext && skip ? 'mdi:skip-next-circle-outline' : 'mdi:clock-outline';
+                const color = fed ? '#4ade80' : missed ? '#ff6b6b' : isNext ? '#ffb060' : 'rgba(242,244,248,0.45)';
+                const note = missed ? 'niet gegeten' : isNext && skip ? 'wordt overgeslagen' : isNext ? 'volgende' : '';
+                return `<div style="display:grid;grid-template-columns:30px 60px 1fr auto;align-items:center;column-gap:10px;
+                          padding:10px 2px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+                          <ha-icon icon="${icon}" style="--mdc-icon-size:22px;color:${color};display:flex"></ha-icon>
+                          <span style="font-size:17px;font-weight:600;${done ? 'opacity:0.55' : ''}">${f.time}</span>
+                          <span style="font-size:12px;color:${color}">${note}</span>
+                          <span style="font-size:15px;font-weight:600;text-align:right;${done ? 'opacity:0.55' : ''}">${f.amount} ${f.amount === 1 ? 'portie' : 'porties'}</span>
+                        </div>`;
+              }).join('');
+            ]]]
+        styles:
+          grid:
+            - grid-template-areas: '"n l" "rows rows"'
+            - grid-template-columns: 1fr auto
+            - grid-template-rows: auto auto
+            - align-content: start
+            - row-gap: 8px
+          name:
+            - font-size: 16px
+          label:
+            - justify-self: end
+            - font-size: 12px
+            - color: var(--accent-color)
+            - opacity: 1
+          custom_fields:
+            rows:
+              - display: block
+              - width: 100%
+
+      - type: custom:button-card
+        template: stat
+        entity: input_datetime.pixellastautomatedfeed
+        name: Laatst automatisch
+        icon: mdi:robot-outline
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: input_datetime.pixellastmanualfeed
+        name: Laatst handmatig
+        icon: mdi:hand-heart-outline
+        grid_options:
+          columns: 6
+
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: input_number.pixelnumberofmanualfood
+        name: Porties handmatig voeren
+        icon: mdi:food-drumstick-outline
+        show_state: true
+      - type: custom:button-card
+        template: action
+        name: Nu voeren
+        icon: mdi:food-drumstick
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.feedcat
+          confirmation:
+            text: Pixel nu handmatig voeren?
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Volgende nu
+        icon: mdi:fast-forward-outline
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.pixelgivenextfeedeary
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        entity: input_boolean.pixelskipnextautofeed
+        name: Volgende overslaan
+        icon: mdi:skip-next-outline
+        tap_action:
+          action: toggle
+        state:
+          - value: "on"
+            styles:
+              card:
+                - background: rgba(255, 176, 96, 0.25)
+        grid_options:
+          columns: 4
+
+  # Kattenbak
+  - type: grid
+    cards:
+      - type: heading
+        heading: Kattenbak
+        heading_style: title
+        icon: mdi:toilet
+      - type: custom:button-card
+        template: stat
+        entity: sensor.snow_self_cleaning_litter_box_status
+        name: Status
+        icon: mdi:cat
+        state_display: |
+          [[[
+            const map = {
+              pet_into: 'Pixel zit erin',
+              cleaning: 'Schoonmaken',
+              emptying: 'Legen',
+              standby: 'Schoon',
+              unavailable: 'Niet bereikbaar',
+              unknown: 'Onbekend'
+            };
+            return map[entity.state] ?? entity.state;
+          ]]]
+        grid_options:
+          columns: 6
+      # Laatste melding van de kattenbak (event-entiteit: de toestand is het tijdstip, het type staat in event_type)
+      - type: custom:button-card
+        template: stat
+        entity: event.snow_self_cleaning_litter_box_device_notifications
+        name: Laatste melding
+        icon: mdi:bell-outline
+        state_display: |
+          [[[
+            const type = entity?.attributes.event_type;
+            const at = new Date(entity?.state);
+            if (!type || isNaN(at)) return 'Geen';
+            const when = at.toDateString() === new Date().toDateString()
+              ? at.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+              : at.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            return `${type.replace(/_/g, ' ')} · ${when}`;
+          ]]]
+        styles:
+          state:
+            - font-size: 15px
+            - white-space: normal
+            - text-align: left
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.snow_self_cleaning_litter_box_number_of_excretion
+        name: Bezoeken
+        icon: mdi:paw
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.snow_self_cleaning_litter_box_duration_of_excretion
+        name: Duur laatste bezoek
+        icon: mdi:timer-outline
+        grid_options:
+          columns: 6
+
+      - type: custom:button-card
+        template: stat
+        entity: counter.petsnowylittleboxcleaning
+        name: Schoongemaakt
+        icon: mdi:broom
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: counter.petsnowylitterboxemptying
+        name: Geleegd
+        icon: mdi:delete-empty-outline
+        grid_options:
+          columns: 6
+
+      - type: custom:button-card
+        template: action
+        name: Schoonmaken
+        icon: mdi:broom
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.cleanpetsnowy
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        name: Legen
+        icon: mdi:delete-empty
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.emptypetsnowy
+          confirmation:
+            text: Kattenbak nu legen?
+        grid_options:
+          columns: 4
+      - type: custom:button-card
+        template: action
+        entity: input_boolean.skipvaccumlitterbox
+        name: Niet zuigen
+        icon: mdi:robot-vacuum-off
+        tap_action:
+          action: toggle
+        state:
+          - value: "on"
+            styles:
+              card:
+                - background: rgba(255, 176, 96, 0.25)
+        grid_options:
+          columns: 4
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.snow_self_cleaning_litter_box_auto_clean
+        name: Automatisch schoonmaken
+        icon: mdi:autorenew
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.snow_self_cleaning_litter_box_deodorization
+        name: Geur verdrijven
+        icon: mdi:air-purifier
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.snow_self_cleaning_litter_box_slaap
+        name: Slaapstand (stil)
+        icon: mdi:sleep
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: light.snow_self_cleaning_litter_box_licht
+        name: Lampje
+        icon: mdi:lightbulb-outline
+
+  # Water
+  - type: grid
+    cards:
+      - type: heading
+        heading: Water
+        heading_style: title
+        icon: mdi:water-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.petsnowy_fountain_ison
+        name: Fontein
+        icon: mdi:fountain
+        show_state: true
+      - type: tile
+        entity: select.petsnowy_fountain_mode
+        name: Modus
+        icon: mdi:tune-variant
+        features_position: bottom
+        features:
+          - type: select-options
+      - type: custom:button-card
+        template: progress
+        entity: sensor.petsnowy_fountain_cleaning_days_remaining
+        name: Schoonmaken over
+        icon: mdi:spray-bottle
+        variables:
+          max: 14
+          unit: dagen
+      - type: custom:button-card
+        template: progress
+        entity: sensor.petsnowy_fountain_filter_days_remaining
+        name: Filter vervangen over
+        icon: mdi:air-filter
+        variables:
+          max: 30
+          unit: dagen
+      - type: custom:button-card
+        template: stat
+        entity: sensor.snow_automatic_pet_water_fountain_water_pump_duration
+        name: Pomp gedraaid
+        icon: mdi:pump
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: stat
+        entity: sensor.snow_automatic_pet_water_fountain_filter_duration
+        name: Filter in gebruik
+        icon: mdi:timer-sand
+        grid_options:
+          columns: 6
+
+  # Pop-up: voedermomenten aanpassen (tijd en porties)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#voedermomenten"
+        name: Voedermomenten
+        icon: mdi:clock-edit-outline
+        cards:
+          - type: entities
+            state_color: true
+            entities:
+              - type: section
+                label: Moment 1
+              - entity: input_datetime.pixelfeedfirsttime
+                name: Tijd
+                icon: mdi:clock-outline
+              - entity: input_number.pixelfeedfirstamount
+                name: Porties
+                icon: mdi:food-drumstick-outline
+              - type: section
+                label: Moment 2
+              - entity: input_datetime.pixelfeedsecondtime
+                name: Tijd
+                icon: mdi:clock-outline
+              - entity: input_number.pixelfeedsecondamount
+                name: Porties
+                icon: mdi:food-drumstick-outline
+              - type: section
+                label: Moment 3
+              - entity: input_datetime.pixelfeedthirdtime
+                name: Tijd
+                icon: mdi:clock-outline
+              - entity: input_number.pixelfeedthirdamount
+                name: Porties
+                icon: mdi:food-drumstick-outline
+              - type: section
+                label: Moment 4
+              - entity: input_datetime.pixelfeedfourthtime
+                name: Tijd
+                icon: mdi:clock-outline
+              - entity: input_number.pixelfeedfourthamount
+                name: Porties
+                icon: mdi:food-drumstick-outline
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: input_boolean.pixelskipnextautofeed
+            name: Volgende automatische voeding overslaan
+            icon: mdi:skip-next-outline

@@ -1,0 +1,102 @@
+# Pop-up badkamer, opent via #badkamer.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#badkamer"
+name: Badkamer
+icon: mdi:shower-head
+entity: light.badkamer
+button_type: switch
+sub_button:
+  - entity: sensor.badkamer_temperature
+    show_state: true
+    show_icon: true
+    show_background: false
+  - entity: binary_sensor.badkamer_motion
+    show_icon: true
+    show_background: false
+cards:
+  - type: custom:bubble-card
+    card_type: separator
+    name: Lampen
+    icon: mdi:lightbulb-group-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.plafond_badkamer
+    name: Plafond
+    icon: mdi:ceiling-light
+    show_state: true
+    tap_action:
+      action: toggle
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: light.badkamer_spiegel
+    name: Spiegel
+    icon: mdi:mirror
+    show_state: true
+    tap_action:
+      action: toggle
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Sfeer
+    icon: mdi:palette-outline
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: custom:button-card
+        template: action
+        entity: scene.badkamer_helder
+        name: Helder
+        icon: mdi:white-balance-sunny
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.badkamer_helder
+      - type: custom:button-card
+        template: action
+        entity: scene.badkamer_ontspannen
+        name: Ontspannen
+        icon: mdi:spa-outline
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.badkamer_ontspannen
+      - type: custom:button-card
+        template: action
+        entity: scene.badkamer_nachtlampje
+        name: Nachtlampje
+        icon: mdi:weather-night
+        tap_action:
+          action: perform-action
+          perform_action: scene.turn_on
+          target:
+            entity_id: scene.badkamer_nachtlampje
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Tandenborstel
+    icon: mdi:toothbrush-electric
+  - type: custom:button-card
+    template: toothbrush
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Automatisering
+    icon: mdi:robot-outline
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.douchen
+    name: Douchen
+    icon: mdi:shower
+  - type: custom:bubble-card
+    card_type: button
+    button_type: switch
+    entity: input_boolean.disablelightautomationbathroom
+    name: Automatisch licht pauzeren
+    icon: mdi:motion-sensor-off

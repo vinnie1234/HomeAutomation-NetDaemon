@@ -1,6 +1,8 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Enum;
 using Automation.Helpers;
+using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
 namespace Automation.apps.Rooms.LivingRoom;
@@ -34,8 +36,9 @@ public class Tv : BaseApp
         IHaContext ha,
         ILogger<Tv> logger,
         INotify notify,
-        IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         // The TV also reports playing/paused/idle while it is on, not only "on"
         Entities.MediaPlayer.Tv.StateChanges()

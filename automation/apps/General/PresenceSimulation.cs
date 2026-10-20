@@ -1,5 +1,7 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Helpers;
+using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
@@ -33,8 +35,9 @@ public class PresenceSimulation : BaseApp
         IHaContext ha,
         ILogger<PresenceSimulation> logger,
         INotify notify,
-        IScheduler scheduler)
-        : base(ha, logger, notify, scheduler)
+        IScheduler scheduler,
+        IOptions<AppConfig> config)
+        : base(ha, logger, notify, scheduler, config)
     {
         Entities.Sun.Sun
             .StateChanges()

@@ -1,0 +1,72 @@
+# Navigatie: onderaan op de telefoon, zijbalk links op de pc.
+# Elke view neemt deze kaart op, zodat de balk overal hetzelfde is.
+type: custom:navbar-card
+desktop:
+  position: left
+  show_labels: true
+  min_width: 768
+mobile:
+  show_labels: true
+routes:
+  - url: /dashboard-huis/home
+    label: Home
+    icon: mdi:home-outline
+    icon_selected: mdi:home
+  - url: /dashboard-huis/energie
+    label: Energie
+    icon: mdi:lightning-bolt-outline
+    icon_selected: mdi:lightning-bolt
+  - url: /dashboard-huis/media
+    label: Media
+    icon: mdi:television-play
+    icon_selected: mdi:television-play
+  - url: /dashboard-huis/pixel
+    label: Pixel
+    icon: mdi:cat
+    icon_selected: mdi:cat
+    badge:
+      show: |
+        [[[
+          return !['full', 'unavailable', 'unknown'].includes(states['sensor.zedar_food_storage_status']?.state);
+        ]]]
+      color: "#ff6b6b"
+  - url: /dashboard-huis/huishouden
+    label: Huis
+    icon: mdi:broom
+    icon_selected: mdi:broom
+    # Bolletje bij nieuwe meldingen (afval morgen, bak van Jaap vol, batterij kritiek).
+    # Wie Huishouden opent, heeft ze gezien: dat wordt per apparaat onthouden tot er iets verandert.
+    badge:
+      show: |
+        [[[
+          const afval = states['sensor.afval_morgen']?.state;
+          const reasons = [
+            !['Geen', 'unavailable', 'unknown', undefined].includes(afval) && `afval:${afval}:${new Date().toDateString()}`,
+            states['binary_sensor.jaap_bin_full']?.state === 'on' && 'jaap',
+            parseInt(states['sensor.battery_devices_critical']?.state) > 0 && `batterij:${states['sensor.battery_devices_critical'].state}`
+          ].filter(Boolean).join('|');
+          if (!reasons) return false;
+          if (window.location.pathname === '/dashboard-huis/huishouden') {
+            localStorage.setItem('huis-badge-gezien', reasons);
+            return false;
+          }
+          return localStorage.getItem('huis-badge-gezien') !== reasons;
+        ]]]
+      color: "#ffb060"
+  - url: /dashboard-huis/weer
+    label: Weer
+    icon: mdi:weather-partly-cloudy
+    icon_selected: mdi:weather-partly-cloudy
+    badge:
+      show: "[[[ return states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on'; ]]]"
+      color: "#ff6b6b"
+  - url: /dashboard-huis/systeem
+    label: Beheer
+    icon: mdi:cog-outline
+    icon_selected: mdi:cog
+    hidden: "[[[ return !user.is_admin; ]]]"
+  # Klapt het menu van Home Assistant uit (de bovenbalk is verborgen door Kiosk Mode)
+  - label: Menu
+    icon: mdi:menu
+    tap_action:
+      action: toggle-menu

@@ -64,7 +64,7 @@ public class AppTestContext : IDisposable
         // whose historical offset (local mean time) isn't a whole number of minutes.
         Scheduler.AdvanceTo(StartTime.UtcTicks);
         HaContextMock = new HaContextMock(useSchedulerForReactive ? Scheduler : null);
-        Notify = new Notify(HaContext, DataRepository, Substitute.For<ILogger<Notify>>());
+        Notify = new Notify(HaContext, DataRepository, Substitute.For<ILogger<Notify>>(), Options.Create(new AppConfig()));
     }
     
     public static AppTestContext New()
