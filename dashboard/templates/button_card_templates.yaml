@@ -2109,8 +2109,11 @@ watchman_list:
 # Tik opent de details (en geschiedenis) van het apparaat.
 power_row:
   template: glass
-  triggers_update:
-    - sensor.p1_meter_3c39e72a64e8_active_power
+  # Het percentage hangt van alle apparaten af, dus bij elke wijziging opnieuw tekenen
+  triggers_update: all
+  variables:
+    # Dezelfde apparaten als de lijst in Energie en Verbruik; hun som is het totaal tijdens teruglevering
+    sources: !include ../cards/power_sources.yaml
   show_icon: false
   show_name: false
   tap_action:
@@ -2119,16 +2122,17 @@ power_row:
     row: |
       [[[
         const w = parseFloat(entity?.state) || 0;
-        // Aandeel in het huisverbruik volgens de P1-meter. Bij teruglevering (zonnepanelen) is die netto te laag of negatief;
-        // dan is het echte totaal onbekend en tonen we geen percentage, maar een vaste schaal tot 1500 W.
+        // Aandeel in het huisverbruik volgens de P1-meter. Bij teruglevering (zonnepanelen) is die netto te laag of negatief
+        // en is het echte huisverbruik onbekend; dan is het aandeel in wat alle gemeten apparaten samen gebruiken.
         const grid = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state) || 0;
-        const known = grid > w;
-        const total = known ? grid : 1500;
+        const measured = (variables.sources ?? [])
+          .reduce((sum, source) => sum + Math.max(0, parseFloat(states[source.entity_id]?.state) || 0), 0);
+        const total = grid > w ? grid : Math.max(measured, w, 1);
         const name = variables.name ?? (entity?.attributes.friendly_name ?? '').replace(/ (power|vermogen|power meter)$/i, '');
         return `<div style="display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center;text-align:left">
                   <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
                   <span style="font-size:13px;font-weight:600">${w >= 100 ? Math.round(w) : w.toFixed(1).replace('.', ',')} W
-                    ${known ? `<span style="font-weight:400;opacity:.55;font-size:11px">${Math.round(w / total * 100)}%</span>` : ''}</span>
+                    <span style="font-weight:400;opacity:.55;font-size:11px">${Math.round(w / total * 100)}%</span></span>
                   <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
                     <div style="width:${Math.min(100, w / total * 100)}%;height:100%;border-radius:3px;background:linear-gradient(90deg,#ffb060,#ff6b6b)"></div>
                   </div>
