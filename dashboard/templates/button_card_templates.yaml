@@ -607,6 +607,14 @@ weather_hero:
           # {{ now().strftime('%H:%M') }}
           {% set alarm = as_timestamp(states('sensor.hub_vincent_alarms'), 0) %}
           {{ days[now().weekday()] | capitalize }} {{ now().day }} {{ months[now().month - 1] }}{{ ' · ⏰ ' ~ (alarm | timestamp_custom('%H:%M')) if 0 < alarm - now().timestamp() < 86400 else '' }}{{ ' · 🎄' if is_state('binary_sensor.kerst', 'on') else '' }}
+          {% set ns = namespace(timers=[]) %}
+          {% for id, name in [('sensor.keuken_timers', 'Keuken'), ('sensor.badkamer_speaker_timers', 'Badkamer'), ('sensor.gang_speaker_1_timers', 'Gang')] %}
+          {% set end = as_timestamp(states(id), 0) %}
+          {% if end > now().timestamp() - 300 %}{% set ns.timers = ns.timers + [(name, end)] %}{% endif %}
+          {% endfor %}
+          {% for name, end in ns.timers %}
+          ### ⏲️ {{ name }} · {{ 'nog ' ~ (((end - now().timestamp()) / 60) | round(0, 'ceil') | int) ~ ' min' if end > now().timestamp() else 'klaar!' }}
+          {% endfor %}
         card_mod:
           style:
             ha-markdown$: |
@@ -629,6 +637,17 @@ weather_hero:
                 font-size: 15px;
                 margin: 0;
                 color: rgba(255, 255, 255, 0.75);
+              }
+              h3 {
+                display: inline-block;
+                font-size: 17px;
+                font-weight: 600;
+                margin: 8px 8px 0 0;
+                padding: 6px 14px;
+                border-radius: 16px;
+                color: #fff;
+                background: rgba(255, 176, 96, 0.9);
+                box-shadow: 0 4px 16px rgba(255, 176, 96, 0.35);
               }
             .: |
               ha-card {
