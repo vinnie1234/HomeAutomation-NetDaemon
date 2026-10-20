@@ -380,6 +380,9 @@ sun:
 weather_hero:
   triggers_update:
     - weather.weer_thuis
+    - sensor.keuken_timers
+    - sensor.badkamer_speaker_timers
+    - sensor.gang_speaker_1_timers
     - weather.weer_thuis_waarnemingen
     - sun.sun
     - sensor.weer_thuis_temperatuur
@@ -419,6 +422,11 @@ weather_hero:
     @keyframes hero-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     @keyframes hero-rays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
     @keyframes hero-flash { 0%, 89%, 100% { opacity: 0; } 90%, 93% { opacity: 0.85; } 91.5% { opacity: 0.2; } }
+    @keyframes hero-timer-color { 0%, 75% { background: rgba(255, 176, 96, 0.92); } 82%, 100% { background: rgba(255, 99, 99, 0.95); } }
+    @keyframes hero-timer-bar { from { transform: scaleX(var(--timer-left, 1)); } to { transform: scaleX(0); } }
+    @keyframes hero-timer-blink { 50% { opacity: 0.35; } }
+    @keyframes hero-timer-hide { to { opacity: 0; } }
+    @keyframes hero-timer-show { to { opacity: 1; } }
     @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
   custom_fields:
     sky: |
@@ -607,14 +615,6 @@ weather_hero:
           # {{ now().strftime('%H:%M') }}
           {% set alarm = as_timestamp(states('sensor.hub_vincent_alarms'), 0) %}
           {{ days[now().weekday()] | capitalize }} {{ now().day }} {{ months[now().month - 1] }}{{ ' · ⏰ ' ~ (alarm | timestamp_custom('%H:%M')) if 0 < alarm - now().timestamp() < 86400 else '' }}{{ ' · 🎄' if is_state('binary_sensor.kerst', 'on') else '' }}
-          {% set ns = namespace(timers=[]) %}
-          {% for id, name in [('sensor.keuken_timers', 'Keuken'), ('sensor.badkamer_speaker_timers', 'Badkamer'), ('sensor.gang_speaker_1_timers', 'Gang')] %}
-          {% set end = as_timestamp(states(id), 0) %}
-          {% if end > now().timestamp() - 300 %}{% set ns.timers = ns.timers + [(name, end)] %}{% endif %}
-          {% endfor %}
-          {% for name, end in ns.timers %}
-          ### ⏲️ {{ name }} · {{ 'nog ' ~ (((end - now().timestamp()) / 60) | round(0, 'ceil') | int) ~ ' min' if end > now().timestamp() else 'klaar!' }}
-          {% endfor %}
         card_mod:
           style:
             ha-markdown$: |
@@ -638,17 +638,6 @@ weather_hero:
                 margin: 0;
                 color: rgba(255, 255, 255, 0.75);
               }
-              h3 {
-                display: inline-block;
-                font-size: 17px;
-                font-weight: 600;
-                margin: 8px 8px 0 0;
-                padding: 6px 14px;
-                border-radius: 16px;
-                color: #fff;
-                background: rgba(255, 176, 96, 0.9);
-                box-shadow: 0 4px 16px rgba(255, 176, 96, 0.35);
-              }
             .: |
               ha-card {
                 background: none !important;
@@ -656,6 +645,47 @@ weather_hero:
                 box-shadow: none !important;
                 backdrop-filter: none !important;
               }
+    # Lopende timers van de speakers: oranje pil die na 75% van de tijd rood wordt, met een aflopend balkje,
+    # de laatste 20 seconden knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
+    # zodat de kaart niet elke seconde opnieuw getekend hoeft te worden.
+    timers: |
+      [[[
+        const speakers = [['sensor.keuken_timers', 'Keuken'], ['sensor.badkamer_speaker_timers', 'Badkamer'], ['sensor.gang_speaker_1_timers', 'Gang']];
+        const seconds = d => typeof d === 'number' ? d : /^\d+:\d+(:\d+)?$/.test(String(d ?? ''))
+          ? String(d).split(':').map(Number).reduce((total, part) => total * 60 + part) : NaN;
+        const now = Date.now();
+        window.huisTimerStart = window.huisTimerStart ?? {};
+        return speakers.map(([id, name]) => {
+          const st = states[id];
+          const end = new Date(st?.state).getTime();
+          if (isNaN(end) || end < now - 300000) return '';
+          const timer = (st.attributes.timers ?? [])[0] ?? {};
+          let total = seconds(timer.duration);
+          if (isNaN(total)) {
+            // Geen duur bekend: rekenen vanaf het moment dat deze timer voor het eerst op het scherm stond
+            window.huisTimerStart[id + end] = window.huisTimerStart[id + end] ?? now;
+            total = (end - window.huisTimerStart[id + end]) / 1000;
+          }
+          total = Math.max(total, 1);
+          const left = Math.max(0, (end - now) / 1000);
+          const elapsed = total - left;
+          const at = new Date(end).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+          const label = timer.label ? ` (${timer.label})` : '';
+          return `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px 9px;
+                    border-radius:16px;color:#fff;overflow:hidden;font-size:16px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);
+                    animation:hero-timer-color ${total}s linear ${-elapsed}s forwards,
+                              hero-timer-blink 0.6s ease-in-out ${Math.max(0, left - 20)}s infinite">
+                    <ha-icon icon="mdi:timer-outline" style="--mdc-icon-size:20px"></ha-icon>
+                    <span>${name}${label}</span>
+                    <span style="position:relative">
+                      <span style="animation:hero-timer-hide 0s linear ${left}s forwards">· klaar om ${at}</span>
+                      <span style="position:absolute;left:0;top:0;white-space:nowrap;opacity:0;animation:hero-timer-show 0s linear ${left}s forwards">· klaar!</span>
+                    </span>
+                    <span style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,0.85);transform-origin:left;
+                      --timer-left:${left / total};animation:hero-timer-bar ${left}s linear forwards"></span>
+                  </div>`;
+        }).join('');
+      ]]]
     temp: |
       [[[
         const names = {
@@ -749,9 +779,9 @@ weather_hero:
       - border: none
       - background: "#0b0f19"
     grid:
-      - grid-template-areas: '"clock persons" "clock temp"'
+      - grid-template-areas: '"clock persons" "clock temp" "timers temp"'
       - grid-template-columns: 1fr auto
-      - grid-template-rows: auto 1fr
+      - grid-template-rows: auto 1fr auto
     custom_fields:
       sky:
         - position: absolute
@@ -763,6 +793,12 @@ weather_hero:
         - align-self: end
         - justify-self: start
         - padding: 0 0 18px 10px
+        - text-align: left
+      timers:
+        - z-index: 1
+        - justify-self: start
+        - align-self: end
+        - padding: 0 0 16px 18px
         - text-align: left
       persons:
         - z-index: 1
