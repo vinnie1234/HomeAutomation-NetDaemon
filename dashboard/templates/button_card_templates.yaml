@@ -2581,11 +2581,43 @@ vomit_chart:
     - sensor.pixel_gekotst_momenten
   show_icon: false
   show_name: false
+  # Tik = schermvullend en liggend (op de telefoon), nog een keer tikken sluit hem
   tap_action:
-    action: none
+    action: javascript
+    javascript: |
+      [[[
+        const render = window.huisVomitChart;
+        if (!render || document.getElementById('huis-vomit-full')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'huis-vomit-full';
+        overlay.innerHTML = `<style>
+            #huis-vomit-full { position: fixed; inset: 0; z-index: 100000; background: #0b0f19; color: #f2f4f8;
+              font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+            #huis-vomit-full .stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; padding: 18px 22px; box-sizing: border-box; }
+            /* Rechtop gehouden telefoon (draaien niet toegestaan): de grafiek zelf 90 graden draaien */
+            @media (orientation: portrait) {
+              #huis-vomit-full .stage { width: 100vh; height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
+            }
+            #huis-vomit-full .hint { position: absolute; right: 22px; top: 14px; font-size: 12px; opacity: 0.55; }
+          </style>
+          <div class="stage">${render(true)}<div class="hint">Tik om te sluiten</div></div>`;
+        const close = () => {
+          try { screen.orientation?.unlock?.(); } catch (e) {}
+          if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+          overlay.remove();
+        };
+        overlay.addEventListener('click', close);
+        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && overlay.isConnected) overlay.remove(); });
+        document.body.appendChild(overlay);
+        // Echt schermvullend en liggend als de browser of app dat toestaat; anders blijft het gedraaide beeld staan
+        overlay.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+      ]]]
   custom_fields:
     chart: |
       [[[
+        // big = schermvullend: alles groter, en de grafiek vult de hoogte
+        const render = big => {
+        const z = big ? 1.7 : 1;
         const moments = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
           .map(x => new Date(x)).filter(d => !isNaN(d));
         const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2604,8 +2636,8 @@ vomit_chart:
           // Hulplijnen om 6, 12 en 18 uur op dagen met meldingen (met cijfers als de dag breed genoeg is)
           let ticks = '';
           if (n) for (const h of [6, 12, 18]) {
-            ticks += `<div style="position:absolute;left:${h / 24 * 100}%;top:18px;bottom:22px;border-left:1px dotted rgba(255,255,255,0.18)"></div>
-              ${n > 1 ? `<div style="position:absolute;left:${h / 24 * 100}%;bottom:22px;transform:translateX(-50%);font-size:8px;opacity:0.45">${h}</div>` : ''}`;
+            ticks += `<div style="position:absolute;left:${h / 24 * 100}%;top:${18 * z}px;bottom:${22 * z}px;border-left:1px dotted rgba(255,255,255,0.18)"></div>
+              ${n > 1 || big ? `<div style="position:absolute;left:${h / 24 * 100}%;bottom:${22 * z}px;transform:translateX(-50%);font-size:${8 * z}px;opacity:0.45">${h}</div>` : ''}`;
           }
 
           // Een stip per keer, de tijd er afwisselend boven en onder zodat ze niet over elkaar vallen
@@ -2617,10 +2649,10 @@ vomit_chart:
             // Aan de rand van de dag naar binnen uitlijnen, zodat de tijd niet over de buurdag valt
             const shift = pos < 18 ? '-6px' : pos > 82 ? 'calc(-100% + 6px)' : '-50%';
             dots += `<div title="${d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })} ${time}"
-                style="position:absolute;left:${pos}%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;
+                style="position:absolute;left:${pos}%;top:50%;width:${12 * z}px;height:${12 * z}px;margin:${-6 * z}px 0 0 ${-6 * z}px;border-radius:50%;
                 background:#ff9f5a;box-shadow:0 0 10px rgba(255,140,80,0.8)"></div>
-              <div style="position:absolute;left:${pos}%;top:${above ? 'calc(50% - 22px)' : 'calc(50% + 10px)'};transform:translateX(${shift});
-                font-size:10px;font-weight:600;color:#ffcfa8;white-space:nowrap">${time}</div>`;
+              <div style="position:absolute;left:${pos}%;top:${above ? `calc(50% - ${22 * z}px)` : `calc(50% + ${10 * z}px)`};transform:translateX(${shift});
+                font-size:${10 * z}px;font-weight:600;color:#ffcfa8;white-space:nowrap">${time}</div>`;
           });
 
           // Lege dagen zijn smal: alleen maandag krijgt een label, zodat je de weken ziet
@@ -2631,22 +2663,27 @@ vomit_chart:
               border-left:1px solid rgba(255,255,255,0.07);
               background:${n ? 'rgba(255,140,80,0.10)' : weekend ? 'rgba(255,255,255,0.03)' : 'transparent'}">
               ${ticks}${dots}
-              <div style="position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:${n ? 11 : 9}px;
+              <div style="position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:${(n ? 11 : 9) * z}px;
                 white-space:nowrap;overflow:${n ? 'hidden' : 'visible'};${isToday ? 'font-weight:700;color:var(--accent-color)' : `opacity:${n ? 0.9 : 0.5}`}">${isToday && !n ? 'nu' : label}</div>
             </div>`;
         }
 
         const total = moments.length;
         const header = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <span style="font-size:13px;opacity:0.8">Laatste 2 weken</span>
-            <span style="font-size:13px;font-weight:600">${total ? `${total}× gekotst` : 'Niet gekotst 🎉'}</span></div>`;
-        return `${header}<div style="display:flex;height:120px;border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.15)">${cols}</div>`;
+            <span style="font-size:${13 * z}px;opacity:0.8">Laatste 2 weken${big ? ' · Pixel gekotst' : ''}</span>
+            <span style="font-size:${13 * z}px;font-weight:600;${big ? 'margin-right:130px' : ''}">${total ? `${total}× gekotst` : 'Niet gekotst 🎉'}</span></div>`;
+        return `${header}<div style="display:flex;height:${big ? 'calc(100% - 44px)' : '120px'};border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.15)">${cols}</div>`;
+        };
+        // Voor de schermvullende weergave (tap_action) met dezelfde gegevens
+        window.huisVomitChart = render;
+        return render(false);
       ]]]
   styles:
     grid:
       - grid-template-areas: '"chart"'
     card:
       - padding: 12px 14px
+      - cursor: pointer
     custom_fields:
       chart:
         - width: 100%
