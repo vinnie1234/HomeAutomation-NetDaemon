@@ -480,6 +480,8 @@ weather_hero:
     @keyframes hero-sway { 0%, 100% { transform: rotate(calc(var(--swing) * -0.5)); } 50% { transform: rotate(var(--swing)); } }
     @keyframes hero-drip { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
     @keyframes hero-cat-tail { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(10deg); } }
+    @keyframes hero-cat-frame { 0% { opacity: 1; } 25% { opacity: 0; } 100% { opacity: 0; } }
+    @keyframes hero-cat-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.8px); } }
     @keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
     @keyframes hero-leg { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
     @keyframes hero-wave { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(25deg); } }
@@ -1069,15 +1071,14 @@ weather_hero:
 
         // ---------- Een zwarte kat met een wit plekje in zijn nek dwaalt over de stoep ----------
         // Elke keer dat de kaart tekent kiest hij een nieuwe route van een minuut: lopen naar een willekeurig punt, even
-        // stilstaan, weer verder. Alles is CSS: de positie, de kant die hij op kijkt en de pootjes (alleen tijdens het lopen).
+        // stilstaan, weer verder. Lopen is een tekenfilm-loopcyclus van 4 frames; stilstaan een eigen houding.
         {
           const total = 60;                                  // seconden voor de hele route
           const stops = [];                                  // [tijd (s), x (%)]
           let t = 0, x = 30 + Math.random() * 60;
           stops.push([0, x]);
           while (t < total - 4) {
-            const pause = 2 + Math.random() * 4;
-            t = Math.min(total, t + pause);
+            t = Math.min(total, t + 2 + Math.random() * 4);   // even stilstaan
             stops.push([t, x]);
             let next = 30 + Math.random() * 62;
             if (Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
@@ -1089,62 +1090,86 @@ weather_hero:
             x = next;
           }
           stops.push([total, x]);
-          const pct = s => (s / total * 100).toFixed(2);
+          const pct = v => (v / total * 100).toFixed(2);
+          const step = v => (+pct(v) + 0.01).toFixed(2);
 
-          // Positie: lineair tussen de punten
-          const move = stops.map(([s, px]) => `${pct(s)}% { left: ${px.toFixed(1)}%; }`).join(' ');
-          // Kijkrichting: omdraaien zodra hij de andere kant op gaat (twee bijna gelijke punten, dus geen draai-animatie)
+          // Positie, kijkrichting en lopen/staan uit dezelfde route
+          const move = stops.map(([v, px]) => `${pct(v)}% { left: ${px.toFixed(1)}%; }`).join(' ');
           let face = '0% { transform: scaleX(1); }', facing = 1;
+          let walking = '0% { opacity: 0; }', standing = '0% { opacity: 1; }';
           for (let i = 1; i < stops.length; i++) {
-            const dir = Math.sign(stops[i][1] - stops[i - 1][1]);
+            const [t0, x0] = stops[i - 1], [t1, x1] = stops[i];
+            const dir = Math.sign(x1 - x0);
             if (dir && dir !== facing) {
-              face += ` ${pct(stops[i - 1][0])}% { transform: scaleX(${facing}); } ${(+pct(stops[i - 1][0]) + 0.01).toFixed(2)}% { transform: scaleX(${dir}); }`;
+              face += ` ${pct(t0)}% { transform: scaleX(${facing}); } ${step(t0)}% { transform: scaleX(${dir}); }`;
               facing = dir;
             }
+            const isWalk = dir !== 0;
+            walking += ` ${pct(t0)}% { opacity: ${isWalk ? 0 : 0}; } ${step(t0)}% { opacity: ${isWalk ? 1 : 0}; } ${pct(t1)}% { opacity: ${isWalk ? 1 : 0}; }`;
+            standing += ` ${pct(t0)}% { opacity: ${isWalk ? 1 : 1}; } ${step(t0)}% { opacity: ${isWalk ? 0 : 1}; } ${pct(t1)}% { opacity: ${isWalk ? 0 : 1}; }`;
           }
           face += ` 100% { transform: scaleX(${facing}); }`;
-          // Pootjes: heen en weer tijdens het lopen, stil tijdens het staan
-          let legs = '0% { transform: rotate(0deg); }';
-          for (let i = 1; i < stops.length; i++) {
-            const [s0, x0] = stops[i - 1], [s1, x1] = stops[i];
-            if (x0 === x1) { legs += ` ${pct(s1)}% { transform: rotate(0deg); }`; continue; }
-            for (let k = s0 + 0.35, swing = 1; k < s1; k += 0.35, swing = -swing) legs += ` ${pct(k)}% { transform: rotate(${swing * 24}deg); }`;
-            legs += ` ${pct(s1)}% { transform: rotate(0deg); }`;
-          }
-          const back = legs.replace(/rotate\((-?\d+)deg\)/g, (m, d) => `rotate(${-d}deg)`);
 
-          const eye = day ? '#e9d64a' : '#fff176';
-          const leg = (lx, cls) => `<g class="${cls}" style="transform-origin:${lx}px 15px;transform-box:view-box">
-              <rect x="${lx - 1.1}" y="15" width="2.2" height="8" rx="1.1" fill="#0c0c10"/></g>`;
+          // Pootjes: van onder het lijf (y = 40) naar de grond (y = 58), met een voetje. dx = waar de voet staat t.o.v. de heup.
+          const near = '#121219', far = '#050508';
+          const front = (hx, dx, fill) => `<path d="M${hx - 3} 38 L${hx + 3} 38 C${hx + 3} 46 ${hx + dx + 2.6} 50 ${hx + dx + 2.4} 55
+              Q${hx + dx + 2.6} 57 ${hx + dx + 5} 57.4 Q${hx + dx + 6.2} 58.6 ${hx + dx + 4} 58.8 L${hx + dx - 2.2} 58.8
+              Q${hx + dx - 2.8} 57 ${hx + dx - 2.2} 55 C${hx + dx - 2} 50 ${hx - 3} 46 ${hx - 3} 38 Z" fill="${fill}"/>`;
+          const hind = (hx, dx, fill) => `<path d="M${hx - 5} 34 L${hx + 4.5} 34 C${hx + 6} 41 ${hx + 3} 45 ${hx + dx + 2.6} 49
+              L${hx + dx + 2.6} 55 Q${hx + dx + 3} 57 ${hx + dx + 5.4} 57.4 Q${hx + dx + 6.4} 58.6 ${hx + dx + 4} 58.8 L${hx + dx - 1.8} 58.8
+              Q${hx + dx - 2.4} 57 ${hx + dx - 1.6} 55 L${hx + dx - 1.8} 49 C${hx - 4} 45 ${hx - 6.5} 41 ${hx - 5} 34 Z" fill="${fill}"/>`;
+          // [voor-ver, achter-ver, voor-dichtbij, achter-dichtbij]: een stap, kruisen, de andere stap, kruisen
+          const frames = [[-5, 5, 6, -6], [1, -1, 0, 1], [6, -6, -5, 5], [0, 1, 1, -1]];
+          const legs = ([ff, hf, fn, hn]) => `${front(60, ff, far)}${hind(29, hf, far)}`;
+          const nearLegs = ([ff, hf, fn, hn]) => `${front(65, fn, near)}${hind(34, hn, near)}`;
+          const cycle = 0.6;                                 // seconden per pas
+          const frame = (f, i, part) => `<g style="opacity:0;animation:hero-cat-frame ${cycle}s steps(1) ${(-i * cycle / 4).toFixed(2)}s infinite">${part(f)}</g>`;
+
+          const eye = day ? '#c9e265' : '#e6f56a';
           out += `<style>
               @keyframes hero-cat-move { ${move} }
               @keyframes hero-cat-face { ${face} }
-              @keyframes hero-cat-legs-a { ${legs} }
-              @keyframes hero-cat-legs-b { ${back} }
-              .cat-a { animation: hero-cat-legs-a ${total}s linear infinite; }
-              .cat-b { animation: hero-cat-legs-b ${total}s linear infinite; }
+              @keyframes hero-cat-walking { ${walking} }
+              @keyframes hero-cat-standing { ${standing} }
             </style>
-            <div style="position:absolute;bottom:3%;left:50%;width:50px;height:30px;margin-left:-25px;pointer-events:none;z-index:1;
+            <div style="position:absolute;bottom:2%;left:50%;width:68px;height:41px;margin-left:-34px;pointer-events:none;z-index:1;
                 animation:hero-cat-move ${total}s linear infinite">
-              <svg viewBox="0 0 50 30" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear infinite;
-                  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 4px rgba(255,255,255,0.15))'}">
-                <!-- Staart: zwiept langzaam -->
-                <path d="M7 12 Q1 9 2 2" stroke="#0c0c10" stroke-width="2.6" fill="none" stroke-linecap="round"
-                  style="transform-origin:7px 12px;transform-box:view-box;animation:hero-cat-tail 2.6s ease-in-out infinite"/>
-                ${leg(11, 'cat-b')}${leg(15, 'cat-a')}${leg(31, 'cat-a')}${leg(35, 'cat-b')}
-                <!-- Lijf, nek en kop -->
-                <ellipse cx="22" cy="14" rx="15" ry="6" fill="#0c0c10"/>
-                <path d="M33 11 Q36 6 39 8 L40 14 Q37 16 33 15 Z" fill="#0c0c10"/>
-                <circle cx="41" cy="8" r="5.2" fill="#0c0c10"/>
-                <path d="M37.5 4.5 L38.2 -1 L41 3.2 Z M42 3.2 L44.6 -0.8 L45 4.6 Z" fill="#0c0c10"/>
-                <path d="M38.6 3.6 L38.9 1 L40.2 3 Z M42.9 3.3 L44.2 1.4 L44.4 3.9 Z" fill="#3a2a30"/>
-                <!-- Het witte plekje in zijn nek, onder zijn kop -->
-                <ellipse cx="38.8" cy="12.4" rx="1.9" ry="1.35" fill="#f4f4f4"/>
-                <!-- Oog, neus en snorharen -->
-                <ellipse cx="43.2" cy="7.2" rx="1.1" ry="1.3" fill="${eye}" ${day ? '' : 'style="filter:drop-shadow(0 0 2px #fff176)"'}/>
-                <ellipse cx="43.3" cy="7.3" rx="0.35" ry="1" fill="#0c0c10"/>
-                <circle cx="46" cy="9.4" r="0.6" fill="#5a3a44"/>
-                <path d="M45 10 L49.5 9 M45 10.4 L49.5 11" stroke="rgba(255,255,255,0.35)" stroke-width="0.3"/>
+              <svg viewBox="0 -2 100 62" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear infinite;
+                  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 4px rgba(255,255,255,0.18))'}">
+                <defs>
+                  <linearGradient id="hero-cat-fur" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="${day ? '#3a3a46' : '#2c2c3a'}"/><stop offset="0.5" stop-color="#15151c"/><stop offset="1" stop-color="#08080b"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="47" cy="59" rx="30" ry="2.2" fill="rgba(0,0,0,0.25)"/>
+                <!-- Verre pootjes: lopen (4 frames) of staan -->
+                <g style="animation:hero-cat-walking ${total}s linear infinite">${frames.map((f, i) => frame(f, i, legs)).join('')}</g>
+                <g style="animation:hero-cat-standing ${total}s linear infinite">${legs([1, 1, 0, 0])}</g>
+                <!-- Lijf (wipt licht mee bij elke pas) en staart -->
+                <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
+                  <path d="M22 30 C10 30 5 22 8 14 C10 8 16 7.5 17.5 12" stroke="url(#hero-cat-fur)" stroke-width="5" fill="none" stroke-linecap="round"
+                    style="transform-origin:22px 30px;transform-box:view-box;animation:hero-cat-tail 2.6s ease-in-out infinite"/>
+                  <path d="M70 26 C62 19.5 40 18.5 30 21.5 C22 24 18 30 20 37 C21.5 42.5 27 46 33.5 44.2 C40 42.6 46 43.8 52 43.8 C58 43.8 62 45.4 66.5 43 C72.5 39.6 74 33 70 26 Z" fill="url(#hero-cat-fur)"/>
+                  <ellipse cx="29" cy="35" rx="8.5" ry="7" fill="rgba(255,255,255,0.04)"/>
+                </g>
+                <!-- Nabije pootjes -->
+                <g style="animation:hero-cat-walking ${total}s linear infinite">${frames.map((f, i) => frame(f, i, nearLegs)).join('')}</g>
+                <g style="animation:hero-cat-standing ${total}s linear infinite">${nearLegs([0, 0, 1, -1])}</g>
+                <!-- Kop: grote ronde kop met wang en snuit -->
+                <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
+                  <path d="M66 29 C63.5 18 70 9 80 8 C89 7 95.5 13 95.5 19 C95.5 22 94 24 92.5 25 C91 28.5 87 30.5 82 30.5 C76 31.5 70 33 66 29 Z" fill="url(#hero-cat-fur)"/>
+                  <path d="M70.5 13.5 L71.5 0.5 L79.5 9 Z" fill="#101016"/><path d="M72.5 11 L73 4.5 L77 9.2 Z" fill="#6b4352"/>
+                  <path d="M81 8 L88.5 -1.5 L90.5 11.5 Z" fill="#1a1a22"/><path d="M83.6 7.6 L87.6 2.4 L88.6 9.6 Z" fill="#7a4d5e"/>
+                  <!-- Het witte plekje op zijn keel, onder zijn kop -->
+                  <path d="M69.5 31.8 C70 29.2 73.6 28.6 76 30.2 C77.2 32 75.6 34.2 72.8 34.4 C71 34.5 69.4 33.4 69.5 31.8 Z" fill="#f4f4f4"/>
+                  <!-- Groot oog met pupil en glinstering, neusje, mondje, snorharen -->
+                  <ellipse cx="86.6" cy="16.6" rx="3.6" ry="3.4" fill="${eye}" ${day ? '' : 'style="filter:drop-shadow(0 0 2.5px #e6f56a)"'}/>
+                  <ellipse cx="87.4" cy="16.8" rx="1.5" ry="2.9" fill="#060608"/>
+                  <circle cx="88.4" cy="15.2" r="0.9" fill="rgba(255,255,255,0.9)"/>
+                  <path d="M94.6 19.2 L96.6 19.8 L95 21.4 Z" fill="#7a4d5e"/>
+                  <path d="M95 21.8 Q94.2 23.6 92.4 23.2" stroke="#2a1c22" stroke-width="0.6" fill="none"/>
+                  <path d="M92.6 21.6 L101 19.6 M92.8 22.6 L101.5 22.8 M92.4 23.6 L100 26" stroke="rgba(255,255,255,0.45)" stroke-width="0.4"/>
+                </g>
               </svg>
             </div>`;
         }
