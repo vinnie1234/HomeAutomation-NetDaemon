@@ -37,11 +37,13 @@ public class WorkScheduleTests
     }
 
     [Fact]
-    public void Weekend_IsAlwaysADayOff()
+    public void Weekend_FollowsItsSettingToo()
     {
         var schedule = Schedule();
+        SetState("input_select.werkdag_carleen_zaterdag", "Kantoor");
+        SetState("input_select.werkdag_carleen_zondag", "Vrij");
 
-        Assert.True(schedule.IsDayOff(DayOfWeek.Saturday));
+        Assert.True(schedule.IsOfficeDay(DayOfWeek.Saturday));
         Assert.True(schedule.IsDayOff(DayOfWeek.Sunday));
     }
 

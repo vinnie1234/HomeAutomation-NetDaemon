@@ -5,24 +5,26 @@ namespace Automation.Models.Persons;
 /// <summary>
 /// The work schedule of one person, from their own helpers (created by <see cref="apps.General.HelperManager"/>):
 /// <list type="bullet">
-/// <item><c>input_select.werkdag_{person}_{dag}</c>: per weekday Vrij, Thuis or Kantoor</item>
+/// <item><c>input_select.werkdag_{person}_{dag}</c>: per day of the week (weekend included) Vrij, Thuis or Kantoor</item>
 /// <item><c>input_boolean.vrij_{person}</c>: a day off now and then (holiday at home)</item>
 /// <item><c>input_datetime.opstaan_kantoor_{person}</c> / <c>opstaan_thuiswerk_{person}</c>: when the house wakes up</item>
 /// <item><c>input_datetime.werk_start_{person}</c> / <c>werk_eind_{person}</c>: the working hours</item>
 /// <item><c>input_boolean.working{person}</c>: whether the person is working right now</item>
 /// </list>
-/// Weekends, a day off and being on vacation (<c>input_boolean.onvacation</c>, shared) are always days off.
+/// A day off and being on vacation (<c>input_boolean.onvacation</c>, shared) are always days off.
 /// </summary>
 public class WorkSchedule
 {
-    /// <summary>The weekday names the helpers use.</summary>
+    /// <summary>The day names the helpers use.</summary>
     public static readonly IReadOnlyDictionary<DayOfWeek, string> DayNames = new Dictionary<DayOfWeek, string>
     {
         [DayOfWeek.Monday] = "maandag",
         [DayOfWeek.Tuesday] = "dinsdag",
         [DayOfWeek.Wednesday] = "woensdag",
         [DayOfWeek.Thursday] = "donderdag",
-        [DayOfWeek.Friday] = "vrijdag"
+        [DayOfWeek.Friday] = "vrijdag",
+        [DayOfWeek.Saturday] = "zaterdag",
+        [DayOfWeek.Sunday] = "zondag"
     };
 
     public const string Off = "Vrij";
@@ -47,9 +49,8 @@ public class WorkSchedule
     public InputDatetimeEntity WorkStart => new(_haContext, $"input_datetime.werk_start_{_person}");
     public InputDatetimeEntity WorkEnd => new(_haContext, $"input_datetime.werk_eind_{_person}");
 
-    /// <summary>The setting of a weekday; <see langword="null"/> for the weekend.</summary>
-    public InputSelectEntity? WorkDaySetting(DayOfWeek day) =>
-        DayNames.TryGetValue(day, out var name) ? new InputSelectEntity(_haContext, $"input_select.werkdag_{_person}_{name}") : null;
+    /// <summary>The setting of a day of the week.</summary>
+    public InputSelectEntity WorkDaySetting(DayOfWeek day) => new(_haContext, $"input_select.werkdag_{_person}_{DayNames[day]}");
 
     /// <summary>Whether the person has a day off or is on vacation, regardless of the weekday.</summary>
     public bool IsOnLeave => DayOff.IsOn() || new InputBooleanEntity(_haContext, "input_boolean.onvacation").IsOn();
@@ -57,9 +58,9 @@ public class WorkSchedule
     /// <summary>What kind of day the given weekday is. Unknown settings count as a day off, so nothing starts by mistake.</summary>
     public WorkDay GetWorkDay(DayOfWeek day)
     {
-        if (IsOnLeave || WorkDaySetting(day) is not { } setting) return WorkDay.Off;
+        if (IsOnLeave) return WorkDay.Off;
 
-        return setting.State switch
+        return WorkDaySetting(day).State switch
         {
             Office => WorkDay.Office,
             Home => WorkDay.Home,

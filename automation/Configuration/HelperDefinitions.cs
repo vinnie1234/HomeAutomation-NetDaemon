@@ -12,12 +12,14 @@ public static class HelperDefinitions
     /// <summary>All helpers, grouped per domain.</summary>
     public static readonly IReadOnlyList<HelperDefinition> All =
     [
-        // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over, Carleen begint op Vrij.
+        // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
         WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
         WorkDay("werkdag_vincent_dinsdag", "Werkdag Vincent dinsdag", copyFrom: "input_boolean.officeday_tuesday"),
         WorkDay("werkdag_vincent_woensdag", "Werkdag Vincent woensdag", copyFrom: "input_boolean.officeday_wednesday"),
         WorkDay("werkdag_vincent_donderdag", "Werkdag Vincent donderdag", copyFrom: "input_boolean.officeday_thursday"),
         WorkDay("werkdag_vincent_vrijdag", "Werkdag Vincent vrijdag", copyFrom: "input_boolean.officeday_friday"),
+        WorkDay("werkdag_vincent_zaterdag", "Werkdag Vincent zaterdag"),
+        WorkDay("werkdag_vincent_zondag", "Werkdag Vincent zondag"),
         Boolean("vrij_vincent", "Vrij Vincent", icon: "mdi:beach", copyFrom: "input_boolean.holliday"),
         Time("opstaan_kantoor_vincent", "Opstaan kantoor Vincent", "07:15:00", copyFrom: "input_datetime.daytimeoffice"),
         Time("opstaan_thuiswerk_vincent", "Opstaan thuiswerk Vincent", "08:15:00", copyFrom: "input_datetime.daytimehomework"),
@@ -28,6 +30,8 @@ public static class HelperDefinitions
         WorkDay("werkdag_carleen_woensdag", "Werkdag Carleen woensdag"),
         WorkDay("werkdag_carleen_donderdag", "Werkdag Carleen donderdag"),
         WorkDay("werkdag_carleen_vrijdag", "Werkdag Carleen vrijdag"),
+        WorkDay("werkdag_carleen_zaterdag", "Werkdag Carleen zaterdag"),
+        WorkDay("werkdag_carleen_zondag", "Werkdag Carleen zondag"),
         Boolean("vrij_carleen", "Vrij Carleen", icon: "mdi:beach"),
         Time("opstaan_kantoor_carleen", "Opstaan kantoor Carleen", "07:15:00"),
         Time("opstaan_thuiswerk_carleen", "Opstaan thuiswerk Carleen", "08:15:00"),
