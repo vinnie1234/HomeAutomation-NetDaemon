@@ -479,6 +479,7 @@ weather_hero:
     @keyframes hero-sint { from { transform: translateX(0); } to { transform: translateX(-140vw); } }
     @keyframes hero-sway { 0%, 100% { transform: rotate(calc(var(--swing) * -0.5)); } 50% { transform: rotate(var(--swing)); } }
     @keyframes hero-drip { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+    @keyframes hero-cat-tail { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(10deg); } }
     @keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
     @keyframes hero-leg { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
     @keyframes hero-wave { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(25deg); } }
@@ -1065,6 +1066,88 @@ weather_hero:
               filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
               <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
         });
+
+        // ---------- Een zwarte kat met een wit plekje in zijn nek dwaalt over de stoep ----------
+        // Elke keer dat de kaart tekent kiest hij een nieuwe route van een minuut: lopen naar een willekeurig punt, even
+        // stilstaan, weer verder. Alles is CSS: de positie, de kant die hij op kijkt en de pootjes (alleen tijdens het lopen).
+        {
+          const total = 60;                                  // seconden voor de hele route
+          const stops = [];                                  // [tijd (s), x (%)]
+          let t = 0, x = 30 + Math.random() * 60;
+          stops.push([0, x]);
+          while (t < total - 4) {
+            const pause = 2 + Math.random() * 4;
+            t = Math.min(total, t + pause);
+            stops.push([t, x]);
+            let next = 30 + Math.random() * 62;
+            if (Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
+            next = Math.max(28, Math.min(94, next));
+            const walk = Math.abs(next - x) / 2.2;           // ongeveer 2,2% van de breedte per seconde
+            if (t + walk > total) break;
+            t += walk;
+            stops.push([t, next]);
+            x = next;
+          }
+          stops.push([total, x]);
+          const pct = s => (s / total * 100).toFixed(2);
+
+          // Positie: lineair tussen de punten
+          const move = stops.map(([s, px]) => `${pct(s)}% { left: ${px.toFixed(1)}%; }`).join(' ');
+          // Kijkrichting: omdraaien zodra hij de andere kant op gaat (twee bijna gelijke punten, dus geen draai-animatie)
+          let face = '0% { transform: scaleX(1); }', facing = 1;
+          for (let i = 1; i < stops.length; i++) {
+            const dir = Math.sign(stops[i][1] - stops[i - 1][1]);
+            if (dir && dir !== facing) {
+              face += ` ${pct(stops[i - 1][0])}% { transform: scaleX(${facing}); } ${(+pct(stops[i - 1][0]) + 0.01).toFixed(2)}% { transform: scaleX(${dir}); }`;
+              facing = dir;
+            }
+          }
+          face += ` 100% { transform: scaleX(${facing}); }`;
+          // Pootjes: heen en weer tijdens het lopen, stil tijdens het staan
+          let legs = '0% { transform: rotate(0deg); }';
+          for (let i = 1; i < stops.length; i++) {
+            const [s0, x0] = stops[i - 1], [s1, x1] = stops[i];
+            if (x0 === x1) { legs += ` ${pct(s1)}% { transform: rotate(0deg); }`; continue; }
+            for (let k = s0 + 0.35, swing = 1; k < s1; k += 0.35, swing = -swing) legs += ` ${pct(k)}% { transform: rotate(${swing * 24}deg); }`;
+            legs += ` ${pct(s1)}% { transform: rotate(0deg); }`;
+          }
+          const back = legs.replace(/rotate\((-?\d+)deg\)/g, (m, d) => `rotate(${-d}deg)`);
+
+          const eye = day ? '#e9d64a' : '#fff176';
+          const leg = (lx, cls) => `<g class="${cls}" style="transform-origin:${lx}px 15px;transform-box:view-box">
+              <rect x="${lx - 1.1}" y="15" width="2.2" height="8" rx="1.1" fill="#0c0c10"/></g>`;
+          out += `<style>
+              @keyframes hero-cat-move { ${move} }
+              @keyframes hero-cat-face { ${face} }
+              @keyframes hero-cat-legs-a { ${legs} }
+              @keyframes hero-cat-legs-b { ${back} }
+              .cat-a { animation: hero-cat-legs-a ${total}s linear infinite; }
+              .cat-b { animation: hero-cat-legs-b ${total}s linear infinite; }
+            </style>
+            <div style="position:absolute;bottom:3%;left:50%;width:50px;height:30px;margin-left:-25px;pointer-events:none;z-index:1;
+                animation:hero-cat-move ${total}s linear infinite">
+              <svg viewBox="0 0 50 30" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear infinite;
+                  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 4px rgba(255,255,255,0.15))'}">
+                <!-- Staart: zwiept langzaam -->
+                <path d="M7 12 Q1 9 2 2" stroke="#0c0c10" stroke-width="2.6" fill="none" stroke-linecap="round"
+                  style="transform-origin:7px 12px;transform-box:view-box;animation:hero-cat-tail 2.6s ease-in-out infinite"/>
+                ${leg(11, 'cat-b')}${leg(15, 'cat-a')}${leg(31, 'cat-a')}${leg(35, 'cat-b')}
+                <!-- Lijf, nek en kop -->
+                <ellipse cx="22" cy="14" rx="15" ry="6" fill="#0c0c10"/>
+                <path d="M33 11 Q36 6 39 8 L40 14 Q37 16 33 15 Z" fill="#0c0c10"/>
+                <circle cx="41" cy="8" r="5.2" fill="#0c0c10"/>
+                <path d="M37.5 4.5 L38.2 -1 L41 3.2 Z M42 3.2 L44.6 -0.8 L45 4.6 Z" fill="#0c0c10"/>
+                <path d="M38.6 3.6 L38.9 1 L40.2 3 Z M42.9 3.3 L44.2 1.4 L44.4 3.9 Z" fill="#3a2a30"/>
+                <!-- Het witte plekje in zijn nek, onder zijn kop -->
+                <ellipse cx="38.8" cy="12.4" rx="1.9" ry="1.35" fill="#f4f4f4"/>
+                <!-- Oog, neus en snorharen -->
+                <ellipse cx="43.2" cy="7.2" rx="1.1" ry="1.3" fill="${eye}" ${day ? '' : 'style="filter:drop-shadow(0 0 2px #fff176)"'}/>
+                <ellipse cx="43.3" cy="7.3" rx="0.35" ry="1" fill="#0c0c10"/>
+                <circle cx="46" cy="9.4" r="0.6" fill="#5a3a44"/>
+                <path d="M45 10 L49.5 9 M45 10.4 L49.5 11" stroke="rgba(255,255,255,0.35)" stroke-width="0.3"/>
+              </svg>
+            </div>`;
+        }
 
         // ---------- De was hangt buiten: waslijn met wapperende was (harder bij wind, druppels bij regen) ----------
         if (states['input_boolean.laundryhangingoutside']?.state === 'on') {
