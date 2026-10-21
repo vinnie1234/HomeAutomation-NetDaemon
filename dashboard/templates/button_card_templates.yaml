@@ -2526,7 +2526,9 @@ vomit_button:
     [[[
       const moments = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
         .map(x => new Date(x)).filter(d => !isNaN(d));
-      if (!moments.length) return 'Niet gekotst in de afgelopen 2 weken';
+      if (!moments.length) return 'Nog nooit gekotst';
+      // Alles wordt bewaard; de kaart telt de laatste twee weken
+      const recent = moments.filter(d => d > Date.now() - 14 * 86400000).length;
       const last = moments[moments.length - 1];
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const day = new Date(last); day.setHours(0, 0, 0, 0);
@@ -2534,7 +2536,7 @@ vomit_button:
       const time = last.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
       const when = diff === 0 ? `vandaag ${time}` : diff === 1 ? `gisteren ${time}`
         : `${last.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`;
-      return `${moments.length}× in 2 weken · laatst ${when}`;
+      return recent ? `${recent}× in 2 weken · laatst ${when}` : `Niet gekotst in de afgelopen 2 weken · laatst ${when}`;
     ]]]
   custom_fields:
     plus: '+1'
@@ -2581,35 +2583,186 @@ vomit_chart:
     - sensor.pixel_gekotst_momenten
   show_icon: false
   show_name: false
-  # Tik = schermvullend en liggend (op de telefoon), nog een keer tikken sluit hem
+  # Tik = schermvullend en liggend, met inzoomen (stuk selecteren, knijpen, scrollen) en schuiven door alle geschiedenis
   tap_action:
     action: javascript
     javascript: |
       [[[
-        const render = window.huisVomitChart;
-        if (!render || document.getElementById('huis-vomit-full')) return;
+        // Schermvullend en liggend: een tijdlijn waarin je inzoomt (een stuk selecteren, knijpen of scrollen) en schuift
+        // (twee vingers of de pijlen). Draaien kan de telefoon niet altijd: dan draait de grafiek zelf 90 graden.
+        if (document.getElementById('huis-vomit-full')) return;
+        const moments = (window.huisVomitMoments ?? []).slice().sort((a, b) => a - b);
+        const H = 3600000, D = 24 * H;
+        const endOfToday = (() => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); })();
+        const first = moments.length ? moments[0] : endOfToday - 14 * D;
+        const minStart = Math.min(first - D, endOfToday - 14 * D);
+        let view = { start: endOfToday - 14 * D, end: endOfToday };
+
         const overlay = document.createElement('div');
         overlay.id = 'huis-vomit-full';
         overlay.innerHTML = `<style>
             #huis-vomit-full { position: fixed; inset: 0; z-index: 100000; background: #0b0f19; color: #f2f4f8;
-              font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
-            #huis-vomit-full .stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; padding: 18px 22px; box-sizing: border-box; }
-            /* Rechtop gehouden telefoon (draaien niet toegestaan): de grafiek zelf 90 graden draaien */
+              font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); user-select: none; -webkit-user-select: none; }
+            #huis-vomit-full .stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; padding: 12px 18px 10px;
+              box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; }
             @media (orientation: portrait) {
               #huis-vomit-full .stage { width: 100vh; height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
             }
-            #huis-vomit-full .hint { position: absolute; right: 22px; top: 14px; font-size: 12px; opacity: 0.55; }
+            #huis-vomit-full .bar { display: flex; align-items: center; gap: 12px; }
+            #huis-vomit-full .title { font-size: 17px; font-weight: 600; }
+            #huis-vomit-full .range { font-size: 13px; opacity: 0.7; flex: 1; }
+            #huis-vomit-full button { background: rgba(255,255,255,0.08); color: inherit; border: 1px solid rgba(255,255,255,0.12);
+              border-radius: 10px; min-width: 38px; height: 34px; font-size: 15px; padding: 0 10px; cursor: pointer; }
+            #huis-vomit-full .chart { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.2);
+              touch-action: none; cursor: crosshair; }
+            #huis-vomit-full .brush { position: absolute; top: 0; bottom: 0; background: rgba(255,176,96,0.18);
+              border-left: 1px solid #ffb060; border-right: 1px solid #ffb060; display: none; pointer-events: none; }
+            #huis-vomit-full .help { font-size: 11px; opacity: 0.5; text-align: center; }
           </style>
-          <div class="stage">${render(true)}<div class="hint">Tik om te sluiten</div></div>`;
+          <div class="stage">
+            <div class="bar"><span class="title">🤮 Pixel gekotst</span><span class="range"></span>
+              <button data-a="left">◀</button><button data-a="out">−</button><button data-a="in">+</button><button data-a="right">▶</button>
+              <button data-a="reset">2 weken</button><button data-a="close">✕</button></div>
+            <div class="chart"><div class="plot"></div><div class="brush"></div></div>
+            <div class="help">Sleep over een stuk om in te zoomen · knijpen of scrollen zoomt · twee vingers of ◀ ▶ schuiven</div>
+          </div>`;
+        const chart = overlay.querySelector('.chart'), plot = overlay.querySelector('.plot'), brush = overlay.querySelector('.brush');
+        const rangeText = overlay.querySelector('.range');
+
+        // Binnen de grenzen houden: niet verder terug dan de eerste keer, niet verder dan vandaag, minstens een half uur
+        const clamp = v => {
+          let span = Math.max(30 * 60000, Math.min(v.end - v.start, endOfToday - minStart));
+          let start = Math.max(minStart, Math.min(v.start, endOfToday - span));
+          return { start, end: start + span };
+        };
+        const fmtDay = (t, long) => new Date(t).toLocaleDateString('nl-NL', long ? { weekday: 'short', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric' });
+        const fmtTime = t => new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+        const draw = () => {
+          const W = chart.clientWidth, Hh = chart.clientHeight, span = view.end - view.start;
+          const x = t => (t - view.start) / span * W;
+          let out = '';
+          // Dagen: achtergrond voor het weekend, scheidingslijn om middernacht en het label onderaan
+          const day0 = new Date(view.start); day0.setHours(0, 0, 0, 0);
+          for (let d = day0.getTime(); d < view.end; d += D) {
+            const dd = new Date(d); dd.setHours(0, 0, 0, 0); const s = dd.getTime(), e = s + D;
+            const left = Math.max(0, x(s)), right = Math.min(W, x(e)), w = right - left;
+            if (w <= 0) continue;
+            const weekend = dd.getDay() === 0 || dd.getDay() === 6;
+            const isToday = e === endOfToday;
+            out += `<div style="position:absolute;left:${left}px;width:${w}px;top:0;bottom:0;${weekend ? 'background:rgba(255,255,255,0.03);' : ''}
+                border-left:1px solid rgba(255,255,255,${x(s) >= 0 ? 0.12 : 0})"></div>`;
+            // Zo veel als past: "do 15 okt", "do 15" of alleen "15"
+            const text = w > 110 ? fmtDay(s, true) : w >= 50 ? fmtDay(s, false) : w >= 20 ? String(dd.getDate()) : '';
+            if (text) out += `<div style="position:absolute;left:${left}px;width:${w}px;bottom:4px;text-align:center;font-size:12px;white-space:nowrap;
+                overflow:hidden;${isToday ? 'color:#ffb060;font-weight:700' : `opacity:${dd.getDay() === 1 ? 0.9 : 0.65}`}">${text}</div>`;
+          }
+          // Uurlijnen: zo fijn als er ruimte is (kwartier tot een halve dag)
+          const steps = [15, 30, 60, 180, 360, 720].map(m => m * 60000);
+          const step = steps.find(st => st / span * W >= 46);
+          if (step) for (let t = Math.ceil(view.start / step) * step; t < view.end; t += step) {
+            const dt = new Date(t); if (dt.getHours() === 0 && dt.getMinutes() === 0) continue;
+            out += `<div style="position:absolute;left:${x(t)}px;top:22px;bottom:24px;border-left:1px dotted rgba(255,255,255,0.16)"></div>
+              <div style="position:absolute;left:${x(t)}px;top:6px;transform:translateX(-50%);font-size:10px;opacity:0.5">${fmtTime(t)}</div>`;
+          }
+          // Een stip per keer; tijden die elkaar zouden raken komen in een andere rij
+          const rows = [-1e9, -1e9, -1e9];
+          const shown = moments.filter(t => t >= view.start && t <= view.end);
+          for (const t of shown) {
+            const px = x(t);
+            let row = rows.findIndex(last => px - last > 44); if (row < 0) row = 0;
+            rows[row] = px;
+            const y = Hh / 2 + (row === 1 ? -34 : row === 2 ? 34 : 0);
+            out += `<div style="position:absolute;left:${px}px;top:${Hh / 2}px;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;
+                background:#ff9f5a;box-shadow:0 0 12px rgba(255,140,80,0.85)"></div>
+              <div style="position:absolute;left:${px}px;top:${y - 24}px;transform:translateX(-50%);font-size:12px;font-weight:600;color:#ffcfa8;
+                white-space:nowrap">${fmtTime(t)}</div>`;
+          }
+          plot.innerHTML = out;
+          rangeText.textContent = `${fmtDay(view.start, true)} – ${fmtDay(view.end - 1, true)} · ${shown.length}× gekotst`;
+        };
+
+        // Waar op de tijdas (0..1) een vinger of de muis is; bij de gedraaide weergave loopt de tijdas van boven naar beneden
+        const rotated = () => matchMedia('(orientation: portrait)').matches;
+        const frac = e => {
+          const r = chart.getBoundingClientRect();
+          const f = rotated() ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width;
+          return Math.max(0, Math.min(1, f));
+        };
+        const zoomAt = (f, factor) => {
+          const span = view.end - view.start, t = view.start + f * span, ns = span * factor;
+          view = clamp({ start: t - f * ns, end: t - f * ns + ns }); draw();
+        };
+
+        const pointers = new Map();
+        let brushFrom = null, pinch = null;
+        chart.addEventListener('pointerdown', e => {
+          chart.setPointerCapture(e.pointerId);
+          pointers.set(e.pointerId, frac(e));
+          if (pointers.size === 1) { brushFrom = frac(e); pinch = null; }
+          if (pointers.size === 2) {
+            brushFrom = null; brush.style.display = 'none';
+            const [a, b] = [...pointers.values()];
+            pinch = { a, b, view: { ...view } };
+          }
+        });
+        chart.addEventListener('pointermove', e => {
+          if (!pointers.has(e.pointerId)) return;
+          pointers.set(e.pointerId, frac(e));
+          if (pinch && pointers.size >= 2) {
+            const [a, b] = [...pointers.values()];
+            const span0 = pinch.view.end - pinch.view.start;
+            const mid0 = (pinch.a + pinch.b) / 2, mid1 = (a + b) / 2;
+            const t = pinch.view.start + mid0 * span0;
+            const ns = span0 * Math.max(0.02, Math.abs(pinch.b - pinch.a)) / Math.max(0.02, Math.abs(b - a));
+            view = clamp({ start: t - mid1 * ns, end: t - mid1 * ns + ns }); draw();
+          } else if (brushFrom !== null) {
+            const f = frac(e), lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
+            Object.assign(brush.style, { display: 'block', left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` });
+          }
+        });
+        const up = e => {
+          if (!pointers.has(e.pointerId)) return;
+          const f = frac(e);
+          pointers.delete(e.pointerId);
+          if (brushFrom !== null && pointers.size === 0 && Math.abs(f - brushFrom) > 0.02) {
+            const span = view.end - view.start, lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
+            view = clamp({ start: view.start + lo * span, end: view.start + hi * span }); draw();
+          }
+          if (pointers.size === 0) { brushFrom = null; pinch = null; brush.style.display = 'none'; }
+        };
+        chart.addEventListener('pointerup', up);
+        chart.addEventListener('pointercancel', up);
+        chart.addEventListener('wheel', e => {
+          e.preventDefault();
+          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const span = view.end - view.start; view = clamp({ start: view.start + e.deltaX / 600 * span, end: view.end + e.deltaX / 600 * span }); draw(); }
+          else zoomAt(frac(e), e.deltaY > 0 ? 1.25 : 0.8);
+        }, { passive: false });
+
         const close = () => {
-          try { screen.orientation?.unlock?.(); } catch (e) {}
+          try { screen.orientation?.unlock?.(); } catch (err) {}
           if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+          window.removeEventListener('resize', draw);
           overlay.remove();
         };
-        overlay.addEventListener('click', close);
-        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && overlay.isConnected) overlay.remove(); });
+        overlay.querySelector('.bar').addEventListener('click', e => {
+          const a = e.target.closest('button')?.dataset.a; if (!a) return;
+          const span = view.end - view.start;
+          if (a === 'close') return close();
+          if (a === 'left') view = clamp({ start: view.start - span / 2, end: view.end - span / 2 });
+          if (a === 'right') view = clamp({ start: view.start + span / 2, end: view.end + span / 2 });
+          if (a === 'in') return zoomAt(0.5, 0.5);
+          if (a === 'out') return zoomAt(0.5, 2);
+          if (a === 'reset') view = { start: endOfToday - 14 * D, end: endOfToday };
+          draw();
+        });
+        document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); close(); } });
+        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && overlay.isConnected) close(); });
+        window.addEventListener('resize', draw);
         document.body.appendChild(overlay);
-        // Echt schermvullend en liggend als de browser of app dat toestaat; anders blijft het gedraaide beeld staan
+        draw();
+        requestAnimationFrame(draw);
+        // Echt schermvullend en liggend als de browser of app dat toestaat
         overlay.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
       ]]]
   custom_fields:
@@ -2674,8 +2827,9 @@ vomit_chart:
             <span style="font-size:${13 * z}px;font-weight:600;${big ? 'margin-right:130px' : ''}">${total ? `${total}× gekotst` : 'Niet gekotst 🎉'}</span></div>`;
         return `${header}<div style="display:flex;height:${big ? 'calc(100% - 44px)' : '120px'};border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.15)">${cols}</div>`;
         };
-        // Voor de schermvullende weergave (tap_action) met dezelfde gegevens
-        window.huisVomitChart = render;
+        // Alle momenten voor de schermvullende weergave (tap_action), ook ouder dan twee weken
+        window.huisVomitMoments = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
+          .map(x => new Date(x).getTime()).filter(t => !isNaN(t));
         return render(false);
       ]]]
   styles:
