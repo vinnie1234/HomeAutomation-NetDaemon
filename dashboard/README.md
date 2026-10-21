@@ -11,12 +11,13 @@ YAML-dashboard voor Home Assistant. Ontwerp en paginaplan: zie `../DASHBOARD_PLA
 | `popups/` | Kamer-pop-ups (Bubble Card), opgenomen in `views/home.yaml` |
 | `templates/button_card_templates.yaml` | Gedeelde stijl en gedrag van tegels (kamer, persoon, actie, info) |
 | `navbar.yaml` | Navigatiebalk, opgenomen in elke pagina |
+| `cards/` | Gedeelde kaarten en lijsten, zoals `power_sources.yaml` (de apparaten van "Grootste verbruikers nu") |
 | `themes/glass_home.yaml` | Thema "Glass Home" |
 
 ## Benodigd uit HACS
 
 Bubble Card, Mushroom, button-card, card-mod, Navbar Card, Universal Remote Card, auto-entities,
-ApexCharts Card, mini-graph-card, clock-weather-card, vacuum-card, upcoming-media-card, tabbed-card,
+ApexCharts Card, mini-graph-card, clock-weather-card, upcoming-media-card, tabbed-card,
 Gaming Status Cards, Week Planner Card en Kiosk Mode.
 
 ## Installeren (eenmalig)
@@ -34,6 +35,8 @@ Gaming Status Cards, Week Planner Card en Kiosk Mode.
      # Kiosk Mode al laden voordat het dashboard opent, anders verschijnt de bovenbalk soms toch
      extra_module_url:
        - /hacsfiles/kiosk-mode/kiosk-mode.js
+       # card-mod vóór de kaarten laden, anders waarschuwt hij over prestaties
+       - /hacsfiles/lovelace-card-mod/card-mod.js
 
    lovelace:
      dashboards:
