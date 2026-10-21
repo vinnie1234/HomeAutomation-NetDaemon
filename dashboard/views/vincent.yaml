@@ -102,6 +102,74 @@ sections:
       - type: custom:button-card
         template: homework_tile
 
+  # Werkrooster: per weekdag Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werkrooster
+        heading_style: title
+        icon: mdi:calendar-week-outline
+      - type: grid
+        columns: 5
+        square: false
+        cards:
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_maandag
+            variables:
+              day: ma
+              weekday: 1
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_dinsdag
+            variables:
+              day: di
+              weekday: 2
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_woensdag
+            variables:
+              day: wo
+              weekday: 3
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_donderdag
+            variables:
+              day: do
+              weekday: 4
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_vrijdag
+            variables:
+              day: vr
+              weekday: 5
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.vrij_vincent
+        name: Vrij (vandaag of tot ik hem uitzet)
+        icon: mdi:beach
+        show_state: true
+      - type: entities
+        state_color: true
+        entities:
+          - type: section
+            label: Opstaan (het huis wordt wakker)
+          - entity: input_datetime.opstaan_kantoor_vincent
+            name: Op een kantoordag
+            icon: mdi:office-building-outline
+          - entity: input_datetime.opstaan_thuiswerk_vincent
+            name: Op een thuiswerkdag
+            icon: mdi:home-account
+          - type: section
+            label: Werkuren (Vincent aan het werk)
+          - entity: input_datetime.werk_start_vincent
+            name: Begin
+            icon: mdi:briefcase-clock-outline
+          - entity: input_datetime.werk_eind_vincent
+            name: Eind
+            icon: mdi:briefcase-check-outline
+
   # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
   - type: grid
     cards:

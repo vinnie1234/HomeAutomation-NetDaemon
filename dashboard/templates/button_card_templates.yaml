@@ -2858,3 +2858,56 @@ peuken:
     custom_fields:
       body:
         - width: 100%
+
+# Werkdag in het rooster van iemand: tik wisselt Vrij -> Thuis -> Kantoor (input_select.werkdag_{persoon}_{dag}).
+# variables.day: de korte naam (ma, di, ...). Vandaag krijgt een rand.
+workday_button:
+  template: glass
+  show_icon: true
+  show_name: true
+  show_label: true
+  variables:
+    day: ma
+    weekday: 1
+  tap_action:
+    action: perform-action
+    perform_action: input_select.select_next
+    target:
+      entity_id: entity
+    data:
+      cycle: true
+    haptic: light
+  hold_action:
+    action: more-info
+  name: '[[[ return variables.day; ]]]'
+  label: '[[[ return entity?.state ?? "?"; ]]]'
+  icon: |
+    [[[ return { Vrij: 'mdi:beach', Thuis: 'mdi:home-account', Kantoor: 'mdi:office-building-outline' }[entity?.state] ?? 'mdi:help-circle-outline'; ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"n" "i" "l"'
+      - row-gap: 4px
+    card:
+      - padding: 10px 4px
+      - height: 92px
+      - background: |
+          [[[
+            const rgb = { Vrij: '255, 255, 255', Thuis: '74, 222, 128', Kantoor: '96, 165, 250' }[entity?.state] ?? '255, 255, 255';
+            return `rgba(${rgb}, ${entity?.state === 'Vrij' ? 0.05 : 0.16})`;
+          ]]]
+      - border: |
+          [[[
+            return new Date().getDay() === variables.weekday ? '2px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.08)';
+          ]]]
+    name:
+      - justify-self: center
+      - font-size: 13px
+      - text-transform: capitalize
+    icon:
+      - width: 24px
+      - color: |
+          [[[ return { Thuis: '#4ade80', Kantoor: '#60a5fa' }[entity?.state] ?? 'rgba(255, 255, 255, 0.5)'; ]]]
+    label:
+      - justify-self: center
+      - font-size: 11px
+      - opacity: 0.85

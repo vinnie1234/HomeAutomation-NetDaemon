@@ -145,13 +145,33 @@ sections:
           - type: conditional
             conditions:
               - condition: state
-                entity: input_boolean.holliday
+                entity: input_boolean.onvacation
                 state: "on"
             chip:
               type: template
               icon: mdi:palm-tree
               icon_color: teal
               content: Vakantie
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vrij_vincent
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:beach
+              icon_color: teal
+              content: Vincent vrij
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vrij_carleen
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:beach
+              icon_color: teal
+              content: Carleen vrij
           - type: conditional
             conditions:
               - condition: user
