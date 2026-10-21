@@ -2870,13 +2870,9 @@ workday_button:
     day: ma
     weekday: 1
   tap_action:
-    action: perform-action
-    perform_action: input_select.select_next
-    target:
-      entity_id: entity
-    data:
-      cycle: true
+    action: javascript
     haptic: light
+    javascript: "[[[ hass.callService('input_select', 'select_next', { entity_id: entity.entity_id, cycle: true }); ]]]"
   hold_action:
     action: more-info
   name: '[[[ return variables.day; ]]]'
