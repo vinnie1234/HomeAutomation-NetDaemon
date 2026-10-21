@@ -1135,23 +1135,24 @@ weather_hero:
         // Elke keer dat de kaart tekent kiest hij een nieuwe route van een minuut: lopen naar een willekeurig punt, even
         // stilstaan, weer verder. Lopen is een tekenfilm-loopcyclus van 4 frames; stilstaan een eigen houding.
         {
-          const total = 60;                                  // seconden voor de hele route
+          // Een rondje: een paar keer lopen en stilstaan, en tot slot terug naar het begin, zodat het einde naadloos
+          // aansluit op het begin van de volgende ronde (anders springt hij terug).
           const stops = [];                                  // [tijd (s), x (%)]
-          let t = 0, x = 30 + Math.random() * 60;
+          const startX = 30 + Math.random() * 60;
+          let t = 0, x = startX;
           stops.push([0, x]);
-          while (t < total - 4) {
-            t = Math.min(total, t + 2 + Math.random() * 4);   // even stilstaan
+          const legsCount = 5 + Math.floor(Math.random() * 4);
+          for (let leg = 0; leg <= legsCount; leg++) {
+            t += 2 + Math.random() * 4;                      // even stilstaan
             stops.push([t, x]);
-            let next = 30 + Math.random() * 62;
-            if (Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
+            let next = leg === legsCount ? startX : 30 + Math.random() * 62;
+            if (leg < legsCount && Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
             next = Math.max(28, Math.min(94, next));
-            const walk = Math.abs(next - x) / 2.2;           // ongeveer 2,2% van de breedte per seconde
-            if (t + walk > total) break;
-            t += walk;
+            t += Math.max(0.5, Math.abs(next - x) / 2.2);     // ongeveer 2,2% van de breedte per seconde
             stops.push([t, next]);
             x = next;
           }
-          stops.push([total, x]);
+          const total = t;                                   // seconden voor het hele rondje
           const pct = v => (v / total * 100).toFixed(2);
           const step = v => (+pct(v) + 0.01).toFixed(2);
 
