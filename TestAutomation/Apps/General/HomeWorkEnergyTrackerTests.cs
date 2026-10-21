@@ -39,7 +39,7 @@ public class HomeWorkEnergyTrackerTests : IDisposable
         SetState("input_boolean.holliday", "off");
         SetState("input_boolean.onvacation", "off");
         SetState("input_boolean.awayvincent", "off");
-        SetState("input_boolean.working", "off");
+        SetState("input_boolean.workingvincent", "off");
         SetState(Import, "1000.000");
         SetState(Export, "500.000");
         SetState(Washer, "690.0");
@@ -55,8 +55,8 @@ public class HomeWorkEnergyTrackerTests : IDisposable
     private void SetState(string entityId, string state) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState { EntityId = entityId, State = state });
 
-    private void StartWorking() => _ctx.ChangeStateFor("input_boolean.working").FromState("off").ToState("on");
-    private void StopWorking() => _ctx.ChangeStateFor("input_boolean.working").FromState("on").ToState("off");
+    private void StartWorking() => _ctx.ChangeStateFor("input_boolean.workingvincent").FromState("off").ToState("on");
+    private void StopWorking() => _ctx.ChangeStateFor("input_boolean.workingvincent").FromState("on").ToState("off");
 
     private HomeWorkDay SavedDay() => _storage.Get<List<HomeWorkDay>>("HomeWorkEnergyDays")!.Single(x => x.Date == "2026-10-20");
 

@@ -90,7 +90,8 @@ public class HouseStateManager : BaseApp
     }
 
     /// <summary>
-    /// Sets the working state based on the schedule.
+    /// Sets whether Vincent works based on his schedule, and keeps the shared working state in line:
+    /// it is on as long as Vincent or Carleen works.
     /// </summary>
     private void SetWorking()
     {
@@ -98,15 +99,28 @@ public class HouseStateManager : BaseApp
         {
             if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
                 IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
-                Entities.InputBoolean.Working.TurnOn();
+                Entities.InputBoolean.Workingvincent.TurnOn();
         });
 
         Scheduler.RunDaily(_endWorking, () =>
         {
             if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
                 IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
-                Entities.InputBoolean.Working.TurnOff();
+                Entities.InputBoolean.Workingvincent.TurnOff();
         });
+
+        Entities.InputBoolean.Workingvincent.StateChanges().Subscribe(_ => UpdateWorking());
+        Entities.InputBoolean.Workingcarleen.StateChanges().Subscribe(_ => UpdateWorking());
+    }
+
+    /// <summary>
+    /// Turns the shared working state on while Vincent or Carleen works, and off when neither does.
+    /// </summary>
+    private void UpdateWorking()
+    {
+        var anyoneWorking = Entities.InputBoolean.Workingvincent.IsOn() || Entities.InputBoolean.Workingcarleen.IsOn();
+        if (anyoneWorking && Entities.InputBoolean.Working.IsOff()) Entities.InputBoolean.Working.TurnOn();
+        else if (!anyoneWorking && Entities.InputBoolean.Working.IsOn()) Entities.InputBoolean.Working.TurnOff();
     }
 
     /// <summary>

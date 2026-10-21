@@ -18,6 +18,8 @@ public class HouseStateManagerTests
         ctx.HaContext.GetState("input_datetime.daytimeoffice").Returns(new EntityState { EntityId = "input_datetime.daytimeoffice", State = "07:15:00" });
         ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
         ctx.HaContext.GetState("input_boolean.working").Returns(new EntityState { EntityId = "input_boolean.working", State = "off" });
+        ctx.HaContext.GetState("input_boolean.workingvincent").Returns(new EntityState { EntityId = "input_boolean.workingvincent", State = "off" });
+        ctx.HaContext.GetState("input_boolean.workingcarleen").Returns(new EntityState { EntityId = "input_boolean.workingcarleen", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Day" });
@@ -306,5 +308,48 @@ public class HouseStateManagerTests
         // Assert
         ctx.VerifyInputSelect_SelectOption("input_select.housemodeselect", "Night");
     }
-}
 
+    [Theory]
+    [InlineData("input_boolean.workingvincent")]
+    [InlineData("input_boolean.workingcarleen")]
+    public void Working_TurnsOn_WhenOnePersonStartsWorking(string person)
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.ChangeStateFor(person).FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("input_boolean", "turn_on", "working");
+    }
+
+    [Fact]
+    public void Working_StaysOn_WhileTheOtherPersonStillWorks()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.working").Returns(new EntityState { EntityId = "input_boolean.working", State = "on" });
+        ctx.HaContext.GetState("input_boolean.workingcarleen").Returns(new EntityState { EntityId = "input_boolean.workingcarleen", State = "on" });
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.ChangeStateFor("input_boolean.workingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("input_boolean", "turn_off", "working", times: 0);
+    }
+
+    [Fact]
+    public void Working_TurnsOff_WhenNobodyWorksAnymore()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.working").Returns(new EntityState { EntityId = "input_boolean.working", State = "on" });
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.ChangeStateFor("input_boolean.workingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("input_boolean", "turn_off", "working");
+    }
+}
