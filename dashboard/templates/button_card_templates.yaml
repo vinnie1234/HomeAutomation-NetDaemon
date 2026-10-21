@@ -747,6 +747,17 @@ weather_hero:
         } else if (theme !== 'sinterklaas') {
           [[8, 26], [15, 20], [66, 24], [74, 30], [86, 22], [93, 28]].forEach(([x, s]) => { scene += tree(x, s * (0.9 + rnd() * 0.3)); });
         }
+        // Ons huisje op de heuvel met een tuinpad naar de stoep (niet bij Kerst, Sinterklaas en Nieuwjaar: daar staan al huizen)
+        const homeX = ['kerst', 'sinterklaas', 'nieuwjaar'].includes(theme) ? null : 54;
+        if (homeX !== null) {
+          const pathTop = 100 - groundTop(homeX + 0.6) - 0.5;  // % boven de onderrand, bij de voordeur
+          scene += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${pathTop}%;pointer-events:none">
+              <path d="M${homeX + 0.1} 0 L${homeX + 1.6} 0 C${homeX + 2.6} 30 ${homeX + 9} 55 ${homeX + 12} 100 L${homeX + 2.4} 100 C${homeX + 2.2} 60 ${homeX - 0.6} 34 ${homeX + 0.1} 0 Z"
+                fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
+              <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
+                stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
+          scene += house(homeX, 78, true);
+        }
         out += scene;
 
         // ---------- Feestdagen: rijke taferelen voor Kerst, Sinterklaas en Pasen ----------
@@ -1062,8 +1073,8 @@ weather_hero:
                <rect x="9" y="14" width="12" height="1.6" rx="0.8" fill="rgba(255,255,255,0.35)"/>
                <circle cx="9" cy="31" r="2" fill="#1f2937"/><circle cx="21" cy="31" r="2" fill="#1f2937"/>`;
           // Op de voorgrond (de stoep) onderaan de kaart: bomen en huizen staan hoger, op de heuvelrand, dus daar staat nooit iets voor.
-          // Net rechts van de klok, en bij twee soorten afval de tweede links ernaast.
-          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:calc(max(60%, 235px) - ${i * 28}px);bottom:2%;
+          // Aan het eind van het tuinpad langs de weg; zonder ons huisje net rechts van de klok.
+          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:${homeX !== null ? `calc(max(${homeX + 15}%, 250px) + ${i * 28}px)` : `calc(max(60%, 235px) - ${i * 28}px)`};bottom:2%;
               width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'morgen' ? 0.75 : 1};
               filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
               <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
