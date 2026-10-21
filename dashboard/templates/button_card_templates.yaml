@@ -2668,6 +2668,7 @@ alert:
       - grid-template-rows: 1fr 1fr
       - column-gap: 14px
     card:
+      - --alert-rgb: '[[[ return variables.color; ]]]'
       - min-height: 84px
       - padding: 12px 16px
       - background: '[[[ return `linear-gradient(135deg, rgba(${variables.color}, 0.28), rgba(${variables.color}, 0.08))`; ]]]'
@@ -2700,10 +2701,11 @@ alert:
       side:
         - align-self: center
         - text-align: right
+  # De kleur gaat als CSS-variabele naar de gloed: in extra_styles zijn de variables van button-card niet beschikbaar
   extra_styles: |
     @keyframes alert-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba([[[ return variables.color ]]], 0.6); }
-      50% { box-shadow: 0 0 0 10px rgba([[[ return variables.color ]]], 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(var(--alert-rgb), 0.6); }
+      50% { box-shadow: 0 0 0 10px rgba(var(--alert-rgb), 0); }
     }
 
 # Wasmachine bezig: fase (Wassen, Spoelen, Centrifugeren...), programma, voortgangsring en hoe lang nog.
