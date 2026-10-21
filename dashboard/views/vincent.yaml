@@ -62,17 +62,17 @@ sections:
           columns: 6
       - type: custom:button-card
         template: action
-        name: "+1 slof (10)"
+        name: "+1 slof (8)"
         icon: mdi:package-variant-plus
         tap_action:
           action: javascript
           javascript: |
             [[[
               const packs = parseFloat(states['input_number.peuken_pakjes']?.state) || 0;
-              hass.callService('input_number', 'set_value', { entity_id: 'input_number.peuken_pakjes', value: packs + 10 });
+              hass.callService('input_number', 'set_value', { entity_id: 'input_number.peuken_pakjes', value: packs + 8 });
             ]]]
           confirmation:
-            text: Een slof van 10 pakjes erbij?
+            text: Een slof van 8 pakjes erbij?
         grid_options:
           columns: 6
       # Precies invoeren: het getal intikken
