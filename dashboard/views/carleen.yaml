@@ -52,7 +52,7 @@ sections:
         icon: mdi:sleep
         show_state: true
 
-  # Werkrooster: per weekdag Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
+  # Werkrooster: per dag (ook het weekend) Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
   - type: grid
     cards:
       - type: heading
@@ -60,7 +60,7 @@ sections:
         heading_style: title
         icon: mdi:calendar-week-outline
       - type: grid
-        columns: 5
+        columns: 7
         square: false
         cards:
           - type: custom:button-card
@@ -93,6 +93,18 @@ sections:
             variables:
               day: vr
               weekday: 5
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_zaterdag
+            variables:
+              day: za
+              weekday: 6
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_zondag
+            variables:
+              day: zo
+              weekday: 0
       - type: custom:bubble-card
         card_type: button
         button_type: switch

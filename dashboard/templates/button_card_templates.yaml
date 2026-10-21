@@ -2884,8 +2884,8 @@ workday_button:
       - grid-template-areas: '"n" "i" "l"'
       - row-gap: 4px
     card:
-      - padding: 10px 4px
-      - height: 92px
+      - padding: 8px 2px
+      - height: 84px
       - background: |
           [[[
             const rgb = { Vrij: '255, 255, 255', Thuis: '74, 222, 128', Kantoor: '96, 165, 250' }[entity?.state] ?? '255, 255, 255';
@@ -2905,5 +2905,8 @@ workday_button:
           [[[ return { Thuis: '#4ade80', Kantoor: '#60a5fa' }[entity?.state] ?? 'rgba(255, 255, 255, 0.5)'; ]]]
     label:
       - justify-self: center
-      - font-size: 11px
+      - font-size: 10px
       - opacity: 0.85
+      - max-width: 100%
+      - overflow: hidden
+      - text-overflow: ellipsis
