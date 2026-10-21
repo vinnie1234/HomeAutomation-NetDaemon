@@ -60,6 +60,20 @@ routes:
     badge:
       show: "[[[ return states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on'; ]]]"
       color: "#ff6b6b"
+  # Eigen pagina's: elk alleen zichtbaar voor de persoon zelf
+  - url: /dashboard-huis/vincent
+    label: Vincent
+    icon: mdi:account-outline
+    icon_selected: mdi:account
+    hidden: "[[[ return user.id !== '0d3e17e157c247858fd93001d40168c6'; ]]]"
+    badge:
+      show: "[[[ return parseFloat(states['input_number.peuken_pakjes']?.state) < 10; ]]]"
+      color: "#ffb060"
+  - url: /dashboard-huis/carleen
+    label: Carleen
+    icon: mdi:account-heart-outline
+    icon_selected: mdi:account-heart
+    hidden: "[[[ return user.id !== '9514100788474b41a07a5e773d81bac2'; ]]]"
   - url: /dashboard-huis/systeem
     label: Beheer
     icon: mdi:cog-outline

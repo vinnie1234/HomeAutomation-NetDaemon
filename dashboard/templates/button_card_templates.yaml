@@ -381,6 +381,8 @@ sun:
 weather_hero:
   triggers_update:
     - input_boolean.laundryhangingoutside
+    - sensor.afval_vandaag
+    - sensor.afval_morgen
     - weather.weer_thuis
     - input_select.weerkaart_thema
     - input_select.tijd_van_de_dag
@@ -1039,6 +1041,29 @@ weather_hero:
         }
         out += festive;
 
+        // ---------- Afval dat vandaag of morgen buiten moet: PMD-zakken of de blauwe kliko, klein op de heuvel ----------
+        const bins = [];
+        for (const [sensor, when] of [['sensor.afval_vandaag', 'vandaag'], ['sensor.afval_morgen', 'morgen']]) {
+          const kind = String(states[sensor]?.state ?? '').toLowerCase();
+          if (kind.includes('pmd') || kind.includes('plastic')) bins.push(['pmd', when]);
+          if (kind.includes('papier')) bins.push(['papier', when]);
+        }
+        bins.forEach(([kind, when], i) => {
+          const body = kind === 'pmd'
+            ? `<path d="M3 30 Q1 18 6 13 L8 10 L6 6 L10 8 L13 5 L13 10 L15 13 Q20 18 18 30 Z" fill="${dim('rgb(251,146,60)')}" opacity="0.85"/>
+               <path d="M15 31 Q13 21 18 17 L19 14 L17 11 L21 13 L24 10 L24 14 L26 17 Q31 21 29 31 Z" fill="${dim('rgb(253,186,116)')}" opacity="0.8"/>
+               <path d="M6 18 Q9 22 8 28 M19 21 Q22 25 21 29" stroke="rgba(255,255,255,0.45)" stroke-width="0.8" fill="none"/>`
+            : `<rect x="5" y="9" width="20" height="21" rx="2" fill="${dim('rgb(37,99,235)')}"/>
+               <rect x="3.5" y="6" width="23" height="4.5" rx="1.5" fill="${dim('rgb(29,78,216)')}"/>
+               <rect x="23" y="4" width="4" height="2.5" rx="1" fill="${dim('rgb(30,64,175)')}"/>
+               <rect x="9" y="14" width="12" height="1.6" rx="0.8" fill="rgba(255,255,255,0.35)"/>
+               <circle cx="9" cy="31" r="2" fill="#1f2937"/><circle cx="21" cy="31" r="2" fill="#1f2937"/>`;
+          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:calc(max(66%, 330px) + ${i * 30}px);bottom:${groundBottom(66) - 2}%;
+              width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'morgen' ? 0.75 : 1};
+              filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
+              <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
+        });
+
         // ---------- De was hangt buiten: waslijn met wapperende was (harder bij wind, druppels bij regen) ----------
         if (states['input_boolean.laundryhangingoutside']?.state === 'on') {
           const swing = Math.min(28, 4 + windSpeed * 1.6);         // graden heen en weer
@@ -1338,6 +1363,7 @@ weather_hero:
               entity: person.vincent_maarschalkerweerd
               variables:
                 sleeping: input_boolean.sleepingvincent
+                working: input_boolean.workingvincent
                 battery: sensor.vincent_phone_battery_level
                 charging: binary_sensor.vincent_phone_is_charging
                 distance: sensor.thuis_sm_s938b_distance
@@ -1349,6 +1375,7 @@ weather_hero:
               entity: person.carleen
               variables:
                 sleeping: input_boolean.sleepingcarleen
+                working: input_boolean.workingcarleen
                 battery: sensor.carleen_mobiel_battery_level
                 charging: sensor.carleen_mobiel_battery_state
   styles:
@@ -1696,6 +1723,7 @@ hero_person:
   show_name: false
   variables:
     sleeping: null
+    working: null
     battery: null
     charging: null
     distance: null
@@ -1713,7 +1741,9 @@ hero_person:
         const home = entity?.state === 'home';
         const asleep = states[variables.sleeping]?.state === 'on';
         const first = (entity?.attributes.friendly_name ?? '?').split(' ')[0];
-        let status = asleep ? 'Slaapt' : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
+        const working = !asleep && states[variables.working]?.state === 'on';
+        let status = asleep ? 'Slaapt' : working ? (home ? 'Werkt thuis' : 'Aan het werk')
+          : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
 
         // Onderweg: afstand tot huis en of de persoon naar huis komt
         const d = states[variables.distance];
@@ -1721,7 +1751,7 @@ hero_person:
         if (!home && !isNaN(meters)) {
           const dist = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1).replace('.', ',')} km` : `${Math.round(meters)} m`;
           const dir = { towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '';
-          status = `${dist}${dir}`;
+          status = `${working ? 'Werkt · ' : ''}${dist}${dir}`;
         }
 
         // Telefoonbatterij: klein, rood als hij bijna leeg is, bliksem als hij laadt
@@ -1729,7 +1759,7 @@ hero_person:
         const charging = ['on', 'charging'].includes(states[variables.charging]?.state);
         const batteryHtml = isNaN(level) ? '' : ` · <span style="color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
 
-        const ring = asleep ? 'rgba(167,139,250,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
+        const ring = asleep ? 'rgba(167,139,250,0.9)' : working ? 'rgba(251,191,36,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
         const avatar = entity?.attributes.entity_picture
           ? `<img src="${entity.attributes.entity_picture}" style="width:30px;height:30px;border-radius:50%;object-fit:cover">`
           : `<div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;
@@ -1739,7 +1769,7 @@ hero_person:
                   ${avatar}
                   <div style="line-height:1.15;text-align:left">
                     <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}</div>
-                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}${batteryHtml}</div>
+                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : working ? '💼 ' : ''}${status}${batteryHtml}</div>
                   </div>
                 </div>`;
       ]]]
@@ -2761,4 +2791,68 @@ homework_days:
       - grid-template-areas: '"list"'
     custom_fields:
       list:
+        - width: 100%
+
+# Peuken: hoeveel pakjes er nog zijn, groot getal met een rij pakjes. Tik = er is er één op (-1), lang drukken = precies invoeren.
+# Groen vanaf 10, oranje onder 10, rood onder 5.
+peuken:
+  template: glass
+  entity: input_number.peuken_pakjes
+  triggers_update:
+    - input_number.peuken_pakjes
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: perform-action
+    perform_action: input_number.decrement
+    target:
+      entity_id: input_number.peuken_pakjes
+    haptic: success
+  hold_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const packs = Math.max(0, Math.round(parseFloat(entity?.state) || 0));
+        const rgb = packs < 5 ? '255, 107, 107' : packs < 10 ? '255, 176, 96' : '74, 222, 128';
+        const status = packs === 0 ? 'Op! Tijd om te kopen' : packs < 5 ? 'Bijna op, koop een slof' : packs < 10 ? 'Raakt op' : 'Voorraad prima';
+        // Een rij pakjes: maximaal 20 getekend, de rest als +n
+        const shown = Math.min(packs, 20);
+        const pack = `<svg viewBox="0 0 14 20" style="width:14px;height:20px">
+            <rect x="0.5" y="3" width="13" height="16.5" rx="1.5" fill="rgba(${rgb},0.85)"/>
+            <rect x="0.5" y="3" width="13" height="4" rx="1" fill="rgba(255,255,255,0.85)"/>
+            <rect x="3" y="0.5" width="2" height="3.5" rx="0.5" fill="#f5e6c8"/><rect x="6" y="0" width="2" height="4" rx="0.5" fill="#f5e6c8"/>
+            <rect x="9" y="1" width="2" height="3" rx="0.5" fill="#f5e6c8"/></svg>`;
+        const row = Array.from({ length: shown }, () => pack).join('')
+          + (packs > 20 ? `<span style="font-size:12px;opacity:0.7;align-self:center">+${packs - 20}</span>` : '');
+        return `<div style="display:flex;align-items:center;gap:16px;text-align:left">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;opacity:0.75">Pakjes peuken</div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:56px;font-weight:200;line-height:1;color:rgb(${rgb})">${packs}</span>
+                <span style="font-size:13px;font-weight:600">${status}</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:10px;min-height:20px">${row || '<span style="opacity:0.5;font-size:12px">Geen pakjes meer</span>'}</div>
+            </div>
+            <div style="width:72px;height:72px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+              background:rgba(${rgb},0.22);box-shadow:inset 0 0 0 2px rgba(${rgb},0.6)">
+              <span style="font-size:24px;font-weight:700;line-height:1">−1</span>
+              <span style="font-size:10px;opacity:0.8">tik</span>
+            </div>
+          </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 16px 18px
+      - cursor: pointer
+      - background: |
+          [[[
+            const packs = parseFloat(entity?.state) || 0;
+            const rgb = packs < 5 ? '255, 107, 107' : packs < 10 ? '255, 176, 96' : '74, 222, 128';
+            return `linear-gradient(135deg, rgba(${rgb}, 0.16), rgba(255, 255, 255, 0.04))`;
+          ]]]
+    custom_fields:
+      body:
         - width: 100%

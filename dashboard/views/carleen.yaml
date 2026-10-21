@@ -1,0 +1,53 @@
+# Eigen pagina van Carleen: alleen zichtbaar voor Carleen (visible en de route in de navbar).
+title: Carleen
+path: carleen
+icon: mdi:account-heart
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+visible:
+  - user: 9514100788474b41a07a5e773d81bac2
+sections:
+  # Samenvatting
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:account-heart
+        variables:
+          level: "[[[ return 'ok'; ]]]"
+        name: Hoi Carleen
+        label: |
+          [[[
+            const parts = [];
+            parts.push(states['input_boolean.workingcarleen']?.state === 'on' ? 'aan het werk' : 'niet aan het werk');
+            if (states['input_boolean.sleepingcarleen']?.state === 'on') parts.push('slaapt');
+            const battery = parseInt(states['sensor.carleen_mobiel_battery_level']?.state);
+            if (!isNaN(battery)) parts.push(`telefoon ${battery}%`);
+            return parts.join(' · ');
+          ]]]
+
+  # Werk en slapen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werk
+        heading_style: title
+        icon: mdi:briefcase-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.workingcarleen
+        name: Aan het werk
+        icon: mdi:briefcase-outline
+        show_state: true
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.sleepingcarleen
+        name: Slapen
+        icon: mdi:sleep
+        show_state: true
