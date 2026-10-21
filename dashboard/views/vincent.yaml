@@ -102,6 +102,40 @@ sections:
       - type: custom:button-card
         template: homework_tile
 
+  # De assistent belt je via WhatsApp (whatsapp.make_call, belaccount default) en je praat er gewoon mee
+  - type: grid
+    cards:
+      - type: heading
+        heading: Assistent
+        heading_style: title
+        icon: mdi:robot-happy-outline
+      - type: custom:button-card
+        template: action
+        name: Bel mij
+        icon: mdi:phone-in-talk-outline
+        tap_action:
+          action: perform-action
+          perform_action: whatsapp.make_call
+          data:
+            clientId: default
+            to: "184829706502256@lid"
+            message: Hoi Vincent, je belde mij via het dashboard. Waarmee kan ik je helpen?
+          confirmation:
+            text: Wil je dat de assistent je nu via WhatsApp belt?
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Ophangen
+        icon: mdi:phone-hangup-outline
+        tap_action:
+          action: perform-action
+          perform_action: whatsapp.hang_up
+          data:
+            clientId: default
+        grid_options:
+          columns: 6
+
   # Werkrooster: per dag (ook het weekend) Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
   - type: grid
     cards:
