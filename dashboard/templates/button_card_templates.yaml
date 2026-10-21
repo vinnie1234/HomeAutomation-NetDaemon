@@ -504,6 +504,22 @@ weather_hero:
   custom_fields:
     sky: |
       [[[
+        // De kaart tekent opnieuw bij elke update van zijn bronnen (zon, weer, timers). Zolang wat je ziet niet verandert,
+        // geven we dezelfde tekening terug: dan laat de browser alles staan en lopen de animaties (wolken, de kat) door.
+        // De zon telt afgerond mee, anders zou elke kleine stap van de zon alles opnieuw laten beginnen.
+        const sunNow = states['sun.sun'];
+        const skySignature = JSON.stringify([
+          new Date().toDateString(),
+          sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
+          ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag',
+            'sensor.season', 'sensor.moon_phase', 'sensor.weer_thuis_bewolking', 'sensor.weer_thuis_windsnelheid',
+            'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
+            'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
+            'sensor.afval_vandaag', 'sensor.afval_morgen', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
+            'input_datetime.pixelfeedthirdtime', 'input_datetime.pixelfeedfourthtime'].map(id => states[id]?.state)
+        ]);
+        if (this._heroSky?.signature === skySignature) return this._heroSky.html;
+
         // Weer van nu: de waarnemingen zijn actueler dan de verwachting
         const observed = states['weather.weer_thuis_waarnemingen']?.state;
         const w = observed && !['unknown', 'unavailable'].includes(observed) ? observed : states['weather.weer_thuis']?.state ?? 'cloudy';
@@ -1370,6 +1386,7 @@ weather_hero:
         }
         out += `<div style="position:absolute;left:16px;top:${theme === 'kerst' ? 46 : 16}px;z-index:2;text-align:left">${badges}</div>`;
 
+        this._heroSky = { signature: skySignature, html: out };
         return out;
       ]]]
     clock:
