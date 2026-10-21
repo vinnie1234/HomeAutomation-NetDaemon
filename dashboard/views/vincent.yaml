@@ -1,0 +1,195 @@
+# Eigen pagina van Vincent: alleen zichtbaar voor Vincent (visible en de route in de navbar).
+# Peuken bijhouden, werk en thuiswerken.
+title: Vincent
+path: vincent
+icon: mdi:account
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+visible:
+  - user: 0d3e17e157c247858fd93001d40168c6
+sections:
+  # Samenvatting
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:account
+        variables:
+          level: |
+            [[[
+              const packs = parseFloat(states['input_number.peuken_pakjes']?.state);
+              return packs < 5 ? 'bad' : packs < 10 ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            const packs = parseFloat(states['input_number.peuken_pakjes']?.state);
+            return packs < 10 ? `Nog maar ${Math.round(packs)} ${packs === 1 ? 'pakje' : 'pakjes'} peuken` : 'Hoi Vincent';
+          ]]]
+        label: |
+          [[[
+            const parts = [];
+            const packs = parseFloat(states['input_number.peuken_pakjes']?.state);
+            if (!isNaN(packs)) parts.push(`${Math.round(packs)} ${packs === 1 ? 'pakje' : 'pakjes'} peuken`);
+            parts.push(states['input_boolean.workingvincent']?.state === 'on' ? 'aan het werk' : 'niet aan het werk');
+            const cost = parseFloat(states['sensor.thuiswerken_energie']?.state);
+            if (states['sensor.thuiswerken_energie']?.attributes?.actief) parts.push(`thuiswerken vandaag € ${cost.toFixed(2).replace('.', ',')}`);
+            return parts.join(' · ');
+          ]]]
+
+  # Peuken: hoeveel pakjes er nog zijn, -1 met één tik
+  - type: grid
+    cards:
+      - type: heading
+        heading: Peuken
+        heading_style: title
+        icon: mdi:smoking
+      - type: custom:button-card
+        template: peuken
+      - type: custom:button-card
+        template: action
+        name: "+1 pakje"
+        icon: mdi:plus
+        tap_action:
+          action: perform-action
+          perform_action: input_number.increment
+          target:
+            entity_id: input_number.peuken_pakjes
+        grid_options:
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: "+1 slof (8)"
+        icon: mdi:package-variant-plus
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              const packs = parseFloat(states['input_number.peuken_pakjes']?.state) || 0;
+              hass.callService('input_number', 'set_value', { entity_id: 'input_number.peuken_pakjes', value: packs + 8 });
+            ]]]
+          confirmation:
+            text: Een slof van 8 pakjes erbij?
+        grid_options:
+          columns: 6
+      # Precies invoeren: het getal intikken
+      - type: tile
+        entity: input_number.peuken_pakjes
+        name: Aantal invoeren
+        icon: mdi:pencil-outline
+        features_position: inline
+        features:
+          - type: numeric-input
+            style: buttons
+
+  # Werk en thuiswerken
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werk
+        heading_style: title
+        icon: mdi:briefcase-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.workingvincent
+        name: Aan het werk
+        icon: mdi:briefcase-outline
+        show_state: true
+      - type: custom:button-card
+        template: homework_tile
+
+  # Werkrooster: per dag (ook het weekend) Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werkrooster
+        heading_style: title
+        icon: mdi:calendar-week-outline
+      - type: grid
+        columns: 7
+        square: false
+        cards:
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_maandag
+            variables:
+              day: ma
+              weekday: 1
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_dinsdag
+            variables:
+              day: di
+              weekday: 2
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_woensdag
+            variables:
+              day: wo
+              weekday: 3
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_donderdag
+            variables:
+              day: do
+              weekday: 4
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_vrijdag
+            variables:
+              day: vr
+              weekday: 5
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_zaterdag
+            variables:
+              day: za
+              weekday: 6
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_vincent_zondag
+            variables:
+              day: zo
+              weekday: 0
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.vrij_vincent
+        name: Vrij (vandaag of tot ik hem uitzet)
+        icon: mdi:beach
+        show_state: true
+      - type: entities
+        state_color: true
+        entities:
+          - type: section
+            label: Opstaan (het huis wordt wakker)
+          - entity: input_datetime.opstaan_kantoor_vincent
+            name: Op een kantoordag
+            icon: mdi:office-building-outline
+          - entity: input_datetime.opstaan_thuiswerk_vincent
+            name: Op een thuiswerkdag
+            icon: mdi:home-account
+          - type: section
+            label: Werkuren (Vincent aan het werk)
+          - entity: input_datetime.werk_start_vincent
+            name: Begin
+            icon: mdi:briefcase-clock-outline
+          - entity: input_datetime.werk_eind_vincent
+            name: Eind
+            icon: mdi:briefcase-check-outline
+
+  # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#thuiswerken"
+        name: Thuiswerken
+        icon: mdi:laptop-account
+        cards:
+          - type: custom:button-card
+            template: homework_days

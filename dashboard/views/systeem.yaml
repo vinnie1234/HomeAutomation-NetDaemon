@@ -387,26 +387,12 @@ sections:
             name: Carleen weg
           - entity: input_boolean.disableautoaway
             name: Automatisch weg uitzetten
-          - entity: input_boolean.holliday
-            name: Vakantie
           - entity: input_boolean.onvacation
-            name: Op reis
+            name: Op vakantie
           - entity: input_boolean.working
             name: Aan het werk
           - entity: input_boolean.disablereset
             name: Reset uitzetten
-          - type: section
-            label: Kantoordagen
-          - entity: input_boolean.officeday_monday
-            name: Maandag
-          - entity: input_boolean.officeday_tuesday
-            name: Dinsdag
-          - entity: input_boolean.officeday_wednesday
-            name: Woensdag
-          - entity: input_boolean.officeday_thursday
-            name: Donderdag
-          - entity: input_boolean.officeday_friday
-            name: Vrijdag
 
   # Pop-up: dagritme (HouseStateManager) en helderheid dag/nacht (badkamer en hal)
   - type: grid
@@ -420,15 +406,9 @@ sections:
           - type: entities
             entities:
               - type: section
-                label: Dag begint
-              - entity: input_datetime.daytimeoffice
-                name: Kantoordag
-                icon: mdi:office-building-outline
-              - entity: input_datetime.daytimehomework
-                name: Thuiswerkdag
-                icon: mdi:home-account
+                label: Dag begint (werkdagen per persoon op de eigen pagina)
               - entity: input_datetime.daytimeweekend
-                name: Weekend
+                name: Als iedereen vrij is
                 icon: mdi:calendar-weekend
               - type: section
                 label: Nacht begint

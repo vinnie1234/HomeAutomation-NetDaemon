@@ -8,7 +8,7 @@ namespace Automation.apps.General;
 
 /// <summary>
 /// Keeps track of the electricity used while Vincent works from home: on home work days, while
-/// <c>input_boolean.working</c> is on and Vincent is home. Every step of the P1 meters is priced at that moment:
+/// <c>input_boolean.workingvincent</c> is on and Vincent is home. Every step of the P1 meters is priced at that moment:
 /// energy taken from the grid at the all-in price, energy fed back at the market price. The washing machine is left
 /// out: its energy is subtracted, at the market price when it ran on our own solar power (we were feeding back), else
 /// at the all-in price. The days are saved and published as <c>sensor.thuiswerken_energie</c> for the dashboard.
@@ -48,7 +48,7 @@ public class HomeWorkEnergyTracker : BaseApp
 
         _ = CreateSensorAsync();
 
-        Entities.InputBoolean.Working.StateChanges().Subscribe(_ => UpdateActive());
+        VincentSchedule.Working.StateChanges().Subscribe(_ => UpdateActive());
         Entities.InputBoolean.Awayvincent.StateChanges().Subscribe(_ => UpdateActive());
 
         Entities.Sensor.P1Meter3c39e72a64e8TotalPowerImport.StateChanges().Subscribe(_ => CountStep());
@@ -61,8 +61,8 @@ public class HomeWorkEnergyTracker : BaseApp
     }
 
     private bool IsWorkingFromHome =>
-        IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek) &&
-        Entities.InputBoolean.Working.IsOn() &&
+        VincentSchedule.IsHomeWorkDay(Scheduler.NowNl().DayOfWeek) &&
+        VincentSchedule.Working.IsOn() &&
         Entities.InputBoolean.Awayvincent.IsOff();
 
     private async Task CreateSensorAsync()

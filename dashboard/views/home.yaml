@@ -145,13 +145,49 @@ sections:
           - type: conditional
             conditions:
               - condition: state
-                entity: input_boolean.holliday
+                entity: input_boolean.onvacation
                 state: "on"
             chip:
               type: template
               icon: mdi:palm-tree
               icon_color: teal
               content: Vakantie
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vrij_vincent
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:beach
+              icon_color: teal
+              content: Vincent vrij
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vrij_carleen
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:beach
+              icon_color: teal
+              content: Carleen vrij
+          - type: conditional
+            conditions:
+              - condition: user
+                users:
+                  - 0d3e17e157c247858fd93001d40168c6
+              - condition: numeric_state
+                entity: input_number.peuken_pakjes
+                below: 10
+            chip:
+              type: template
+              icon: mdi:smoking
+              icon_color: "{{ 'red' if states('input_number.peuken_pakjes') | float(0) < 5 else 'orange' }}"
+              content: "Nog {{ states('input_number.peuken_pakjes') | int(0) }} {{ 'pakje' if states('input_number.peuken_pakjes') | int(0) == 1 else 'pakjes' }} peuken"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/vincent
           - type: conditional
             conditions:
               - condition: state

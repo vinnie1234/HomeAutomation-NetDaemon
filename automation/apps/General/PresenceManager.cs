@@ -141,7 +141,7 @@ public class PresenceManager : BaseApp
         Logger.LogInformation("Presence: Vincent left ({Scenario})", GetScenario());
 
         var now = Scheduler.NowNl();
-        if (IsOfficeDay(Entities, now.DayOfWeek)
+        if (VincentSchedule.IsOfficeDay(now.DayOfWeek)
             && now.Hour < 9)
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
         else

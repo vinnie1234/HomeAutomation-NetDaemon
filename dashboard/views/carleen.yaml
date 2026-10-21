@@ -1,0 +1,133 @@
+# Eigen pagina van Carleen: alleen zichtbaar voor Carleen (visible en de route in de navbar).
+title: Carleen
+path: carleen
+icon: mdi:account-heart
+theme: Glass Home
+type: sections
+max_columns: 3
+dense_section_placement: true
+visible:
+  - user: 9514100788474b41a07a5e773d81bac2
+sections:
+  # Samenvatting
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: summary
+        icon: mdi:account-heart
+        variables:
+          level: "[[[ return 'ok'; ]]]"
+        name: Hoi Carleen
+        label: |
+          [[[
+            const parts = [];
+            parts.push(states['input_boolean.workingcarleen']?.state === 'on' ? 'aan het werk' : 'niet aan het werk');
+            if (states['input_boolean.sleepingcarleen']?.state === 'on') parts.push('slaapt');
+            const battery = parseInt(states['sensor.carleen_mobiel_battery_level']?.state);
+            if (!isNaN(battery)) parts.push(`telefoon ${battery}%`);
+            return parts.join(' · ');
+          ]]]
+
+  # Werk en slapen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werk
+        heading_style: title
+        icon: mdi:briefcase-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.workingcarleen
+        name: Aan het werk
+        icon: mdi:briefcase-outline
+        show_state: true
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.sleepingcarleen
+        name: Slapen
+        icon: mdi:sleep
+        show_state: true
+
+  # Werkrooster: per dag (ook het weekend) Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Werkrooster
+        heading_style: title
+        icon: mdi:calendar-week-outline
+      - type: grid
+        columns: 7
+        square: false
+        cards:
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_maandag
+            variables:
+              day: ma
+              weekday: 1
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_dinsdag
+            variables:
+              day: di
+              weekday: 2
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_woensdag
+            variables:
+              day: wo
+              weekday: 3
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_donderdag
+            variables:
+              day: do
+              weekday: 4
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_vrijdag
+            variables:
+              day: vr
+              weekday: 5
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_zaterdag
+            variables:
+              day: za
+              weekday: 6
+          - type: custom:button-card
+            template: workday_button
+            entity: input_select.werkdag_carleen_zondag
+            variables:
+              day: zo
+              weekday: 0
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.vrij_carleen
+        name: Vrij (vandaag of tot ik hem uitzet)
+        icon: mdi:beach
+        show_state: true
+      - type: entities
+        state_color: true
+        entities:
+          - type: section
+            label: Opstaan (het huis wordt wakker)
+          - entity: input_datetime.opstaan_kantoor_carleen
+            name: Op een kantoordag
+            icon: mdi:office-building-outline
+          - entity: input_datetime.opstaan_thuiswerk_carleen
+            name: Op een thuiswerkdag
+            icon: mdi:home-account
+          - type: section
+            label: Werkuren (Carleen aan het werk)
+          - entity: input_datetime.werk_start_carleen
+            name: Begin
+            icon: mdi:briefcase-clock-outline
+          - entity: input_datetime.werk_eind_carleen
+            name: Eind
+            icon: mdi:briefcase-check-outline

@@ -20,7 +20,7 @@ public class SleepManagerTests
         ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.disablelightautomationgeneral").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.datenight").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "off" });

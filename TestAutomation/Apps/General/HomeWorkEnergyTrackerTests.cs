@@ -35,11 +35,11 @@ public class HomeWorkEnergyTrackerTests : IDisposable
 
         // Tuesday 20 October 2026, 10:00 Dutch time: a home work day
         _ctx.SetCurrentTime(new DateTime(2026, 10, 20, 8, 0, 0, DateTimeKind.Utc));
-        SetState("input_boolean.officeday_tuesday", "off");
-        SetState("input_boolean.holliday", "off");
+        SetState("input_select.werkdag_vincent_dinsdag", "Thuis");
+        SetState("input_boolean.vrij_vincent", "off");
         SetState("input_boolean.onvacation", "off");
         SetState("input_boolean.awayvincent", "off");
-        SetState("input_boolean.working", "off");
+        SetState("input_boolean.workingvincent", "off");
         SetState(Import, "1000.000");
         SetState(Export, "500.000");
         SetState(Washer, "690.0");
@@ -55,8 +55,8 @@ public class HomeWorkEnergyTrackerTests : IDisposable
     private void SetState(string entityId, string state) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState { EntityId = entityId, State = state });
 
-    private void StartWorking() => _ctx.ChangeStateFor("input_boolean.working").FromState("off").ToState("on");
-    private void StopWorking() => _ctx.ChangeStateFor("input_boolean.working").FromState("on").ToState("off");
+    private void StartWorking() => _ctx.ChangeStateFor("input_boolean.workingvincent").FromState("off").ToState("on");
+    private void StopWorking() => _ctx.ChangeStateFor("input_boolean.workingvincent").FromState("on").ToState("off");
 
     private HomeWorkDay SavedDay() => _storage.Get<List<HomeWorkDay>>("HomeWorkEnergyDays")!.Single(x => x.Date == "2026-10-20");
 
@@ -128,7 +128,7 @@ public class HomeWorkEnergyTrackerTests : IDisposable
     [Fact]
     public void Energy_OnAnOfficeDay_IsNotCounted()
     {
-        SetState("input_boolean.officeday_tuesday", "on");
+        SetState("input_select.werkdag_vincent_dinsdag", "Kantoor");
         StartWorking();
 
         _ctx.ChangeStateFor(Import).FromState("1000.000").ToState("1002.000");

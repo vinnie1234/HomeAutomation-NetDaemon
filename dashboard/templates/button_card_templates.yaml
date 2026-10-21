@@ -380,7 +380,15 @@ sun:
 # De klok is een geneste markdown-kaart; die werkt zichzelf elke minuut bij.
 weather_hero:
   triggers_update:
+    - input_boolean.away
+    - input_datetime.pixelfeedfirsttime
+    - input_datetime.pixelfeedsecondtime
+    - input_datetime.pixelfeedthirdtime
+    - input_datetime.pixelfeedfourthtime
+    - input_boolean.pixelskipnextautofeed
     - input_boolean.laundryhangingoutside
+    - sensor.afval_vandaag
+    - sensor.afval_morgen
     - weather.weer_thuis
     - input_select.weerkaart_thema
     - input_select.tijd_van_de_dag
@@ -477,6 +485,13 @@ weather_hero:
     @keyframes hero-sint { from { transform: translateX(0); } to { transform: translateX(-140vw); } }
     @keyframes hero-sway { 0%, 100% { transform: rotate(calc(var(--swing) * -0.5)); } 50% { transform: rotate(var(--swing)); } }
     @keyframes hero-drip { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+    @keyframes hero-cat-tail { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(10deg); } }
+    @keyframes hero-cat-frame { 0% { opacity: 1; } 25% { opacity: 0; } 100% { opacity: 0; } }
+    @keyframes hero-cat-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.8px); } }
+    @keyframes hero-chimney-smoke { 0% { transform: translate(0, 0) scale(0.6); opacity: 0.85; } 100% { transform: translate(-3px, -11px) scale(2.6); opacity: 0; } }
+    @keyframes hero-cat-hide { 0%, 100% { opacity: 0; } }
+    @keyframes hero-cat-show { 0%, 100% { opacity: 1; } }
+    @keyframes hero-cat-wag { from { transform: rotate(-18deg); } to { transform: rotate(14deg); } }
     @keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
     @keyframes hero-leg { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
     @keyframes hero-wave { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(25deg); } }
@@ -489,6 +504,22 @@ weather_hero:
   custom_fields:
     sky: |
       [[[
+        // De kaart tekent opnieuw bij elke update van zijn bronnen (zon, weer, timers). Zolang wat je ziet niet verandert,
+        // geven we dezelfde tekening terug: dan laat de browser alles staan en lopen de animaties (wolken, de kat) door.
+        // De zon telt afgerond mee, anders zou elke kleine stap van de zon alles opnieuw laten beginnen.
+        const sunNow = states['sun.sun'];
+        const skySignature = JSON.stringify([
+          new Date().toDateString(),
+          sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
+          ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag',
+            'sensor.season', 'sensor.moon_phase', 'sensor.weer_thuis_bewolking', 'sensor.weer_thuis_windsnelheid',
+            'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
+            'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
+            'sensor.afval_vandaag', 'sensor.afval_morgen', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
+            'input_datetime.pixelfeedthirdtime', 'input_datetime.pixelfeedfourthtime'].map(id => states[id]?.state)
+        ]);
+        if (this._heroSky?.signature === skySignature) return this._heroSky.html;
+
         // Weer van nu: de waarnemingen zijn actueler dan de verwachting
         const observed = states['weather.weer_thuis_waarnemingen']?.state;
         const w = observed && !['unknown', 'unavailable'].includes(observed) ? observed : states['weather.weer_thuis']?.state ?? 'cloudy';
@@ -719,18 +750,24 @@ weather_hero:
                     <rect x="9" y="22" width="2" height="2" fill="${night('rgb(70,50,40)')}"/>${lights}
                   </svg>`;
         };
-        const house = (x, size, chimney) => {
+        // lit: licht achter het raam (anders donker glas), smoke: rook uit de schoorsteen
+        const house = (x, size, chimney, { lit = true, smoke = false } = {}) => {
           const top = groundTop(x);
-          const glow = day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
+          const glow = !lit ? (day ? 'rgba(70,82,104,0.75)' : 'rgb(18,22,34)') : day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
+          let puffs = '';
+          if (chimney && smoke) for (let i = 0; i < 4; i++) puffs += `<circle cx="17.5" cy="1.5" r="${1.3 + i * 0.3}" fill="rgba(236,240,247,${day ? 0.8 : 0.45})"
+              style="transform-box:fill-box;transform-origin:center;animation:hero-chimney-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
           return `<svg viewBox="0 0 24 22" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-96%);width:${size}px;height:${size * 0.92}px;overflow:visible">
-                    ${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
+                    ${puffs}${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
                     <path d="M2 11 L12 3 L22 11 Z" fill="${night('rgb(120,48,40)')}"/>
                     ${wintry ? `<path d="M2 11 L12 3 L22 11 L20.5 11 L12 4.6 L3.5 11 Z" fill="${snowCap}"/>` : ''}
                     <rect x="4" y="11" width="16" height="11" fill="${night('rgb(168,140,112)')}"/>
-                    <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>
+                    <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day || !lit ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>
                     <rect x="14" y="15" width="3" height="7" fill="${night('rgb(96,64,46)')}"/>
                   </svg>`;
         };
+        // Iemand thuis: rook uit de schoorsteen, en 's avonds en 's nachts licht achter het raam
+        const someoneHome = states['input_boolean.away']?.state !== 'on';
         let scene = '';
         if (theme === 'kerst') {
           [[8, 30], [16, 22], [92, 26]].forEach(([x, s]) => { scene += tree(x, s); });
@@ -741,6 +778,17 @@ weather_hero:
           [[8, 26], [66, 24], [86, 22]].forEach(([x, s]) => { scene += tree(x, s); });
         } else if (theme !== 'sinterklaas') {
           [[8, 26], [15, 20], [66, 24], [74, 30], [86, 22], [93, 28]].forEach(([x, s]) => { scene += tree(x, s * (0.9 + rnd() * 0.3)); });
+        }
+        // Ons huisje op de heuvel met een tuinpad naar de stoep (niet bij Kerst, Sinterklaas en Nieuwjaar: daar staan al huizen)
+        const homeX = ['kerst', 'sinterklaas', 'nieuwjaar'].includes(theme) ? null : 54;
+        if (homeX !== null) {
+          const pathTop = 100 - groundTop(homeX + 0.6) - 0.5;  // % boven de onderrand, bij de voordeur
+          scene += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${pathTop}%;pointer-events:none">
+              <path d="M${homeX + 0.1} 0 L${homeX + 1.6} 0 C${homeX + 2.6} 30 ${homeX + 9} 55 ${homeX + 12} 100 L${homeX + 2.4} 100 C${homeX + 2.2} 60 ${homeX - 0.6} 34 ${homeX + 0.1} 0 Z"
+                fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
+              <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
+                stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
+          scene += house(homeX, 78, true, { lit: someoneHome, smoke: someoneHome });
         }
         out += scene;
 
@@ -802,13 +850,14 @@ weather_hero:
               <path d="M11 26 L2 20 M4 21.5 L1.5 18.5 M29 26 L38 19 M36 20.5 L38.5 17" stroke="${dim('rgb(92,60,40)')}" stroke-width="1.3" stroke-linecap="round"/>`);
           // Knus huisje: warm licht, krans op de deur, lichtjes op het dak en rook uit de schoorsteen
           let smoke = '';
-          for (let i = 0; i < 4; i++) smoke += `<circle cx="47" cy="6" r="${3 + i}" fill="rgba(230,235,245,${day ? 0.55 : 0.3})"
-              style="animation:hero-smoke 6s ease-out ${-i * 1.5}s infinite"/>`;
+          if (someoneHome) for (let i = 0; i < 4; i++) smoke += `<circle cx="47" cy="6" r="${3 + i}" fill="rgba(230,235,245,${day ? 0.55 : 0.3})"
+              style="transform-box:fill-box;transform-origin:center;animation:hero-smoke 6s ease-out ${-i * 1.5}s infinite"/>`;
           festive += svgAt(80, groundBottom(80) - 3, 96, 80, '0 0 60 50', `
               ${smoke}<rect x="44" y="6" width="6" height="12" fill="${dim('rgb(110,60,48)')}"/>
               <polygon points="4,22 30,4 56,22" fill="${dim('rgb(150,52,44)')}"/><polygon points="4,22 30,4 56,22 52,22 30,7 8,22" fill="${snowCap}"/>
               <rect x="8" y="22" width="44" height="27" fill="${dim('rgb(196,160,120)')}"/>
-              ${[[13, 27], [39, 27]].map(([wx, wy]) => `<rect x="${wx}" y="${wy}" width="9" height="9" fill="#ffcf73" style="filter:drop-shadow(0 0 4px #ffb347)"/>
+              ${[[13, 27], [39, 27]].map(([wx, wy]) => `<rect x="${wx}" y="${wy}" width="9" height="9"
+                ${someoneHome || day ? 'fill="#ffcf73" style="filter:drop-shadow(0 0 4px #ffb347)"' : 'fill="rgb(18,22,34)"'}/>
                 <path d="M${wx + 4.5} ${wy} V${wy + 9} M${wx} ${wy + 4.5} H${wx + 9}" stroke="${dim('rgb(110,70,50)')}" stroke-width="0.9"/>`).join('')}
               <rect x="25" y="33" width="10" height="16" fill="${dim('rgb(110,60,40)')}"/>
               <circle cx="30" cy="38" r="3.6" fill="none" stroke="#2d6a4f" stroke-width="2.2"/><path d="M28.4 41 l1.6 -1.6 l1.6 1.6" fill="#d62839"/>
@@ -884,7 +933,7 @@ weather_hero:
               background:linear-gradient(180deg, ${day ? 'rgba(52,96,140,0.95)' : 'rgba(14,24,48,0.95)'}, ${day ? 'rgba(30,60,100,0.98)' : 'rgba(6,10,26,0.98)'})"></div>${ripples}`;
           // De stoomboot vaart langzaam door de gracht, met rook en vlaggetjes
           let boatSmoke = '';
-          for (let i = 0; i < 4; i++) boatSmoke += `<circle cx="62" cy="4" r="${3 + i}" fill="rgba(235,235,240,${day ? 0.7 : 0.4})" style="animation:hero-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
+          for (let i = 0; i < 4; i++) boatSmoke += `<circle cx="62" cy="4" r="${3 + i}" fill="rgba(235,235,240,${day ? 0.7 : 0.4})" style="transform-box:fill-box;transform-origin:center;animation:hero-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
           festive += `<svg viewBox="0 -12 120 50" style="position:absolute;bottom:1%;left:105%;width:150px;height:62px;overflow:visible;animation:hero-boat 70s linear -20s infinite">
               <g style="animation:hero-bob 2.4s ease-in-out infinite">
                 ${boatSmoke}
@@ -1039,6 +1088,186 @@ weather_hero:
         }
         out += festive;
 
+        // ---------- Afval dat vandaag of morgen buiten moet: PMD-zakken of de blauwe kliko, klein op de stoep ----------
+        const bins = [];
+        for (const [sensor, when] of [['sensor.afval_vandaag', 'vandaag'], ['sensor.afval_morgen', 'morgen']]) {
+          const kind = String(states[sensor]?.state ?? '').toLowerCase();
+          if (kind.includes('pmd') || kind.includes('plastic')) bins.push(['pmd', when]);
+          if (kind.includes('papier')) bins.push(['papier', when]);
+        }
+        bins.forEach(([kind, when], i) => {
+          const body = kind === 'pmd'
+            ? `<path d="M3 30 Q1 18 6 13 L8 10 L6 6 L10 8 L13 5 L13 10 L15 13 Q20 18 18 30 Z" fill="${dim('rgb(251,146,60)')}" opacity="0.85"/>
+               <path d="M15 31 Q13 21 18 17 L19 14 L17 11 L21 13 L24 10 L24 14 L26 17 Q31 21 29 31 Z" fill="${dim('rgb(253,186,116)')}" opacity="0.8"/>
+               <path d="M6 18 Q9 22 8 28 M19 21 Q22 25 21 29" stroke="rgba(255,255,255,0.45)" stroke-width="0.8" fill="none"/>`
+            : `<rect x="5" y="9" width="20" height="21" rx="2" fill="${dim('rgb(37,99,235)')}"/>
+               <rect x="3.5" y="6" width="23" height="4.5" rx="1.5" fill="${dim('rgb(29,78,216)')}"/>
+               <rect x="23" y="4" width="4" height="2.5" rx="1" fill="${dim('rgb(30,64,175)')}"/>
+               <rect x="9" y="14" width="12" height="1.6" rx="0.8" fill="rgba(255,255,255,0.35)"/>
+               <circle cx="9" cy="31" r="2" fill="#1f2937"/><circle cx="21" cy="31" r="2" fill="#1f2937"/>`;
+          // Op de voorgrond (de stoep) onderaan de kaart: bomen en huizen staan hoger, op de heuvelrand, dus daar staat nooit iets voor.
+          // Aan het eind van het tuinpad langs de weg; zonder ons huisje net rechts van de klok.
+          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:${homeX !== null ? `calc(max(${homeX + 15}%, 250px) + ${i * 28}px)` : `calc(max(60%, 235px) - ${i * 28}px)`};bottom:2%;
+              width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'morgen' ? 0.75 : 1};
+              filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
+              <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
+        });
+
+        // ---------- Pixel zit 10 minuten voor het voeren bij de voordeur (en zwiept met zijn staart) ----------
+        // Het volgende voermoment (vandaag of morgen, een overgeslagen voeding telt niet). Vanaf het tekenen wordt met een
+        // CSS-vertraging uitgerekend wanneer hij gaat zitten, zodat het ook klopt als de kaart niet opnieuw tekent.
+        const feedWindow = (() => {
+          const now = new Date();
+          const times = ['first', 'second', 'third', 'fourth']
+            .map(n => String(states[`input_datetime.pixelfeed${n}time`]?.state ?? ''))
+            .filter(v => /^\d{1,2}:\d{2}/.test(v))
+            .map(v => { const [h, m] = v.split(':').map(Number); const d = new Date(now); d.setHours(h, m, 0, 0); return d; });
+          const upcoming = [...times, ...times.map(d => new Date(d.getTime() + 86400000))].filter(d => d > now).sort((a, b) => a - b);
+          // "Volgende voeding overslaan": die eerstvolgende komt er niet, dus hij wacht op de daarna
+          if (states['input_boolean.pixelskipnextautofeed']?.state === 'on') upcoming.shift();
+          const feed = upcoming[0];
+          if (!feed) return null;
+          const until = (feed - now) / 1000;
+          return { start: Math.max(0, until - 600), end: until };   // seconden vanaf nu
+        })();
+
+        // ---------- Een zwarte kat met een wit plekje in zijn nek dwaalt over de stoep ----------
+        // Elke keer dat de kaart tekent kiest hij een nieuwe route van een minuut: lopen naar een willekeurig punt, even
+        // stilstaan, weer verder. Lopen is een tekenfilm-loopcyclus van 4 frames; stilstaan een eigen houding.
+        {
+          // Een rondje: een paar keer lopen en stilstaan, en tot slot terug naar het begin, zodat het einde naadloos
+          // aansluit op het begin van de volgende ronde (anders springt hij terug).
+          const stops = [];                                  // [tijd (s), x (%)]
+          const startX = 30 + Math.random() * 60;
+          let t = 0, x = startX;
+          stops.push([0, x]);
+          const legsCount = 5 + Math.floor(Math.random() * 4);
+          for (let leg = 0; leg <= legsCount; leg++) {
+            t += 2 + Math.random() * 4;                      // even stilstaan
+            stops.push([t, x]);
+            let next = leg === legsCount ? startX : 30 + Math.random() * 62;
+            if (leg < legsCount && Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
+            next = Math.max(28, Math.min(94, next));
+            t += Math.max(0.5, Math.abs(next - x) / 2.2);     // ongeveer 2,2% van de breedte per seconde
+            stops.push([t, next]);
+            x = next;
+          }
+          const total = t;                                   // seconden voor het hele rondje
+          const pct = v => (v / total * 100).toFixed(2);
+          const step = v => (+pct(v) + 0.01).toFixed(2);
+
+          // Positie, kijkrichting en lopen/staan uit dezelfde route
+          const move = stops.map(([v, px]) => `${pct(v)}% { left: ${px.toFixed(1)}%; }`).join(' ');
+          let face = '0% { transform: scaleX(1); }', facing = 1;
+          let walking = '0% { opacity: 0; }', standing = '0% { opacity: 1; }';
+          for (let i = 1; i < stops.length; i++) {
+            const [t0, x0] = stops[i - 1], [t1, x1] = stops[i];
+            const dir = Math.sign(x1 - x0);
+            if (dir && dir !== facing) {
+              face += ` ${pct(t0)}% { transform: scaleX(${facing}); } ${step(t0)}% { transform: scaleX(${dir}); }`;
+              facing = dir;
+            }
+            const isWalk = dir !== 0;
+            walking += ` ${pct(t0)}% { opacity: ${isWalk ? 0 : 0}; } ${step(t0)}% { opacity: ${isWalk ? 1 : 0}; } ${pct(t1)}% { opacity: ${isWalk ? 1 : 0}; }`;
+            standing += ` ${pct(t0)}% { opacity: ${isWalk ? 1 : 1}; } ${step(t0)}% { opacity: ${isWalk ? 0 : 1}; } ${pct(t1)}% { opacity: ${isWalk ? 0 : 1}; }`;
+          }
+          face += ` 100% { transform: scaleX(${facing}); }`;
+
+          // Pootjes: van onder het lijf (y = 40) naar de grond (y = 58), met een voetje. dx = waar de voet staat t.o.v. de heup.
+          const near = '#121219', far = '#050508';
+          const front = (hx, dx, fill) => `<path d="M${hx - 3} 38 L${hx + 3} 38 C${hx + 3} 46 ${hx + dx + 2.6} 50 ${hx + dx + 2.4} 55
+              Q${hx + dx + 2.6} 57 ${hx + dx + 5} 57.4 Q${hx + dx + 6.2} 58.6 ${hx + dx + 4} 58.8 L${hx + dx - 2.2} 58.8
+              Q${hx + dx - 2.8} 57 ${hx + dx - 2.2} 55 C${hx + dx - 2} 50 ${hx - 3} 46 ${hx - 3} 38 Z" fill="${fill}"/>`;
+          const hind = (hx, dx, fill) => `<path d="M${hx - 5} 34 L${hx + 4.5} 34 C${hx + 6} 41 ${hx + 3} 45 ${hx + dx + 2.6} 49
+              L${hx + dx + 2.6} 55 Q${hx + dx + 3} 57 ${hx + dx + 5.4} 57.4 Q${hx + dx + 6.4} 58.6 ${hx + dx + 4} 58.8 L${hx + dx - 1.8} 58.8
+              Q${hx + dx - 2.4} 57 ${hx + dx - 1.6} 55 L${hx + dx - 1.8} 49 C${hx - 4} 45 ${hx - 6.5} 41 ${hx - 5} 34 Z" fill="${fill}"/>`;
+          // [voor-ver, achter-ver, voor-dichtbij, achter-dichtbij]: een stap, kruisen, de andere stap, kruisen
+          const frames = [[-5, 5, 6, -6], [1, -1, 0, 1], [6, -6, -5, 5], [0, 1, 1, -1]];
+          const legs = ([ff, hf, fn, hn]) => `${front(60, ff, far)}${hind(29, hf, far)}`;
+          const nearLegs = ([ff, hf, fn, hn]) => `${front(65, fn, near)}${hind(34, hn, near)}`;
+          const cycle = 0.6;                                 // seconden per pas
+          const frame = (f, i, part) => `<g style="opacity:0;animation:hero-cat-frame ${cycle}s steps(1) ${(-i * cycle / 4).toFixed(2)}s infinite">${part(f)}</g>`;
+
+          const eye = day ? '#c9e265' : '#e6f56a';
+          out += `<style>
+              @keyframes hero-cat-move { ${move} }
+              @keyframes hero-cat-face { ${face} }
+              @keyframes hero-cat-walking { ${walking} }
+              @keyframes hero-cat-standing { ${standing} }
+            </style>
+            <div style="position:absolute;bottom:2%;left:50%;width:68px;height:41px;margin-left:-34px;pointer-events:none;z-index:1;
+                animation:hero-cat-move ${total}s linear infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}">
+              <svg viewBox="0 -2 100 62" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear infinite;
+                  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 4px rgba(255,255,255,0.18))'}">
+                <defs>
+                  <linearGradient id="hero-cat-fur" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="${day ? '#3a3a46' : '#2c2c3a'}"/><stop offset="0.5" stop-color="#15151c"/><stop offset="1" stop-color="#08080b"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="47" cy="59" rx="30" ry="2.2" fill="rgba(0,0,0,0.25)"/>
+                <!-- Verre pootjes: lopen (4 frames) of staan -->
+                <g style="animation:hero-cat-walking ${total}s linear infinite">${frames.map((f, i) => frame(f, i, legs)).join('')}</g>
+                <g style="animation:hero-cat-standing ${total}s linear infinite">${legs([1, 1, 0, 0])}</g>
+                <!-- Lijf (wipt licht mee bij elke pas) en staart -->
+                <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
+                  <path d="M22 30 C10 30 5 22 8 14 C10 8 16 7.5 17.5 12" stroke="url(#hero-cat-fur)" stroke-width="5" fill="none" stroke-linecap="round"
+                    style="transform-origin:22px 30px;transform-box:view-box;animation:hero-cat-tail 2.6s ease-in-out infinite"/>
+                  <path d="M70 26 C62 19.5 40 18.5 30 21.5 C22 24 18 30 20 37 C21.5 42.5 27 46 33.5 44.2 C40 42.6 46 43.8 52 43.8 C58 43.8 62 45.4 66.5 43 C72.5 39.6 74 33 70 26 Z" fill="url(#hero-cat-fur)"/>
+                  <ellipse cx="29" cy="35" rx="8.5" ry="7" fill="rgba(255,255,255,0.04)"/>
+                </g>
+                <!-- Nabije pootjes -->
+                <g style="animation:hero-cat-walking ${total}s linear infinite">${frames.map((f, i) => frame(f, i, nearLegs)).join('')}</g>
+                <g style="animation:hero-cat-standing ${total}s linear infinite">${nearLegs([0, 0, 1, -1])}</g>
+                <!-- Kop: grote ronde kop met wang en snuit -->
+                <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
+                  <path d="M66 29 C63.5 18 70 9 80 8 C89 7 95.5 13 95.5 19 C95.5 22 94 24 92.5 25 C91 28.5 87 30.5 82 30.5 C76 31.5 70 33 66 29 Z" fill="url(#hero-cat-fur)"/>
+                  <path d="M70.5 13.5 L71.5 0.5 L79.5 9 Z" fill="#101016"/><path d="M72.5 11 L73 4.5 L77 9.2 Z" fill="#6b4352"/>
+                  <path d="M81 8 L88.5 -1.5 L90.5 11.5 Z" fill="#1a1a22"/><path d="M83.6 7.6 L87.6 2.4 L88.6 9.6 Z" fill="#7a4d5e"/>
+                  <!-- Het witte plekje op zijn keel, onder zijn kop -->
+                  <path d="M69.5 31.8 C70 29.2 73.6 28.6 76 30.2 C77.2 32 75.6 34.2 72.8 34.4 C71 34.5 69.4 33.4 69.5 31.8 Z" fill="#f4f4f4"/>
+                  <!-- Groot oog met pupil en glinstering, neusje, mondje, snorharen -->
+                  <ellipse cx="86.6" cy="16.6" rx="3.6" ry="3.4" fill="${eye}" ${day ? '' : 'style="filter:drop-shadow(0 0 2.5px #e6f56a)"'}/>
+                  <ellipse cx="87.4" cy="16.8" rx="1.5" ry="2.9" fill="#060608"/>
+                  <circle cx="88.4" cy="15.2" r="0.9" fill="rgba(255,255,255,0.9)"/>
+                  <path d="M94.6 19.2 L96.6 19.8 L95 21.4 Z" fill="#7a4d5e"/>
+                  <path d="M95 21.8 Q94.2 23.6 92.4 23.2" stroke="#2a1c22" stroke-width="0.6" fill="none"/>
+                  <path d="M92.6 21.6 L101 19.6 M92.8 22.6 L101.5 22.8 M92.4 23.6 L100 26" stroke="rgba(255,255,255,0.45)" stroke-width="0.4"/>
+                </g>
+              </svg>
+            </div>`;
+
+          // Pixel zit bij de voordeur, met zijn gezicht naar de deur, en zwiept met zijn staart
+          if (feedWindow) {
+            const sitX = homeX !== null ? homeX + 4.2 : 74;
+            out += `<div style="position:absolute;left:${sitX}%;bottom:${groundBottom(sitX) - 1.5}%;width:30px;height:36px;margin-left:-15px;
+                pointer-events:none;z-index:1;opacity:0;
+                animation:hero-cat-show ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1">
+              <svg viewBox="0 0 40 48" style="width:100%;height:100%;overflow:visible;transform:scaleX(-1);
+                  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 4px rgba(255,255,255,0.18))'}">
+                <ellipse cx="20" cy="47" rx="15" ry="1.8" fill="rgba(0,0,0,0.25)"/>
+                <!-- Staart op de grond die heen en weer zwiept -->
+                <path d="M10 44 C3 45 1 40 4 35" stroke="url(#hero-cat-fur)" stroke-width="3.6" fill="none" stroke-linecap="round"
+                  style="transform-origin:10px 44px;transform-box:view-box;animation:hero-cat-wag 0.45s ease-in-out infinite alternate"/>
+                <!-- Zittend lijf: brede onderkant, smalle borst -->
+                <path d="M8 46 C5 38 9 27 16 22 C20 19 26 20 28 25 C31 31 33 39 31 46 Z" fill="url(#hero-cat-fur)"/>
+                <path d="M25 30 C26.5 36 26 42 27.5 46.5 L23 46.5 C23 41 22.5 35 25 30 Z" fill="#101015"/>
+                <!-- Kop -->
+                <circle cx="24" cy="15" r="8.5" fill="url(#hero-cat-fur)"/>
+                <path d="M17.8 10.5 L18.2 1.5 L23.4 7.4 Z" fill="#101016"/><path d="M19.4 8.6 L19.6 4.2 L22.2 7.4 Z" fill="#6b4352"/>
+                <path d="M25 7 L30.6 0.8 L31.4 10 Z" fill="#1a1a22"/><path d="M27 6.6 L30 3.4 L30.4 8.4 Z" fill="#7a4d5e"/>
+                <!-- Het witte plekje op zijn keel -->
+                <path d="M22.6 23.2 C23 21.4 26.2 21 27.8 22.4 C28.6 24 27.2 25.6 25 25.6 C23.6 25.6 22.4 24.6 22.6 23.2 Z" fill="#f4f4f4"/>
+                <!-- Oog, neus, snorharen -->
+                <ellipse cx="28" cy="13.6" rx="2.6" ry="2.5" fill="${day ? '#c9e265' : '#e6f56a'}" ${day ? '' : 'style="filter:drop-shadow(0 0 2.5px #e6f56a)"'}/>
+                <ellipse cx="28.6" cy="13.8" rx="1.1" ry="2.1" fill="#060608"/>
+                <circle cx="29.3" cy="12.6" r="0.6" fill="rgba(255,255,255,0.9)"/>
+                <path d="M32 16.2 L33.4 16.6 L32.4 17.8 Z" fill="#7a4d5e"/>
+                <path d="M31 18 L37.5 16.6 M31.2 18.8 L38 19 M30.8 19.6 L36.6 21.6" stroke="rgba(255,255,255,0.45)" stroke-width="0.35"/>
+              </svg>
+            </div>`;
+          }
+        }
+
         // ---------- De was hangt buiten: waslijn met wapperende was (harder bij wind, druppels bij regen) ----------
         if (states['input_boolean.laundryhangingoutside']?.state === 'on') {
           const swing = Math.min(28, 4 + windSpeed * 1.6);         // graden heen en weer
@@ -1158,6 +1387,7 @@ weather_hero:
         }
         out += `<div style="position:absolute;left:16px;top:${theme === 'kerst' ? 46 : 16}px;z-index:2;text-align:left">${badges}</div>`;
 
+        this._heroSky = { signature: skySignature, html: out };
         return out;
       ]]]
     clock:
@@ -1338,6 +1568,7 @@ weather_hero:
               entity: person.vincent_maarschalkerweerd
               variables:
                 sleeping: input_boolean.sleepingvincent
+                working: input_boolean.workingvincent
                 battery: sensor.vincent_phone_battery_level
                 charging: binary_sensor.vincent_phone_is_charging
                 distance: sensor.thuis_sm_s938b_distance
@@ -1349,6 +1580,7 @@ weather_hero:
               entity: person.carleen
               variables:
                 sleeping: input_boolean.sleepingcarleen
+                working: input_boolean.workingcarleen
                 battery: sensor.carleen_mobiel_battery_level
                 charging: sensor.carleen_mobiel_battery_state
   styles:
@@ -1696,6 +1928,7 @@ hero_person:
   show_name: false
   variables:
     sleeping: null
+    working: null
     battery: null
     charging: null
     distance: null
@@ -1713,7 +1946,9 @@ hero_person:
         const home = entity?.state === 'home';
         const asleep = states[variables.sleeping]?.state === 'on';
         const first = (entity?.attributes.friendly_name ?? '?').split(' ')[0];
-        let status = asleep ? 'Slaapt' : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
+        const working = !asleep && states[variables.working]?.state === 'on';
+        let status = asleep ? 'Slaapt' : working ? (home ? 'Werkt thuis' : 'Aan het werk')
+          : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
 
         // Onderweg: afstand tot huis en of de persoon naar huis komt
         const d = states[variables.distance];
@@ -1721,7 +1956,7 @@ hero_person:
         if (!home && !isNaN(meters)) {
           const dist = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1).replace('.', ',')} km` : `${Math.round(meters)} m`;
           const dir = { towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '';
-          status = `${dist}${dir}`;
+          status = `${working ? 'Werkt · ' : ''}${dist}${dir}`;
         }
 
         // Telefoonbatterij: klein, rood als hij bijna leeg is, bliksem als hij laadt
@@ -1729,7 +1964,7 @@ hero_person:
         const charging = ['on', 'charging'].includes(states[variables.charging]?.state);
         const batteryHtml = isNaN(level) ? '' : ` · <span style="color:${level <= 20 && !charging ? '#ff6b6b' : 'inherit'}">${charging ? '⚡' : '🔋'}${level}%</span>`;
 
-        const ring = asleep ? 'rgba(167,139,250,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
+        const ring = asleep ? 'rgba(167,139,250,0.9)' : working ? 'rgba(251,191,36,0.9)' : home ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.15)';
         const avatar = entity?.attributes.entity_picture
           ? `<img src="${entity.attributes.entity_picture}" style="width:30px;height:30px;border-radius:50%;object-fit:cover">`
           : `<div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;
@@ -1739,7 +1974,7 @@ hero_person:
                   ${avatar}
                   <div style="line-height:1.15;text-align:left">
                     <div style="font-size:13px;font-weight:600;white-space:nowrap">${first}</div>
-                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : ''}${status}${batteryHtml}</div>
+                    <div style="font-size:11px;opacity:0.85;white-space:nowrap">${asleep ? '😴 ' : working ? '💼 ' : ''}${status}${batteryHtml}</div>
                   </div>
                 </div>`;
       ]]]
@@ -2433,6 +2668,7 @@ alert:
       - grid-template-rows: 1fr 1fr
       - column-gap: 14px
     card:
+      - --alert-rgb: '[[[ return variables.color; ]]]'
       - min-height: 84px
       - padding: 12px 16px
       - background: '[[[ return `linear-gradient(135deg, rgba(${variables.color}, 0.28), rgba(${variables.color}, 0.08))`; ]]]'
@@ -2465,10 +2701,11 @@ alert:
       side:
         - align-self: center
         - text-align: right
+  # De kleur gaat als CSS-variabele naar de gloed: in extra_styles zijn de variables van button-card niet beschikbaar
   extra_styles: |
     @keyframes alert-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba([[[ return variables.color ]]], 0.6); }
-      50% { box-shadow: 0 0 0 10px rgba([[[ return variables.color ]]], 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(var(--alert-rgb), 0.6); }
+      50% { box-shadow: 0 0 0 10px rgba(var(--alert-rgb), 0); }
     }
 
 # Wasmachine bezig: fase (Wassen, Spoelen, Centrifugeren...), programma, voortgangsring en hoe lang nog.
@@ -2762,3 +2999,119 @@ homework_days:
     custom_fields:
       list:
         - width: 100%
+
+# Peuken: hoeveel pakjes er nog zijn, groot getal met een rij pakjes. Tik = er is er één op (-1), lang drukken = precies invoeren.
+# Groen vanaf 10, oranje onder 10, rood onder 5.
+peuken:
+  template: glass
+  entity: input_number.peuken_pakjes
+  triggers_update:
+    - input_number.peuken_pakjes
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: perform-action
+    perform_action: input_number.decrement
+    target:
+      entity_id: input_number.peuken_pakjes
+    haptic: success
+  hold_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const packs = Math.max(0, Math.round(parseFloat(entity?.state) || 0));
+        const rgb = packs < 5 ? '255, 107, 107' : packs < 10 ? '255, 176, 96' : '74, 222, 128';
+        const status = packs === 0 ? 'Op! Tijd om te kopen' : packs < 5 ? 'Bijna op, koop een slof' : packs < 10 ? 'Raakt op' : 'Voorraad prima';
+        // Een rij pakjes: maximaal 20 getekend, de rest als +n
+        const shown = Math.min(packs, 20);
+        const pack = `<svg viewBox="0 0 14 20" style="width:14px;height:20px">
+            <rect x="0.5" y="3" width="13" height="16.5" rx="1.5" fill="rgba(${rgb},0.85)"/>
+            <rect x="0.5" y="3" width="13" height="4" rx="1" fill="rgba(255,255,255,0.85)"/>
+            <rect x="3" y="0.5" width="2" height="3.5" rx="0.5" fill="#f5e6c8"/><rect x="6" y="0" width="2" height="4" rx="0.5" fill="#f5e6c8"/>
+            <rect x="9" y="1" width="2" height="3" rx="0.5" fill="#f5e6c8"/></svg>`;
+        const row = Array.from({ length: shown }, () => pack).join('')
+          + (packs > 20 ? `<span style="font-size:12px;opacity:0.7;align-self:center">+${packs - 20}</span>` : '');
+        return `<div style="display:flex;align-items:center;gap:16px;text-align:left">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;opacity:0.75">Pakjes peuken</div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:56px;font-weight:200;line-height:1;color:rgb(${rgb})">${packs}</span>
+                <span style="font-size:13px;font-weight:600">${status}</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:10px;min-height:20px">${row || '<span style="opacity:0.5;font-size:12px">Geen pakjes meer</span>'}</div>
+            </div>
+            <div style="width:72px;height:72px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+              background:rgba(${rgb},0.22);box-shadow:inset 0 0 0 2px rgba(${rgb},0.6)">
+              <span style="font-size:24px;font-weight:700;line-height:1">−1</span>
+              <span style="font-size:10px;opacity:0.8">tik</span>
+            </div>
+          </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 16px 18px
+      - cursor: pointer
+      - background: |
+          [[[
+            const packs = parseFloat(entity?.state) || 0;
+            const rgb = packs < 5 ? '255, 107, 107' : packs < 10 ? '255, 176, 96' : '74, 222, 128';
+            return `linear-gradient(135deg, rgba(${rgb}, 0.16), rgba(255, 255, 255, 0.04))`;
+          ]]]
+    custom_fields:
+      body:
+        - width: 100%
+
+# Werkdag in het rooster van iemand: tik wisselt Vrij -> Thuis -> Kantoor (input_select.werkdag_{persoon}_{dag}).
+# variables.day: de korte naam (ma, di, ...). Vandaag krijgt een rand.
+workday_button:
+  template: glass
+  show_icon: true
+  show_name: true
+  show_label: true
+  variables:
+    day: ma
+    weekday: 1
+  tap_action:
+    action: javascript
+    haptic: light
+    javascript: "[[[ hass.callService('input_select', 'select_next', { entity_id: entity.entity_id, cycle: true }); ]]]"
+  hold_action:
+    action: more-info
+  name: '[[[ return variables.day; ]]]'
+  label: '[[[ return entity?.state ?? "?"; ]]]'
+  icon: |
+    [[[ return { Vrij: 'mdi:beach', Thuis: 'mdi:home-account', Kantoor: 'mdi:office-building-outline' }[entity?.state] ?? 'mdi:help-circle-outline'; ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"n" "i" "l"'
+      - row-gap: 4px
+    card:
+      - padding: 8px 2px
+      - height: 84px
+      - background: |
+          [[[
+            const rgb = { Vrij: '255, 255, 255', Thuis: '74, 222, 128', Kantoor: '96, 165, 250' }[entity?.state] ?? '255, 255, 255';
+            return `rgba(${rgb}, ${entity?.state === 'Vrij' ? 0.05 : 0.16})`;
+          ]]]
+      - border: |
+          [[[
+            return new Date().getDay() === variables.weekday ? '2px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.08)';
+          ]]]
+    name:
+      - justify-self: center
+      - font-size: 13px
+      - text-transform: capitalize
+    icon:
+      - width: 24px
+      - color: |
+          [[[ return { Thuis: '#4ade80', Kantoor: '#60a5fa' }[entity?.state] ?? 'rgba(255, 255, 255, 0.5)'; ]]]
+    label:
+      - justify-self: center
+      - font-size: 10px
+      - opacity: 0.85
+      - max-width: 100%
+      - overflow: hidden
+      - text-overflow: ellipsis

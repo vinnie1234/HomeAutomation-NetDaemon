@@ -22,3 +22,5 @@ views:
   - !include views/weer.yaml
   - !include views/systeem.yaml
   - !include views/netwerk.yaml
+  - !include views/vincent.yaml
+  - !include views/carleen.yaml

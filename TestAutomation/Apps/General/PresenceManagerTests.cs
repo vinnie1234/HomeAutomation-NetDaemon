@@ -16,8 +16,8 @@ public class PresenceManagerTests
             new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.awaycarleen", State = awayCarleen });
         ctx.HaContext.GetState("input_boolean.away").Returns(
             new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.away", State = away });
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(
-            new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.InitApp<PresenceManager>();
         return ctx;
     }

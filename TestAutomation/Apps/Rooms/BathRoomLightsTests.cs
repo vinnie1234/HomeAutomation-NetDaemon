@@ -31,13 +31,8 @@ public class BathRoomLightsTests
         ctx.HaContext.GetState("sensor.smart_series_4000_97ae_toothbrush_state").Returns(new EntityState { State = "idle" });
         
         // For IsOfficeDay
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.guest").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.officedaymonday").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.officedaytuesday").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.officedaywednesday").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.officedaythursday").Returns(new EntityState { State = "off" });
-        ctx.HaContext.GetState("input_boolean.officedayfriday").Returns(new EntityState { State = "off" });
     }
 
     [Fact]
