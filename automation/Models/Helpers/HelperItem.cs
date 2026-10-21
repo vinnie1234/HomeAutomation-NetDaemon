@@ -1,0 +1,15 @@
+using System.Text.Json.Serialization;
+
+namespace Automation.Models.Helpers;
+
+/// <summary>
+/// A helper as Home Assistant returns it from <c>{domain}/list</c> and <c>{domain}/create</c>.
+/// </summary>
+public record HelperItem
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; init; } = string.Empty;
+}
