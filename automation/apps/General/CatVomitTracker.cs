@@ -5,16 +5,17 @@ using Microsoft.Extensions.Options;
 namespace Automation.apps.General;
 
 /// <summary>
-/// Remembers when Pixel threw up. Every increase of <c>counter.pixel_gekotst</c> is saved with its time, a decrease
-/// (a mistake) removes the last time again. The moments of the last two weeks are published as
-/// <c>sensor.pixel_gekotst_momenten</c> for the graph on the dashboard; the recorder only keeps 10 days.
+/// Remembers when Pixel threw up, forever: these moments are important. Every increase of <c>counter.pixel_gekotst</c> is
+/// saved with its time; a decrease of one (undoing a mistake) removes the last time again, while a bigger drop (such as
+/// resetting the counter) never deletes anything. All moments are published as <c>sensor.pixel_gekotst_momenten</c> for the
+/// graph on the dashboard (the recorder only keeps 10 days); its state is the number of the last two weeks.
 /// </summary>
 [NetDaemonApp(Id = nameof(CatVomitTracker))]
 public class CatVomitTracker : BaseApp
 {
     public const string SensorId = "sensor.pixel_gekotst_momenten";
     private const string StorageKey = "PixelGekotstMomenten";
-    private static readonly TimeSpan KeepFor = TimeSpan.FromDays(14);
+    private static readonly TimeSpan Recent = TimeSpan.FromDays(14);
 
     private readonly IDataRepository _storage;
     private readonly IEntityManager _entityManager;
@@ -43,7 +44,7 @@ public class CatVomitTracker : BaseApp
                 Update(newCount - oldCount);
             });
 
-        // Moments older than two weeks drop off the graph, also on days nothing happens
+        // The count of the last two weeks moves on, also on days nothing happens
         Scheduler.RunDaily(new TimeSpan(0, 5, 0), () => Update(0));
     }
 
@@ -68,8 +69,8 @@ public class CatVomitTracker : BaseApp
     }
 
     /// <summary>
-    /// Adds <paramref name="difference"/> moments at the current time, or removes the latest ones when it is negative,
-    /// drops moments older than two weeks and publishes the result.
+    /// Adds <paramref name="difference"/> moments at the current time, or removes the latest one when the counter went one
+    /// down, and publishes the result. Nothing is ever deleted otherwise.
     /// </summary>
     private void Update(int difference)
     {
@@ -79,19 +80,22 @@ public class CatVomitTracker : BaseApp
             var moments = _storage.Get<List<DateTimeOffset>>(StorageKey) ?? [];
 
             for (var i = 0; i < difference; i++) moments.Add(now);
-            for (var i = 0; i < -difference && moments.Count > 0; i++) moments.RemoveAt(moments.Count - 1);
+            if (difference == -1 && moments.Count > 0) moments.RemoveAt(moments.Count - 1);
+            else if (difference < -1)
+                Logger.LogWarning("counter.pixel_gekotst dropped by {Drop} (reset?); the saved moments are kept", -difference);
 
-            moments = moments.Where(x => x > now - KeepFor).Order().ToList();
+            moments = moments.Order().ToList();
             _storage.Save(StorageKey, moments);
 
-            _entityManager.SetState(SensorId, moments.Count, new
+            var recent = moments.Count(x => x > now - Recent);
+            _entityManager.SetState(SensorId, recent, new
             {
                 momenten = moments.Select(x => x.ToString("yyyy-MM-ddTHH:mm:sszzz")).ToList(),
                 laatste = moments.Count > 0 ? moments[^1].ToString("yyyy-MM-ddTHH:mm:sszzz") : null
             });
 
             if (difference != 0)
-                Logger.LogInformation("Pixel gekotst: {Difference:+0;-0}, {Count} keer in de afgelopen twee weken", difference, moments.Count);
+                Logger.LogInformation("Pixel gekotst: {Difference:+0;-0}, {Count} keer in de afgelopen twee weken", difference, recent);
         }
     }
 }

@@ -70,12 +70,24 @@ public class CatVomitTrackerTests : IDisposable
     }
 
     [Fact]
-    public void MomentsOlderThanTwoWeeks_DropOff()
+    public void OldMoments_AreKeptForever_ButNoLongerCountAsRecent()
     {
         _ctx.ChangeStateFor("counter.pixel_gekotst").FromState("4").ToState("5");
-        _ctx.AdvanceTimeBy(TimeSpan.FromDays(15).Ticks);
+        _ctx.AdvanceTimeBy(TimeSpan.FromDays(400).Ticks);
 
-        // The nightly clean-up publishes the list again without the old moment
-        PublishedMoments().Should().BeEmpty();
+        // The nightly update publishes everything again; the state only counts the last two weeks
+        PublishedMoments().Should().Equal("2026-10-20T10:00:00+02:00");
+        _entityManager.Received().SetState(CatVomitTracker.SensorId, 0, Arg.Any<object>());
+    }
+
+    [Fact]
+    public void ResettingTheCounter_DoesNotDeleteAnything()
+    {
+        _ctx.ChangeStateFor("counter.pixel_gekotst").FromState("4").ToState("5");
+        _ctx.ChangeStateFor("counter.pixel_gekotst").FromState("5").ToState("6");
+
+        _ctx.ChangeStateFor("counter.pixel_gekotst").FromState("6").ToState("0");
+
+        PublishedMoments().Should().HaveCount(2);
     }
 }
