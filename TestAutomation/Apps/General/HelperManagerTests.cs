@@ -114,4 +114,34 @@ public class HelperManagerTests
             "input_number.peuken_pakjes", "counter.pixel_gekotst", "input_select.weerkaart_thema"
         ]);
     }
+
+    [Theory]
+    [InlineData("on", "Kantoor")]
+    [InlineData("off", "Thuis")]
+    public async Task NewHelper_TakesOverTheValueOfTheHelperItReplaces(string officeDay, string expected)
+    {
+        Existing("input_select");
+        _connection.SendCommandAndReturnResponseAsync<CreateHelperCommand, HelperItem>(Arg.Any<CreateHelperCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new HelperItem { Id = "werkdag_vincent_maandag", Name = "Werkdag Vincent maandag" });
+        _ctx.HaContext.GetState("input_boolean.officeday_monday")
+            .Returns(new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.officeday_monday", State = officeDay });
+        var helper = HelperDefinitions.All.Single(x => x.Id == "werkdag_vincent_maandag");
+
+        await _app.EnsureHelpersAsync([helper]);
+
+        _ctx.HaContext.Received(1).CallService("input_select", "select_option",
+            Arg.Is<NetDaemon.HassModel.Entities.ServiceTarget>(t => t.EntityIds!.Single() == "input_select.werkdag_vincent_maandag"),
+            Arg.Is<object>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains(expected)));
+    }
+
+    [Fact]
+    public void Definitions_GiveEveryoneTheSameWorkSchedule()
+    {
+        foreach (var person in new[] { "vincent", "carleen" })
+            HelperDefinitions.All.Select(x => x.Id).Should().Contain(
+            [
+                $"werkdag_{person}_maandag", $"werkdag_{person}_vrijdag", $"vrij_{person}",
+                $"opstaan_kantoor_{person}", $"opstaan_thuiswerk_{person}", $"werk_start_{person}", $"werk_eind_{person}"
+            ]);
+    }
 }

@@ -156,7 +156,7 @@ public class BathRoomLights : BaseApp
     private int GetBrightness()
     {
         // On office days Vincent needs full brightness regardless of Carleen sleeping
-        if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
+        if (VincentSchedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
             return 100;
 
         return _circadianLightingService.GetBrightness(IsSleepMode);

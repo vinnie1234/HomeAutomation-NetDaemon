@@ -39,11 +39,11 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.InitApp<HolidayManager>();
 
         // Act - sensor.hub_vincent_alarms has no attributes configured, so next_alarm_status is unknown
-        ctx.ChangeStateFor("input_boolean.holliday").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.vrij_vincent").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -56,7 +56,7 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState
         {
             EntityId = "sensor.hub_vincent_alarms",
@@ -74,7 +74,7 @@ public class HolidayManagerTests
         ctx.InitApp<HolidayManager>();
 
         // Act
-        ctx.ChangeStateFor("input_boolean.holliday").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.vrij_vincent").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - reminded about the earliest alarm that's still set
@@ -90,11 +90,11 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "on" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "on" });
         ctx.InitApp<HolidayManager>();
 
         // Act - sensor.hub_vincent_alarms has no attributes configured, so next_alarm_status is unknown
-        ctx.ChangeStateFor("input_boolean.holliday").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.vrij_vincent").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -107,7 +107,7 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "on" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "on" });
         ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState
         {
             EntityId = "sensor.hub_vincent_alarms",
@@ -117,7 +117,7 @@ public class HolidayManagerTests
         ctx.InitApp<HolidayManager>();
 
         // Act
-        ctx.ChangeStateFor("input_boolean.holliday").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.vrij_vincent").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
@@ -133,7 +133,7 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
@@ -147,7 +147,7 @@ public class HolidayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        ctx.VerifyCallService("input_boolean", "turn_on", "holliday");
+        ctx.VerifyCallService("input_boolean", "turn_on", "vrij_vincent");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class HolidayManagerTests
         // Arrange - the event title lives in the "message" attribute; description is empty
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
@@ -170,7 +170,7 @@ public class HolidayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        ctx.VerifyCallService("input_boolean", "turn_on", "holliday");
+        ctx.VerifyCallService("input_boolean", "turn_on", "vrij_vincent");
     }
 
     [Theory]
@@ -181,7 +181,7 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
@@ -206,7 +206,7 @@ public class HolidayManagerTests
         // Arrange - the holiday is on, today there is no day off in the calendar
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "on" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "on" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
@@ -221,7 +221,7 @@ public class HolidayManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        ctx.VerifyCallService("input_boolean", "turn_off", "holliday", times: expectedTurnOffs);
+        ctx.VerifyCallService("input_boolean", "turn_off", "vrij_vincent", times: expectedTurnOffs);
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class HolidayManagerTests
         // Arrange - no active calendar event means the "description" attribute isn't present at all
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",
@@ -252,7 +252,7 @@ public class HolidayManagerTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         SetPersonModelDefaults(ctx);
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("calendar.vincentmaarschalkerweerd_gmail_com").Returns(new EntityState
         {
             EntityId = "calendar.vincentmaarschalkerweerd_gmail_com",

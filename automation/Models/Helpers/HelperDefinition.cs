@@ -8,4 +8,12 @@ namespace Automation.Models.Helpers;
 /// an entity renamed in Home Assistant keeps its old id (e.g. id <c>sleeping</c> for <c>input_boolean.sleepingvincent</c>).</param>
 /// <param name="Name">The name; Home Assistant derives the id from it when it creates the helper.</param>
 /// <param name="Settings">The other settings, with the keys Home Assistant uses (<c>icon</c>, <c>min</c>, <c>options</c>, ...).</param>
-public record HelperDefinition(string Domain, string Id, string Name, IReadOnlyDictionary<string, object> Settings);
+/// <param name="CopyFrom">An older entity whose value the helper takes over once it is created, when it replaces that one.</param>
+/// <param name="CopyMap">Translates the value of <paramref name="CopyFrom"/>, e.g. <c>on</c> to <c>Kantoor</c>; unknown values are copied as they are.</param>
+public record HelperDefinition(
+    string Domain,
+    string Id,
+    string Name,
+    IReadOnlyDictionary<string, object> Settings,
+    string? CopyFrom = null,
+    IReadOnlyDictionary<string, string>? CopyMap = null);

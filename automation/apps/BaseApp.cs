@@ -45,6 +45,10 @@ public class BaseApp
     internal readonly CarleenModel Carleen;
     internal readonly HouseSitterModel HouseSitter;
 
+    /// <summary>The work schedules of Vincent and Carleen (office, home or off per weekday, days off, working hours).</summary>
+    internal readonly WorkSchedule VincentSchedule;
+    internal readonly WorkSchedule CarleenSchedule;
+
     /// <summary>
     /// True when the house should behave in night/quiet mode.
     /// This is when Vincent is sleeping, OR when Carleen is home and sleeping.
@@ -93,6 +97,8 @@ public class BaseApp
         Vincent = new VincentModel(Entities, config);
         Carleen = new CarleenModel(Entities, config);
         HouseSitter = new HouseSitterModel(Entities);
+        VincentSchedule = new WorkSchedule(haContext, "vincent");
+        CarleenSchedule = new WorkSchedule(haContext, "carleen");
     }
     
     protected async Task ExecuteWithFallbackAsync(Func<Task> operation, Func<Task> fallback, string operationName)

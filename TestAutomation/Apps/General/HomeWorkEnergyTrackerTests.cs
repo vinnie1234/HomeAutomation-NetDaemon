@@ -35,8 +35,8 @@ public class HomeWorkEnergyTrackerTests : IDisposable
 
         // Tuesday 20 October 2026, 10:00 Dutch time: a home work day
         _ctx.SetCurrentTime(new DateTime(2026, 10, 20, 8, 0, 0, DateTimeKind.Utc));
-        SetState("input_boolean.officeday_tuesday", "off");
-        SetState("input_boolean.holliday", "off");
+        SetState("input_select.werkdag_vincent_dinsdag", "Thuis");
+        SetState("input_boolean.vrij_vincent", "off");
         SetState("input_boolean.onvacation", "off");
         SetState("input_boolean.awayvincent", "off");
         SetState("input_boolean.workingvincent", "off");
@@ -128,7 +128,7 @@ public class HomeWorkEnergyTrackerTests : IDisposable
     [Fact]
     public void Energy_OnAnOfficeDay_IsNotCounted()
     {
-        SetState("input_boolean.officeday_tuesday", "on");
+        SetState("input_select.werkdag_vincent_dinsdag", "Kantoor");
         StartWorking();
 
         _ctx.ChangeStateFor(Import).FromState("1000.000").ToState("1002.000");

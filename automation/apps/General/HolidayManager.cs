@@ -43,17 +43,15 @@ public class HolidayManager : BaseApp
     /// </summary>
     private void HolidayChangeStateHandler()
     {
-        Entities
-            .InputBoolean
-            .Holliday
+        VincentSchedule
+            .DayOff
             .StateChanges()
             .Where(x =>
                 x.Entity.IsOn())
             .Subscribe(_ => SetHoliday());
 
-        Entities
-            .InputBoolean
-            .Holliday
+        VincentSchedule
+            .DayOff
             .StateChanges()
             .Where(x =>
                 x.Entity.IsOff())
@@ -121,14 +119,14 @@ public class HolidayManager : BaseApp
 
             if (isDayOff)
             {
-                if (Entities.InputBoolean.Holliday.IsOn()) return;
+                if (VincentSchedule.DayOff.IsOn()) return;
 
-                Entities.InputBoolean.Holliday.TurnOn();
+                VincentSchedule.DayOff.TurnOn();
                 _storage.Save(HolidaySetByCalendarKey, bool.TrueString);
             }
             else if (setByCalendar)
             {
-                Entities.InputBoolean.Holliday.TurnOff();
+                VincentSchedule.DayOff.TurnOff();
                 _storage.Save(HolidaySetByCalendarKey, bool.FalseString);
             }
         });

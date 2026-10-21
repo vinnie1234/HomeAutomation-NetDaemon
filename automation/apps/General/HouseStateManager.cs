@@ -16,8 +16,8 @@ public class HouseStateManager : BaseApp
     private static readonly TimeSpan DefaultDaytimeWeekend = new(10, 0, 0);
     private static readonly TimeSpan DefaultDaytimeHomeWork = new(8, 15, 0);
     private static readonly TimeSpan DefaultDaytimeOffice = new(7, 15, 0);
-    private readonly TimeSpan _startWorking = TimeSpan.Parse("08:30:00", new CultureInfo("nl-Nl"));
-    private readonly TimeSpan _endWorking = TimeSpan.Parse("17:00:00", new CultureInfo("nl-Nl"));
+    private static readonly TimeSpan DefaultWorkStart = new(8, 30, 0);
+    private static readonly TimeSpan DefaultWorkEnd = new(17, 0, 0);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HouseStateManager"/> class.
@@ -90,27 +90,24 @@ public class HouseStateManager : BaseApp
     }
 
     /// <summary>
-    /// Sets whether Vincent works based on his schedule, and keeps the shared working state in line:
-    /// it is on as long as Vincent or Carleen works.
+    /// Sets whether Vincent and Carleen work, each with their own working hours on their office and home work days,
+    /// and keeps the shared working state in line: it is on as long as Vincent or Carleen works.
     /// </summary>
     private void SetWorking()
     {
-        Scheduler.RunDaily(_startWorking, () =>
+        foreach (var schedule in new[] { VincentSchedule, CarleenSchedule })
         {
-            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
-                IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
-                Entities.InputBoolean.Workingvincent.TurnOn();
-        });
-
-        Scheduler.RunDaily(_endWorking, () =>
-        {
-            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek) ||
-                IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
-                Entities.InputBoolean.Workingvincent.TurnOff();
-        });
-
-        Entities.InputBoolean.Workingvincent.StateChanges().Subscribe(_ => UpdateWorking());
-        Entities.InputBoolean.Workingcarleen.StateChanges().Subscribe(_ => UpdateWorking());
+            // The times come from input_datetimes and are rescheduled when changed in Home Assistant
+            Scheduler.RunDailyAt(schedule.WorkStart, DefaultWorkStart, () =>
+            {
+                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek)) schedule.Working.TurnOn();
+            });
+            Scheduler.RunDailyAt(schedule.WorkEnd, DefaultWorkEnd, () =>
+            {
+                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek)) schedule.Working.TurnOff();
+            });
+            schedule.Working.StateChanges().Subscribe(_ => UpdateWorking());
+        }
     }
 
     /// <summary>
@@ -118,31 +115,36 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void UpdateWorking()
     {
-        var anyoneWorking = Entities.InputBoolean.Workingvincent.IsOn() || Entities.InputBoolean.Workingcarleen.IsOn();
+        var anyoneWorking = VincentSchedule.Working.IsOn() || CarleenSchedule.Working.IsOn();
         if (anyoneWorking && Entities.InputBoolean.Working.IsOff()) Entities.InputBoolean.Working.TurnOn();
         else if (!anyoneWorking && Entities.InputBoolean.Working.IsOn()) Entities.InputBoolean.Working.TurnOff();
     }
 
     /// <summary>
-    /// Sets the daytime state based on the schedule.
+    /// Sets the daytime state based on the schedules: at someone's wake-up time for their office or home work day, so
+    /// whoever gets up first wakes the house, and at the weekend time when both have a day off.
     /// </summary>
     private void SetDayTime()
     {
         // The times come from input_datetimes and are rescheduled when changed in Home Assistant
-        Scheduler.RunDailyAt(Entities.InputDatetime.Daytimeoffice, DefaultDaytimeOffice, () =>
+        foreach (var schedule in new[] { VincentSchedule, CarleenSchedule })
         {
-            if (IsOfficeDay(Entities, Scheduler.NowNl().DayOfWeek))
-                SetHouseState(HouseState.Day);
-        });
-        Scheduler.RunDailyAt(Entities.InputDatetime.Daytimehomework, DefaultDaytimeHomeWork, () =>
-        {
-            if (IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek))
-                SetHouseState(HouseState.Day);
-        });
+            Scheduler.RunDailyAt(schedule.WakeUpOffice, DefaultDaytimeOffice, () =>
+            {
+                if (schedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek))
+                    SetHouseState(HouseState.Day);
+            });
+            Scheduler.RunDailyAt(schedule.WakeUpHomeWork, DefaultDaytimeHomeWork, () =>
+            {
+                if (schedule.IsHomeWorkDay(Scheduler.NowNl().DayOfWeek))
+                    SetHouseState(HouseState.Day);
+            });
+        }
 
         Scheduler.RunDailyAt(Entities.InputDatetime.Daytimeweekend, DefaultDaytimeWeekend, () =>
         {
-            if (IsDayOff(Entities, Scheduler.NowNl().DayOfWeek))
+            var today = Scheduler.NowNl().DayOfWeek;
+            if (VincentSchedule.IsDayOff(today) && CarleenSchedule.IsDayOff(today))
                 SetHouseState(HouseState.Day);
         });
     }

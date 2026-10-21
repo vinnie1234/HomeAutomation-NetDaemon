@@ -14,9 +14,9 @@ public class HouseStateManagerTests
         ctx.HaContext.GetState("input_datetime.nighttimeweekdays").Returns(new EntityState { EntityId = "input_datetime.nighttimeweekdays", State = "00:00:00" });
         ctx.HaContext.GetState("input_datetime.nighttimeweekends").Returns(new EntityState { EntityId = "input_datetime.nighttimeweekends", State = "00:30:00" });
         ctx.HaContext.GetState("input_datetime.daytimeweekend").Returns(new EntityState { EntityId = "input_datetime.daytimeweekend", State = "10:00:00" });
-        ctx.HaContext.GetState("input_datetime.daytimehomework").Returns(new EntityState { EntityId = "input_datetime.daytimehomework", State = "08:15:00" });
-        ctx.HaContext.GetState("input_datetime.daytimeoffice").Returns(new EntityState { EntityId = "input_datetime.daytimeoffice", State = "07:15:00" });
-        ctx.HaContext.GetState("input_boolean.holliday").Returns(new EntityState { EntityId = "input_boolean.holliday", State = "off" });
+        ctx.HaContext.GetState("input_datetime.opstaan_thuiswerk_vincent").Returns(new EntityState { EntityId = "input_datetime.opstaan_thuiswerk_vincent", State = "08:15:00" });
+        ctx.HaContext.GetState("input_datetime.opstaan_kantoor_vincent").Returns(new EntityState { EntityId = "input_datetime.opstaan_kantoor_vincent", State = "07:15:00" });
+        ctx.HaContext.GetState("input_boolean.vrij_vincent").Returns(new EntityState { EntityId = "input_boolean.vrij_vincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.working").Returns(new EntityState { EntityId = "input_boolean.working", State = "off" });
         ctx.HaContext.GetState("input_boolean.workingvincent").Returns(new EntityState { EntityId = "input_boolean.workingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.workingcarleen").Returns(new EntityState { EntityId = "input_boolean.workingcarleen", State = "off" });
@@ -162,11 +162,11 @@ public class HouseStateManagerTests
         // Arrange - Monday 3 January 2000 (an office day), the office daytime is moved from 07:15 to 06:00
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        ctx.HaContext.GetState("input_boolean.officeday_monday").Returns(new EntityState { EntityId = "input_boolean.officeday_monday", State = "on" });
+        ctx.HaContext.GetState("input_select.werkdag_vincent_maandag").Returns(new EntityState { EntityId = "input_select.werkdag_vincent_maandag", State = "Kantoor" });
         ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { EntityId = "input_boolean.onvacation", State = "off" });
         ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks); // Monday 01:00 Dutch time
         ctx.InitApp<HouseStateManager>();
-        ctx.ChangeStateFor("input_datetime.daytimeoffice").FromState("07:15:00").ToState("06:00:00");
+        ctx.ChangeStateFor("input_datetime.opstaan_kantoor_vincent").FromState("07:15:00").ToState("06:00:00");
         ctx.HaContextMock.ProcessPendingOperations();
         ctx.HaContext.ClearReceivedCalls();
 
@@ -351,5 +351,53 @@ public class HouseStateManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         ctx.VerifyCallService("input_boolean", "turn_off", "working");
+    }
+
+    [Theory]
+    [InlineData("Kantoor", 1)]
+    [InlineData("Thuis", 1)]
+    [InlineData("Vrij", 0)]
+    public void CarleensWorkStart_TurnsHerWorkingOn_OnlyOnHerWorkDays(string monday, int expectedTurnOns)
+    {
+        // Arrange - Monday 3 January 2000, Carleen starts at 06:30 (her own working hours)
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { EntityId = "input_boolean.onvacation", State = "off" });
+        ctx.HaContext.GetState("input_boolean.vrij_carleen").Returns(new EntityState { EntityId = "input_boolean.vrij_carleen", State = "off" });
+        ctx.HaContext.GetState("input_select.werkdag_carleen_maandag").Returns(new EntityState { EntityId = "input_select.werkdag_carleen_maandag", State = monday });
+        ctx.HaContext.GetState("input_datetime.werk_start_carleen").Returns(new EntityState { EntityId = "input_datetime.werk_start_carleen", State = "06:30:00" });
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks);
+        ctx.InitApp<HouseStateManager>();
+
+        // Act - 06:45 Dutch time
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 5, 45, 0, TimeSpan.Zero).UtcTicks);
+
+        // Assert
+        ctx.VerifyCallService("input_boolean", "turn_on", "workingcarleen", times: expectedTurnOns);
+        ctx.VerifyCallService("input_boolean", "turn_on", "workingvincent", times: 0);
+    }
+
+    [Theory]
+    [InlineData("Vrij", "Vrij", true)]
+    [InlineData("Vrij", "Thuis", false)]
+    public void WeekendDaytime_OnAWeekday_OnlyWhenBothHaveADayOff(string vincent, string carleen, bool expectDay)
+    {
+        // Arrange - Monday 3 January 2000; the weekend daytime is 10:00, the wake-up times for work are later than that
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { EntityId = "input_boolean.onvacation", State = "off" });
+        ctx.HaContext.GetState("input_select.werkdag_vincent_maandag").Returns(new EntityState { EntityId = "input_select.werkdag_vincent_maandag", State = vincent });
+        ctx.HaContext.GetState("input_select.werkdag_carleen_maandag").Returns(new EntityState { EntityId = "input_select.werkdag_carleen_maandag", State = carleen });
+        ctx.HaContext.GetState("input_datetime.opstaan_thuiswerk_carleen").Returns(new EntityState { EntityId = "input_datetime.opstaan_thuiswerk_carleen", State = "11:00:00" });
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks);
+        ctx.InitApp<HouseStateManager>();
+        ctx.HaContext.ClearReceivedCalls();
+
+        // Act - 10:15 Dutch time
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 9, 15, 0, TimeSpan.Zero).UtcTicks);
+
+        // Assert
+        if (expectDay) ctx.VerifyInputSelect_SelectOption("input_select.housemodeselect", "Day");
+        else ctx.VerifyInputSelect_SelectOption_NotChangedTo("input_select.housemodeselect", "Day");
     }
 }

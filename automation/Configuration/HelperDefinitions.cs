@@ -12,6 +12,28 @@ public static class HelperDefinitions
     /// <summary>All helpers, grouped per domain.</summary>
     public static readonly IReadOnlyList<HelperDefinition> All =
     [
+        // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over, Carleen begint op Vrij.
+        WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
+        WorkDay("werkdag_vincent_dinsdag", "Werkdag Vincent dinsdag", copyFrom: "input_boolean.officeday_tuesday"),
+        WorkDay("werkdag_vincent_woensdag", "Werkdag Vincent woensdag", copyFrom: "input_boolean.officeday_wednesday"),
+        WorkDay("werkdag_vincent_donderdag", "Werkdag Vincent donderdag", copyFrom: "input_boolean.officeday_thursday"),
+        WorkDay("werkdag_vincent_vrijdag", "Werkdag Vincent vrijdag", copyFrom: "input_boolean.officeday_friday"),
+        Boolean("vrij_vincent", "Vrij Vincent", icon: "mdi:beach", copyFrom: "input_boolean.holliday"),
+        Time("opstaan_kantoor_vincent", "Opstaan kantoor Vincent", "07:15:00", copyFrom: "input_datetime.daytimeoffice"),
+        Time("opstaan_thuiswerk_vincent", "Opstaan thuiswerk Vincent", "08:15:00", copyFrom: "input_datetime.daytimehomework"),
+        Time("werk_start_vincent", "Werk start Vincent", "08:30:00"),
+        Time("werk_eind_vincent", "Werk eind Vincent", "17:00:00"),
+        WorkDay("werkdag_carleen_maandag", "Werkdag Carleen maandag"),
+        WorkDay("werkdag_carleen_dinsdag", "Werkdag Carleen dinsdag"),
+        WorkDay("werkdag_carleen_woensdag", "Werkdag Carleen woensdag"),
+        WorkDay("werkdag_carleen_donderdag", "Werkdag Carleen donderdag"),
+        WorkDay("werkdag_carleen_vrijdag", "Werkdag Carleen vrijdag"),
+        Boolean("vrij_carleen", "Vrij Carleen", icon: "mdi:beach"),
+        Time("opstaan_kantoor_carleen", "Opstaan kantoor Carleen", "07:15:00"),
+        Time("opstaan_thuiswerk_carleen", "Opstaan thuiswerk Carleen", "08:15:00"),
+        Time("werk_start_carleen", "Werk start Carleen", "08:30:00"),
+        Time("werk_eind_carleen", "Werk eind Carleen", "17:00:00"),
+
         // input_boolean
         Boolean("away", "Away", icon: "mdi:shield-lock"),
         Boolean("awaycarleen", "AwayCarleen", icon: "mdi:shield-lock"),
@@ -28,7 +50,6 @@ public static class HelperDefinitions
         Boolean("douchen", "Douchen", icon: "mdi:shower-head"),
         Boolean("emptypetsnowy", "EmptyPetSnowy"),
         Boolean("feedcat", "FeedCat"),
-        Boolean("holliday", "Holliday", icon: "mdi:emoticon-cool"),
         Boolean("laundryhangingoutside", "LaundryHangingOutside", icon: "mdi:washing-machine"),
         Boolean("netdaemon_alarm", "netdaemon_alarm"),
         Boolean("netdaemon_auto_update_app", "netdaemon_auto_update_app"),
@@ -62,8 +83,6 @@ public static class HelperDefinitions
         Boolean("netdaemon_tv", "netdaemon_tv"),
         Boolean("netdaemon_vacuum", "netdaemon_vacuum"),
         Boolean("netdaemon_whats_app_assistant", "netdaemon_whats_app_assistant"),
-        Boolean("officeday_friday", "OfficeDay_Friday", icon: "mdi:briefcase"),
-        Boolean("officeday_thursday", "OfficeDay_Thursday", icon: "mdi:briefcase"),
         Boolean("onvacation", "OnVacation ", icon: "mdi:wallet-travel"),
         Boolean("pixelgivenextfeedeary", "PixelGiveNextFeedEary"),
         Boolean("restartnetdaemon", "RestartNetDaemon"),
@@ -73,9 +92,6 @@ public static class HelperDefinitions
         Boolean("start_friends", "Start Friends"),
         Boolean("start_pc", "Start PC"),
         Boolean("vincent_pc_afsluiten", "PC Afsluiten"),
-        Boolean("workday_monday", "OfficeDay_Monday", icon: "mdi:briefcase"),
-        Boolean("workday_tuesday", "OfficeDay_Tuesday", icon: "mdi:briefcase"),
-        Boolean("workday_wednesday", "OfficeDay_Wednesday", icon: "mdi:briefcase"),
         Boolean("working", "Working", icon: "mdi:briefcase"),
         Boolean("workingcarleen", "WorkingCarleen", icon: "mdi:briefcase"),
         Boolean("workingvincent", "WorkingVincent", icon: "mdi:briefcase"),
@@ -121,8 +137,6 @@ public static class HelperDefinitions
         Select("weerkaart_thema", "weerkaart_thema", options: ["Automatisch", "Lente", "Zomer", "Herfst", "Winter", "Pasen", "Nieuwjaar", "Kerst", "Sinterklaas"], icon: "mdi:weather-hurricane"),
 
         // input_datetime
-        DateTime("daytimehomework", "DaytimeHomeWork", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
-        DateTime("daytimeoffice", "DaytimeOffice", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
         DateTime("daytimeweekend", "DaytimeWeekend", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
         DateTime("nighttimeweekdays", "NighttimeWeekdays", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
         DateTime("nighttimeweekends", "NighttimeWeekends", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
@@ -145,8 +159,8 @@ public static class HelperDefinitions
         Counter("pixel_gekotst", "Pixel Gekotst", initial: 0, step: 1, minimum: 0, maximum: 9999999999999, restore: true, icon: "mdi:cat")
     ];
 
-    private static HelperDefinition Boolean(string id, string name, string? icon = null) =>
-        new("input_boolean", id, name, Settings(("icon", icon)));
+    private static HelperDefinition Boolean(string id, string name, string? icon = null, string? copyFrom = null) =>
+        new("input_boolean", id, name, Settings(("icon", icon)), copyFrom);
 
     private static HelperDefinition Button(string id, string name, string? icon = null) =>
         new("input_button", id, name, Settings(("icon", icon)));
@@ -161,6 +175,21 @@ public static class HelperDefinitions
 
     private static HelperDefinition DateTime(string id, string name, bool hasDate, bool hasTime, string? icon = null) =>
         new("input_datetime", id, name, Settings(("has_date", hasDate), ("has_time", hasTime), ("icon", icon)));
+
+    /// <summary>A time of day (input_datetime without a date), starting at <paramref name="initial"/> (<c>HH:mm:ss</c>).</summary>
+    private static HelperDefinition Time(string id, string name, string initial, string? copyFrom = null) =>
+        new("input_datetime", id, name, Settings(("has_date", false), ("has_time", true), ("initial", initial), ("icon", "mdi:clock-outline")), copyFrom);
+
+    /// <summary>
+    /// A weekday of someone's work schedule: Vrij, Thuis or Kantoor (see <see cref="Models.Persons.WorkSchedule"/>). Copying
+    /// from an old office day boolean turns on into Kantoor and off into Thuis.
+    /// </summary>
+    private static HelperDefinition WorkDay(string id, string name, string? copyFrom = null) =>
+        new("input_select", id, name,
+            Settings(("options", new[] { Models.Persons.WorkSchedule.Off, Models.Persons.WorkSchedule.Home, Models.Persons.WorkSchedule.Office }),
+                ("initial", Models.Persons.WorkSchedule.Off), ("icon", "mdi:briefcase-variant-outline")),
+            copyFrom,
+            new Dictionary<string, string> { ["on"] = Models.Persons.WorkSchedule.Office, ["off"] = Models.Persons.WorkSchedule.Home });
 
     private static HelperDefinition Text(string id, string name, int? min = null, int? max = null, string? mode = null,
         string? pattern = null, string? icon = null) =>

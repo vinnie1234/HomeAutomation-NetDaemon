@@ -48,7 +48,7 @@ public class SleepManager : BaseApp
 
         Scheduler.ScheduleCronNl("00 10 * * *", () =>
         {
-            if (!Globals.IsDayOff(Entities, Scheduler.NowNl().DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Datenight.IsOff())
+            if (!VincentSchedule.IsDayOff(Scheduler.NowNl().DayOfWeek) && Entities.InputBoolean.Sleepingvincent.IsOn() && Entities.InputBoolean.Datenight.IsOff())
                 Entities.InputBoolean.Sleepingvincent.TurnOff();
         });
     }
@@ -77,7 +77,7 @@ public class SleepManager : BaseApp
     /// </summary>
     private void OpenRollerblind()
     {
-        if (Globals.IsDayOff(Entities, Scheduler.NowNl().DayOfWeek))
+        if (VincentSchedule.IsDayOff(Scheduler.NowNl().DayOfWeek))
         {
             Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);

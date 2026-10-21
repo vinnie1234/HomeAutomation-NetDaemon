@@ -48,7 +48,7 @@ public class HomeWorkEnergyTracker : BaseApp
 
         _ = CreateSensorAsync();
 
-        Entities.InputBoolean.Workingvincent.StateChanges().Subscribe(_ => UpdateActive());
+        VincentSchedule.Working.StateChanges().Subscribe(_ => UpdateActive());
         Entities.InputBoolean.Awayvincent.StateChanges().Subscribe(_ => UpdateActive());
 
         Entities.Sensor.P1Meter3c39e72a64e8TotalPowerImport.StateChanges().Subscribe(_ => CountStep());
@@ -61,8 +61,8 @@ public class HomeWorkEnergyTracker : BaseApp
     }
 
     private bool IsWorkingFromHome =>
-        IsHomeWorkDay(Entities, Scheduler.NowNl().DayOfWeek) &&
-        Entities.InputBoolean.Workingvincent.IsOn() &&
+        VincentSchedule.IsHomeWorkDay(Scheduler.NowNl().DayOfWeek) &&
+        VincentSchedule.Working.IsOn() &&
         Entities.InputBoolean.Awayvincent.IsOff();
 
     private async Task CreateSensorAsync()

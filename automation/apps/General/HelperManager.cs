@@ -72,6 +72,8 @@ public class HelperManager : BaseApp
                             helper.Domain, helper.Name, item.Id, helper.Id);
                     else
                         Logger.LogInformation("Created {Domain}.{Id}", helper.Domain, helper.Id);
+
+                    if (helper.CopyFrom != null) CopyValue(helper, $"{helper.Domain}.{item?.Id ?? helper.Id}");
                 }
                 catch (Exception ex)
                 {
@@ -81,5 +83,41 @@ public class HelperManager : BaseApp
         }
 
         return created;
+    }
+
+    /// <summary>
+    /// Gives a newly created helper the value of the entity it replaces, translated with <see cref="HelperDefinition.CopyMap"/>.
+    /// </summary>
+    private void CopyValue(HelperDefinition helper, string entityId)
+    {
+        var value = HaContext.GetState(helper.CopyFrom!)?.State;
+        if (value is null or "unknown" or "unavailable")
+        {
+            Logger.LogInformation("{CopyFrom} has no value to copy to {EntityId}", helper.CopyFrom, entityId);
+            return;
+        }
+
+        if (helper.CopyMap?.TryGetValue(value, out var mapped) == true) value = mapped;
+        var target = ServiceTarget.FromEntity(entityId);
+        switch (helper.Domain)
+        {
+            case "input_boolean":
+                HaContext.CallService("input_boolean", value == "on" ? "turn_on" : "turn_off", target);
+                break;
+            case "input_select":
+                HaContext.CallService("input_select", "select_option", target, new { option = value });
+                break;
+            case "input_datetime":
+                HaContext.CallService("input_datetime", "set_datetime", target, new { time = value });
+                break;
+            case "input_number":
+                HaContext.CallService("input_number", "set_value", target, new { value });
+                break;
+            default:
+                Logger.LogWarning("Copying a value to a {Domain} helper is not supported", helper.Domain);
+                return;
+        }
+
+        Logger.LogInformation("Copied {Value} from {CopyFrom} to {EntityId}", value, helper.CopyFrom, entityId);
     }
 }
