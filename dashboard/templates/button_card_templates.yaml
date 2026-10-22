@@ -404,6 +404,19 @@ weather_hero:
     - weather.weer_thuis_waarnemingen
     - sun.sun
     - input_boolean.onvacation
+    - sensor.buiten_postnl_brieven
+    - sensor.buiten_postnl_inkomende_pakketten
+    - sensor.buiten_postnl_bezorgde_pakketten
+    - sensor.buiten_postnl_volgende_bezorging
+    - sensor.buiten_dhl_inkomende_pakketten
+    - sensor.buiten_dhl_bezorgde_pakketten
+    - sensor.buiten_dhl_volgende_bezorging
+    - sensor.buiten_dpd_inkomende_pakketten
+    - sensor.buiten_dpd_bezorgde_pakketten
+    - sensor.buiten_dpd_volgende_bezorging
+    - sensor.buiten_gls_inkomende_pakketten
+    - sensor.buiten_gls_bezorgde_pakketten
+    - sensor.buiten_gls_volgende_bezorging
     - person.timo
     - sensor.flightradar24_current_in_area
     - media_player.spotify_vincent_maarschalkerweerd
@@ -555,6 +568,19 @@ weather_hero:
           if (scenario === 'was buiten') set('input_boolean.laundryhangingoutside', 'on');
           if (scenario === 'afval buiten') { set('sensor.afval_vandaag', 'PMD'); set('sensor.afval_morgen', 'Papier'); }
           if (scenario === 'niemand thuis') set('input_boolean.away', 'on');
+          if (scenario === 'post en pakketjes') {
+            const d = new Date(), iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            set('sensor.buiten_postnl_brieven', '1', { letters: [{ id: 'test', title: 'vandaag', date: iso }] });
+            set('sensor.buiten_postnl_inkomende_pakketten', '1', { parcels: [{ carrier: 'PostNL', planned_from: `${iso}T14:00:00+02:00` }] });
+            set('sensor.buiten_dhl_bezorgde_pakketten', '2', { parcels: [{ carrier: 'DHL', delivered_at: `${iso}T10:12:00+02:00` }, { carrier: 'DHL', delivered_at: `${iso}T10:12:00+02:00` }] });
+          }
+          if (scenario.startsWith('code ')) {
+            const code = scenario.slice(5);
+            set('binary_sensor.weer_thuis_waarschuwing_actief', 'on');
+            set('sensor.weer_thuis_waarschuwingscode', code);
+            set('sensor.weer_thuis_waarschuwingen', { geel: 'Zware windstoten', oranje: 'Zeer zware windstoten en kans op schade', rood: 'Extreme windstoten, blijf binnen' }[code]);
+            weather('windy', 90, 11, 85);
+          }
           if (scenario === 'op vakantie') { set('input_boolean.onvacation', 'on'); set('input_boolean.away', 'on'); }
           if (scenario === 'op vakantie met oppas') { set('input_boolean.onvacation', 'on'); set('input_boolean.away', 'on'); set('person.timo', 'home'); }
           if (scenario === 'vliegtuig') set('sensor.flightradar24_current_in_area', '2', { flights: [
@@ -583,7 +609,8 @@ weather_hero:
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven',
+            ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
@@ -1272,7 +1299,7 @@ weather_hero:
             }
             // Pixel is jarig: een taartje met een visje bij de voordeur
             if (celebration.name === 'Pixel') {
-              festive += svgAt(homeX + 4.6, groundBottom(homeX + 4.6) - 2, 30, 30, '0 0 30 30', `
+              festive += svgAt(homeX + 3.6, groundBottom(homeX + 3.6) - 2, 26, 26, '0 0 30 30', `
                   <rect x="3" y="15" width="24" height="12" rx="2" fill="#fbcfe8"/><rect x="3" y="15" width="24" height="3.4" rx="1.6" fill="#fff"/>
                   <path d="M5 18 q2.5 3 5 0 q2.5 3 5 0 q2.5 3 5 0 q2.5 3 5 0" stroke="#f9a8d4" stroke-width="1.2" fill="none"/>
                   <path d="M9 12 Q14 8 19 12 Q14 16 9 12 Z M19 12 L23 9 L23 15 Z" fill="#60a5fa"/><circle cx="11.5" cy="11.4" r="0.7" fill="#1e293b"/>
@@ -1287,18 +1314,13 @@ weather_hero:
             }
           }
         }
-        // Op vakantie: een bordje bij het pad, een volle brievenbus, en af en toe een vliegtuigje met een spandoek
+        // Op vakantie: een bordje bij het pad en af en toe een vliegtuigje met een spandoek
         if (onVacation) {
           festive += svgAt(homeX + 9, groundBottom(homeX + 9) - 1.5, 50, 34, '0 0 50 34', `
               <rect x="23.5" y="14" width="3" height="20" fill="${dim('rgb(120,84,52)')}"/>
               <rect x="2" y="2" width="46" height="14" rx="2" fill="${dim('rgb(196,150,96)')}" stroke="${dim('rgb(140,100,60)')}" stroke-width="1"/>
               <text x="25" y="11.6" text-anchor="middle" font-size="7.4" font-weight="700" font-family="sans-serif" fill="${dim('rgb(70,40,20)')}">${sitterHome ? 'Oppas is er' : 'Op vakantie'}</text>`,
             'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
-          if (!occupied) festive += svgAt(homeX - 4.6, groundBottom(homeX - 4.6) - 1.5, 18, 26, '0 0 18 26', `
-              <rect x="7.5" y="10" width="3" height="16" fill="${dim('rgb(70,70,80)')}"/>
-              <rect x="1" y="3" width="16" height="9" rx="4" fill="${dim('rgb(214,40,57)')}"/>
-              <path d="M3 4 L8 -1 L12 2 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.4"/><path d="M8 4 L13 0 L15 4 Z" fill="#fef9c3" stroke="#cbd5e1" stroke-width="0.4"/>
-              <path d="M5 4.4 L10 1.6 L12 4.4 Z" fill="#e0f2fe" stroke="#cbd5e1" stroke-width="0.4"/>`);
           festive += `<div style="position:absolute;top:9%;left:-40%;pointer-events:none;animation:hero-plane 34s linear ${clockDelay(0.2, 17)}s infinite">
               <svg viewBox="0 0 190 30" style="width:210px;height:33px;overflow:visible;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))">
                 <path d="M2 6 Q60 10 120 6 L120 26 Q60 22 2 26 Z" fill="#fff7ed" stroke="#fdba74" stroke-width="1"
@@ -1310,6 +1332,45 @@ weather_hero:
                 <circle cx="176" cy="14" r="1.6" fill="#bae6fd"/>
                 <ellipse cx="187" cy="15.5" rx="1" ry="5" fill="rgba(30,41,59,0.6)" style="animation:hero-twinkle 0.15s linear infinite"/>
               </svg></div>`;
+        }
+        // ---------- Post: de brievenbus naast de deur, vol (met de vlag omhoog) als er vandaag of gisteren post was ----------
+        // (sensor.buiten_postnl_brieven, per brief een datum), en pakketjes bij de deur als ze vandaag komen of gekomen zijn
+        const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const todayIso = isoDay(today), yesterdayIso = isoDay(new Date(today.getTime() - 86400000));
+        const letters = (states['sensor.buiten_postnl_brieven']?.attributes?.letters ?? [])
+          .filter(l => [todayIso, yesterdayIso].includes(String(l.date ?? '').slice(0, 10))).length;
+        const carriers = [['postnl', '#f97316'], ['dhl', '#facc15'], ['dpd', '#dc2626'], ['gls', '#1d4ed8']];
+        const parcelDay = p => String(p.delivered_at ?? p.delivery_date ?? p.planned_from ?? p.planned_to ?? '').slice(0, 10);
+        const parcels = carriers.flatMap(([key, color]) => {
+          const incoming = (states[`sensor.buiten_${key}_inkomende_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
+          const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
+          // Zonder data per pakket: de volgende bezorging is vandaag
+          const next = new Date(states[`sensor.buiten_${key}_volgende_bezorging`]?.state);
+          const n = incoming.length + delivered.length || (!isNaN(next) && isoDay(next) === todayIso ? 1 : 0);
+          return Array(n).fill(color);
+        }).slice(0, 4);
+        {
+          const mx = homeX - 4.6;
+          festive += svgAt(mx, groundBottom(mx) - 1.5, 18, 28, '0 0 18 28', `
+              <rect x="7.6" y="11" width="2.8" height="17" fill="${dim('rgb(70,70,80)')}"/>
+              ${letters ? `<path d="M3.4 4.6 L7.4 -0.6 L11 2.4 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.4"/>
+                <path d="M7 4.6 L12.4 0.2 L14.6 4.6 Z" fill="#fef9c3" stroke="#cbd5e1" stroke-width="0.4"/>` : ''}
+              <path d="M1 7 Q1 3 5 3 L13 3 Q17 3 17 7 L17 13 L1 13 Z" fill="${dim('rgb(30,96,64)')}"/>
+              <rect x="4" y="5.6" width="10" height="1.4" rx="0.7" fill="${dim('rgb(14,54,36)')}"/>
+              ${letters ? `<path d="M17 9 L17 1 L22 1 L22 4 L17 4" fill="#dc2626" stroke="#991b1b" stroke-width="0.4"/>`
+                : `<path d="M17 10 L23 10 L23 12.6 L17 12.6" fill="${dim('rgb(150,40,40)')}"/>`}`,
+            'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
+        }
+        // Pakketjes op de stoep van de voordeur, opgestapeld, met een sticker in de kleur van de vervoerder
+        if (parcels.length) {
+          const boxes = parcels.map((color, i) => {
+            // Onderste rij twee dozen op de grond (y = 23), daarbovenop nog twee
+            const [x, by, w, h] = [[0, 14, 11, 9], [11, 15, 9, 8], [2, 6, 8, 8], [12, 9, 7, 6]][i];
+            return `<rect x="${x}" y="${by}" width="${w}" height="${h}" rx="0.6" fill="${dim('rgb(196,150,98)')}" stroke="${dim('rgb(150,108,64)')}" stroke-width="0.5"/>
+              <rect x="${x + w / 2 - 0.8}" y="${by}" width="1.6" height="${h}" fill="${dim('rgb(222,196,150)')}"/>
+              <rect x="${x + 1}" y="${by + h - 3.2}" width="3" height="2" rx="0.3" fill="${color}"/>`;
+          }).join('');
+          festive += svgAt(homeX + 6.4, groundBottom(homeX + 6.4) - 2.2, 24, 24, '0 0 21 24', boxes, 'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
         }
         out += festive;
 
