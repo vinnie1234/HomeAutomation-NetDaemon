@@ -14,23 +14,13 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
-      - type: custom:button-card
-        template: action
-        name: Terug naar Pixel
-        icon: mdi:arrow-left
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-huis/pixel
-        styles:
-          grid:
-            - grid-template-areas: '"i n"'
-            - grid-template-columns: auto 1fr
-            - column-gap: 10px
-          card:
-            - height: 48px
+      # Tik op de samenvatting (of Pixel in de navigatie) om terug te gaan
       - type: custom:button-card
         template: summary
         icon: mdi:pill
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/pixel
         variables:
           level: |
             [[[
@@ -45,7 +35,7 @@ sections:
         label: |
           [[[
             const a = states['sensor.pixel_medicijnen']?.attributes ?? {};
-            return `Herinnering om ${a.herinnering ?? '20:00'} · tik op een medicijn om te geven · alles wordt voor altijd bewaard`;
+            return `Herinnering om ${a.herinnering ?? '20:00'} · tik op een medicijn om te geven`;
           ]]]
 
   # Voorraad en geven
