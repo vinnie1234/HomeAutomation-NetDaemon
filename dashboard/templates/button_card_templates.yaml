@@ -525,8 +525,10 @@ weather_hero:
         const skySignature = JSON.stringify([
           new Date().toDateString(),
           sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
+          // Wind en bewolking in stapjes, anders begint bij elke kleine meting alles opnieuw
+          Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag',
-            'sensor.season', 'sensor.moon_phase', 'sensor.weer_thuis_bewolking', 'sensor.weer_thuis_windsnelheid',
+            'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
             'sensor.afval_vandaag', 'sensor.afval_morgen', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
@@ -549,12 +551,13 @@ weather_hero:
         const snow = ['snowy', 'snowy-rainy'].includes(w);
         const storm = ['lightning', 'lightning-rainy'].includes(w);
         const fog = w === 'fog';
-        const windSpeed = parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) || 3;
+        const windSpeed = Math.round((parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) || 3) / 5) * 5 || 3;
 
         // Bewolking in % (oktas 0-8 worden omgerekend); zonder sensor een schatting uit het weertype
         let cover = parseFloat(states['sensor.weer_thuis_bewolking']?.state);
         if (!isNaN(cover) && cover <= 8 && ['cloudy', 'rainy', 'pouring', 'fog'].includes(w)) cover *= 12.5;
         if (isNaN(cover)) cover = { sunny: 5, 'clear-night': 5, partlycloudy: 45, windy: 40, cloudy: 90, fog: 95 }[w] ?? 95;
+        cover = Math.round(cover / 10) * 10;
         const t = Math.min(1, cover / 100);
 
         const mix = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
@@ -623,6 +626,9 @@ weather_hero:
           : 'brightness(0.3) saturate(0.6)';
         if (golden > 0) tint += ` sepia(${(0.18 * golden).toFixed(2)}) saturate(${(1 + 0.25 * golden).toFixed(2)})`;
         const speed = Math.max(20, 70 - windSpeed * 3);
+        // Waar een wolk nu is volgt uit de klok (heen en terug duurt 2 × duration): na opnieuw tekenen gaat hij op dezelfde
+        // plek verder in plaats van terug te springen naar het begin
+        const clockDelay = (phase, duration) => (-((Date.now() / 1000 + phase * 2 * duration) % (2 * duration))).toFixed(1);
         // Lukt het laden niet (HA herstart, netwerk even weg), dan opnieuw proberen: de tekening wordt niet opnieuw gemaakt
         // zolang het weer gelijk blijft, dus een weggehaald plaatje zou tot de volgende weerswijziging wegblijven. ?v= omzeilt een
         // oude 404 in de browsercache (HA laat /local 31 dagen bewaren, ook als het bestand er toen nog niet was); ophogen bij nieuwe plaatjes
@@ -631,7 +637,7 @@ weather_hero:
         const sprite = (file, x, y, width, opacity, blur, duration) =>
           `<img src="/local/huis/clouds/${file}.webp?v=2" onerror="${retry}" onload="this.style.visibility=''" style="position:absolute;left:${x}%;top:${y}%;width:${width}px;
             opacity:${opacity};filter:${tint || 'none'}${blur ? ` blur(${blur}px)` : ''};pointer-events:none;
-            animation:hero-drift ${duration}s ease-in-out ${-rnd() * duration}s infinite alternate">`;
+            animation:hero-drift ${duration}s ease-in-out ${clockDelay(rnd(), duration)}s infinite alternate">`;
         if (t > 0.55) {
           const deck = Math.min(1, (t - 0.45) * 1.8);
           for (let i = 0; i < 3; i++) {
