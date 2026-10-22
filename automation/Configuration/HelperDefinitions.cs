@@ -152,8 +152,8 @@ public static class HelperDefinitions
         Select("tijd_van_de_dag", "Tijd van de dag", options: ["Ochtend", "Middag", "Avond", "Nacht", "Automatisch"]),
         Select("water_usage_swelector", "Water Usage Selector", options: ["Default", "WC Klein", "WC Groot", "Afwas", "Douchen", "Wasmachine", "Anders", "Kraan"]),
         Select("weerkaart_thema", "weerkaart_thema", options: ["Automatisch", "Lente", "Zomer", "Herfst", "Winter", "Pasen", "Nieuwjaar", "Kerst", "Sinterklaas", "Halloween", "Verjaardag Vincent", "Verjaardag Carleen", "Verjaardag Pixel", "Jubileum", "Valentijn", "Koningsdag", "Dodenherdenking", "Bevrijdingsdag"], icon: "mdi:weather-hurricane"),
-        // Testen van de weerkaart: zet hem in een situatie (weer, muziek en tv, de was, het afval, Pixel bij de deur, niemand thuis, een vliegtuig)
-        Select("weerkaart_scenario", "Weerkaart scenario", options: ["Automatisch", "Heerlijk weer", "Regen", "Onweer", "Sneeuw", "Mist", "Muziek en tv", "Was buiten", "Afval buiten", "Pixel bij de deur", "Niemand thuis", "Vliegtuig"], icon: "mdi:test-tube"),
+        // Testen van de weerkaart: zet hem in een situatie (weer, muziek en tv, de was, het afval, Pixel bij de deur, niemand thuis, op vakantie, een vliegtuig)
+        Select("weerkaart_scenario", "Weerkaart scenario", options: ["Automatisch", "Heerlijk weer", "Regen", "Onweer", "Sneeuw", "Mist", "Muziek en tv", "Was buiten", "Afval buiten", "Pixel bij de deur", "Niemand thuis", "Op vakantie", "Op vakantie met oppas", "Vliegtuig"], icon: "mdi:test-tube"),
 
         // input_datetime
         // Verjaardagen en ons jubileum (de weerkaart viert feest); de datums vul je zelf in, ze staan bewust niet in deze openbare code

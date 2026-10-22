@@ -403,6 +403,8 @@ weather_hero:
     - sensor.hub_vincent_timers
     - weather.weer_thuis_waarnemingen
     - sun.sun
+    - input_boolean.onvacation
+    - person.timo
     - sensor.flightradar24_current_in_area
     - media_player.spotify_vincent_maarschalkerweerd
     - media_player.tv
@@ -553,6 +555,8 @@ weather_hero:
           if (scenario === 'was buiten') set('input_boolean.laundryhangingoutside', 'on');
           if (scenario === 'afval buiten') { set('sensor.afval_vandaag', 'PMD'); set('sensor.afval_morgen', 'Papier'); }
           if (scenario === 'niemand thuis') set('input_boolean.away', 'on');
+          if (scenario === 'op vakantie') { set('input_boolean.onvacation', 'on'); set('input_boolean.away', 'on'); }
+          if (scenario === 'op vakantie met oppas') { set('input_boolean.onvacation', 'on'); set('input_boolean.away', 'on'); set('person.timo', 'home'); }
           if (scenario === 'vliegtuig') set('sensor.flightradar24_current_in_area', '2', { flights: [
             { id: 'test1', flight_number: 'KL1001', altitude: 9000, heading: 80, airport_origin_city: 'Amsterdam', airport_destination_city: 'Londen' },
             { id: 'test2', flight_number: 'HV6123', altitude: 34000, heading: 250, airport_origin_city: 'Rome', airport_destination_city: 'Amsterdam' }] });
@@ -579,6 +583,7 @@ weather_hero:
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
+            'input_boolean.onvacation', 'person.timo',
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
@@ -938,7 +943,8 @@ weather_hero:
                          style="transform-origin:21px 20px;animation:hero-wave 1.2s ease-in-out infinite"/>`
               }`;
         // deco: 'kerst' (lichtjes langs het dak en een krans op de deur) of 'sinterklaas' (een Piet die uit de schoorsteen gluurt)
-        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null } = {}) => {
+        // curtains: de gordijnen zijn dicht (op vakantie)
+        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null, curtains = false } = {}) => {
           const top = groundTop(x);
           const glow = !lit ? (day ? 'rgba(70,82,104,0.75)' : 'rgb(18,22,34)') : day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
           let puffs = '';
@@ -960,6 +966,8 @@ weather_hero:
                       filter:drop-shadow(0 0 ${day ? 1.5 : 3}px #6fa8ff)"/>` : ''}
                     ${airing ? `<path d="M7.2 14 Q4.4 15.4 5.2 18.6 Q6.6 17.6 8.2 18.2 Q7.8 16.2 9.6 14 Z" fill="rgba(255,255,255,0.92)"
                       style="transform-box:view-box;transform-origin:8px 14px;animation:hero-curtain 2.2s ease-in-out infinite"/>` : ''}
+                    ${curtains ? `<path d="M7 14 H9.1 Q8.6 16 9 18 H7 Z" fill="${night('rgb(150,60,70)')}"/><path d="M11 14 H8.9 Q9.4 16 9 18 H11 Z" fill="${night('rgb(130,50,62)')}"/>
+                      <rect x="6.8" y="13.7" width="4.4" height="0.6" fill="${night('rgb(90,64,46)')}"/>` : ''}
                     <rect x="14" y="15" width="3" height="7" fill="${night('rgb(96,64,46)')}"/>
                     ${deco === 'kerst' ? `<circle cx="15.5" cy="17.4" r="1.15" fill="none" stroke="#2d6a4f" stroke-width="0.7"/><circle cx="15.5" cy="18.5" r="0.35" fill="#d62839"/>
                       ${[2.6, 4.6, 6.6, 8.6, 10.6, 13.4, 15.4, 17.4, 19.4, 21.4].map((lx, i) => `<circle cx="${lx}" cy="${(lx <= 12 ? 11 - (lx - 2) * 0.8 : 3 + (lx - 12) * 0.8) + 0.5}" r="0.65"
@@ -970,9 +978,14 @@ weather_hero:
         };
         // Iemand thuis: rook uit de schoorsteen, en 's avonds en 's nachts licht achter het raam
         const someoneHome = states['input_boolean.away']?.state !== 'on';
+        // Op vakantie (input_boolean.onvacation): de gordijnen dicht, tenzij de oppas (Timo) er is
+        const onVacation = states['input_boolean.onvacation']?.state === 'on';
+        const sitterHome = states['person.timo']?.state === 'home';
+        const occupied = someoneHome || sitterHome;
+        const closedUp = onVacation && !occupied;
         // Vanaf 20° stookt niemand de kachel: dan geen rook uit de schoorsteen
         const temperature = parseFloat(states['sensor.weer_thuis_temperatuur']?.state);
-        const stoking = someoneHome && !(temperature >= 20);
+        const stoking = occupied && !(temperature >= 20);
         // Muziek op een speaker thuis (de speaker zelf, of Spotify die erop speelt) en de tv aan
         const homeSpeakers = ['media_player.woonkamer', 'media_player.nestmini9818', 'media_player.googlehome0351', 'media_player.friends_speakers', 'media_player.hub_vincent', 'media_player.hele_huis', 'media_player.googlehome7421', 'media_player.googlehome8627', 'media_player.soundbar'];
         const spotifyNow = states['media_player.spotify_vincent_maarschalkerweerd'];
@@ -998,7 +1011,8 @@ weather_hero:
                 fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
                 stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
-          scene += house(homeX, 78, true, { lit: someoneHome, smoke: stoking, tv: tvOn, music: musicOn, airing: someoneHome && temperature >= 20 && !tvOn, deco: theme });
+          scene += house(homeX, 78, true, { lit: occupied, smoke: stoking, tv: tvOn, music: musicOn, airing: occupied && temperature >= 20 && !tvOn,
+            deco: theme, curtains: closedUp });
         }
         out += scene;
 
@@ -1272,6 +1286,30 @@ weather_hero:
                   animation:hero-petal ${7 + rnd() * 6}s linear ${-rnd() * 12}s infinite"></div>`;
             }
           }
+        }
+        // Op vakantie: een bordje bij het pad, een volle brievenbus, en af en toe een vliegtuigje met een spandoek
+        if (onVacation) {
+          festive += svgAt(homeX + 9, groundBottom(homeX + 9) - 1.5, 50, 34, '0 0 50 34', `
+              <rect x="23.5" y="14" width="3" height="20" fill="${dim('rgb(120,84,52)')}"/>
+              <rect x="2" y="2" width="46" height="14" rx="2" fill="${dim('rgb(196,150,96)')}" stroke="${dim('rgb(140,100,60)')}" stroke-width="1"/>
+              <text x="25" y="11.6" text-anchor="middle" font-size="7.4" font-weight="700" font-family="sans-serif" fill="${dim('rgb(70,40,20)')}">${sitterHome ? 'Oppas is er' : 'Op vakantie'}</text>`,
+            'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
+          if (!occupied) festive += svgAt(homeX - 4.6, groundBottom(homeX - 4.6) - 1.5, 18, 26, '0 0 18 26', `
+              <rect x="7.5" y="10" width="3" height="16" fill="${dim('rgb(70,70,80)')}"/>
+              <rect x="1" y="3" width="16" height="9" rx="4" fill="${dim('rgb(214,40,57)')}"/>
+              <path d="M3 4 L8 -1 L12 2 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.4"/><path d="M8 4 L13 0 L15 4 Z" fill="#fef9c3" stroke="#cbd5e1" stroke-width="0.4"/>
+              <path d="M5 4.4 L10 1.6 L12 4.4 Z" fill="#e0f2fe" stroke="#cbd5e1" stroke-width="0.4"/>`);
+          festive += `<div style="position:absolute;top:9%;left:-40%;pointer-events:none;animation:hero-plane 34s linear ${clockDelay(0.2, 17)}s infinite">
+              <svg viewBox="0 0 190 30" style="width:210px;height:33px;overflow:visible;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))">
+                <path d="M2 6 Q60 10 120 6 L120 26 Q60 22 2 26 Z" fill="#fff7ed" stroke="#fdba74" stroke-width="1"
+                  style="transform-box:fill-box;transform-origin:right center;animation:hero-flag 1.6s ease-in-out infinite"/>
+                <text x="61" y="20" text-anchor="middle" font-size="11" font-weight="700" font-family="sans-serif" fill="#ea580c">🌴 Fijne vakantie!</text>
+                <path d="M120 16 L140 14" stroke="#64748b" stroke-width="0.8"/>
+                <path d="M140 12 L176 11 Q186 12 186 15.5 Q184 19 174 19 L142 19 Q138 17 140 12 Z" fill="#ef4444"/>
+                <path d="M146 11.6 L150 4 L155 4 L154 12 Z" fill="#b91c1c"/><path d="M160 15 L170 26 L174 26 L169 15 Z" fill="#991b1b"/>
+                <circle cx="176" cy="14" r="1.6" fill="#bae6fd"/>
+                <ellipse cx="187" cy="15.5" rx="1" ry="5" fill="rgba(30,41,59,0.6)" style="animation:hero-twinkle 0.15s linear infinite"/>
+              </svg></div>`;
         }
         out += festive;
 
@@ -1649,6 +1687,9 @@ weather_hero:
           badges += `<div style="margin-top:6px;display:block;width:max-content;padding:5px 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;
               background:${background};box-shadow:0 4px 16px rgba(0,0,0,0.25)">${text}</div>`;
         }
+
+        if (onVacation) badges += `<div style="margin-top:6px;display:block;width:max-content;padding:5px 12px;border-radius:12px;font-size:13px;font-weight:700;
+            color:#fff;background:linear-gradient(90deg, #0ea5e9, #14b8a6);box-shadow:0 4px 16px rgba(0,0,0,0.25)">🧳 Op vakantie${sitterHome ? ' · Timo past op' : ''}</div>`;
 
         // Weerwaarschuwing (KNMI): pulserende rand en een banner in de kleur van de code
         if (states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on') {
