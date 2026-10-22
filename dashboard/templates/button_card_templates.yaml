@@ -4172,6 +4172,26 @@ jelly_overlay:
     jelly: |
       [[[
         const TV = 'media_player.tv_in_woonkamer';
+        // Alles klaarzetten voor de Google TV: de tv aan op HDMI 2, de syncbox aan op "Nintendo Switch" (daar zit de Google TV
+        // op), de soundbar aan op HDMI 1 en volume 10. Staat de tv uit, dan eerst 8 seconden wachten tot hij opgestart is.
+        const live = () => document.querySelector('home-assistant')?.hass ?? hass;
+        const prepareTv = async toast => {
+          const h = live(), wait = ms => new Promise(r => setTimeout(r, ms));
+          const tvOn = !['off', 'unavailable', 'unknown', undefined].includes(h.states['media_player.tv']?.state);
+          const soundbarOn = !['off', 'unavailable', 'unknown', undefined].includes(h.states['media_player.soundbar']?.state);
+          if (!tvOn) { toast('De tv gaat aan…'); h.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' }); }
+          if (!soundbarOn) h.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
+          if (h.states['switch.sync_box_power']?.state !== 'on') h.callService('switch', 'turn_on', { entity_id: 'switch.sync_box_power' });
+          h.callService('select', 'select_option', { entity_id: 'select.sync_box_hdmi_input', option: 'Nintendo Switch' });
+          if (!tvOn || !soundbarOn) await wait(8000);
+          toast('Tv, syncbox en soundbar klaarzetten…');
+          const results = await Promise.allSettled([
+            h.callService('media_player', 'select_source', { entity_id: 'media_player.tv', source: 'HDMI2' }),
+            h.callService('media_player', 'select_source', { entity_id: 'media_player.soundbar', source: 'HDMI1' }),
+            h.callService('media_player', 'volume_set', { entity_id: 'media_player.soundbar', volume_level: 0.1 })
+          ]);
+          return results.filter(r => r.status === 'rejected').map(r => r.reason?.message ?? String(r.reason));
+        };
         const call = (service, data) => hass.callService('jellyha', service, data, undefined, false, true).then(r => r?.response ?? {});
         const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const css = `<style>
@@ -4256,9 +4276,11 @@ jelly_overlay:
                 episodes.sort((x, y) => (x.season ?? 0) - (y.season ?? 0) || (x.episode ?? x.index_number ?? 0) - (y.episode ?? y.index_number ?? 0));
                 if (episodes[0]) { id = episodes[0].id; label = `S${String(episodes[0].season ?? 1).padStart(2, '0')}E${String(episodes[0].episode ?? episodes[0].index_number ?? 1).padStart(2, '0')} ${episodes[0].name}`; }
               }
+              const problems = await prepareTv(toast);
               toast(`Start ${label} op de tv…`);
-              hass.callService('jellyha', 'play_on_chromecast', { entity_id: TV, item_id: id })
-                .then(() => toast(`▶ ${label} speelt op de tv`)).catch(err => toast(`Lukt niet: ${err?.message ?? err}`));
+              live().callService('jellyha', 'play_on_chromecast', { entity_id: TV, item_id: id })
+                .then(() => toast(`▶ ${label} speelt op de tv${problems.length ? ` (niet gelukt: ${problems.join('; ')})` : ''}`))
+                .catch(err => toast(`Lukt niet: ${err?.message ?? err}`));
             }
             if (a === 'played') {
               item.is_played = !item.is_played;
