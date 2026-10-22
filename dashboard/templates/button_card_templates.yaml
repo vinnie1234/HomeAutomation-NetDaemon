@@ -1439,14 +1439,18 @@ weather_hero:
           // Een rondje: een paar keer lopen en stilstaan, en tot slot terug naar het begin, zodat het einde naadloos
           // aansluit op het begin van de volgende ronde (anders springt hij terug).
           const stops = [];                                  // [tijd (s), x (%)]
-          const startX = 30 + Math.random() * 60;
+          // Eén vaste route per dag (zelfde getallen bij elke tekening), en waar hij in die route is volgt uit de klok:
+          // tekent de kaart opnieuw, dan loopt hij gewoon door in plaats van ergens anders op te duiken
+          let catSeed = [...today.toDateString()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 233280, 7);
+          const catRnd = () => (catSeed = (catSeed * 9301 + 49297) % 233280) / 233280;
+          const startX = 30 + catRnd() * 60;
           let t = 0, x = startX;
           stops.push([0, x]);
-          const legsCount = 5 + Math.floor(Math.random() * 4);
+          const legsCount = 5 + Math.floor(catRnd() * 4);
           for (let leg = 0; leg <= legsCount; leg++) {
-            t += 2 + Math.random() * 4;                      // even stilstaan
+            t += 2 + catRnd() * 4;                      // even stilstaan
             stops.push([t, x]);
-            let next = leg === legsCount ? startX : 30 + Math.random() * 62;
+            let next = leg === legsCount ? startX : 30 + catRnd() * 62;
             if (leg < legsCount && Math.abs(next - x) < 8) next = x + (next > x ? 12 : -12);
             next = Math.max(28, Math.min(94, next));
             t += Math.max(0.5, Math.abs(next - x) / 2.2);     // ongeveer 2,2% van de breedte per seconde
@@ -1454,6 +1458,7 @@ weather_hero:
             x = next;
           }
           const total = t;                                   // seconden voor het hele rondje
+          const catDelay = (-((Date.now() / 1000) % total)).toFixed(2);
           const pct = v => (v / total * 100).toFixed(2);
           const step = v => (+pct(v) + 0.01).toFixed(2);
 
@@ -1552,13 +1557,13 @@ weather_hero:
               @keyframes hero-cat-standing { ${standing} }
             </style>
             <div style="position:absolute;bottom:2%;left:50%;width:68px;height:42px;margin-left:-34px;pointer-events:none;z-index:1;
-                animation:hero-cat-move ${total}s linear infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}">
-              <svg viewBox="0 -4 104 64" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear infinite;
+                animation:hero-cat-move ${total}s linear ${catDelay}s infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}">
+              <svg viewBox="0 -4 104 64" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear ${catDelay}s infinite;
                   filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 3px rgba(255,255,255,0.15))'}">
                 <ellipse cx="50" cy="58.6" rx="30" ry="2.2" fill="rgba(0,0,0,0.25)"/>
                 <!-- Verre pootjes: lopen of stilstaan -->
-                <g style="animation:hero-cat-walking ${total}s linear infinite">${farLegs(false)}</g>
-                <g style="animation:hero-cat-standing ${total}s linear infinite">${farLegs(true)}</g>
+                <g style="animation:hero-cat-walking ${total}s linear ${catDelay}s infinite">${farLegs(false)}</g>
+                <g style="animation:hero-cat-standing ${total}s linear ${catDelay}s infinite">${farLegs(true)}</g>
                 <!-- Staart en lijf (wippen licht mee bij elke pas) -->
                 <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
                   <path d="M27 31 C15 29 11 19 15 11 C16.5 8 20 8.5 19.5 11.5" stroke="${fur}" stroke-width="5.5" fill="none" stroke-linecap="round"
@@ -1567,8 +1572,8 @@ weather_hero:
                   <path d="M32 26.5 C42 23 57 23 64 25" stroke="rgba(255,255,255,0.08)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
                 </g>
                 <!-- Nabije pootjes -->
-                <g style="animation:hero-cat-walking ${total}s linear infinite">${nearLegs(false)}</g>
-                <g style="animation:hero-cat-standing ${total}s linear infinite">${nearLegs(true)}</g>
+                <g style="animation:hero-cat-walking ${total}s linear ${catDelay}s infinite">${nearLegs(false)}</g>
+                <g style="animation:hero-cat-standing ${total}s linear ${catDelay}s infinite">${nearLegs(true)}</g>
                 <!-- Kop met oren, het witte plekje op zijn keel, ogen, neusje, mondje, snorharen en roze wangetjes -->
                 <g style="animation:hero-cat-bob ${cycle / 2}s ease-in-out infinite">
                   <path d="M68.5 13 Q67 1.5 70.5 0.5 Q73.5 1 79 7.5 Z" fill="${fur}"/><path d="M70.3 10 Q69.8 3.8 71.4 3.4 Q73 4 76 7.6 Z" fill="#c98a9a"/>
