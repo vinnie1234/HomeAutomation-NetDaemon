@@ -12,6 +12,13 @@ public static class HelperDefinitions
     /// <summary>All helpers, grouped per domain.</summary>
     public static readonly IReadOnlyList<HelperDefinition> All =
     [
+        // Medicijnen van Pixel (PixelMedication): voorraad in pillen (prednison per kwart), de knoppen "gegeven" en de herinneringstijd
+        Number("pixel_prednison_voorraad", "Pixel prednison voorraad", min: 0, max: 500, step: 0.25, mode: "box", unit: "pillen", icon: "mdi:pill"),
+        Number("pixel_antibraak_voorraad", "Pixel antibraak voorraad", min: 0, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:pill-multiple"),
+        Button("pixel_prednison_gegeven", "Pixel prednison gegeven", icon: "mdi:pill"),
+        Button("pixel_antibraak_gegeven", "Pixel antibraak gegeven", icon: "mdi:pill-multiple"),
+        Time("pixel_prednison_tijd", "Pixel prednison tijd", "20:00:00"),
+
         // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
         WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
         WorkDay("werkdag_vincent_dinsdag", "Werkdag Vincent dinsdag", copyFrom: "input_boolean.officeday_tuesday"),
