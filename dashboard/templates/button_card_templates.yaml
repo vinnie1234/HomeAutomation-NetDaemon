@@ -4179,7 +4179,8 @@ jelly_overlay:
           const h = live(), wait = ms => new Promise(r => setTimeout(r, ms));
           const tvOn = !['off', 'unavailable', 'unknown', undefined].includes(h.states['media_player.tv']?.state);
           const soundbarOn = !['off', 'unavailable', 'unknown', undefined].includes(h.states['media_player.soundbar']?.state);
-          if (!tvOn) { toast('De tv gaat aan…'); h.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' }); }
+          // De Samsung kan niet zelf aan via HA: de Google TV aanzetten wekt hem via HDMI-CEC
+          if (!tvOn) { toast('De tv gaat aan…'); h.callService('remote', 'turn_on', { entity_id: 'remote.tv_in_woonkamer' }); }
           if (!soundbarOn) h.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
           if (h.states['switch.sync_box_power']?.state !== 'on') h.callService('switch', 'turn_on', { entity_id: 'switch.sync_box_power' });
           h.callService('select', 'select_option', { entity_id: 'select.sync_box_hdmi_input', option: 'Nintendo Switch' });
