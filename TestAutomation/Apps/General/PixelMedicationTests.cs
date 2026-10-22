@@ -189,7 +189,7 @@ public class PixelMedicationTests : IDisposable
     public void Publish_ShowsStockLowStockAndHistory()
     {
         SetState(PrednisonStock, "1.5");
-        SetState(AntibraakStock, "4");
+        SetState(AntibraakStock, "1");
         StartAt(20, 20, 30);
         Press(PrednisonButton);
 

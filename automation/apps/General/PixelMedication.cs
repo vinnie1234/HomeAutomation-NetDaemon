@@ -43,7 +43,7 @@ public class PixelMedication : BaseApp
         new Dictionary<string, (string, string, double, double)>
         {
             [Prednison] = ("input_number.pixel_prednison_voorraad", "input_button.pixel_prednison_gegeven", 0.25, 2),
-            [Antibraak] = ("input_number.pixel_antibraak_voorraad", "input_button.pixel_antibraak_gegeven", 0.5, 5)
+            [Antibraak] = ("input_number.pixel_antibraak_voorraad", "input_button.pixel_antibraak_gegeven", 0.5, 1.5)
         };
 
     private readonly IDataRepository _storage;

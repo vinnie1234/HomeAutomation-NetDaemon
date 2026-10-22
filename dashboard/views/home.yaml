@@ -356,7 +356,7 @@ sections:
                 below: 2
               - condition: numeric_state
                 entity: input_number.pixel_antibraak_voorraad
-                below: 5
+                below: 1.5
         card:
           type: custom:button-card
           template: pixel_med_low

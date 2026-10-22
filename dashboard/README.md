@@ -1,6 +1,6 @@
 # Huis-dashboard
 
-YAML-dashboard voor Home Assistant. Ontwerp en paginaplan: zie `../DASHBOARD_PLAN.md`.
+YAML-dashboard voor Home Assistant.
 
 ## Mappen
 

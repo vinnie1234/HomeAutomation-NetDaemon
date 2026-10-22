@@ -25,7 +25,7 @@ sections:
           level: |
             [[[
               const s = states['sensor.pixel_medicijnen']?.state;
-              const low = parseFloat(states['input_number.pixel_prednison_voorraad']?.state) < 2 || parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) < 5;
+              const low = parseFloat(states['input_number.pixel_prednison_voorraad']?.state) < 2 || parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) < 1.5;
               return s === 'vergeten' ? 'bad' : s === 'nodig' || low ? 'warn' : 'ok';
             ]]]
         name: |
@@ -58,7 +58,7 @@ sections:
         variables:
           medicine: antibraak
           dose: 0.5
-          low: 5
+          low: 1.5
       # Voorraad instellen door het aantal in te tikken, bijvoorbeeld bij een nieuwe strip (komt ook in de geschiedenis)
       - type: entities
         title: Voorraad invullen

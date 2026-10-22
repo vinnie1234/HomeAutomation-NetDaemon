@@ -3170,7 +3170,7 @@ pixel_med_alert:
     name:
       - font-size: '[[[ return entity?.state === "vergeten" ? "20px" : "16px"; ]]]'
 
-# Medicijnen van Pixel bijna op: prednison onder 2 pillen of antibraak onder 5. Tik opent de pagina Medicijnen.
+# Medicijnen van Pixel bijna op: prednison onder 2 pillen of antibraak nog maar 1 (of minder). Tik opent de pagina Medicijnen.
 pixel_med_low:
   template: alert
   icon: mdi:pill-off
@@ -3188,7 +3188,7 @@ pixel_med_low:
       const a = parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) || 0;
       const parts = [];
       if (p < 2) parts.push(`prednison nog ${fmt(p)} (${Math.floor(p / 0.25)} ${Math.floor(p / 0.25) === 1 ? 'dag' : 'dagen'})`);
-      if (a < 5) parts.push(`antibraak nog ${fmt(a)}`);
+      if (a < 1.5) parts.push(`antibraak nog ${fmt(a)}`);
       return `${parts.join(' · ')} · tijd om nieuwe te halen`;
     ]]]
 
