@@ -14,7 +14,8 @@ energy, parcels, notifications and more.
 Highlights:
 - **Smart lighting** — motion, time of day, circadian colour temperature and per-room scenes
 - **Presence and routines** — per-person presence, work schedules (office, home or off per day), sleep and wake-up
-- **The cat, Pixel** — automatic feeding, litter box and fountain monitoring, and a log of when he threw up
+- **The cat, Pixel** — automatic feeding, litter box and fountain monitoring, his medication (with reminders, stock and
+  costs) and a log of when he threw up
 - **Energy** — dynamic prices, warnings for extreme prices, the cost of working from home, and power estimates for
   devices that only report kWh
 - **Household** — laundry advice and monitoring, garbage pickup, parcels from PostNL, DHL, DPD and GLS
@@ -36,7 +37,8 @@ The heart of the Home page: a live sky (sun and moon at their real position, gen
 storms) over a landscape that changes with the season and the holidays. It also tells what is going on at home:
 smoke from the chimney and a lit window while someone is home, the laundry on the line (swaying in the wind),
 garbage bags or the paper bin at the curb when they go out, and Pixel wandering around — ten minutes before his
-food he waits at the front door. The pills show who is home, asleep or working, and kitchen timers count down live.
+food he sits at the front door, wagging his tail. The pills show who is home, asleep or working, and kitchen timers
+count down live.
 
 ![Weather card on an autumn afternoon](docs/images/dashboard/weather-card-day.png)
 
@@ -46,7 +48,7 @@ food he waits at the front door. The pills show who is home, asleep or working, 
 
 Everything that needs attention right now gets an eye-catching card on Home, and disappears again when it no longer
 matters: extreme electricity prices, the running washing machine with its phase and time left, laundry outside when
-rain is coming, problems with Pixel's things and batteries below 10%.
+rain is coming, Pixel's medicine when it is due or running out, problems with his things and batteries below 10%.
 
 ![Alerts on the Home page](docs/images/dashboard/home-alerts.png)
 
@@ -57,6 +59,16 @@ Vincent and Carleen each have a private page with their own work schedule (tap a
 for Vincent, the stock of cigarette packs.
 
 ![Pixel's timeline, cigarette stock and work schedule](docs/images/dashboard/pixel-and-personal.png)
+
+### Pixel's medication
+
+Pixel gets a quarter of a prednison pill every evening and half an antibraak pill when needed. A tap on the pill gives
+a dose; the circle shows how much of the started pill is left, with the piece you give next softly blinking. From the
+reminder time Home shows a card until it is given, and an hour later both phones get a notification with a "Given"
+button (the next morning a "forgotten" one). The stock comes with the price per pill, per dose and per box and what it
+cost so far; a two-week chart and the full history (kept forever, with undo as a correction line) complete the page.
+
+![Pixel's medication: stock, costs, chart and history](docs/images/dashboard/pixel-medication.png)
 
 ### Energy, parcels and working from home
 
@@ -111,6 +123,7 @@ dotnet test
 - **[NetDaemon System](docs/apps/netdaemon-system.md)** - System monitoring and lifecycle management
 - **Parcel Notifications** - Notifications for new parcels, status changes and PostNL letters
 - **[PC Manager](docs/apps/pc-manager.md)** - PC-related automations and device control
+- **Pixel Medication** - Pixel's doses, stock, prices and reminders, with the full history kept forever
 - **Power Estimator** - Estimated power for devices that only report an energy meter (such as the washing machine)
 - **Presence Manager** - Per-person presence and the shared away state
 - **Presence Simulation** - Makes the house look lived-in while on vacation
