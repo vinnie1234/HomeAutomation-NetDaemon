@@ -3990,3 +3990,40 @@ med_chart:
       chart:
         - width: 100%
         - text-align: left
+
+# Datum intikken (of jaar en maand los kiezen) in plaats van HA's kalender, waar je per maand terug moet klikken.
+# entity: een input_datetime met alleen een datum; bij een wijziging wordt die meteen gezet.
+date_input:
+  template: glass
+  triggers_update: all
+  show_label: false
+  tap_action:
+    action: none
+  styles:
+    grid:
+      - grid-template-areas: '"i n d"'
+      - grid-template-columns: auto 1fr auto
+      - column-gap: 12px
+    card:
+      - min-height: 60px
+      - cursor: default
+    icon:
+      - width: 22px
+      - color: var(--accent-color)
+  custom_fields:
+    d: |
+      [[[
+        const value = /^\d{4}-\d{2}-\d{2}/.test(entity?.state ?? '') ? entity.state.slice(0, 10) : '';
+        // Na het tekenen het veld koppelen: bij een geldige datum de helper zetten (niet tijdens het tikken van een half jaartal)
+        setTimeout(() => {
+          const input = this.shadowRoot?.querySelector('input.date');
+          if (!input || input.dataset.bound) return;
+          input.dataset.bound = '1';
+          input.addEventListener('change', () => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(input.value) && +input.value.slice(0, 4) > 1900)
+              hass.callService('input_datetime', 'set_datetime', { entity_id: entity.entity_id, date: input.value });
+          });
+        }, 0);
+        return `<input class="date" type="date" value="${value}" style="background:rgba(255,255,255,0.08);color:inherit;
+            border:1px solid rgba(255,255,255,0.15);border-radius:10px;height:36px;padding:0 10px;font-size:14px;color-scheme:dark">`;
+      ]]]

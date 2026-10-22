@@ -139,11 +139,13 @@ sections:
         heading: Bijzondere dagen
         heading_style: title
         icon: mdi:party-popper
-      - type: entities
-        entities:
-          - entity: input_datetime.verjaardag_carleen
-            name: Mijn verjaardag
-            icon: mdi:cake-variant-outline
-          - entity: input_datetime.jubileum
-            name: Ons jubileum
-            icon: mdi:heart-outline
+      - type: custom:button-card
+        template: date_input
+        entity: input_datetime.verjaardag_carleen
+        name: Mijn verjaardag
+        icon: mdi:cake-variant-outline
+      - type: custom:button-card
+        template: date_input
+        entity: input_datetime.jubileum
+        name: Ons jubileum
+        icon: mdi:heart-outline
