@@ -30,7 +30,8 @@ public class PixelMedication : BaseApp
 
     private const string HistoryKey = "PixelMedicationHistory";
     private const string TrackingSinceKey = "PixelMedicationSince";
-    private const int PublishedEvents = 200;
+    /// <summary>A stock change by hand is saved once the field has not changed for this long, so typing or clicking makes one line.</summary>
+    private static readonly TimeSpan StockSettleTime = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan DefaultReminder = new(20, 0, 0);
     private static readonly TimeSpan DayStartsAt = new(12, 0, 0);
     private static readonly TimeSpan PhoneReminderDelay = TimeSpan.FromHours(1);
@@ -53,6 +54,9 @@ public class PixelMedication : BaseApp
 
     /// <summary>The stock the app set itself, so a change made by hand can be told apart and logged as a stock change.</summary>
     private readonly Dictionary<string, double> _expectedStock = [];
+
+    /// <summary>Per medicine: the stock before a change by hand started, and the timer that saves it once it settles.</summary>
+    private readonly Dictionary<string, (double Before, IDisposable Timer)> _pendingStock = [];
 
     public PixelMedication(
         IHaContext ha,
@@ -134,7 +138,10 @@ public class PixelMedication : BaseApp
         }
     }
 
-    /// <summary>Saves a change of the stock that was made by hand (e.g. a new strip), not by a dose.</summary>
+    /// <summary>
+    /// Saves a change of the stock that was made by hand (e.g. a new strip), not by a dose. Changes in quick succession
+    /// (typing, or clicking the arrows) become one line once the stock has not changed for <see cref="StockSettleTime"/>.
+    /// </summary>
     private void OnStockChanged(string medicine, string? oldState, string? newState)
     {
         lock (_lock)
@@ -146,8 +153,26 @@ public class PixelMedication : BaseApp
                 return;
             }
 
-            Add(new MedicationEvent { Time = Scheduler.NowNl(), Medicine = medicine, Kind = "voorraad", Amount = after - before, Stock = after });
-            Logger.LogInformation("Voorraad {Medicine} aangepast van {Before} naar {After}", medicine, before, after);
+            if (_pendingStock.Remove(medicine, out var pending))
+            {
+                pending.Timer.Dispose();
+                before = pending.Before;
+            }
+            var timer = Scheduler.Schedule(StockSettleTime, () => SaveStockChange(medicine));
+            _pendingStock[medicine] = (before, timer);
+        }
+    }
+
+    private void SaveStockChange(string medicine)
+    {
+        lock (_lock)
+        {
+            if (!_pendingStock.Remove(medicine, out var pending)) return;
+            var after = Stock(medicine);
+            if (Math.Abs(after - pending.Before) < 0.001) return;
+
+            Add(new MedicationEvent { Time = Scheduler.NowNl(), Medicine = medicine, Kind = "voorraad", Amount = after - pending.Before, Stock = after });
+            Logger.LogInformation("Voorraad {Medicine} aangepast van {Before} naar {After}", medicine, pending.Before, after);
         }
     }
 
@@ -269,7 +294,7 @@ public class PixelMedication : BaseApp
                     medicijn = undoable.Medicine,
                     hoeveelheid = undoable.Amount
                 },
-                geschiedenis = _history.TakeLast(PublishedEvents).Reverse().Select(x => new
+                geschiedenis = Enumerable.Reverse(_history).Select(x => new
                 {
                     tijd = x.Time.ToString("yyyy-MM-ddTHH:mm:sszzz"),
                     medicijn = x.Medicine,

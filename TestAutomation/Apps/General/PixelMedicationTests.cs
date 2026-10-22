@@ -104,11 +104,16 @@ public class PixelMedicationTests : IDisposable
     }
 
     [Fact]
-    public void ChangingTheStockByHand_IsSavedAsAStockChange()
+    public void ChangingTheStockByHand_IsSavedAsOneStockChange_OnceItSettles()
     {
         StartAt(20, 10);
 
-        _ctx.ChangeStateFor(AntibraakStock).FromState("8").ToState("38");
+        // Clicking the arrow a few times: one line with the total, once the field is quiet
+        _ctx.ChangeStateFor(AntibraakStock).FromState("8").ToState("8.5");
+        _ctx.ChangeStateFor(AntibraakStock).FromState("8.5").ToState("9");
+        _ctx.ChangeStateFor(AntibraakStock).FromState("9").ToState("38");
+        History().Should().BeEmpty();
+        At(20, 10, 1);
 
         var change = History().Should().ContainSingle().Subject;
         change.Kind.Should().Be("voorraad");
