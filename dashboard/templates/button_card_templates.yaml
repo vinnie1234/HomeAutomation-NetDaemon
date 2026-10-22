@@ -493,6 +493,9 @@ weather_hero:
     @keyframes hero-star-glow { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
     @keyframes hero-note { 0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; } 15%, 55% { opacity: 1; } 100% { transform: translate(-9px, -19px) rotate(12deg); opacity: 0; } }
     @keyframes hero-tv { 0%, 100% { fill: #6fa8ff; } 18% { fill: #c4dcff; } 40% { fill: #5272d0; } 58% { fill: #e6efff; } 80% { fill: #8a9cff; } }
+    @keyframes hero-ripple { 0% { transform: scale(0.3); opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+    @keyframes hero-duck { 0%, 100% { transform: translate(0, 0) rotate(-3deg); } 50% { transform: translate(-3px, 0.6px) rotate(3deg); } }
+    @keyframes hero-ball { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
     @keyframes hero-smoke { 0% { transform: translate(0, 0) scale(0.6); opacity: 0.8; } 100% { transform: translate(-14px, -40px) scale(2.2); opacity: 0; } }
     @keyframes hero-sleigh { 0% { transform: translate(0, 0); } 50% { transform: translate(85vw, -10px); } 100% { transform: translate(170vw, 6px); } }
     @keyframes hero-sint { from { transform: translateX(0); } to { transform: translateX(-140vw); } }
@@ -525,7 +528,9 @@ weather_hero:
         const skySignature = JSON.stringify([
           new Date().toDateString(),
           sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
-          // Wind en bewolking in stapjes, anders begint bij elke kleine meting alles opnieuw
+          // Wind en bewolking in stapjes, anders begint bij elke kleine meting alles opnieuw; of de kachel brandt (20°)
+          // en of het badje buiten staat (25°)
+          parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 20, parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 25,
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag',
             'sensor.season', 'sensor.moon_phase',
@@ -803,6 +808,9 @@ weather_hero:
         };
         // Iemand thuis: rook uit de schoorsteen, en 's avonds en 's nachts licht achter het raam
         const someoneHome = states['input_boolean.away']?.state !== 'on';
+        // Vanaf 20° stookt niemand de kachel: dan geen rook uit de schoorsteen
+        const temperature = parseFloat(states['sensor.weer_thuis_temperatuur']?.state);
+        const stoking = someoneHome && !(temperature >= 20);
         // Muziek op een speaker thuis (de speaker zelf, of Spotify die erop speelt) en de tv aan
         const homeSpeakers = ['media_player.woonkamer', 'media_player.nestmini9818', 'media_player.googlehome0351', 'media_player.friends_speakers', 'media_player.hub_vincent', 'media_player.hele_huis', 'media_player.googlehome7421', 'media_player.googlehome8627', 'media_player.soundbar'];
         const spotifyNow = states['media_player.spotify_vincent_maarschalkerweerd'];
@@ -829,7 +837,7 @@ weather_hero:
                 fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
                 stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
-          scene += house(homeX, 78, true, { lit: someoneHome, smoke: someoneHome, tv: tvOn, music: musicOn });
+          scene += house(homeX, 78, true, { lit: someoneHome, smoke: stoking, tv: tvOn, music: musicOn });
         }
         out += scene;
 
@@ -1326,6 +1334,42 @@ weather_hero:
               ${piece(24, shirt(24), 0)}${piece(45, pants(45), 0.4)}${piece(64, towel(64), 0.8)}${piece(82, socks(82), 1.1)}${drips}</svg>`;
         }
 
+
+        // ---------- Heerlijk weer (25° of warmer en zon): een opblaasbadje met badeend, een parasol en een strandbal ----------
+        if (day && temperature >= 25 && ['sunny', 'partlycloudy'].includes(w) && cover <= 40 && homeX !== null) {
+          const px = homeX + 16;
+          out += `<svg viewBox="0 0 90 46" style="position:absolute;left:${px}%;bottom:${Math.max(1, groundBottom(px) - 16)}%;width:96px;height:49px;
+              transform:translateX(-50%);overflow:visible;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.25))">
+              <ellipse cx="38" cy="42" rx="34" ry="4" fill="rgba(0,0,0,0.18)"/>
+              <!-- Parasol achter het badje -->
+              <path d="M70 41 L66 6" stroke="#e5e7eb" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M48 12 Q66 -4 84 4 Q78 6 74 9 Q70 5 64 7 Q60 7 56 11 Q52 10 48 12 Z" fill="#ef4444"/>
+              <path d="M64 7 Q66 -2 74 9 Q70 5 64 7 Z M56 11 Q57 2 64 7 Q60 7 56 11 Z" fill="#fff7ed"/>
+              <!-- Opblaasbadje: blauwe rand met een witte streep, water dat glinstert -->
+              <path d="M6 26 L6 34 Q6 41 38 41 Q70 41 70 34 L70 26 Z" fill="#2563eb"/>
+              <path d="M6 30 Q6 36.5 38 36.5 Q70 36.5 70 30 L70 32.4 Q70 38.8 38 38.8 Q6 38.8 6 32.4 Z" fill="#f8fafc"/>
+              <ellipse cx="38" cy="26" rx="32" ry="7.5" fill="#3b82f6"/>
+              <ellipse cx="38" cy="26" rx="28" ry="5.6" fill="#7dd3fc"/>
+              <ellipse cx="38" cy="26" rx="28" ry="5.6" fill="none" stroke="#bae6fd" stroke-width="0.8"/>
+              ${[[26, 25, 0], [46, 27, 1.1], [36, 24, 2.2]].map(([x, y, d]) => `<ellipse cx="${x}" cy="${y}" rx="5" ry="1.4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="0.6"
+                style="transform-box:fill-box;transform-origin:center;animation:hero-ripple 3.3s ease-out ${-d}s infinite"/>`).join('')}
+              <!-- Badeend die op het water dobbert -->
+              <g style="animation:hero-duck 2.4s ease-in-out infinite">
+                <ellipse cx="44" cy="25.5" rx="4.4" ry="2.6" fill="#facc15"/>
+                <circle cx="47" cy="22" r="2.3" fill="#facc15"/>
+                <path d="M49 22 L51.6 22.6 L49 23.4 Z" fill="#f97316"/>
+                <circle cx="47.6" cy="21.4" r="0.45" fill="#1f2937"/>
+              </g>
+              <!-- Strandbal die naast het badje stuitert -->
+              <g style="animation:hero-ball 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite">
+                <circle cx="80" cy="37" r="4.6" fill="#f8fafc"/>
+                <path d="M80 32.4 A4.6 4.6 0 0 1 84.6 37 L80 37 Z" fill="#ef4444"/>
+                <path d="M80 41.6 A4.6 4.6 0 0 1 75.4 37 L80 37 Z" fill="#3b82f6"/>
+                <path d="M75.4 37 A4.6 4.6 0 0 1 80 32.4 L80 37 Z" fill="#facc15"/>
+                <circle cx="78.4" cy="35" r="1" fill="rgba(255,255,255,0.7)"/>
+              </g>
+            </svg>`;
+        }
 
         // Deeltjes van het seizoen (niet bij zware regen of onweer)
         const calm = !storm && w !== 'pouring';
