@@ -572,7 +572,7 @@ weather_hero:
           sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
           // Wind en bewolking in stapjes, anders begint bij elke kleine meting alles opnieuw; of de kachel brandt (20°)
           // en of het badje buiten staat (25°)
-          parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 20, parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 25,
+          parseFloat(states['sensor.weer_thuis_temperatuur']?.state) <= 3, parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 20, parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 25,
           // Welke vliegtuigen er in de buurt zijn (niet hun positie, die verandert steeds), en of het 18:00 / 20:00 geweest is
           (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3).map(f => f.id ?? f.flight_number ?? f.callsign).join(),
           new Date().getHours() >= 18, new Date().getHours() * 60 + new Date().getMinutes() >= 20 * 60 + 3,
@@ -1430,21 +1430,62 @@ weather_hero:
               <ellipse cx="${hx + 0.8}" cy="56.6" rx="4.4" ry="2.4" fill="${fill}"/></g>`;
           const farLegs = still => `${leg(61, 43, far, 1, still)}${leg(30, 42, far, 0, still)}`;
           const nearLegs = still => `${leg(66, 43, near, 0, still)}${leg(35, 42, near, 1, still)}`;
-          // Verkleed: een heksenhoed met Halloween, een kroontje op Koningsdag, een feesthoedje op een verjaardag
-          // (cx = midden van de kop, y = onderkant)
-          const catHat = (cx, y, k) => celebration?.kind === 'king'
-            ? `<path d="M${cx - 7 * k} ${y} L${cx - 8 * k} ${y - 8 * k} L${cx - 3.5 * k} ${y - 4 * k} L${cx} ${y - 10 * k} L${cx + 3.5 * k} ${y - 4 * k}
-                 L${cx + 8 * k} ${y - 8 * k} L${cx + 7 * k} ${y} Z" fill="#facc15" stroke="#ca8a04" stroke-width="${0.6 * k}"/>
-               <circle cx="${cx}" cy="${y - 2.6 * k}" r="${1.4 * k}" fill="#ef4444"/>`
-            : theme === 'halloween'
-            ? `<ellipse cx="${cx}" cy="${y}" rx="${13 * k}" ry="${2.6 * k}" fill="#3b1d5a"/>
-               <path d="M${cx - 7 * k} ${y} Q${cx - 2 * k} ${y - 9 * k} ${cx + 4 * k} ${y - 19 * k} Q${cx + 3 * k} ${y - 9 * k} ${cx + 7.5 * k} ${y} Z" fill="#4c1d95"/>
-               <path d="M${cx - 6.4 * k} ${y - 1.6 * k} Q${cx} ${y - 3.6 * k} ${cx + 7 * k} ${y - 1.6 * k} L${cx + 7.2 * k} ${y - 0.2 * k} Q${cx} ${y - 2 * k} ${cx - 6.8 * k} ${y - 0.2 * k} Z" fill="#f97316"/>`
-            : celebration?.kind === 'birthday'
-              ? `<path d="M${cx - 6 * k} ${y} L${cx + 1 * k} ${y - 15 * k} L${cx + 7 * k} ${y} Z" fill="#3b82f6"/>
-                 <path d="M${cx - 3.6 * k} ${y - 5 * k} L${cx + 4.6 * k} ${y - 5 * k} M${cx - 1.4 * k} ${y - 10 * k} L${cx + 2.6 * k} ${y - 10 * k}" stroke="#facc15" stroke-width="${1.6 * k}"/>
-                 <circle cx="${cx + 1 * k}" cy="${y - 15.5 * k}" r="${2 * k}" fill="#ef4444"/>`
-              : '';
+          // Verkleed: eerst onze eigen feestdagen, dan de feestdagen van het jaar, dan het weer. Met dodenherdenking geen hoedje.
+          const hatKind = celebration?.kind === 'remembrance' ? null
+            : celebration?.kind === 'king' ? 'crown' : celebration?.kind === 'birthday' ? 'party' : celebration?.kind === 'love' ? 'hearts'
+            : { halloween: 'witch', kerst: 'santa', sinterklaas: 'mitre', nieuwjaar: 'gold', pasen: 'bunny' }[theme]
+              ?? (rain ? 'rain' : snow || temperature <= 3 ? 'beanie' : day && temperature >= 25 ? 'straw' : theme === 'lente' ? 'flowers' : null);
+          // cx = midden van de kop, y = onderkant van het hoedje, k = schaal
+          const catHat = (cx, y, k) => {
+            const P = (...pts) => pts.map(([x, yy], i) => `${i ? 'L' : 'M'}${(cx + x * k).toFixed(2)} ${(y + yy * k).toFixed(2)}`).join(' ') + ' Z';
+            const X = v => (cx + v * k).toFixed(2), Y = v => (y + v * k).toFixed(2);
+            const coneHat = (fill, stripe, pom) => `<path d="${P([-6, 0], [1, -15], [7, 0])}" fill="${fill}"/>
+                <path d="M${X(-3.6)} ${Y(-5)} L${X(4.6)} ${Y(-5)} M${X(-1.4)} ${Y(-10)} L${X(2.6)} ${Y(-10)}" stroke="${stripe}" stroke-width="${1.6 * k}"/>
+                <circle cx="${X(1)}" cy="${Y(-15.5)}" r="${2 * k}" fill="${pom}"/>`;
+            switch (hatKind) {
+              case 'crown': return `<path d="${P([-7, 0], [-8, -8], [-3.5, -4], [0, -10], [3.5, -4], [8, -8], [7, 0])}" fill="#facc15" stroke="#ca8a04" stroke-width="${0.6 * k}"/>
+                  <circle cx="${X(0)}" cy="${Y(-2.6)}" r="${1.4 * k}" fill="#ef4444"/>`;
+              case 'party': return coneHat('#3b82f6', '#facc15', '#ef4444');
+              case 'gold': return coneHat('#facc15', '#1f2937', '#f8fafc') + `<path d="M${X(-9)} ${Y(-12)} l${1 * k} ${2 * k} l${2 * k} ${0.4 * k} l${-2 * k} ${0.6 * k} l${-1 * k} ${2 * k} l${-1 * k} ${-2 * k}
+                  l${-2 * k} ${-0.6 * k} l${2 * k} ${-0.4 * k} Z" fill="#fde68a" style="animation:hero-twinkle 1.2s ease-in-out infinite"/>`;
+              case 'hearts': return `<path d="M${X(-9)} ${Y(1)} Q${X(0)} ${Y(-8)} ${X(9)} ${Y(1)}" stroke="#f43f5e" stroke-width="${1.4 * k}" fill="none"/>
+                  ${[-4.5, 4.5].map(dx => `<path d="M${X(dx)} ${Y(-3)} L${X(dx * 1.4)} ${Y(-10)}" stroke="#f43f5e" stroke-width="${0.6 * k}"/>
+                  <path d="M${X(dx * 1.4)} ${Y(-9)} C${X(dx * 1.4 - 4)} ${Y(-12)} ${X(dx * 1.4 - 2)} ${Y(-15.5)} ${X(dx * 1.4)} ${Y(-13)} C${X(dx * 1.4 + 2)} ${Y(-15.5)} ${X(dx * 1.4 + 4)} ${Y(-12)} ${X(dx * 1.4)} ${Y(-9)} Z"
+                    fill="#fb7185" style="transform-box:fill-box;transform-origin:center bottom;animation:hero-balloon 1.6s ease-in-out infinite"/>`).join('')}`;
+              case 'witch': return `<ellipse cx="${X(0)}" cy="${Y(0)}" rx="${13 * k}" ry="${2.6 * k}" fill="#3b1d5a"/>
+                  <path d="M${X(-7)} ${Y(0)} Q${X(-2)} ${Y(-9)} ${X(4)} ${Y(-19)} Q${X(3)} ${Y(-9)} ${X(7.5)} ${Y(0)} Z" fill="#4c1d95"/>
+                  <path d="M${X(-6.4)} ${Y(-1.6)} Q${X(0)} ${Y(-3.6)} ${X(7)} ${Y(-1.6)} L${X(7.2)} ${Y(-0.2)} Q${X(0)} ${Y(-2)} ${X(-6.8)} ${Y(-0.2)} Z" fill="#f97316"/>`;
+              case 'santa': return `<path d="M${X(-10)} ${Y(-1)} Q${X(-2)} ${Y(-20)} ${X(11)} ${Y(-13)} Q${X(6)} ${Y(-8)} ${X(10)} ${Y(-1)} Z" fill="#dc2626"/>
+                  <rect x="${X(-12)}" y="${Y(-3)}" width="${24 * k}" height="${4.4 * k}" rx="${2.2 * k}" fill="#f8fafc"/>
+                  <circle cx="${X(11.5)}" cy="${Y(-13)}" r="${2.8 * k}" fill="#f8fafc"/>`;
+              case 'mitre': return `<path d="M${X(-8)} ${Y(0)} L${X(-7)} ${Y(-14)} Q${X(0)} ${Y(-23)} ${X(7)} ${Y(-14)} L${X(8)} ${Y(0)} Z" fill="#c1121f" stroke="#facc15" stroke-width="${0.9 * k}"/>
+                  <rect x="${X(-0.8)}" y="${Y(-16)}" width="${1.6 * k}" height="${9 * k}" fill="#facc15"/><rect x="${X(-3.2)}" y="${Y(-13)}" width="${6.4 * k}" height="${1.6 * k}" fill="#facc15"/>`;
+              case 'bunny': return `<path d="M${X(-9)} ${Y(1)} Q${X(0)} ${Y(-7)} ${X(9)} ${Y(1)}" stroke="#f9a8d4" stroke-width="${1.4 * k}" fill="none"/>
+                  ${[[-4, -14], [4, 14]].map(([dx, rot]) => `<g transform="rotate(${rot} ${X(dx)} ${Y(-3)})">
+                    <ellipse cx="${X(dx)}" cy="${Y(-11)}" rx="${3 * k}" ry="${8.5 * k}" fill="#f8fafc"/><ellipse cx="${X(dx)}" cy="${Y(-11)}" rx="${1.4 * k}" ry="${6 * k}" fill="#fbcfe8"/></g>`).join('')}`;
+              case 'rain': return `<path d="M${X(-15)} ${Y(1.4)} Q${X(0)} ${Y(-3)} ${X(13)} ${Y(0)} Q${X(0)} ${Y(3)} ${X(-15)} ${Y(1.4)} Z" fill="#eab308"/>
+                  <path d="M${X(-9)} ${Y(0)} Q${X(-8)} ${Y(-12)} ${X(0)} ${Y(-12)} Q${X(8)} ${Y(-12)} ${X(9)} ${Y(0)} Z" fill="#facc15"/>
+                  <path d="M${X(-6)} ${Y(-9)} Q${X(0)} ${Y(-11)} ${X(5)} ${Y(-9)}" stroke="rgba(255,255,255,0.5)" stroke-width="${0.8 * k}" fill="none"/>`;
+              case 'beanie': return `<path d="M${X(-11)} ${Y(1)} Q${X(-10)} ${Y(-14)} ${X(0)} ${Y(-14)} Q${X(10)} ${Y(-14)} ${X(11)} ${Y(1)} Z" fill="#ef4444"/>
+                  <rect x="${X(-11.5)}" y="${Y(-3)}" width="${23 * k}" height="${4.6 * k}" rx="${2 * k}" fill="#f8fafc"/>
+                  ${[-6, -2, 2, 6].map(dx => `<path d="M${X(dx)} ${Y(-12)} L${X(dx * 1.2)} ${Y(-4)}" stroke="rgba(255,255,255,0.3)" stroke-width="${0.7 * k}"/>`).join('')}
+                  <circle cx="${X(0)}" cy="${Y(-15)}" r="${3 * k}" fill="#f8fafc"/>`;
+              case 'straw': return `<ellipse cx="${X(0)}" cy="${Y(0)}" rx="${16 * k}" ry="${3 * k}" fill="#e9c46a"/>
+                  <path d="M${X(-8)} ${Y(0)} Q${X(-8)} ${Y(-10)} ${X(0)} ${Y(-10)} Q${X(8)} ${Y(-10)} ${X(8)} ${Y(0)} Z" fill="#d4a74a"/>
+                  <path d="M${X(-8)} ${Y(-2)} Q${X(0)} ${Y(-3.6)} ${X(8)} ${Y(-2)} L${X(8)} ${Y(-0.2)} Q${X(0)} ${Y(-1.8)} ${X(-8)} ${Y(-0.2)} Z" fill="#ef4444"/>`;
+              case 'flowers': return ['#f9a8d4', '#fde047', '#f8fafc', '#c4b5fd', '#f9a8d4'].map((c, i) => {
+                  const fx = -10 + i * 5, fy = -1.5 - Math.sin(i / 4 * Math.PI) * 4;
+                  return [0, 72, 144, 216, 288].map(d => `<circle cx="${(cx + (fx + Math.cos(d * Math.PI / 180) * 1.6) * k).toFixed(2)}" cy="${(y + (fy + Math.sin(d * Math.PI / 180) * 1.6) * k).toFixed(2)}" r="${1.3 * k}" fill="${c}"/>`).join('')
+                    + `<circle cx="${X(fx)}" cy="${Y(fy)}" r="${0.9 * k}" fill="#f59e0b"/>`;
+                }).join('');
+              default: return '';
+            }
+          };
+          // Een zonnebril bij het strohoedje
+          const catGlasses = (x1, x2, ey, k) => hatKind !== 'straw' ? '' : `<g fill="#111827" stroke="#111827" stroke-width="${0.6 * k}">
+              <ellipse cx="${x1}" cy="${ey}" rx="${4 * k}" ry="${3.2 * k}"/><ellipse cx="${x2}" cy="${ey}" rx="${4 * k}" ry="${3.2 * k}"/>
+              <path d="M${x1 + 4 * k} ${ey - 0.6 * k} Q${(x1 + x2) / 2} ${ey - 2 * k} ${x2 - 4 * k} ${ey - 0.6 * k}" fill="none"/></g>
+              <path d="M${x1 - 2.4 * k} ${ey - 1.4 * k} l${1.4 * k} ${-0.8 * k} M${x2 - 2.4 * k} ${ey - 1.4 * k} l${1.4 * k} ${-0.8 * k}" stroke="rgba(255,255,255,0.6)" stroke-width="${0.6 * k}"/>`;
           // Grote ogen die af en toe knipperen
           const catEye = (cx, cy, rx, ry, blink) => `<g style="transform-origin:${cx}px ${cy}px;transform-box:view-box;animation:hero-cat-blink ${blink}s ease-in-out infinite">
               <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${day ? '#cfe36a' : '#b9cc5a'}"/>
@@ -1481,7 +1522,7 @@ weather_hero:
                   <path d="M93.5 13 Q95 1.5 91.5 0.5 Q88.5 1 83 7.5 Z" fill="${fur}"/><path d="M91.7 10 Q92.2 3.8 90.6 3.4 Q89 4 86 7.6 Z" fill="#c98a9a"/>
                   <ellipse cx="75.5" cy="35.5" rx="3.8" ry="3.2" fill="#ececf0"/>
                   <ellipse cx="81" cy="19" rx="14" ry="12.6" fill="${fur}"/>${catHat(81, 8.5, 1)}
-                  ${catEye(75.4, 19.5, 3.3, 3.9, 5)}${catEye(86.6, 19.5, 3.3, 3.9, 5)}
+                  ${catEye(75.4, 19.5, 3.3, 3.9, 5)}${catEye(86.6, 19.5, 3.3, 3.9, 5)}${catGlasses(75.4, 86.6, 19.5, 1)}
                   <path d="M79.6 24.6 Q81 23.9 82.4 24.6 Q81.6 26 81 26.2 Q80.4 26 79.6 24.6 Z" fill="#e59aac"/>
                   <path d="M81 26.2 L81 27 M78.8 27 Q79.9 28.4 81 27 Q82.1 28.4 83.2 27" stroke="#6b5058" stroke-width="0.55" fill="none" stroke-linecap="round"/>
                   <path d="M72 25 L63 23.5 M72 26.6 L63.2 27.6 M90 25 L99 23.5 M90 26.6 L98.8 27.6" stroke="rgba(255,255,255,0.5)" stroke-width="0.4" stroke-linecap="round"/>
@@ -1507,7 +1548,7 @@ weather_hero:
                 <path d="M11.5 13 Q10 3 13 2.4 Q15.6 3 19 8 Z" fill="${fur}"/><path d="M12.8 10.6 Q12.4 5.4 13.7 5 Q15 5.6 17 8.4 Z" fill="#c98a9a"/>
                 <path d="M28.5 13 Q30 3 27 2.4 Q24.4 3 21 8 Z" fill="${fur}"/><path d="M27.2 10.6 Q27.6 5.4 26.3 5 Q25 5.6 23 8.4 Z" fill="#c98a9a"/>
                 <ellipse cx="20" cy="17" rx="10.5" ry="9.4" fill="${fur}"/>${catHat(20, 9, 0.75)}
-                ${catEye(16, 17, 2.4, 2.8, 4.2)}${catEye(24, 17, 2.4, 2.8, 4.2)}
+                ${catEye(16, 17, 2.4, 2.8, 4.2)}${catEye(24, 17, 2.4, 2.8, 4.2)}${catGlasses(16, 24, 17, 0.75)}
                 <path d="M19 21.2 Q20 20.7 21 21.2 Q20.5 22.2 20 22.3 Q19.5 22.2 19 21.2 Z" fill="#e59aac"/>
                 <path d="M20 22.3 L20 22.9 M18.4 22.9 Q19.2 24 20 22.9 Q20.8 24 21.6 22.9" stroke="#6b5058" stroke-width="0.45" fill="none" stroke-linecap="round"/>
                 <path d="M13.5 21.4 L6.5 20.4 M13.5 22.6 L6.8 23.6 M26.5 21.4 L33.5 20.4 M26.5 22.6 L33.2 23.6" stroke="rgba(255,255,255,0.5)" stroke-width="0.32" stroke-linecap="round"/>
