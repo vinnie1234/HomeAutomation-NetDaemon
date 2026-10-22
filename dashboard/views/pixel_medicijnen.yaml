@@ -116,7 +116,13 @@ sections:
     column_span: 2
     cards:
       - type: heading
-        heading: Geschiedenis
+        heading: Grafiek
+        heading_style: title
+        icon: mdi:chart-timeline-variant
+      - type: custom:button-card
+        template: med_chart
+      - type: heading
+        heading: Geschiedenis (afgelopen week)
         heading_style: title
         icon: mdi:history
       - type: custom:button-card

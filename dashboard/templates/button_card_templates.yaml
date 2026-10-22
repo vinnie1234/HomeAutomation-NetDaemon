@@ -2578,7 +2578,9 @@ vomit_button:
 # Tijdlijn van twee weken: elke dag is een kolom, een stip per keer gekotst op het tijdstip van die dag.
 # Dagen met meldingen worden breder (meer meldingen = breder), zodat de tijden op die dag uit elkaar staan.
 vomit_chart:
-  template: glass
+  template:
+    - glass
+    - timeline_overlay
   triggers_update:
     - sensor.pixel_gekotst_momenten
   show_icon: false
@@ -2588,182 +2590,8 @@ vomit_chart:
     action: javascript
     javascript: |
       [[[
-        // Schermvullend en liggend: een tijdlijn waarin je inzoomt (een stuk selecteren, knijpen of scrollen) en schuift
-        // (twee vingers of de pijlen). Draaien kan de telefoon niet altijd: dan draait de grafiek zelf 90 graden.
-        if (document.getElementById('huis-vomit-full')) return;
-        const moments = (window.huisVomitMoments ?? []).slice().sort((a, b) => a - b);
-        const H = 3600000, D = 24 * H;
-        const endOfToday = (() => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); })();
-        const first = moments.length ? moments[0] : endOfToday - 14 * D;
-        const minStart = Math.min(first - D, endOfToday - 14 * D);
-        let view = { start: endOfToday - 14 * D, end: endOfToday };
-
-        const overlay = document.createElement('div');
-        overlay.id = 'huis-vomit-full';
-        overlay.innerHTML = `<style>
-            #huis-vomit-full { position: fixed; inset: 0; z-index: 100000; background: #0b0f19; color: #f2f4f8;
-              font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); user-select: none; -webkit-user-select: none; }
-            #huis-vomit-full .stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; padding: 12px 18px 10px;
-              box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; }
-            @media (orientation: portrait) {
-              #huis-vomit-full .stage { width: 100vh; height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
-            }
-            #huis-vomit-full .bar { display: flex; align-items: center; gap: 12px; }
-            #huis-vomit-full .title { font-size: 17px; font-weight: 600; }
-            #huis-vomit-full .range { font-size: 13px; opacity: 0.7; flex: 1; }
-            #huis-vomit-full button { background: rgba(255,255,255,0.08); color: inherit; border: 1px solid rgba(255,255,255,0.12);
-              border-radius: 10px; min-width: 38px; height: 34px; font-size: 15px; padding: 0 10px; cursor: pointer; }
-            #huis-vomit-full .chart { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.2);
-              touch-action: none; cursor: crosshair; }
-            #huis-vomit-full .brush { position: absolute; top: 0; bottom: 0; background: rgba(255,176,96,0.18);
-              border-left: 1px solid #ffb060; border-right: 1px solid #ffb060; display: none; pointer-events: none; }
-            #huis-vomit-full .help { font-size: 11px; opacity: 0.5; text-align: center; }
-          </style>
-          <div class="stage">
-            <div class="bar"><span class="title">🤮 Pixel gekotst</span><span class="range"></span>
-              <button data-a="left">◀</button><button data-a="out">−</button><button data-a="in">+</button><button data-a="right">▶</button>
-              <button data-a="reset">2 weken</button><button data-a="close">✕</button></div>
-            <div class="chart"><div class="plot"></div><div class="brush"></div></div>
-            <div class="help">Sleep over een stuk om in te zoomen · knijpen of scrollen zoomt · twee vingers of ◀ ▶ schuiven</div>
-          </div>`;
-        const chart = overlay.querySelector('.chart'), plot = overlay.querySelector('.plot'), brush = overlay.querySelector('.brush');
-        const rangeText = overlay.querySelector('.range');
-
-        // Binnen de grenzen houden: niet verder terug dan de eerste keer, niet verder dan vandaag, minstens een half uur
-        const clamp = v => {
-          let span = Math.max(30 * 60000, Math.min(v.end - v.start, endOfToday - minStart));
-          let start = Math.max(minStart, Math.min(v.start, endOfToday - span));
-          return { start, end: start + span };
-        };
-        const fmtDay = (t, long) => new Date(t).toLocaleDateString('nl-NL', long ? { weekday: 'short', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric' });
-        const fmtTime = t => new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-
-        const draw = () => {
-          const W = chart.clientWidth, Hh = chart.clientHeight, span = view.end - view.start;
-          const x = t => (t - view.start) / span * W;
-          let out = '';
-          // Dagen: achtergrond voor het weekend, scheidingslijn om middernacht en het label onderaan
-          const day0 = new Date(view.start); day0.setHours(0, 0, 0, 0);
-          for (let d = day0.getTime(); d < view.end; d += D) {
-            const dd = new Date(d); dd.setHours(0, 0, 0, 0); const s = dd.getTime(), e = s + D;
-            const left = Math.max(0, x(s)), right = Math.min(W, x(e)), w = right - left;
-            if (w <= 0) continue;
-            const weekend = dd.getDay() === 0 || dd.getDay() === 6;
-            const isToday = e === endOfToday;
-            out += `<div style="position:absolute;left:${left}px;width:${w}px;top:0;bottom:0;${weekend ? 'background:rgba(255,255,255,0.03);' : ''}
-                border-left:1px solid rgba(255,255,255,${x(s) >= 0 ? 0.12 : 0})"></div>`;
-            // Zo veel als past: "do 15 okt", "do 15" of alleen "15"
-            const text = w > 110 ? fmtDay(s, true) : w >= 50 ? fmtDay(s, false) : w >= 20 ? String(dd.getDate()) : '';
-            if (text) out += `<div style="position:absolute;left:${left}px;width:${w}px;bottom:4px;text-align:center;font-size:12px;white-space:nowrap;
-                overflow:hidden;${isToday ? 'color:#ffb060;font-weight:700' : `opacity:${dd.getDay() === 1 ? 0.9 : 0.65}`}">${text}</div>`;
-          }
-          // Uurlijnen: zo fijn als er ruimte is (kwartier tot een halve dag)
-          const steps = [15, 30, 60, 180, 360, 720].map(m => m * 60000);
-          const step = steps.find(st => st / span * W >= 46);
-          if (step) for (let t = Math.ceil(view.start / step) * step; t < view.end; t += step) {
-            const dt = new Date(t); if (dt.getHours() === 0 && dt.getMinutes() === 0) continue;
-            out += `<div style="position:absolute;left:${x(t)}px;top:22px;bottom:24px;border-left:1px dotted rgba(255,255,255,0.16)"></div>
-              <div style="position:absolute;left:${x(t)}px;top:6px;transform:translateX(-50%);font-size:10px;opacity:0.5">${fmtTime(t)}</div>`;
-          }
-          // Een stip per keer; tijden die elkaar zouden raken komen in een andere rij
-          const rows = [-1e9, -1e9, -1e9];
-          const shown = moments.filter(t => t >= view.start && t <= view.end);
-          for (const t of shown) {
-            const px = x(t);
-            let row = rows.findIndex(last => px - last > 44); if (row < 0) row = 0;
-            rows[row] = px;
-            const y = Hh / 2 + (row === 1 ? -34 : row === 2 ? 34 : 0);
-            out += `<div style="position:absolute;left:${px}px;top:${Hh / 2}px;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;
-                background:#ff9f5a;box-shadow:0 0 12px rgba(255,140,80,0.85)"></div>
-              <div style="position:absolute;left:${px}px;top:${y - 24}px;transform:translateX(-50%);font-size:12px;font-weight:600;color:#ffcfa8;
-                white-space:nowrap">${fmtTime(t)}</div>`;
-          }
-          plot.innerHTML = out;
-          rangeText.textContent = `${fmtDay(view.start, true)} – ${fmtDay(view.end - 1, true)} · ${shown.length}× gekotst`;
-        };
-
-        // Waar op de tijdas (0..1) een vinger of de muis is; bij de gedraaide weergave loopt de tijdas van boven naar beneden
-        const rotated = () => matchMedia('(orientation: portrait)').matches;
-        const frac = e => {
-          const r = chart.getBoundingClientRect();
-          const f = rotated() ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width;
-          return Math.max(0, Math.min(1, f));
-        };
-        const zoomAt = (f, factor) => {
-          const span = view.end - view.start, t = view.start + f * span, ns = span * factor;
-          view = clamp({ start: t - f * ns, end: t - f * ns + ns }); draw();
-        };
-
-        const pointers = new Map();
-        let brushFrom = null, pinch = null;
-        chart.addEventListener('pointerdown', e => {
-          chart.setPointerCapture(e.pointerId);
-          pointers.set(e.pointerId, frac(e));
-          if (pointers.size === 1) { brushFrom = frac(e); pinch = null; }
-          if (pointers.size === 2) {
-            brushFrom = null; brush.style.display = 'none';
-            const [a, b] = [...pointers.values()];
-            pinch = { a, b, view: { ...view } };
-          }
-        });
-        chart.addEventListener('pointermove', e => {
-          if (!pointers.has(e.pointerId)) return;
-          pointers.set(e.pointerId, frac(e));
-          if (pinch && pointers.size >= 2) {
-            const [a, b] = [...pointers.values()];
-            const span0 = pinch.view.end - pinch.view.start;
-            const mid0 = (pinch.a + pinch.b) / 2, mid1 = (a + b) / 2;
-            const t = pinch.view.start + mid0 * span0;
-            const ns = span0 * Math.max(0.02, Math.abs(pinch.b - pinch.a)) / Math.max(0.02, Math.abs(b - a));
-            view = clamp({ start: t - mid1 * ns, end: t - mid1 * ns + ns }); draw();
-          } else if (brushFrom !== null) {
-            const f = frac(e), lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
-            Object.assign(brush.style, { display: 'block', left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` });
-          }
-        });
-        const up = e => {
-          if (!pointers.has(e.pointerId)) return;
-          const f = frac(e);
-          pointers.delete(e.pointerId);
-          if (brushFrom !== null && pointers.size === 0 && Math.abs(f - brushFrom) > 0.02) {
-            const span = view.end - view.start, lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
-            view = clamp({ start: view.start + lo * span, end: view.start + hi * span }); draw();
-          }
-          if (pointers.size === 0) { brushFrom = null; pinch = null; brush.style.display = 'none'; }
-        };
-        chart.addEventListener('pointerup', up);
-        chart.addEventListener('pointercancel', up);
-        chart.addEventListener('wheel', e => {
-          e.preventDefault();
-          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const span = view.end - view.start; view = clamp({ start: view.start + e.deltaX / 600 * span, end: view.end + e.deltaX / 600 * span }); draw(); }
-          else zoomAt(frac(e), e.deltaY > 0 ? 1.25 : 0.8);
-        }, { passive: false });
-
-        const close = () => {
-          try { screen.orientation?.unlock?.(); } catch (err) {}
-          if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-          window.removeEventListener('resize', draw);
-          overlay.remove();
-        };
-        overlay.querySelector('.bar').addEventListener('click', e => {
-          const a = e.target.closest('button')?.dataset.a; if (!a) return;
-          const span = view.end - view.start;
-          if (a === 'close') return close();
-          if (a === 'left') view = clamp({ start: view.start - span / 2, end: view.end - span / 2 });
-          if (a === 'right') view = clamp({ start: view.start + span / 2, end: view.end + span / 2 });
-          if (a === 'in') return zoomAt(0.5, 0.5);
-          if (a === 'out') return zoomAt(0.5, 2);
-          if (a === 'reset') view = { start: endOfToday - 14 * D, end: endOfToday };
-          draw();
-        });
-        document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); close(); } });
-        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && overlay.isConnected) close(); });
-        window.addEventListener('resize', draw);
-        document.body.appendChild(overlay);
-        draw();
-        requestAnimationFrame(draw);
-        // Echt schermvullend en liggend als de browser of app dat toestaat
-        overlay.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+        (variables.open_timeline ?? window.huisOpenTimeline)({ title: '🤮 Pixel gekotst', defaultDays: 14,
+          lanes: [{ name: 'Gekotst', color: '#ff9f5a', points: (window.huisVomitMoments ?? []).map(t => ({ t })) }] });
       ]]]
   custom_fields:
     chart: |
@@ -3431,22 +3259,76 @@ med_history:
     - sensor.pixel_medicijnen
   show_icon: false
   show_name: false
+  # Tik = alles bekijken: kies een periode, en bij het scrollen komen er steeds 7 dagen bij
   tap_action:
-    action: none
+    action: javascript
+    javascript: |
+      [[[
+        if (document.getElementById('huis-medlog')) return;
+        const all = window.huisMedHistory ?? [], renderDay = window.huisMedHistoryDay;
+        if (!renderDay) return;
+        const iso = d => d.toLocaleDateString('sv-SE');
+        const overlay = document.createElement('div');
+        overlay.id = 'huis-medlog';
+        overlay.innerHTML = `<style>
+            #huis-medlog { position: fixed; inset: 0; z-index: 100000; background: #0b0f19; color: #f2f4f8; display: flex; flex-direction: column;
+              font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+            #huis-medlog .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+            #huis-medlog .title { font-size: 17px; font-weight: 600; flex: 1; min-width: 140px; }
+            #huis-medlog input { background: rgba(255,255,255,0.08); color: inherit; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+              height: 34px; padding: 0 8px; color-scheme: dark; }
+            #huis-medlog button { background: rgba(255,255,255,0.08); color: inherit; border: 1px solid rgba(255,255,255,0.12);
+              border-radius: 10px; min-width: 38px; height: 34px; padding: 0 10px; font-size: 14px; }
+            #huis-medlog .list { flex: 1; overflow-y: auto; padding: 8px 16px 40px; max-width: 760px; width: 100%; box-sizing: border-box; margin: 0 auto; }
+            #huis-medlog .end { text-align: center; opacity: 0.5; font-size: 12px; padding: 16px; }
+          </style>
+          <div class="bar"><span class="title">💊 Geschiedenis medicijnen</span>
+            <label>van <input type="date" class="from"></label><label>tot <input type="date" class="to"></label>
+            <button data-a="all">Alles</button><button data-a="close">✕</button></div>
+          <div class="list"><div class="items"></div><div class="end"></div></div>`;
+        const from = overlay.querySelector('.from'), to = overlay.querySelector('.to');
+        const items = overlay.querySelector('.items'), end = overlay.querySelector('.end'), list = overlay.querySelector('.list');
+        const firstDay = all.length ? new Date(all[all.length - 1].tijd) : new Date();
+        to.value = iso(new Date()); from.value = iso(firstDay);
+        // Dagen nieuwste eerst, binnen de gekozen periode; per keer zeven dagen erbij
+        let days = [], shown = 0;
+        const reset = () => {
+          const lo = new Date(`${from.value}T00:00:00`), hi = new Date(`${to.value}T23:59:59`);
+          const byDay = new Map();
+          for (const e of all) { const t = new Date(e.tijd); if (t < lo || t > hi) continue; const k = iso(t); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); }
+          days = [...byDay.entries()]; shown = 0; items.innerHTML = ''; more();
+        };
+        const more = () => {
+          const next = days.slice(shown, shown + 7);
+          items.insertAdjacentHTML('beforeend', next.map(([, events]) => renderDay(events)).join(''));
+          shown += next.length;
+          end.textContent = !days.length ? 'Niets in deze periode.' : shown < days.length ? 'Meer laden…' : 'Dat was alles.';
+        };
+        new IntersectionObserver(entries => { if (entries[0].isIntersecting && shown < days.length) more(); }, { root: list }).observe(end);
+        from.addEventListener('change', reset); to.addEventListener('change', reset);
+        overlay.querySelector('.bar').addEventListener('click', e => {
+          const a = e.target.closest('button')?.dataset.a;
+          if (a === 'close') overlay.remove();
+          if (a === 'all') { from.value = iso(firstDay); to.value = iso(new Date()); reset(); }
+        });
+        document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); overlay.remove(); } });
+        document.body.appendChild(overlay);
+        reset();
+      ]]]
   custom_fields:
     list: |
       [[[
         const fmt = v => { const a = Math.abs(v), w = Math.floor(a), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((a - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
         const events = entity?.attributes?.geschiedenis ?? [];
+        window.huisMedHistory = events;
         if (!events.length) return '<div style="opacity:0.6;padding:6px">Nog niets gegeven of aangepast.</div>';
-        let out = '', lastDay = '';
-        for (const e of events) {
+        // Eén dag (de regels van die dag, nieuwste eerst) als HTML
+        const renderDay = dayEvents => {
+        const t0 = new Date(dayEvents[0].tijd);
+        const dayName = t0.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: t0.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+        let out = `<div style="font-size:12px;font-weight:700;opacity:0.7;margin:12px 0 4px">${dayName.charAt(0).toUpperCase() + dayName.slice(1)}</div>`;
+        for (const e of dayEvents) {
           const t = new Date(e.tijd);
-          const day = t.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: t.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
-          if (day !== lastDay) {
-            out += `<div style="font-size:12px;font-weight:700;opacity:0.7;margin:${lastDay ? 12 : 0}px 0 4px">${day.charAt(0).toUpperCase() + day.slice(1)}</div>`;
-            lastDay = day;
-          }
           const isPred = e.medicijn === 'prednison';
           const name = isPred ? 'prednison' : 'antibraak';
           const given = e.soort === 'gegeven', correction = e.soort === 'correctie';
@@ -3467,10 +3349,302 @@ med_history:
             </div>`;
         }
         return out;
+        };
+        window.huisMedHistoryDay = renderDay;
+
+        // De kaart: de laatste 7 dagen, gegroepeerd per dag
+        const weekAgo = Date.now() - 7 * 86400000;
+        const groups = [];
+        for (const e of events) {
+          if (new Date(e.tijd) < weekAgo) break;
+          const k = new Date(e.tijd).toLocaleDateString('sv-SE');
+          if (groups.length && groups[groups.length - 1].k === k) groups[groups.length - 1].list.push(e); else groups.push({ k, list: [e] });
+        }
+        const older = events.length - groups.reduce((n, g) => n + g.list.length, 0);
+        return (groups.length ? groups.map(g => renderDay(g.list)).join('') : '<div style="opacity:0.6;padding:6px">Afgelopen week niets gegeven of aangepast.</div>')
+          + `<div style="margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.06);text-align:center;font-size:13px">
+              Tik om alles te bekijken of een periode te kiezen${older ? ` · nog ${older} oudere ${older === 1 ? 'regel' : 'regels'}` : ''}</div>`;
       ]]]
   styles:
     grid:
       - grid-template-areas: '"list"'
+    card:
+      - cursor: pointer
     custom_fields:
       list:
         - width: 100%
+
+# Gedeelde schermvullende tijdlijn (liggend, met inzoomen en schuiven) voor de braakgrafiek en de medicijnen.
+# Gebruik: template [glass, timeline_overlay] en in de tap_action: variables.open_timeline({ title, defaultDays, lanes }).
+timeline_overlay:
+  variables:
+    open_timeline: |
+      [[[
+          // Schermvullende tijdlijn, liggend: inzoomen door een stuk te selecteren, knijpen of scrollen; schuiven met twee
+          // vingers of de pijlen. Draaien kan de telefoon niet altijd: dan draait de grafiek zelf 90 graden.
+          // opts: { title, defaultDays, lanes: [{ name, color, points: [{ t, label? }], steps?: [{ t, v }], unit? }] }
+          const open = opts => {
+            if (document.getElementById('huis-timeline')) return;
+            const H = 3600000, D = 24 * H, days = opts.defaultDays ?? 14;
+            const lanes = opts.lanes.map(l => ({ ...l, points: (l.points ?? []).slice().sort((a, b) => a.t - b.t),
+              steps: (l.steps ?? []).slice().sort((a, b) => a.t - b.t) }));
+            const endOfToday = (() => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); })();
+            const allTimes = lanes.flatMap(l => [...l.points.map(p => p.t), ...l.steps.map(p => p.t)]);
+            const first = allTimes.length ? Math.min(...allTimes) : endOfToday - days * D;
+            const minStart = Math.min(first - D, endOfToday - days * D);
+            let view = { start: endOfToday - days * D, end: endOfToday };
+            const frac = v => { const w = Math.floor(v), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((v - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+
+            const overlay = document.createElement('div');
+            overlay.id = 'huis-timeline';
+            overlay.innerHTML = `<style>
+                #huis-timeline { position: fixed; inset: 0; z-index: 100000; background: #0b0f19; color: #f2f4f8;
+                  font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); user-select: none; -webkit-user-select: none; }
+                #huis-timeline .stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; padding: 12px 18px 10px;
+                  box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; }
+                @media (orientation: portrait) {
+                  #huis-timeline .stage { width: 100vh; height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
+                }
+                #huis-timeline .bar { display: flex; align-items: center; gap: 12px; }
+                #huis-timeline .title { font-size: 17px; font-weight: 600; white-space: nowrap; }
+                #huis-timeline .range { font-size: 13px; opacity: 0.7; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                #huis-timeline button { background: rgba(255,255,255,0.08); color: inherit; border: 1px solid rgba(255,255,255,0.12);
+                  border-radius: 10px; min-width: 38px; height: 34px; font-size: 15px; padding: 0 10px; cursor: pointer; }
+                #huis-timeline .chart { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.2);
+                  touch-action: none; cursor: crosshair; }
+                #huis-timeline .brush { position: absolute; top: 0; bottom: 0; background: rgba(255,176,96,0.18);
+                  border-left: 1px solid #ffb060; border-right: 1px solid #ffb060; display: none; pointer-events: none; }
+                #huis-timeline .help { font-size: 11px; opacity: 0.5; text-align: center; }
+              </style>
+              <div class="stage">
+                <div class="bar"><span class="title">${opts.title}</span><span class="range"></span>
+                  <button data-a="left">◀</button><button data-a="out">−</button><button data-a="in">+</button><button data-a="right">▶</button>
+                  <button data-a="reset">${days === 7 ? '1 week' : `${days / 7} weken`}</button><button data-a="close">✕</button></div>
+                <div class="chart"><div class="plot"></div><div class="brush"></div></div>
+                <div class="help">Sleep over een stuk om in te zoomen · knijpen of scrollen zoomt · twee vingers of ◀ ▶ schuiven</div>
+              </div>`;
+            const chart = overlay.querySelector('.chart'), plot = overlay.querySelector('.plot'), brush = overlay.querySelector('.brush');
+            const rangeText = overlay.querySelector('.range');
+
+            const clamp = v => {
+              const span = Math.max(30 * 60000, Math.min(v.end - v.start, endOfToday - minStart));
+              const start = Math.max(minStart, Math.min(v.start, endOfToday - span));
+              return { start, end: start + span };
+            };
+            const fmtDay = (t, long) => new Date(t).toLocaleDateString('nl-NL', long ? { weekday: 'short', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric' });
+            const fmtTime = t => new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+            const draw = () => {
+              const W = chart.clientWidth, Hh = chart.clientHeight, span = view.end - view.start;
+              const x = t => (t - view.start) / span * W;
+              const laneH = (Hh - 48) / lanes.length;
+              let out = '';
+              // Dagen: weekend, scheidingslijn om middernacht en het label onderaan (zo veel als past)
+              const day0 = new Date(view.start); day0.setHours(0, 0, 0, 0);
+              for (let d = day0.getTime(); d < view.end; d += D) {
+                const dd = new Date(d); dd.setHours(0, 0, 0, 0); const s = dd.getTime(), e = s + D;
+                const left = Math.max(0, x(s)), right = Math.min(W, x(e)), w = right - left;
+                if (w <= 0) continue;
+                const weekend = dd.getDay() === 0 || dd.getDay() === 6, isToday = e === endOfToday;
+                out += `<div style="position:absolute;left:${left}px;width:${w}px;top:0;bottom:0;${weekend ? 'background:rgba(255,255,255,0.03);' : ''}
+                    border-left:1px solid rgba(255,255,255,${x(s) >= 0 ? 0.12 : 0})"></div>`;
+                const text = w > 110 ? fmtDay(s, true) : w >= 50 ? fmtDay(s, false) : w >= 20 ? String(dd.getDate()) : '';
+                if (text) out += `<div style="position:absolute;left:${left}px;width:${w}px;bottom:4px;text-align:center;font-size:12px;white-space:nowrap;
+                    overflow:hidden;${isToday ? 'color:#ffb060;font-weight:700' : `opacity:${dd.getDay() === 1 ? 0.9 : 0.65}`}">${text}</div>`;
+              }
+              // Uurlijnen: zo fijn als er ruimte is
+              const step = [15, 30, 60, 180, 360, 720].map(m => m * 60000).find(st => st / span * W >= 46);
+              if (step) for (let t = Math.ceil(view.start / step) * step; t < view.end; t += step) {
+                const dt = new Date(t); if (dt.getHours() === 0 && dt.getMinutes() === 0) continue;
+                out += `<div style="position:absolute;left:${x(t)}px;top:22px;bottom:24px;border-left:1px dotted rgba(255,255,255,0.14)"></div>
+                  <div style="position:absolute;left:${x(t)}px;top:6px;transform:translateX(-50%);font-size:10px;opacity:0.5">${fmtTime(t)}</div>`;
+              }
+              // Per baan: de voorraad als lijn (met de waarde bij elke verandering) en een stip per moment
+              const counts = [];
+              lanes.forEach((lane, i) => {
+                const top = 22 + i * laneH, h = laneH;
+                if (lanes.length > 1) out += `<div style="position:absolute;left:8px;top:${top + 2}px;font-size:12px;font-weight:600;color:${lane.color}">${lane.name}</div>`;
+                if (i > 0) out += `<div style="position:absolute;left:0;right:0;top:${top}px;border-top:1px solid rgba(255,255,255,0.08)"></div>`;
+                if (lane.steps.length) {
+                  const max = Math.max(...lane.steps.map(p => p.v), 1);
+                  const y = v => top + h - 8 - v / max * (h * 0.55);
+                  let d = '', lastLabel = -1e9;
+                  const before = [...lane.steps].reverse().find(p => p.t <= view.start);
+                  const pts = [...(before ? [{ t: view.start, v: before.v }] : []), ...lane.steps.filter(p => p.t > view.start && p.t <= view.end)];
+                  pts.forEach((p, j) => {
+                    d += j === 0 ? `M${x(p.t)},${y(p.v)}` : ` H${x(p.t)} V${y(p.v)}`;
+                    if (x(p.t) - lastLabel > 34 && p.t > view.start) {
+                      out += `<div style="position:absolute;left:${x(p.t) + 3}px;top:${y(p.v) - 15}px;font-size:10px;color:${lane.color};opacity:0.85">${frac(p.v)}</div>`;
+                      lastLabel = x(p.t);
+                    }
+                  });
+                  if (pts.length) {
+                    const endX = Math.min(W, x(Math.min(Date.now(), view.end)));
+                    d += ` H${endX}`;
+                    out += `<svg style="position:absolute;left:0;top:0;width:${W}px;height:${Hh}px;overflow:visible;pointer-events:none">
+                        <path d="${d}" fill="none" stroke="${lane.color}" stroke-width="2" stroke-opacity="0.75"/></svg>`;
+                  }
+                }
+                const rows = [-1e9, -1e9];
+                const shown = lane.points.filter(p => p.t >= view.start && p.t <= view.end);
+                counts.push(`${lanes.length > 1 ? `${lane.name.toLowerCase()} ` : ''}${shown.length}×`);
+                const cy = lane.steps.length ? top + 40 : top + h / 2;
+                for (const p of shown) {
+                  const px = x(p.t);
+                  let row = rows.findIndex(last => px - last > 44); if (row < 0) row = 0;
+                  rows[row] = px;
+                  out += `<div style="position:absolute;left:${px}px;top:${cy}px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;
+                      background:${lane.color};box-shadow:0 0 10px ${lane.color}"></div>
+                    <div style="position:absolute;left:${px}px;top:${cy + (row ? 10 : -22)}px;transform:translateX(-50%);font-size:11px;font-weight:600;
+                      color:${lane.color};white-space:nowrap">${fmtTime(p.t)}${p.label ? ` · ${p.label}` : ''}</div>`;
+                }
+              });
+              plot.innerHTML = out;
+              rangeText.textContent = `${fmtDay(view.start, true)} – ${fmtDay(view.end - 1, true)} · ${counts.join(' · ')}`;
+            };
+
+            // Waar op de tijdas (0..1); bij de gedraaide weergave loopt de tijdas van boven naar beneden
+            const rotated = () => matchMedia('(orientation: portrait)').matches;
+            const pos = e => { const r = chart.getBoundingClientRect(); return Math.max(0, Math.min(1, rotated() ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width)); };
+            const zoomAt = (f, factor) => { const span = view.end - view.start, t = view.start + f * span, ns = span * factor; view = clamp({ start: t - f * ns, end: t - f * ns + ns }); draw(); };
+
+            const pointers = new Map();
+            let brushFrom = null, pinch = null;
+            chart.addEventListener('pointerdown', e => {
+              chart.setPointerCapture?.(e.pointerId);
+              pointers.set(e.pointerId, pos(e));
+              if (pointers.size === 1) { brushFrom = pos(e); pinch = null; }
+              if (pointers.size === 2) { brushFrom = null; brush.style.display = 'none'; const [a, b] = [...pointers.values()]; pinch = { a, b, view: { ...view } }; }
+            });
+            chart.addEventListener('pointermove', e => {
+              if (!pointers.has(e.pointerId)) return;
+              pointers.set(e.pointerId, pos(e));
+              if (pinch && pointers.size >= 2) {
+                const [a, b] = [...pointers.values()], span0 = pinch.view.end - pinch.view.start;
+                const t = pinch.view.start + (pinch.a + pinch.b) / 2 * span0, mid1 = (a + b) / 2;
+                const ns = span0 * Math.max(0.02, Math.abs(pinch.b - pinch.a)) / Math.max(0.02, Math.abs(b - a));
+                view = clamp({ start: t - mid1 * ns, end: t - mid1 * ns + ns }); draw();
+              } else if (brushFrom !== null) {
+                const f = pos(e), lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
+                Object.assign(brush.style, { display: 'block', left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` });
+              }
+            });
+            const up = e => {
+              if (!pointers.has(e.pointerId)) return;
+              const f = pos(e);
+              pointers.delete(e.pointerId);
+              if (brushFrom !== null && pointers.size === 0 && Math.abs(f - brushFrom) > 0.02) {
+                const span = view.end - view.start, lo = Math.min(brushFrom, f), hi = Math.max(brushFrom, f);
+                view = clamp({ start: view.start + lo * span, end: view.start + hi * span }); draw();
+              }
+              if (pointers.size === 0) { brushFrom = null; pinch = null; brush.style.display = 'none'; }
+            };
+            chart.addEventListener('pointerup', up);
+            chart.addEventListener('pointercancel', up);
+            chart.addEventListener('wheel', e => {
+              e.preventDefault();
+              if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const span = view.end - view.start; view = clamp({ start: view.start + e.deltaX / 600 * span, end: view.end + e.deltaX / 600 * span }); draw(); }
+              else zoomAt(pos(e), e.deltaY > 0 ? 1.25 : 0.8);
+            }, { passive: false });
+
+            const close = () => {
+              try { screen.orientation?.unlock?.(); } catch (err) {}
+              if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+              window.removeEventListener('resize', draw);
+              overlay.remove();
+            };
+            overlay.querySelector('.bar').addEventListener('click', e => {
+              const a = e.target.closest('button')?.dataset.a; if (!a) return;
+              const span = view.end - view.start;
+              if (a === 'close') return close();
+              if (a === 'left') view = clamp({ start: view.start - span / 2, end: view.end - span / 2 });
+              if (a === 'right') view = clamp({ start: view.start + span / 2, end: view.end + span / 2 });
+              if (a === 'in') return zoomAt(0.5, 0.5);
+              if (a === 'out') return zoomAt(0.5, 2);
+              if (a === 'reset') view = { start: endOfToday - days * D, end: endOfToday };
+              draw();
+            });
+            document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); close(); } });
+            document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && overlay.isConnected) close(); });
+            window.addEventListener('resize', draw);
+            document.body.appendChild(overlay);
+            draw();
+            requestAnimationFrame(draw);
+            overlay.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+          };
+          window.huisOpenTimeline = open;
+          return open;
+      ]]]
+
+# Medicijnen van Pixel in een grafiek van twee weken: per medicijn de voorraad als lijn en een stip per gift.
+# Tik = schermvullend, met inzoomen en terugkijken in alle geschiedenis.
+med_chart:
+  template:
+    - glass
+    - timeline_overlay
+  entity: sensor.pixel_medicijnen
+  triggers_update:
+    - sensor.pixel_medicijnen
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        (variables.open_timeline ?? window.huisOpenTimeline)({ title: '💊 Medicijnen van Pixel', defaultDays: 14, lanes: window.huisMedLanes ?? [] });
+      ]]]
+  custom_fields:
+    chart: |
+      [[[
+        // Banen per medicijn: giften als stippen (correcties tellen niet) en de voorraad na elke regel als lijn
+        // De geschiedenis komt nieuwste eerst; voor de lijn op volgorde van tijd
+        const events = (entity?.attributes?.geschiedenis ?? []).map(e => ({ ...e, t: new Date(e.tijd).getTime() }))
+          .filter(e => !isNaN(e.t)).sort((a, b) => a.t - b.t);
+        const lane = (medicine, name, color) => ({ name, color,
+          points: events.filter(e => e.medicijn === medicine && e.soort === 'gegeven' && !e.gecorrigeerd).map(e => ({ t: e.t })),
+          steps: events.filter(e => e.medicijn === medicine).map(e => ({ t: e.t, v: e.voorraad })) });
+        const lanes = [lane('prednison', 'Prednison', '#ffb060'), lane('antibraak', 'Antibraak', '#60a5fa')];
+        window.huisMedLanes = lanes;
+
+        // Twee weken, elke dag even breed
+        const D = 86400000, end = (() => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); })(), start = end - 14 * D;
+        const x = t => (t - start) / (end - start) * 100;
+        const frac = v => { const w = Math.floor(v), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((v - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+        let days = '';
+        for (let d = start; d < end; d += D) {
+          const dd = new Date(d), today = d + D === end;
+          days += `<div style="position:absolute;left:${x(d)}%;width:${100 / 14}%;top:0;bottom:0;border-left:1px solid rgba(255,255,255,0.07);
+              ${dd.getDay() === 0 || dd.getDay() === 6 ? 'background:rgba(255,255,255,0.03);' : ''}"></div>
+            <div style="position:absolute;left:${x(d)}%;width:${100 / 14}%;bottom:2px;text-align:center;font-size:9px;
+              ${today ? 'color:var(--accent-color);font-weight:700' : 'opacity:0.55'}">${today ? 'nu' : dd.getDate()}</div>`;
+        }
+        let rows = '';
+        lanes.forEach((l, i) => {
+          const top = 4 + i * 48;
+          const max = Math.max(...l.steps.map(p => p.v), 1);
+          const before = [...l.steps].reverse().find(p => p.t <= start);
+          const pts = [...(before ? [{ t: start, v: before.v }] : []), ...l.steps.filter(p => p.t > start)];
+          let path = '';
+          pts.forEach((p, j) => { path += j === 0 ? `M${x(p.t)},${top + 40 - p.v / max * 24}` : ` H${x(p.t)} V${top + 40 - p.v / max * 24}`; });
+          if (pts.length) path += ` H${x(Math.min(Date.now(), end))}`;
+          const now = l.steps.length ? l.steps[l.steps.length - 1].v : null;
+          rows += `<div style="position:absolute;left:6px;top:${top}px;font-size:11px;font-weight:600;color:${l.color}">${l.name}${now !== null ? ` · ${frac(now)}` : ''}</div>
+            <svg viewBox="0 0 100 104" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:104px;overflow:visible">
+              <path d="${path}" fill="none" stroke="${l.color}" stroke-width="2" stroke-opacity="0.7" vector-effect="non-scaling-stroke"/></svg>
+            ${l.points.filter(p => p.t >= start).map(p => `<div style="position:absolute;left:${x(p.t)}%;top:${top + 18}px;width:9px;height:9px;margin-left:-4.5px;
+              border-radius:50%;background:${l.color};box-shadow:0 0 6px ${l.color}"></div>`).join('')}`;
+        });
+        return `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;opacity:0.8">Laatste 2 weken</span>
+            <span style="font-size:11px;opacity:0.55">tik om in te zoomen</span></div>
+          <div style="position:relative;height:118px;border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.15)">${days}${rows}</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"chart"'
+    card:
+      - padding: 12px 14px
+      - cursor: pointer
+    custom_fields:
+      chart:
+        - width: 100%
+        - text-align: left
