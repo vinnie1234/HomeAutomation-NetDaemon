@@ -20,6 +20,11 @@ namespace Automation.apps.General;
 /// 08:00 when it was forgotten; both have a "Gegeven" button. <c>input_button.pixel_medicijn_ongedaan</c> undoes the last
 /// dose with a correction line: the dose stays in the history but no longer counts.
 /// </para>
+/// <para>
+/// Every stock change by hand is saved with what those pills cost, from the box price and the number of pills in a box
+/// (<c>input_number.pixel_{medicine}_doosprijs</c> and <c>_doosgrootte</c>), so the sensor also shows the price of a pill
+/// and what the medicines cost so far.
+/// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(PixelMedication))]
 public class PixelMedication : BaseApp
@@ -87,6 +92,8 @@ public class PixelMedication : BaseApp
                 .Subscribe(_ => Give(medicine));
             new Entity(HaContext, m.Stock).StateChanges()
                 .Subscribe(x => OnStockChanged(medicine, x.Old?.State, x.New?.State));
+            new Entity(HaContext, $"input_number.pixel_{medicine}_doosprijs").StateChanges().Subscribe(_ => Publish());
+            new Entity(HaContext, $"input_number.pixel_{medicine}_doosgrootte").StateChanges().Subscribe(_ => Publish());
         }
 
         new Entity(HaContext, UndoButton).StateChanges()
@@ -119,6 +126,17 @@ public class PixelMedication : BaseApp
     }
 
     private double Stock(string medicine) => ReadNumber(HaContext.GetState(Medicines[medicine].Stock)?.State) ?? 0;
+
+    private double BoxPrice(string medicine) => ReadNumber(HaContext.GetState($"input_number.pixel_{medicine}_doosprijs")?.State) ?? 0;
+
+    private double BoxSize(string medicine) => ReadNumber(HaContext.GetState($"input_number.pixel_{medicine}_doosgrootte")?.State) ?? 0;
+
+    /// <summary>The price of one pill in euros: the box price divided by the pills in a box, or 0 when that is not filled in.</summary>
+    private double PricePerPill(string medicine) => BoxSize(medicine) > 0 ? BoxPrice(medicine) / BoxSize(medicine) : 0;
+
+    /// <summary>What the stock changes of a medicine cost so far, in euros; old lines without a price count at the current price.</summary>
+    private double CostSoFar(string medicine) =>
+        _history.Where(x => x.Kind == "voorraad" && x.Medicine == medicine).Sum(x => x.Cost ?? x.Amount * PricePerPill(medicine));
 
     private static double? ReadNumber(string? state) =>
         double.TryParse(state, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : null;
@@ -171,7 +189,12 @@ public class PixelMedication : BaseApp
             var after = Stock(medicine);
             if (Math.Abs(after - pending.Before) < 0.001) return;
 
-            Add(new MedicationEvent { Time = Scheduler.NowNl(), Medicine = medicine, Kind = "voorraad", Amount = after - pending.Before, Stock = after });
+            var amount = after - pending.Before;
+            Add(new MedicationEvent
+            {
+                Time = Scheduler.NowNl(), Medicine = medicine, Kind = "voorraad", Amount = amount, Stock = after,
+                Cost = Math.Round(amount * PricePerPill(medicine), 2)
+            });
             Logger.LogInformation("Voorraad {Medicine} aangepast van {Before} naar {After}", medicine, pending.Before, after);
         }
     }
@@ -288,6 +311,11 @@ public class PixelMedication : BaseApp
                 laatste_prednison = last(Prednison),
                 laatste_antibraak = last(Antibraak),
                 herinnering = ReminderTime().ToString(@"hh\:mm"),
+                prednison_prijs_per_pil = Math.Round(PricePerPill(Prednison), 4),
+                antibraak_prijs_per_pil = Math.Round(PricePerPill(Antibraak), 4),
+                prednison_kosten = Math.Round(CostSoFar(Prednison), 2),
+                antibraak_kosten = Math.Round(CostSoFar(Antibraak), 2),
+                kosten_totaal = Math.Round(CostSoFar(Prednison) + CostSoFar(Antibraak), 2),
                 ongedaan_maken = undoable == null ? null : new
                 {
                     tijd = undoable.Time.ToString("yyyy-MM-ddTHH:mm:sszzz"),
@@ -301,6 +329,7 @@ public class PixelMedication : BaseApp
                     soort = x.Kind,
                     hoeveelheid = x.Amount,
                     voorraad = x.Stock,
+                    kosten = x.Kind == "voorraad" ? Math.Round(x.Cost ?? x.Amount * PricePerPill(x.Medicine), 2) : (double?)null,
                     gecorrigeerd = x.Kind == "gegeven" && IsCorrected(x),
                     corrigeert = x.Corrects?.ToString("yyyy-MM-ddTHH:mm:sszzz")
                 }).ToList()

@@ -19,6 +19,11 @@ public static class HelperDefinitions
         Button("pixel_antibraak_gegeven", "Pixel antibraak gegeven", icon: "mdi:pill-multiple"),
         Button("pixel_medicijn_ongedaan", "Pixel medicijn ongedaan", icon: "mdi:undo"),
         Time("pixel_prednison_tijd", "Pixel prednison tijd", "20:00:00"),
+        // De prijs van een doosje en hoeveel pillen erin zitten (factuur 21-10-2026), voor de kosten per pil en tot nu toe
+        Number("pixel_prednison_doosprijs", "Pixel prednison doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", initial: 7.85),
+        Number("pixel_prednison_doosgrootte", "Pixel prednison doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", initial: 21),
+        Number("pixel_antibraak_doosprijs", "Pixel antibraak doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", initial: 20.30),
+        Number("pixel_antibraak_doosgrootte", "Pixel antibraak doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", initial: 4),
 
         // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
         WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
@@ -178,9 +183,9 @@ public static class HelperDefinitions
         new("input_button", id, name, Settings(("icon", icon)));
 
     private static HelperDefinition Number(string id, string name, double min, double max, double? step = null,
-        string? mode = null, string? unit = null, string? icon = null) =>
+        string? mode = null, string? unit = null, string? icon = null, double? initial = null) =>
         new("input_number", id, name, Settings(("min", min), ("max", max), ("step", step), ("mode", mode),
-            ("unit_of_measurement", unit), ("icon", icon)));
+            ("unit_of_measurement", unit), ("icon", icon), ("initial", initial)));
 
     private static HelperDefinition Select(string id, string name, IReadOnlyList<string> options, string? icon = null) =>
         new("input_select", id, name, Settings(("options", options), ("icon", icon)));

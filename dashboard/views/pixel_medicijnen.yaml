@@ -69,6 +69,54 @@ sections:
           - entity: input_number.pixel_antibraak_voorraad
             name: Antibraak (pillen)
             icon: mdi:pencil-outline
+      # Wat de medicijnen tot nu toe kostten: alle voorraad die erbij kwam, tegen de doosprijs van dat moment
+      - type: custom:button-card
+        template: glass
+        entity: sensor.pixel_medicijnen
+        triggers_update:
+          - sensor.pixel_medicijnen
+        icon: mdi:cash-multiple
+        show_label: true
+        name: |
+          [[[
+            return `Tot nu toe ${(entity?.attributes?.kosten_totaal ?? 0).toLocaleString('nl-NL', { style: 'currency', currency: 'EUR' })}`;
+          ]]]
+        label: |
+          [[[
+            const a = entity?.attributes ?? {}, eur = v => (v ?? 0).toLocaleString('nl-NL', { style: 'currency', currency: 'EUR' });
+            return `Prednison ${eur(a.prednison_kosten)} · antibraak ${eur(a.antibraak_kosten)}`;
+          ]]]
+        tap_action:
+          action: none
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          card:
+            - min-height: 68px
+          icon:
+            - width: 24px
+            - color: '#4ade80'
+          name:
+            - font-size: 18px
+            - font-weight: 600
+            - justify-self: start
+          label:
+            - justify-self: start
+            - opacity: 0.7
+      # De prijs van een doosje; nieuwe voorraad wordt tegen deze prijs geteld
+      - type: entities
+        title: Prijs per doosje
+        entities:
+          - entity: input_number.pixel_prednison_doosprijs
+            name: Prednison (doosje)
+          - entity: input_number.pixel_prednison_doosgrootte
+            name: Prednison (pillen per doosje)
+          - entity: input_number.pixel_antibraak_doosprijs
+            name: Antibraak (doosje)
+          - entity: input_number.pixel_antibraak_doosgrootte
+            name: Antibraak (pillen per doosje)
       - type: tile
         entity: input_datetime.pixel_prednison_tijd
         name: Herinnering prednison

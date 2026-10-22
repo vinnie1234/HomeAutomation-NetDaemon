@@ -3225,6 +3225,36 @@ med_stock:
         const days = variables.medicine === 'prednison' ? `genoeg voor ${times} dagen` : `genoeg voor ${times} keer`;
         const last = states['sensor.pixel_medicijnen']?.attributes?.[`laatste_${variables.medicine}`];
         const lastText = last ? `laatst ${new Date(last).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${new Date(last).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : 'nog niet gegeven';
+        // Prijs: per pil uit het doosje, en wat het tot nu toe kostte (NetDaemon telt de voorraadregels op)
+        const eur = v => (v ?? 0).toLocaleString('nl-NL', { style: 'currency', currency: 'EUR' });
+        const boxPrice = parseFloat(states[`input_number.pixel_${variables.medicine}_doosprijs`]?.state);
+        const boxSize = parseFloat(states[`input_number.pixel_${variables.medicine}_doosgrootte`]?.state);
+        const perPill = boxSize > 0 ? boxPrice / boxSize : 0;
+        const spent = states['sensor.pixel_medicijnen']?.attributes?.[`${variables.medicine}_kosten`];
+        const priceText = perPill > 0
+          ? `${eur(perPill)} per pil · ${eur(perPill * variables.dose)} per ${variables.medicine === 'prednison' ? 'dag' : 'keer'}<br>doosje van ${boxSize} ${eur(boxPrice)} · tot nu toe ${eur(spent)}`
+          : 'Vul de prijs van een doosje in';
+        // De pil in de cirkel, verdeeld in stukjes van een gift: wat er nog van de aangebroken pil over is, licht op;
+        // het stukje dat je nu geeft knippert zacht, de stukjes die al op zijn staan gestippeld
+        const parts = Math.round(1 / variables.dose);
+        const rest = stock - Math.floor(stock);
+        const left = stock <= 0 ? 0 : rest < 0.001 ? parts : Math.round(rest / variables.dose);
+        const R = 33, at = a => `${(R * Math.cos(a)).toFixed(2)},${(R * Math.sin(a)).toFixed(2)}`;
+        let pill = '';
+        for (let i = 0; i < parts; i++) {
+          const a0 = -Math.PI / 2 + i * 2 * Math.PI / parts, a1 = a0 + 2 * Math.PI / parts;
+          const path = `M0,0 L${at(a0)} A${R},${R} 0 0 1 ${at(a1)} Z`;
+          pill += i < left
+            ? `<path d="${path}" fill="rgba(${rgb},0.8)">${i === left - 1 ? '<animate attributeName="opacity" values="1;0.45;1" dur="2.4s" repeatCount="indefinite"/>' : ''}</path>`
+            : `<path d="${path}" fill="rgba(255,255,255,0.03)" stroke="rgba(${rgb},0.45)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+        }
+        // Breukgleuven, en een glans zodat het een pil lijkt
+        for (let i = 0; i < parts; i++) {
+          const a = -Math.PI / 2 + i * 2 * Math.PI / parts;
+          pill += `<line x1="0" y1="0" x2="${(R * Math.cos(a)).toFixed(2)}" y2="${(R * Math.sin(a)).toFixed(2)}" stroke="#151a26" stroke-width="2.5"/>`;
+        }
+        pill += `<circle r="${R}" fill="none" stroke="rgba(${rgb},0.7)" stroke-width="2"/>
+          <ellipse cx="-11" cy="-15" rx="10" ry="5" fill="rgba(255,255,255,0.18)" transform="rotate(-30 -11 -15)"/>`;
         return `<div style="display:flex;align-items:center;gap:16px;text-align:left">
             <div style="flex:1;min-width:0">
               <div style="font-size:13px;opacity:0.75">${name} · ${fmt(variables.dose)} pil per keer</div>
@@ -3233,11 +3263,11 @@ med_stock:
                 <span style="font-size:13px;font-weight:600">${stock === 1 ? 'pil' : 'pillen'} · ${days}</span>
               </div>
               <div style="font-size:12px;opacity:0.65;margin-top:4px">${lastText}</div>
+              <div style="font-size:12px;opacity:0.65;margin-top:2px">${priceText}</div>
             </div>
-            <div style="width:74px;height:74px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
-              background:rgba(${rgb},0.22);box-shadow:inset 0 0 0 2px rgba(${rgb},0.6)">
-              <span style="font-size:20px;font-weight:700;line-height:1">−${fmt(variables.dose)}</span>
-              <span style="font-size:10px;opacity:0.8">geven</span>
+            <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <svg viewBox="-36 -36 72 72" width="74" height="74">${pill}</svg>
+              <span style="font-size:11px;font-weight:600;opacity:0.85">−${fmt(variables.dose)} geven</span>
             </div>
           </div>`;
       ]]]
@@ -3344,7 +3374,7 @@ med_history:
               <div style="width:30px;height:30px;border-radius:50%;background:${color}33;display:flex;align-items:center;justify-content:center">
                 <ha-icon icon="${icon}" style="--mdc-icon-size:17px;color:${color}"></ha-icon></div>
               <div style="text-align:left"><div style="font-size:13px;font-weight:600">${text}</div>
-                <div style="font-size:11px;opacity:0.6">nog ${fmt(e.voorraad)} ${e.voorraad === 1 ? 'pil' : 'pillen'}</div></div>
+                <div style="font-size:11px;opacity:0.6">nog ${fmt(e.voorraad)} ${e.voorraad === 1 ? 'pil' : 'pillen'}${e.kosten ? ` · ${e.kosten.toLocaleString('nl-NL', { style: 'currency', currency: 'EUR' })}` : ''}</div></div>
               <div style="font-size:13px;font-weight:600;opacity:0.85">${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
             </div>`;
         }

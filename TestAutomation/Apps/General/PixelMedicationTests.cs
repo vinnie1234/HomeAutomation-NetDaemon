@@ -36,6 +36,10 @@ public class PixelMedicationTests : IDisposable
         SetState(PrednisonStock, "10");
         SetState(AntibraakStock, "8");
         SetState("input_datetime.pixel_prednison_tijd", "20:00:00");
+        SetState("input_number.pixel_prednison_doosprijs", "7.85");
+        SetState("input_number.pixel_prednison_doosgrootte", "21");
+        SetState("input_number.pixel_antibraak_doosprijs", "20.30");
+        SetState("input_number.pixel_antibraak_doosgrootte", "4");
     }
 
     public void Dispose() => Directory.Delete(_storagePath, recursive: true);
@@ -199,6 +203,43 @@ public class PixelMedicationTests : IDisposable
         attributes.GetProperty("prednison_bijna_op").GetBoolean().Should().BeTrue();
         attributes.GetProperty("antibraak_bijna_op").GetBoolean().Should().BeTrue();
         attributes.GetProperty("geschiedenis")[0].GetProperty("medicijn").GetString().Should().Be("prednison");
+    }
+
+    private JsonElement PublishedAttributes() =>
+        JsonSerializer.SerializeToElement(_entityManager.ReceivedCalls()
+            .Last(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState)).GetArguments()[2]);
+
+    [Fact]
+    public void NewBox_IsSavedWithItsCost_AndCountsInTheTotal()
+    {
+        SetState(AntibraakStock, "0");
+        SetState(PrednisonStock, "0");
+        StartAt(20, 10);
+
+        _ctx.ChangeStateFor(AntibraakStock).FromState("0").ToState("4");
+        _ctx.ChangeStateFor(PrednisonStock).FromState("0").ToState("21");
+        SetState(AntibraakStock, "4");
+        SetState(PrednisonStock, "21");
+        At(20, 10, 1);
+
+        History().Should().OnlyContain(x => x.Cost != null);
+        History().Single(x => x.Medicine == PixelMedication.Antibraak).Cost.Should().Be(20.30);
+        var attributes = PublishedAttributes();
+        attributes.GetProperty("antibraak_prijs_per_pil").GetDouble().Should().Be(5.075);
+        attributes.GetProperty("prednison_kosten").GetDouble().Should().Be(7.85);
+        attributes.GetProperty("kosten_totaal").GetDouble().Should().Be(28.15);
+    }
+
+    [Fact]
+    public void OldStockLines_WithoutAPrice_CountAtTheCurrentPrice()
+    {
+        _storage.Save("PixelMedicationHistory", new List<MedicationEvent>
+        {
+            new() { Time = DateTimeOffset.Parse("2026-10-19T16:30:00+02:00"), Medicine = PixelMedication.Prednison, Kind = "voorraad", Amount = 21, Stock = 21 }
+        });
+        StartAt(20, 10);
+
+        PublishedAttributes().GetProperty("prednison_kosten").GetDouble().Should().Be(7.85);
     }
 
     private int PhoneNotifications(string titlePart) =>

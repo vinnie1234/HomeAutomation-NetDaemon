@@ -28,6 +28,13 @@ public record MedicationEvent
     [JsonPropertyName("voorraad")]
     public double Stock { get; init; }
 
+    /// <summary>
+    /// For a stock change: what the pills cost in euros, at the box price of that moment (negative when pills were taken off by
+    /// hand). Null for lines from before prices were kept; those count at the current price.
+    /// </summary>
+    [JsonPropertyName("kosten")]
+    public double? Cost { get; init; }
+
     /// <summary>For a correction: the time of the dose it undoes. That dose stays in the history but no longer counts.</summary>
     [JsonPropertyName("corrigeert")]
     public DateTimeOffset? Corrects { get; init; }
