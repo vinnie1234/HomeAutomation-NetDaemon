@@ -9,7 +9,8 @@ namespace Automation.apps.General;
 /// <summary>
 /// Makes sure the helpers in <see cref="HelperDefinitions"/> exist in Home Assistant. When NetDaemon starts it lists the
 /// helpers per domain over the websocket (<c>{domain}/list</c>) and creates the missing ones (<c>{domain}/create</c>), the
-/// same way the Home Assistant UI does. Existing helpers are left alone, so changes made in the UI stay.
+/// same way the Home Assistant UI does. Existing helpers are left alone, so changes made in the UI stay; only an
+/// input_select gets the options it misses added at the end (e.g. a new theme), its other options and order stay.
 /// </summary>
 [NetDaemonApp(Id = nameof(HelperManager))]
 public class HelperManager : BaseApp
@@ -58,6 +59,8 @@ public class HelperManager : BaseApp
             }
 
             var ids = existing.Select(x => x.Id).ToHashSet();
+            foreach (var item in existing) await AddMissingOptionsAsync(connection, domain.FirstOrDefault(x => x.Id == item.Id), item);
+
             foreach (var helper in domain.Where(x => !ids.Contains(x.Id)))
             {
                 try
@@ -83,6 +86,28 @@ public class HelperManager : BaseApp
         }
 
         return created;
+    }
+
+    /// <summary>
+    /// Adds the options of <paramref name="helper"/> that the existing input_select <paramref name="item"/> doesn't have yet.
+    /// </summary>
+    private async Task AddMissingOptionsAsync(IHomeAssistantConnection connection, HelperDefinition? helper, HelperItem item)
+    {
+        if (helper?.Domain != "input_select" || item.Options == null || !helper.Settings.TryGetValue("options", out var value)) return;
+        var missing = ((IEnumerable<string>)value).Except(item.Options).ToList();
+        if (missing.Count == 0) return;
+
+        try
+        {
+            await connection.SendCommandAndReturnResponseAsync<UpdateHelperCommand, HelperItem>(
+                new UpdateHelperCommand(helper.Domain, item.Id, new Dictionary<string, object> { ["options"] = item.Options.Concat(missing).ToList() }),
+                CancellationToken.None);
+            Logger.LogInformation("Added {Options} to {Domain}.{Id}", string.Join(", ", missing), helper.Domain, item.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not add {Options} to {Domain}.{Id}", string.Join(", ", missing), helper.Domain, item.Id);
+        }
     }
 
     /// <summary>

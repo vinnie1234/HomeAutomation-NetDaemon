@@ -131,3 +131,19 @@ sections:
           - entity: input_datetime.werk_eind_carleen
             name: Eind
             icon: mdi:briefcase-check-outline
+
+  # Bijzondere dagen: dan viert de weerkaart feest (de datums staan alleen in Home Assistant, niet in de code)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Bijzondere dagen
+        heading_style: title
+        icon: mdi:party-popper
+      - type: entities
+        entities:
+          - entity: input_datetime.verjaardag_carleen
+            name: Mijn verjaardag
+            icon: mdi:cake-variant-outline
+          - entity: input_datetime.jubileum
+            name: Ons jubileum
+            icon: mdi:heart-outline

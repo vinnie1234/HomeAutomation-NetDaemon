@@ -12,4 +12,8 @@ public record HelperItem
 
     [JsonPropertyName("name")]
     public string Name { get; init; } = string.Empty;
+
+    /// <summary>The options of an input_select; null for other helpers.</summary>
+    [JsonPropertyName("options")]
+    public IReadOnlyList<string>? Options { get; init; }
 }

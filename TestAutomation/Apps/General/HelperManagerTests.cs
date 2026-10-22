@@ -98,6 +98,36 @@ public class HelperManagerTests
         CreateCommands().Should().BeEmpty();
     }
 
+    private static readonly HelperDefinition Theme =
+        new("input_select", "weerkaart_thema", "weerkaart_thema", new Dictionary<string, object> { ["options"] = new[] { "Automatisch", "Kerst", "Halloween" } });
+
+    [Fact]
+    public async Task ExistingSelect_GetsTheMissingOptionsAddedAtTheEnd()
+    {
+        _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(Arg.Any<ListHelpersCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new List<HelperItem> { new() { Id = "weerkaart_thema", Name = "weerkaart_thema", Options = ["Kerst", "Automatisch", "Eigen"] } });
+
+        await _app.EnsureHelpersAsync([Theme]);
+
+        var update = _connection.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<UpdateHelperCommand>().Single();
+        var json = JsonSerializer.SerializeToElement(update);
+        json.GetProperty("type").GetString().Should().Be("input_select/update");
+        json.GetProperty("input_select_id").GetString().Should().Be("weerkaart_thema");
+        json.GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Kerst", "Automatisch", "Eigen", "Halloween");
+        CreateCommands().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ExistingSelect_WithAllOptions_IsNotUpdated()
+    {
+        _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(Arg.Any<ListHelpersCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new List<HelperItem> { new() { Id = "weerkaart_thema", Name = "weerkaart_thema", Options = ["Automatisch", "Kerst", "Halloween"] } });
+
+        await _app.EnsureHelpersAsync([Theme]);
+
+        _connection.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<UpdateHelperCommand>().Should().BeEmpty();
+    }
+
     [Fact]
     public void Definitions_HaveUniqueIdsPerDomain()
     {
