@@ -610,11 +610,12 @@ weather_hero:
         if (golden > 0) tint += ` sepia(${(0.18 * golden).toFixed(2)}) saturate(${(1 + 0.25 * golden).toFixed(2)})`;
         const speed = Math.max(20, 70 - windSpeed * 3);
         // Lukt het laden niet (HA herstart, netwerk even weg), dan opnieuw proberen: de tekening wordt niet opnieuw gemaakt
-        // zolang het weer gelijk blijft, dus een weggehaald plaatje zou tot de volgende weerswijziging wegblijven
+        // zolang het weer gelijk blijft, dus een weggehaald plaatje zou tot de volgende weerswijziging wegblijven. ?v= omzeilt een
+        // oude 404 in de browsercache (HA laat /local 31 dagen bewaren, ook als het bestand er toen nog niet was); ophogen bij nieuwe plaatjes
         const retry = `this.style.visibility='hidden';const n=+(this.dataset.tries||0);if(n<20){this.dataset.tries=n+1;`
           + `setTimeout(()=>{this.src=this.src.split('?')[0]+'?r='+Date.now()},15000)}`;
         const sprite = (file, x, y, width, opacity, blur, duration) =>
-          `<img src="/local/huis/clouds/${file}.webp" onerror="${retry}" onload="this.style.visibility=''" style="position:absolute;left:${x}%;top:${y}%;width:${width}px;
+          `<img src="/local/huis/clouds/${file}.webp?v=2" onerror="${retry}" onload="this.style.visibility=''" style="position:absolute;left:${x}%;top:${y}%;width:${width}px;
             opacity:${opacity};filter:${tint || 'none'}${blur ? ` blur(${blur}px)` : ''};pointer-events:none;
             animation:hero-drift ${duration}s ease-in-out ${-rnd() * duration}s infinite alternate">`;
         if (t > 0.55) {
