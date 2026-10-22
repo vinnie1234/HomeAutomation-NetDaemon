@@ -16,7 +16,7 @@ public record MedicationEvent
     [JsonPropertyName("medicijn")]
     public string Medicine { get; init; } = string.Empty;
 
-    /// <summary><c>gegeven</c> for a dose, <c>voorraad</c> for a change of the stock.</summary>
+    /// <summary><c>gegeven</c> for a dose, <c>voorraad</c> for a change of the stock, <c>correctie</c> for undoing a dose.</summary>
     [JsonPropertyName("soort")]
     public string Kind { get; init; } = string.Empty;
 
@@ -27,4 +27,8 @@ public record MedicationEvent
     /// <summary>The stock afterwards, in pills.</summary>
     [JsonPropertyName("voorraad")]
     public double Stock { get; init; }
+
+    /// <summary>For a correction: the time of the dose it undoes. That dose stays in the history but no longer counts.</summary>
+    [JsonPropertyName("corrigeert")]
+    public DateTimeOffset? Corrects { get; init; }
 }

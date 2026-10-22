@@ -15,6 +15,11 @@ namespace Automation.apps.General;
 /// 20:00) the status is <c>nodig</c> until it is given; when a day passed without a dose the status is <c>vergeten</c> until
 /// the next dose. Status, stock and history are published as <c>sensor.pixel_medicijnen</c> for the dashboard.
 /// </para>
+/// <para>
+/// An hour after the reminder time Vincent and Carleen get a phone notification when the prednison is still needed, and at
+/// 08:00 when it was forgotten; both have a "Gegeven" button. <c>input_button.pixel_medicijn_ongedaan</c> undoes the last
+/// dose with a correction line: the dose stays in the history but no longer counts.
+/// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(PixelMedication))]
 public class PixelMedication : BaseApp
@@ -28,6 +33,9 @@ public class PixelMedication : BaseApp
     private const int PublishedEvents = 200;
     private static readonly TimeSpan DefaultReminder = new(20, 0, 0);
     private static readonly TimeSpan DayStartsAt = new(12, 0, 0);
+    private static readonly TimeSpan PhoneReminderDelay = TimeSpan.FromHours(1);
+    private static readonly TimeSpan ForgottenNotificationAt = new(8, 0, 0);
+    private const string UndoButton = "input_button.pixel_medicijn_ongedaan";
 
     /// <summary>Per medicine: the stock helper, the button, the dose in pills and the stock below which it is almost gone.</summary>
     private static readonly IReadOnlyDictionary<string, (string Stock, string Button, double Dose, double Low)> Medicines =
@@ -77,8 +85,15 @@ public class PixelMedication : BaseApp
                 .Subscribe(x => OnStockChanged(medicine, x.Old?.State, x.New?.State));
         }
 
+        new Entity(HaContext, UndoButton).StateChanges()
+            .Where(x => x.Old?.State is not (null or "unavailable") && x.New?.State is not (null or "unknown" or "unavailable"))
+            .Subscribe(_ => UndoLastDose());
+
         // The status changes at the reminder time and when a new day begins
-        Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, "input_datetime.pixel_prednison_tijd"), DefaultReminder, Publish);
+        var reminderTime = new InputDatetimeEntity(HaContext, "input_datetime.pixel_prednison_tijd");
+        Scheduler.RunDailyAt(reminderTime, DefaultReminder, Publish);
+        Scheduler.RunDailyAt(reminderTime, DefaultReminder, () => Scheduler.Schedule(PhoneReminderDelay, RemindOnPhone));
+        Scheduler.RunDaily(ForgottenNotificationAt, RemindOnPhone);
         Scheduler.RunDaily(new TimeSpan(0, 0, 30), Publish);
         Scheduler.RunDaily(DayStartsAt.Add(TimeSpan.FromSeconds(30)), Publish);
 
@@ -150,8 +165,7 @@ public class PixelMedication : BaseApp
     public string PrednisonStatus()
     {
         var now = Scheduler.NowNl();
-        var lastDose = _history.Where(x => x.Medicine == Prednison && x.Kind == "gegeven")
-            .Select(x => x.Time).DefaultIfEmpty(DateTimeOffset.MinValue).Max();
+        var lastDose = Doses(Prednison).Select(x => x.Time).DefaultIfEmpty(DateTimeOffset.MinValue).Max();
 
         // A dose day runs from 12:00 to 12:00 the next day, so before 12:00 it is still the day before
         var day = now.TimeOfDay < DayStartsAt ? now.Date.AddDays(-1) : now.Date;
@@ -180,12 +194,60 @@ public class PixelMedication : BaseApp
             ? time
             : DefaultReminder;
 
+    /// <summary>The doses of a medicine (or of all when null) that still count: not undone by a correction.</summary>
+    private IEnumerable<MedicationEvent> Doses(string? medicine) =>
+        _history.Where(x => x.Kind == "gegeven" && (medicine == null || x.Medicine == medicine) && !IsCorrected(x));
+
+    private bool IsCorrected(MedicationEvent dose) =>
+        _history.Any(x => x.Kind == "correctie" && x.Medicine == dose.Medicine && x.Corrects == dose.Time);
+
+    /// <summary>Undoes the last dose that still counts: the pill goes back on the stock and a correction line is saved.</summary>
+    private void UndoLastDose()
+    {
+        lock (_lock)
+        {
+            if (Doses(null).LastOrDefault() is not { } dose)
+            {
+                Logger.LogInformation("Nothing to undo in Pixel's medication");
+                return;
+            }
+
+            var m = Medicines[dose.Medicine];
+            var stock = Stock(dose.Medicine) + m.Dose;
+            _expectedStock[dose.Medicine] = stock;
+            HaContext.CallService("input_number", "set_value", ServiceTarget.FromEntity(m.Stock), new { value = stock });
+
+            Add(new MedicationEvent
+            {
+                Time = Scheduler.NowNl(), Medicine = dose.Medicine, Kind = "correctie", Amount = m.Dose, Stock = stock, Corrects = dose.Time
+            });
+            Logger.LogInformation("Gift {Medicine} van {Time} ongedaan gemaakt, nog {Stock}", dose.Medicine, dose.Time, stock);
+        }
+    }
+
+    /// <summary>A phone notification for Vincent and Carleen when the prednison is still needed or was forgotten.</summary>
+    private void RemindOnPhone()
+    {
+        var status = PrednisonStatus();
+        if (status is not ("nodig" or "vergeten")) return;
+
+        var forgotten = status == "vergeten";
+        Notify.NotifyPhoneVincentCarleen(
+            forgotten ? "Prednison vergeten!" : "Pixel heeft zijn prednison nog niet gehad",
+            forgotten ? "Pixel heeft gisteren geen prednison gekregen. Geef hem zijn kwart pil." : "Vergeet zijn kwart pil prednison niet.",
+            true,
+            action: [new ActionModel(action: "PIXEL_PREDNISON_GEGEVEN", title: "✅ Gegeven", func: () => Give(Prednison))],
+            channel: "Pixel");
+        Logger.LogInformation("Pixel prednison: herinnering op de telefoon ({Status})", status);
+    }
+
     private void Publish()
     {
         lock (_lock)
         {
             var status = PrednisonStatus();
-            var last = (string medicine) => _history.LastOrDefault(x => x.Medicine == medicine && x.Kind == "gegeven")?.Time.ToString("yyyy-MM-ddTHH:mm:sszzz");
+            var last = (string medicine) => Doses(medicine).LastOrDefault()?.Time.ToString("yyyy-MM-ddTHH:mm:sszzz");
+            var undoable = Doses(null).LastOrDefault();
             var prednison = Stock(Prednison);
             var antibraak = Stock(Antibraak);
 
@@ -199,13 +261,21 @@ public class PixelMedication : BaseApp
                 laatste_prednison = last(Prednison),
                 laatste_antibraak = last(Antibraak),
                 herinnering = ReminderTime().ToString(@"hh\:mm"),
+                ongedaan_maken = undoable == null ? null : new
+                {
+                    tijd = undoable.Time.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                    medicijn = undoable.Medicine,
+                    hoeveelheid = undoable.Amount
+                },
                 geschiedenis = _history.TakeLast(PublishedEvents).Reverse().Select(x => new
                 {
                     tijd = x.Time.ToString("yyyy-MM-ddTHH:mm:sszzz"),
                     medicijn = x.Medicine,
                     soort = x.Kind,
                     hoeveelheid = x.Amount,
-                    voorraad = x.Stock
+                    voorraad = x.Stock,
+                    gecorrigeerd = x.Kind == "gegeven" && IsCorrected(x),
+                    corrigeert = x.Corrects?.ToString("yyyy-MM-ddTHH:mm:sszzz")
                 }).ToList()
             });
         }

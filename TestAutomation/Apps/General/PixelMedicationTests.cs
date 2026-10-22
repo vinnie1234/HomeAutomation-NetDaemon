@@ -195,4 +195,74 @@ public class PixelMedicationTests : IDisposable
         attributes.GetProperty("antibraak_bijna_op").GetBoolean().Should().BeTrue();
         attributes.GetProperty("geschiedenis")[0].GetProperty("medicijn").GetString().Should().Be("prednison");
     }
+
+    private int PhoneNotifications(string titlePart) =>
+        _ctx.HaContext.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[1]! == "mobile_app_vincent_phone"
+            && JsonSerializer.Serialize(c.GetArguments()[3]).Contains(titlePart));
+
+    [Fact]
+    public void PhoneReminder_AnHourAfterTheReminder_WhenStillNeeded()
+    {
+        StartAt(20, 13);
+
+        At(20, 21, 1);
+
+        PhoneNotifications("prednison nog niet gehad").Should().Be(1);
+        _ctx.VerifyCallNotify("notify", "mobile_app_carleen_mobiel");
+    }
+
+    [Fact]
+    public void NoPhoneReminder_WhenAlreadyGiven()
+    {
+        StartAt(20, 13);
+        At(20, 20, 30);
+        Press(PrednisonButton);
+
+        At(20, 21, 1);
+
+        PhoneNotifications("prednison nog niet gehad").Should().Be(0);
+    }
+
+    [Fact]
+    public void MorningNotification_WhenForgotten()
+    {
+        StartAt(20, 11);
+
+        At(21, 8, 1);
+
+        PhoneNotifications("Prednison vergeten").Should().Be(1);
+    }
+
+    [Fact]
+    public void Undo_PutsThePillBack_KeepsTheDoseAndAddsACorrection()
+    {
+        StartAt(20, 20, 30);
+        Press(PrednisonButton);
+        SetState(PrednisonStock, "9.75");
+
+        Press("input_button.pixel_medicijn_ongedaan");
+
+        var history = History();
+        history.Should().HaveCount(2);
+        history[0].Kind.Should().Be("gegeven");
+        history[1].Kind.Should().Be("correctie");
+        history[1].Corrects.Should().Be(history[0].Time);
+        history[1].Stock.Should().Be(10);
+        _app.PrednisonStatus().Should().Be("nodig");
+    }
+
+    [Fact]
+    public void Undo_TwiceInARow_UndoesTheDoseBeforeIt()
+    {
+        StartAt(20, 9);
+        Press(AntibraakButton);
+        At(20, 20, 30);
+        Press(PrednisonButton);
+
+        Press("input_button.pixel_medicijn_ongedaan");
+        Press("input_button.pixel_medicijn_ongedaan");
+
+        History().Where(x => x.Kind == "correctie").Select(x => x.Medicine)
+            .Should().Equal(PixelMedication.Prednison, PixelMedication.Antibraak);
+    }
 }

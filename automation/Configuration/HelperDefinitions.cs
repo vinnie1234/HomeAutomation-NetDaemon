@@ -17,6 +17,7 @@ public static class HelperDefinitions
         Number("pixel_antibraak_voorraad", "Pixel antibraak voorraad", min: 0, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:pill-multiple"),
         Button("pixel_prednison_gegeven", "Pixel prednison gegeven", icon: "mdi:pill"),
         Button("pixel_antibraak_gegeven", "Pixel antibraak gegeven", icon: "mdi:pill-multiple"),
+        Button("pixel_medicijn_ongedaan", "Pixel medicijn ongedaan", icon: "mdi:undo"),
         Time("pixel_prednison_tijd", "Pixel prednison tijd", "20:00:00"),
 
         // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
