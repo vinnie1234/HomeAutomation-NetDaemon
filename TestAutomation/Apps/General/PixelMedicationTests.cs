@@ -82,13 +82,13 @@ public class PixelMedicationTests : IDisposable
     }
 
     [Fact]
-    public void GivingAntibraak_TakesOnePillOffTheStock()
+    public void GivingAntibraak_TakesHalfAPillOffTheStock()
     {
         StartAt(20, 9);
 
         Press(AntibraakButton);
 
-        SetStock(AntibraakStock).Should().Be(7);
+        SetStock(AntibraakStock).Should().Be(7.5);
         History().Should().ContainSingle().Which.Medicine.Should().Be(PixelMedication.Antibraak);
     }
 

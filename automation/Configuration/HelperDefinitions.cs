@@ -14,7 +14,7 @@ public static class HelperDefinitions
     [
         // Medicijnen van Pixel (PixelMedication): voorraad in pillen (prednison per kwart), de knoppen "gegeven" en de herinneringstijd
         Number("pixel_prednison_voorraad", "Pixel prednison voorraad", min: 0, max: 500, step: 0.25, mode: "box", unit: "pillen", icon: "mdi:pill"),
-        Number("pixel_antibraak_voorraad", "Pixel antibraak voorraad", min: 0, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:pill-multiple"),
+        Number("pixel_antibraak_voorraad", "Pixel antibraak voorraad", min: 0, max: 500, step: 0.5, mode: "box", unit: "pillen", icon: "mdi:pill-multiple"),
         Button("pixel_prednison_gegeven", "Pixel prednison gegeven", icon: "mdi:pill"),
         Button("pixel_antibraak_gegeven", "Pixel antibraak gegeven", icon: "mdi:pill-multiple"),
         Button("pixel_medicijn_ongedaan", "Pixel medicijn ongedaan", icon: "mdi:undo"),

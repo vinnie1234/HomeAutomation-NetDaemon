@@ -3380,7 +3380,7 @@ med_stock:
     action: javascript
     javascript: |
       [[[
-        const what = `${variables.dose === 0.25 ? 'een kwart' : 'een'} ${variables.medicine}`;
+        const what = `${{ 0.25: 'een kwart', 0.5: 'een halve' }[variables.dose] ?? 'een'} ${variables.medicine}`;
         if (window.confirm(`Heeft Pixel ${what} gekregen?`))
           hass.callService('input_button', 'press', { entity_id: `input_button.pixel_${variables.medicine}_gegeven` });
       ]]]
@@ -3393,12 +3393,13 @@ med_stock:
         const stock = parseFloat(entity?.state) || 0;
         const rgb = stock < variables.low ? '255, 107, 107' : stock < variables.low * 2 ? '255, 176, 96' : '74, 222, 128';
         const name = variables.medicine === 'prednison' ? 'Prednison' : 'Antibraak';
-        const days = variables.medicine === 'prednison' ? `genoeg voor ${Math.floor(stock / variables.dose)} dagen` : `${Math.floor(stock)} keer`;
+        const times = Math.floor(stock / variables.dose);
+        const days = variables.medicine === 'prednison' ? `genoeg voor ${times} dagen` : `genoeg voor ${times} keer`;
         const last = states['sensor.pixel_medicijnen']?.attributes?.[`laatste_${variables.medicine}`];
         const lastText = last ? `laatst ${new Date(last).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${new Date(last).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : 'nog niet gegeven';
         return `<div style="display:flex;align-items:center;gap:16px;text-align:left">
             <div style="flex:1;min-width:0">
-              <div style="font-size:13px;opacity:0.75">${name} · ${variables.dose === 0.25 ? '¼ pil per keer' : '1 pil per keer'}</div>
+              <div style="font-size:13px;opacity:0.75">${name} · ${fmt(variables.dose)} pil per keer</div>
               <div style="display:flex;align-items:baseline;gap:8px">
                 <span style="font-size:52px;font-weight:200;line-height:1.05;color:rgb(${rgb})">${fmt(stock)}</span>
                 <span style="font-size:13px;font-weight:600">${stock === 1 ? 'pil' : 'pillen'} · ${days}</span>
@@ -3407,7 +3408,7 @@ med_stock:
             </div>
             <div style="width:74px;height:74px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
               background:rgba(${rgb},0.22);box-shadow:inset 0 0 0 2px rgba(${rgb},0.6)">
-              <span style="font-size:20px;font-weight:700;line-height:1">${variables.dose === 0.25 ? '−¼' : '−1'}</span>
+              <span style="font-size:20px;font-weight:700;line-height:1">−${fmt(variables.dose)}</span>
               <span style="font-size:10px;opacity:0.8">geven</span>
             </div>
           </div>`;

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Automation.apps.General;
 
 /// <summary>
-/// Keeps track of Pixel's medicines, prednison (a quarter pill every evening) and antibraak (one pill when needed).
+/// Keeps track of Pixel's medicines, prednison (a quarter pill every evening) and antibraak (half a pill when needed).
 /// The "gegeven" buttons take the dose off the stock; every dose and every change of the stock is saved forever.
 /// <para>
 /// The prednison of a day counts as given when a dose was given between 12:00 that day and 12:00 the next day, so a late
@@ -42,7 +42,7 @@ public class PixelMedication : BaseApp
         new Dictionary<string, (string, string, double, double)>
         {
             [Prednison] = ("input_number.pixel_prednison_voorraad", "input_button.pixel_prednison_gegeven", 0.25, 2),
-            [Antibraak] = ("input_number.pixel_antibraak_voorraad", "input_button.pixel_antibraak_gegeven", 1, 5)
+            [Antibraak] = ("input_number.pixel_antibraak_voorraad", "input_button.pixel_antibraak_gegeven", 0.5, 5)
         };
 
     private readonly IDataRepository _storage;
@@ -212,14 +212,16 @@ public class PixelMedication : BaseApp
                 return;
             }
 
+            // Exactly what that dose took off, also if the dose was different then
             var m = Medicines[dose.Medicine];
-            var stock = Stock(dose.Medicine) + m.Dose;
+            var amount = -dose.Amount;
+            var stock = Stock(dose.Medicine) + amount;
             _expectedStock[dose.Medicine] = stock;
             HaContext.CallService("input_number", "set_value", ServiceTarget.FromEntity(m.Stock), new { value = stock });
 
             Add(new MedicationEvent
             {
-                Time = Scheduler.NowNl(), Medicine = dose.Medicine, Kind = "correctie", Amount = m.Dose, Stock = stock, Corrects = dose.Time
+                Time = Scheduler.NowNl(), Medicine = dose.Medicine, Kind = "correctie", Amount = amount, Stock = stock, Corrects = dose.Time
             });
             Logger.LogInformation("Gift {Medicine} van {Time} ongedaan gemaakt, nog {Stock}", dose.Medicine, dose.Time, stock);
         }

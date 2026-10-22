@@ -57,25 +57,18 @@ sections:
         entity: input_number.pixel_antibraak_voorraad
         variables:
           medicine: antibraak
-          dose: 1
+          dose: 0.5
           low: 5
-      # Voorraad instellen, bijvoorbeeld bij een nieuwe strip (wordt ook in de geschiedenis gezet)
-      - type: tile
-        entity: input_number.pixel_prednison_voorraad
-        name: Prednison instellen
-        icon: mdi:pencil-outline
-        features_position: inline
-        features:
-          - type: numeric-input
-            style: buttons
-      - type: tile
-        entity: input_number.pixel_antibraak_voorraad
-        name: Antibraak instellen
-        icon: mdi:pencil-outline
-        features_position: inline
-        features:
-          - type: numeric-input
-            style: buttons
+      # Voorraad instellen door het aantal in te tikken, bijvoorbeeld bij een nieuwe strip (komt ook in de geschiedenis)
+      - type: entities
+        title: Voorraad invullen
+        entities:
+          - entity: input_number.pixel_prednison_voorraad
+            name: Prednison (pillen)
+            icon: mdi:pencil-outline
+          - entity: input_number.pixel_antibraak_voorraad
+            name: Antibraak (pillen)
+            icon: mdi:pencil-outline
       - type: tile
         entity: input_datetime.pixel_prednison_tijd
         name: Herinnering prednison
