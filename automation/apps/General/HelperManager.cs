@@ -100,7 +100,12 @@ public class HelperManager : BaseApp
         try
         {
             await connection.SendCommandAndReturnResponseAsync<UpdateHelperCommand, HelperItem>(
-                new UpdateHelperCommand(helper.Domain, item.Id, new Dictionary<string, object> { ["options"] = item.Options.Concat(missing).ToList() }),
+                new UpdateHelperCommand(helper.Domain, item.Id, new Dictionary<string, object>
+                {
+                    // Home Assistant wants the name with every update; the other settings it keeps as they are
+                    ["name"] = item.Name,
+                    ["options"] = item.Options.Concat(missing).ToList()
+                }),
                 CancellationToken.None);
             Logger.LogInformation("Added {Options} to {Domain}.{Id}", string.Join(", ", missing), helper.Domain, item.Id);
         }

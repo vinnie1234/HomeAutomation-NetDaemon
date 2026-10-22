@@ -113,6 +113,7 @@ public class HelperManagerTests
         var json = JsonSerializer.SerializeToElement(update);
         json.GetProperty("type").GetString().Should().Be("input_select/update");
         json.GetProperty("input_select_id").GetString().Should().Be("weerkaart_thema");
+        json.GetProperty("name").GetString().Should().Be("weerkaart_thema");
         json.GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Kerst", "Automatisch", "Eigen", "Halloween");
         CreateCommands().Should().BeEmpty();
     }
