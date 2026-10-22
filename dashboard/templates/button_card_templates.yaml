@@ -782,7 +782,7 @@ weather_hero:
 
         // ---------- Thema: seizoen of feestdag ----------
         // Keuze uit input_select.weerkaart_thema; "Automatisch" volgt de datum (feestdagen) en anders sensor.season.
-        // Sinterklaas: 1 nov t/m 5 dec · Kerst: 6 dec t/m 6 jan · Nieuwjaar: 31 dec en 1 jan · Pasen: Goede Vrijdag t/m Tweede Paasdag.
+        // Sinterklaas: 1 t/m 5 dec · Kerst: 6 dec t/m 6 jan · Nieuwjaar: 31 dec en 1 jan · Pasen: Goede Vrijdag t/m Tweede Paasdag.
         const today = new Date();
         const easterSunday = y => {
           const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
@@ -798,7 +798,7 @@ weather_hero:
         const autoTheme = () => {
           if ((month === 12 && date === 31) || (month === 1 && date === 1)) return 'nieuwjaar';
           if (month === 10 && date >= 24) return 'halloween';
-          if (month === 11 || (month === 12 && date <= 5)) return 'sinterklaas';
+          if (month === 12 && date <= 5) return 'sinterklaas';
           if ((month === 12 && date >= 6) || (month === 1 && date <= 6)) return 'kerst';
           if (daysFromEaster >= -2 && daysFromEaster <= 1) return 'pasen';
           const season = { spring: 'lente', summer: 'zomer', autumn: 'herfst', winter: 'winter' }[states['sensor.season']?.state];
