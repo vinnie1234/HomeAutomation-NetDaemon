@@ -1,6 +1,6 @@
-# Menubalk bovenaan alle Media-pagina's: Media (overzicht), TV, Muziek, Gaming en Series.
+# Menubalk bovenaan alle Media-pagina's: Media (overzicht), TV, Muziek, Gaming, Series en Films (Jellyfin).
 type: grid
-columns: 5
+columns: 6
 square: false
 grid_options:
   columns: full
@@ -50,3 +50,12 @@ cards:
     tap_action:
       action: navigate
       navigation_path: /dashboard-huis/media-series
+  - type: custom:button-card
+    template: tab
+    name: Films
+    icon: mdi:filmstrip-box-multiple
+    variables:
+      path: /dashboard-huis/media-films
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-huis/media-films

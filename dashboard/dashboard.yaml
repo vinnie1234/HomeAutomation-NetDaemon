@@ -17,6 +17,7 @@ views:
   - !include views/media_muziek.yaml
   - !include views/media_gaming.yaml
   - !include views/media_series.yaml
+  - !include views/media_films.yaml
   - !include views/pixel.yaml
   - !include views/pixel_medicijnen.yaml
   - !include views/huishouden.yaml

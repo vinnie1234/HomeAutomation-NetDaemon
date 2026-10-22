@@ -1,0 +1,63 @@
+# Media → Films: Jellyfin (JellyHA). Wat Vincent nu kijkt, wat nieuw is, en bladeren door de bibliotheek met afspelen
+# op de tv in de woonkamer. Alleen Vincents eigen Jellyfin-speler; de andere gebruikers doen niet mee.
+title: Films
+path: media-films
+icon: mdi:filmstrip-box-multiple
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/media
+max_columns: 3
+dense_section_placement: true
+sections:
+  # Navigatie en Media-menu
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - !include ../cards/media_samenvatting.yaml
+      - !include ../cards/media_tabs.yaml
+
+  # Nu aan het kijken (alleen als Vincent iets aan heeft staan) en nieuw toegevoegd
+  - type: grid
+    cards:
+      - type: heading
+        heading: Jellyfin
+        heading_style: title
+        icon: mdi:filmstrip-box-multiple
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.jellyha_user_vincent
+            state_not: idle
+          - condition: state
+            entity: media_player.jellyha_user_vincent
+            state_not: unavailable
+          - condition: state
+            entity: media_player.jellyha_user_vincent
+            state_not: "off"
+        card:
+          type: custom:button-card
+          template: jelly_now
+      - type: custom:button-card
+        template: jelly_latest
+        triggers_update:
+          - sensor.jellyha_latest_movie
+      - type: custom:button-card
+        template: jelly_latest
+        variables:
+          sensor: sensor.jellyha_latest_episode
+          label: Nieuwste aflevering
+        triggers_update:
+          - sensor.jellyha_latest_episode
+
+  # De bibliotheek: tik om te bladeren, zoeken en af te spelen
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Bibliotheek
+        heading_style: title
+        icon: mdi:bookshelf
+      - type: custom:button-card
+        template: jelly_library
