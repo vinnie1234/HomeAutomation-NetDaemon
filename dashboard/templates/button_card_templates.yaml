@@ -3992,46 +3992,70 @@ med_chart:
         - text-align: left
 
 # Datum intikken (of jaar en maand los kiezen) in plaats van HA's kalender, waar je per maand terug moet klikken.
-# entity: een input_datetime met alleen een datum. Opslaan zodra de datum compleet is (een half getikt jaar telt niet);
-# de kaart tekent alleen opnieuw als de datum zelf verandert (anders verdwijnt het veld onder je vingers).
+# entity: een input_datetime met alleen een datum. Tik opent een venster boven de pagina met een gewoon datumveld en
+# "Opslaan" (een invoerveld in de kaart zelf werkt niet goed: de kaart vangt de klikken af en tekent opnieuw).
 date_input:
   template: glass
-  show_label: false
+  show_label: true
+  label: |
+    [[[
+      const m = String(entity?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? new Date(+m[1], m[2] - 1, +m[3]).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Nog niet ingevuld · tik om in te vullen';
+    ]]]
   tap_action:
-    action: none
-  hold_action:
-    action: none
+    action: javascript
+    javascript: |
+      [[[
+        if (document.getElementById('huis-datum')) return;
+        const current = /^\d{4}-\d{2}-\d{2}/.test(entity?.state ?? '') ? entity.state.slice(0, 10) : '';
+        const overlay = document.createElement('div');
+        overlay.id = 'huis-datum';
+        overlay.innerHTML = `<style>
+            #huis-datum { position: fixed; inset: 0; z-index: 100000; background: rgba(5,8,16,0.6); backdrop-filter: blur(4px);
+              display: flex; align-items: center; justify-content: center; font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+            #huis-datum .box { background: #151b2b; color: #f2f4f8; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px;
+              width: min(340px, 90vw); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+            #huis-datum .title { font-size: 17px; font-weight: 600; margin-bottom: 14px; }
+            #huis-datum input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.08); color: inherit; font-size: 18px;
+              border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; height: 46px; padding: 0 12px; color-scheme: dark; }
+            #huis-datum .hint { font-size: 12px; opacity: 0.6; margin: 8px 2px 16px; }
+            #huis-datum .buttons { display: flex; gap: 10px; justify-content: flex-end; }
+            #huis-datum button { border: none; border-radius: 12px; height: 40px; padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+            #huis-datum .cancel { background: rgba(255,255,255,0.08); color: inherit; }
+            #huis-datum .save { background: #4ade80; color: #0b1a10; }
+            #huis-datum .save:disabled { opacity: 0.4; cursor: default; }
+          </style>
+          <div class="box"><div class="title">${entity?.attributes?.friendly_name ?? 'Datum'}</div>
+            <input type="date" value="${current}" min="1900-01-01" max="2100-12-31">
+            <div class="hint">Tik de datum in (dag, maand, jaar) of kies hem in de kalender</div>
+            <div class="buttons"><button class="cancel">Annuleren</button><button class="save">Opslaan</button></div></div>`;
+        const input = overlay.querySelector('input'), save = overlay.querySelector('.save');
+        const valid = () => /^\d{4}-\d{2}-\d{2}$/.test(input.value) && +input.value.slice(0, 4) >= 1900;
+        const check = () => { save.disabled = !valid(); };
+        input.addEventListener('input', check); input.addEventListener('change', check); check();
+        const close = () => overlay.remove();
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        overlay.querySelector('.cancel').addEventListener('click', close);
+        save.addEventListener('click', () => {
+          if (!valid()) return;
+          hass.callService('input_datetime', 'set_datetime', { entity_id: entity.entity_id, date: input.value });
+          close();
+        });
+        input.addEventListener('keyup', e => { if (e.key === 'Enter') save.click(); if (e.key === 'Escape') close(); });
+        document.body.appendChild(overlay);
+        setTimeout(() => input.focus(), 50);
+      ]]]
   styles:
     grid:
-      - grid-template-areas: '"i n d"'
-      - grid-template-columns: auto 1fr auto
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
       - column-gap: 12px
     card:
       - min-height: 60px
-      - cursor: default
     icon:
       - width: 22px
       - color: var(--accent-color)
-  custom_fields:
-    d: |
-      [[[
-        const value = /^\d{4}-\d{2}-\d{2}/.test(entity?.state ?? '') ? entity.state.slice(0, 10) : '';
-        setTimeout(() => {
-          const input = this.shadowRoot?.querySelector('input.date');
-          if (!input || input.dataset.bound) return;
-          input.dataset.bound = '1';
-          // Klikken en tikken in het veld horen niet bij de kaart (die zou er anders een actie van maken)
-          ['click', 'pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(type => input.addEventListener(type, e => e.stopPropagation()));
-          const save = () => {
-            const v = input.value;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(v) && +v.slice(0, 4) > 1900 && v !== (entity?.state ?? '').slice(0, 10))
-              hass.callService('input_datetime', 'set_datetime', { entity_id: entity.entity_id, date: v });
-          };
-          // Een half getikt jaartal (0001, 0019, 0199) is nog geen geldige datum na 1900, dus ook bij elke wijziging kan het veilig
-          input.addEventListener('change', save);
-          input.addEventListener('blur', save);
-          input.addEventListener('keyup', e => { if (e.key === 'Enter') input.blur(); });
-        }, 0);
-        return `<input class="date" type="date" value="${value}" style="background:rgba(255,255,255,0.08);color:inherit;
-            border:1px solid rgba(255,255,255,0.15);border-radius:10px;height:36px;padding:0 10px;font-size:14px;color-scheme:dark">`;
-      ]]]
+    label:
+      - justify-self: start
+      - font-size: 13px
+      - opacity: 0.8
