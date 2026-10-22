@@ -3447,14 +3447,19 @@ med_history:
             lastDay = day;
           }
           const isPred = e.medicijn === 'prednison';
-          const given = e.soort === 'gegeven';
-          const color = given ? (isPred ? '#ffb060' : '#60a5fa') : '#4ade80';
-          const text = given
-            ? `${fmt(e.hoeveelheid)} ${isPred ? 'prednison' : 'antibraak'} gegeven`
-            : `Voorraad ${isPred ? 'prednison' : 'antibraak'} ${e.hoeveelheid > 0 ? '+' : '−'}${fmt(e.hoeveelheid)}`;
+          const name = isPred ? 'prednison' : 'antibraak';
+          const given = e.soort === 'gegeven', correction = e.soort === 'correctie';
+          // Een ongedaan gemaakte gift blijft staan, doorgestreept; de correctie is een eigen regel
+          const color = correction || e.gecorrigeerd ? '#9ca3af' : given ? (isPred ? '#ffb060' : '#60a5fa') : '#4ade80';
+          const icon = correction ? 'mdi:undo' : given ? (isPred ? 'mdi:pill' : 'mdi:pill-multiple') : 'mdi:package-variant-plus';
+          const text = correction
+            ? `Gift ongedaan gemaakt · ${fmt(e.hoeveelheid)} ${name} terug`
+            : given
+              ? `<span style="${e.gecorrigeerd ? 'text-decoration:line-through;opacity:0.6' : ''}">${fmt(e.hoeveelheid)} ${name} gegeven</span>${e.gecorrigeerd ? ' <span style="font-weight:400;opacity:0.6">(ongedaan gemaakt)</span>' : ''}`
+              : `Voorraad ${name} ${e.hoeveelheid > 0 ? '+' : '−'}${fmt(e.hoeveelheid)}`;
           out += `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid rgba(255,255,255,0.05)">
               <div style="width:30px;height:30px;border-radius:50%;background:${color}33;display:flex;align-items:center;justify-content:center">
-                <ha-icon icon="${given ? (isPred ? 'mdi:pill' : 'mdi:pill-multiple') : 'mdi:package-variant-plus'}" style="--mdc-icon-size:17px;color:${color}"></ha-icon></div>
+                <ha-icon icon="${icon}" style="--mdc-icon-size:17px;color:${color}"></ha-icon></div>
               <div style="text-align:left"><div style="font-size:13px;font-weight:600">${text}</div>
                 <div style="font-size:11px;opacity:0.6">nog ${fmt(e.voorraad)} ${e.voorraad === 1 ? 'pil' : 'pillen'}</div></div>
               <div style="font-size:13px;font-weight:600;opacity:0.85">${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>

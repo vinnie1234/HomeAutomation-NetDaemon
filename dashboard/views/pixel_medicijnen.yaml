@@ -90,6 +90,43 @@ sections:
         entity: input_datetime.pixel_prednison_tijd
         name: Herinnering prednison
         icon: mdi:alarm
+      # Per ongeluk gegeven? De laatste gift ongedaan maken: de pil gaat terug en er komt een correctieregel bij
+      - type: custom:button-card
+        template: glass
+        entity: sensor.pixel_medicijnen
+        triggers_update:
+          - sensor.pixel_medicijnen
+        icon: mdi:undo
+        name: Laatste gift ongedaan maken
+        show_label: true
+        label: |
+          [[[
+            const u = entity?.attributes?.ongedaan_maken;
+            if (!u) return 'Er is niets om ongedaan te maken';
+            const t = new Date(u.tijd);
+            const amount = Math.abs(u.hoeveelheid) === 0.25 ? '¼' : Math.abs(u.hoeveelheid);
+            return `${amount} ${u.medicijn} van ${t.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+          ]]]
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.pixel_medicijn_ongedaan
+          confirmation:
+            text: De laatste gift ongedaan maken? De pil gaat terug in de voorraad; de gift blijft in de geschiedenis staan als ongedaan gemaakt.
+        styles:
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 14px
+          card:
+            - min-height: 68px
+          icon:
+            - width: 24px
+            - color: '#9ca3af'
+          label:
+            - white-space: normal
+            - text-align: left
 
   # Geschiedenis
   - type: grid
