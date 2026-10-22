@@ -3992,12 +3992,14 @@ med_chart:
         - text-align: left
 
 # Datum intikken (of jaar en maand los kiezen) in plaats van HA's kalender, waar je per maand terug moet klikken.
-# entity: een input_datetime met alleen een datum; bij een wijziging wordt die meteen gezet.
+# entity: een input_datetime met alleen een datum. Opslaan zodra de datum compleet is (een half getikt jaar telt niet);
+# de kaart tekent alleen opnieuw als de datum zelf verandert (anders verdwijnt het veld onder je vingers).
 date_input:
   template: glass
-  triggers_update: all
   show_label: false
   tap_action:
+    action: none
+  hold_action:
     action: none
   styles:
     grid:
@@ -4014,15 +4016,21 @@ date_input:
     d: |
       [[[
         const value = /^\d{4}-\d{2}-\d{2}/.test(entity?.state ?? '') ? entity.state.slice(0, 10) : '';
-        // Na het tekenen het veld koppelen: bij een geldige datum de helper zetten (niet tijdens het tikken van een half jaartal)
         setTimeout(() => {
           const input = this.shadowRoot?.querySelector('input.date');
           if (!input || input.dataset.bound) return;
           input.dataset.bound = '1';
-          input.addEventListener('change', () => {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(input.value) && +input.value.slice(0, 4) > 1900)
-              hass.callService('input_datetime', 'set_datetime', { entity_id: entity.entity_id, date: input.value });
-          });
+          // Klikken en tikken in het veld horen niet bij de kaart (die zou er anders een actie van maken)
+          ['click', 'pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(type => input.addEventListener(type, e => e.stopPropagation()));
+          const save = () => {
+            const v = input.value;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v) && +v.slice(0, 4) > 1900 && v !== (entity?.state ?? '').slice(0, 10))
+              hass.callService('input_datetime', 'set_datetime', { entity_id: entity.entity_id, date: v });
+          };
+          // Een half getikt jaartal (0001, 0019, 0199) is nog geen geldige datum na 1900, dus ook bij elke wijziging kan het veilig
+          input.addEventListener('change', save);
+          input.addEventListener('blur', save);
+          input.addEventListener('keyup', e => { if (e.key === 'Enter') input.blur(); });
         }, 0);
         return `<input class="date" type="date" value="${value}" style="background:rgba(255,255,255,0.08);color:inherit;
             border:1px solid rgba(255,255,255,0.15);border-radius:10px;height:36px;padding:0 10px;font-size:14px;color-scheme:dark">`;
