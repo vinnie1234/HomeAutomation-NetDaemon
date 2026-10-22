@@ -1788,12 +1788,25 @@ media_tile:
       - text-overflow: ellipsis
       - max-width: 100%
 
-# Snel een playlist starten. Speelt waar de muziek nu al speelt, anders in de kamer met de laatste beweging,
-# anders in de woonkamer. variables.playlist: Spotify-URL.
+# Snel een playlist starten. Speelt op de speaker waar de muziek nu al speelt, anders in de kamer met de laatste
+# beweging, anders in de woonkamer. variables.playlist: Spotify-URL.
 playlist:
   template: action
   variables:
-    spotify: media_player.spotifyplus_vincent_maarschalkerweerd
+    # Spotify-spelers die weten op welk apparaat er gespeeld wordt (attribuut source)
+    spotify:
+      - media_player.spotify_vincent_maarschalkerweerd
+      - media_player.spotifyplus_vincent_maarschalkerweerd
+    # De speakers, groepen eerst: speelt het hele huis, dan ook daar verder
+    speakers:
+      - media_player.hele_huis
+      - media_player.friends_speakers
+      - media_player.woonkamer
+      - media_player.nestmini9818
+      - media_player.googlehome0351
+      - media_player.hub_vincent
+      - media_player.googlehome7421
+      - media_player.googlehome8627
     playlist: ""
     rooms:
       - [binary_sensor.motionwoonkamer, media_player.woonkamer]
@@ -1803,15 +1816,15 @@ playlist:
     action: javascript
     javascript: |
       [[[
-        const spotify = states[variables.spotify];
-        const speakers = Object.values(states).filter(s => s.entity_id.startsWith('media_player.'));
-        const current = spotify?.state === 'playing'
-          ? speakers.find(s => (s.attributes.friendly_name ?? '').toLowerCase() === (spotify.attributes.source ?? '').toLowerCase())
-          : null;
+        // 1. Een speaker die nu speelt, 2. het apparaat waar Spotify op speelt
+        const active = variables.speakers.find(id => states[id]?.state === 'playing');
+        const source = variables.spotify.map(id => states[id]).find(s => s?.state === 'playing' && s.attributes.source)?.attributes.source;
+        const bySource = source ? variables.speakers.find(id => states[id] && states[id].state !== 'unavailable'
+          && (states[id].attributes.friendly_name ?? '').toLowerCase() === source.toLowerCase()) : null;
         const lastMotion = variables.rooms
           .map(([motion, speaker]) => ({ speaker, at: new Date(states[motion]?.last_changed ?? 0) }))
           .sort((a, b) => b.at - a.at)[0];
-        const target = current?.entity_id ?? lastMotion?.speaker ?? 'media_player.woonkamer';
+        const target = active ?? bySource ?? lastMotion?.speaker ?? 'media_player.woonkamer';
         const deviceId = hass.entities?.[target]?.device_id;
         hass.callService('spotcast', 'play_media', {
           media_player: deviceId ? { device_id: deviceId } : { entity_id: target },
