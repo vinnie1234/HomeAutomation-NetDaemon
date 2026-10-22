@@ -30,7 +30,7 @@ sections:
             ]]]
         name: |
           [[[
-            return { gegeven: 'Prednison van vandaag is gegeven', nodig: 'Pixel moet zijn prednison nog krijgen', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[states['sensor.pixel_medicijnen']?.state] ?? 'Medicijnen van Pixel';
+            return { gegeven: `Prednison van ${new Date().getHours() < 12 ? 'gisteravond' : 'vanavond'} is gegeven`, nodig: 'Pixel moet zijn prednison nog krijgen', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[states['sensor.pixel_medicijnen']?.state] ?? 'Medicijnen van Pixel';
           ]]]
         label: |
           [[[
