@@ -1257,6 +1257,30 @@ weather_hero:
           }
         }
 
+        // ---------- De vlaggenmast rechts naast het huisje ----------
+        // Gewoon de vlag van Renswoude: vijf banen blauw, wit, rood, wit, blauw (2:3:5:3:2), de rode baan om en om gekanteeld.
+        // Op Koningsdag en Bevrijdingsdag de Nederlandse vlag (op Koningsdag met de oranje wimpel), met dodenherdenking vanaf
+        // 18:00 de Nederlandse vlag halfstok. 's Nachts gaat de vlag binnen, zoals het hoort: dan staat de mast leeg.
+        {
+          const fx = homeX + 9, fy = halfMast ? 22 : 4;
+          const dutch = ['king', 'liberation'].includes(celebration?.kind) || halfMast;
+          const u = 13.2 / 15;   // hoogte van één deel van de vlag van Renswoude
+          const renswoude = `<rect x="4" y="${fy}" width="22" height="${13.2}" fill="#1e4b9b"/>
+              <rect x="4" y="${fy + 2 * u}" width="22" height="${11 * u}" fill="#fff"/>
+              <rect x="4" y="${fy + 5 * u}" width="22" height="${5 * u}" fill="#c8102e"/>
+              ${[0, 4, 8, 12, 16, 20].map(x => `<rect x="${4 + x}" y="${fy + 5 * u - 1.1}" width="2" height="1.15" fill="#c8102e"/>`).join('')}
+              ${[2, 6, 10, 14, 18].map(x => `<rect x="${4 + x}" y="${fy + 10 * u - 0.05}" width="2" height="1.15" fill="#c8102e"/>`).join('')}
+              <rect x="4" y="${fy + 13 * u}" width="22" height="${2 * u}" fill="#1e4b9b"/>`;
+          const netherlands = `<rect x="4" y="${fy}" width="22" height="4.4" fill="#ae1c28"/><rect x="4" y="${fy + 4.4}" width="22" height="4.4" fill="#fff"/>
+              <rect x="4" y="${fy + 8.8}" width="22" height="4.4" fill="#21468b"/>
+              ${celebration?.kind === 'king' ? `<path d="M4 ${fy - 2.6} L33 ${fy - 1.2} L4 ${fy + 0.2} Z" fill="#f97316"/>` : ''}`;
+          festive += svgAt(fx, groundBottom(fx) - 1, 40, 70, '0 0 34 60', `
+              <path d="M4 60 V2" stroke="${dim('rgb(226,232,240)')}" stroke-width="1.6"/><circle cx="4" cy="2" r="1.4" fill="#facc15"/>
+              ${day ? `<g style="transform-box:view-box;transform-origin:4px ${fy}px;animation:hero-flag ${Math.max(1, 3 - windSpeed / 15).toFixed(1)}s ease-in-out infinite">
+                ${dutch ? netherlands : renswoude}</g>` : ''}`,
+            'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))');
+        }
+
         // Feest- en gedenkdagen: ballonnen bij de deur, vlaggetjes en confetti; hartjes bij liefde; de vlag uit bij Koningsdag
         // en Bevrijdingsdag; met dodenherdenking alleen de vlag halfstok en 's avonds een kaarsje
         if (celebration) {
@@ -1264,17 +1288,6 @@ weather_hero:
           const colors = { birthday: ['#ef4444', '#facc15', '#3b82f6', '#22c55e', '#e879f9'], love: ['#f43f5e', '#fb7185', '#fda4af', '#ffffff'],
                            king: ['#f97316', '#fb923c', '#fdba74', '#ffffff'], liberation: ['#ae1c28', '#ffffff', '#21468b'] }[kind] ?? [];
           const bx = homeX - 5;
-          // De vlag naast het huisje (met een oranje wimpel op Koningsdag); halfstok met dodenherdenking
-          if (['king', 'liberation'].includes(kind) || halfMast) {
-            const fx = homeX - 9, fy = halfMast ? 22 : 4;
-            festive += svgAt(fx, groundBottom(fx) - 1, 40, 70, '0 0 34 60', `
-                <path d="M4 60 V2" stroke="${dim('rgb(226,232,240)')}" stroke-width="1.6"/><circle cx="4" cy="2" r="1.4" fill="#facc15"/>
-                <g style="transform-box:view-box;transform-origin:4px ${fy}px;animation:hero-flag 2.4s ease-in-out infinite">
-                  <rect x="4" y="${fy}" width="22" height="4.4" fill="#ae1c28"/><rect x="4" y="${fy + 4.4}" width="22" height="4.4" fill="#fff"/>
-                  <rect x="4" y="${fy + 8.8}" width="22" height="4.4" fill="#21468b"/>
-                  ${kind === 'king' ? `<path d="M4 ${fy - 2.6} L33 ${fy - 1.2} L4 ${fy + 0.2} Z" fill="#f97316"/>` : ''}</g>`,
-              'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))');
-          }
           if (kind === 'remembrance' && !day) {
             festive += svgAt(homeX + 4.4, groundBottom(homeX + 4.4) - 1.5, 14, 22, '0 0 14 22', `
                 <rect x="3" y="9" width="8" height="12" rx="1" fill="#f1f5f9"/>
@@ -1316,7 +1329,7 @@ weather_hero:
         }
         // Op vakantie: een bordje bij het pad en af en toe een vliegtuigje met een spandoek
         if (onVacation) {
-          festive += svgAt(homeX + 9, groundBottom(homeX + 9) - 1.5, 50, 34, '0 0 50 34', `
+          festive += svgAt(homeX - 10, groundBottom(homeX - 10) - 1.5, 50, 34, '0 0 50 34', `
               <rect x="23.5" y="14" width="3" height="20" fill="${dim('rgb(120,84,52)')}"/>
               <rect x="2" y="2" width="46" height="14" rx="2" fill="${dim('rgb(196,150,96)')}" stroke="${dim('rgb(140,100,60)')}" stroke-width="1"/>
               <text x="25" y="11.6" text-anchor="middle" font-size="7.4" font-weight="700" font-family="sans-serif" fill="${dim('rgb(70,40,20)')}">${sitterHome ? 'Oppas is er' : 'Op vakantie'}</text>`,
