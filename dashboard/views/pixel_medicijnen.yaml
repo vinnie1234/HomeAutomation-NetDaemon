@@ -1,0 +1,103 @@
+# Medicijnen van Pixel (subpagina van Pixel): voorraad instellen, geven, en de hele geschiedenis.
+# NetDaemon PixelMedication houdt de voorraad en de geschiedenis bij (voor altijd) en publiceert sensor.pixel_medicijnen.
+title: Medicijnen
+path: pixel_medicijnen
+icon: mdi:pill
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/pixel
+max_columns: 3
+dense_section_placement: true
+sections:
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: action
+        name: Terug naar Pixel
+        icon: mdi:arrow-left
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/pixel
+        styles:
+          grid:
+            - grid-template-areas: '"i n"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 10px
+          card:
+            - height: 48px
+      - type: custom:button-card
+        template: summary
+        icon: mdi:pill
+        variables:
+          level: |
+            [[[
+              const s = states['sensor.pixel_medicijnen']?.state;
+              const low = parseFloat(states['input_number.pixel_prednison_voorraad']?.state) < 2 || parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) < 5;
+              return s === 'vergeten' ? 'bad' : s === 'nodig' || low ? 'warn' : 'ok';
+            ]]]
+        name: |
+          [[[
+            return { gegeven: 'Prednison van vandaag is gegeven', nodig: 'Pixel moet zijn prednison nog krijgen', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[states['sensor.pixel_medicijnen']?.state] ?? 'Medicijnen van Pixel';
+          ]]]
+        label: |
+          [[[
+            const a = states['sensor.pixel_medicijnen']?.attributes ?? {};
+            return `Herinnering om ${a.herinnering ?? '20:00'} · tik op een medicijn om te geven · alles wordt voor altijd bewaard`;
+          ]]]
+
+  # Voorraad en geven
+  - type: grid
+    cards:
+      - type: heading
+        heading: Voorraad
+        heading_style: title
+        icon: mdi:pill
+      - type: custom:button-card
+        template: med_stock
+        entity: input_number.pixel_prednison_voorraad
+        variables:
+          medicine: prednison
+          dose: 0.25
+          low: 2
+      - type: custom:button-card
+        template: med_stock
+        entity: input_number.pixel_antibraak_voorraad
+        variables:
+          medicine: antibraak
+          dose: 1
+          low: 5
+      # Voorraad instellen, bijvoorbeeld bij een nieuwe strip (wordt ook in de geschiedenis gezet)
+      - type: tile
+        entity: input_number.pixel_prednison_voorraad
+        name: Prednison instellen
+        icon: mdi:pencil-outline
+        features_position: inline
+        features:
+          - type: numeric-input
+            style: buttons
+      - type: tile
+        entity: input_number.pixel_antibraak_voorraad
+        name: Antibraak instellen
+        icon: mdi:pencil-outline
+        features_position: inline
+        features:
+          - type: numeric-input
+            style: buttons
+      - type: tile
+        entity: input_datetime.pixel_prednison_tijd
+        name: Herinnering prednison
+        icon: mdi:alarm
+
+  # Geschiedenis
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Geschiedenis
+        heading_style: title
+        icon: mdi:history
+      - type: custom:button-card
+        template: med_history

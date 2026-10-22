@@ -18,6 +18,7 @@ views:
   - !include views/media_gaming.yaml
   - !include views/media_series.yaml
   - !include views/pixel.yaml
+  - !include views/pixel_medicijnen.yaml
   - !include views/huishouden.yaml
   - !include views/weer.yaml
   - !include views/systeem.yaml

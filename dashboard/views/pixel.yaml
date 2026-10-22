@@ -40,6 +40,9 @@ sections:
             const parts = [`${portions} ${portions === 1 ? 'portie' : 'porties'} gegeten vandaag`];
             if (!isNaN(visits)) parts.push(`${visits}× naar de bak`);
             const today = new Date().toDateString();
+            const med = states['sensor.pixel_medicijnen']?.state;
+            if (med === 'vergeten') parts.push('prednison vergeten!');
+            else if (med === 'nodig') parts.push('prednison nog geven');
             const sick = (states['sensor.pixel_gekotst_momenten']?.attributes?.momenten ?? [])
               .filter(x => new Date(x).toDateString() === today).length;
             if (sick) parts.push(`vandaag ${sick}× gekotst`);
@@ -456,6 +459,56 @@ sections:
         template: vomit_button
       - type: custom:button-card
         template: vomit_chart
+
+  # Medicijnen: voorraad en of de prednison van vandaag gegeven is; tik opent de pagina Medicijnen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Medicijnen
+        heading_style: title
+        icon: mdi:pill
+      - type: custom:button-card
+        template: glass
+        entity: sensor.pixel_medicijnen
+        triggers_update: all
+        icon: mdi:pill
+        show_label: true
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/pixel_medicijnen
+        name: |
+          [[[
+            return { gegeven: 'Prednison van vandaag gegeven', nodig: 'Prednison nog geven', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[entity?.state] ?? 'Medicijnen';
+          ]]]
+        label: |
+          [[[
+            const fmt = v => { const w = Math.floor(v), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((v - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+            const p = parseFloat(states['input_number.pixel_prednison_voorraad']?.state) || 0;
+            const a = parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) || 0;
+            return `Prednison ${fmt(p)} (${Math.floor(p / 0.25)} dagen) · antibraak ${fmt(a)}`;
+          ]]]
+        custom_fields:
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+        styles:
+          grid:
+            - grid-template-areas: '"i n arrow" "i l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - min-height: 76px
+            - background: |
+                [[[ return { vergeten: 'rgba(255, 77, 77, 0.22)', nodig: 'rgba(255, 176, 96, 0.18)' }[entity?.state] ?? 'rgba(255, 255, 255, 0.06)'; ]]]
+          img_cell:
+            - width: 44px
+            - height: 44px
+            - border-radius: 12px
+            - background: rgba(255, 176, 96, 0.2)
+          icon:
+            - width: 24px
+            - color: '[[[ return entity?.state === "vergeten" ? "#ff6b6b" : entity?.state === "gegeven" ? "#4ade80" : "#ffb060"; ]]]'
+          label:
+            - white-space: normal
+            - text-align: left
 
   # Pop-up: voedermomenten aanpassen (tijd en porties)
   - type: grid

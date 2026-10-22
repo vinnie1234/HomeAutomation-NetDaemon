@@ -3306,3 +3306,165 @@ workday_button:
       - max-width: 100%
       - overflow: hidden
       - text-overflow: ellipsis
+
+# Pixel moet zijn prednison (oranje, vanaf de herinneringstijd) of is hem vergeten (rood, pulserend, de dag erna).
+# De melding is meteen de knop: tik, bevestig, en er gaat een kwart pil van de voorraad af (NetDaemon PixelMedication).
+pixel_med_alert:
+  template: alert
+  entity: sensor.pixel_medicijnen
+  icon: mdi:pill
+  variables:
+    color: |
+      [[[ return entity?.state === 'vergeten' ? '255, 77, 77' : '255, 176, 96'; ]]]
+    pulse: |
+      [[[ return entity?.state === 'vergeten'; ]]]
+  tap_action:
+    action: perform-action
+    perform_action: input_button.press
+    target:
+      entity_id: input_button.pixel_prednison_gegeven
+    confirmation:
+      text: Heeft Pixel zijn kwart prednison gehad?
+  name: |
+    [[[ return entity?.state === 'vergeten' ? 'Prednison vergeten!' : 'Pixel moet zijn prednison'; ]]]
+  label: |
+    [[[
+      const last = entity?.attributes?.laatste_prednison ? new Date(entity.attributes.laatste_prednison) : null;
+      const when = last ? last.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' }) + ' ' +
+        last.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : 'nog nooit';
+      return entity?.state === 'vergeten'
+        ? `Laatst gegeven: ${when} · tik als hij hem nu krijgt`
+        : '¼ pil · tik als hij hem gehad heeft';
+    ]]]
+  styles:
+    card:
+      - min-height: '[[[ return entity?.state === "vergeten" ? "104px" : "84px"; ]]]'
+    name:
+      - font-size: '[[[ return entity?.state === "vergeten" ? "20px" : "16px"; ]]]'
+
+# Medicijnen van Pixel bijna op: prednison onder 2 pillen of antibraak onder 5. Tik opent de pagina Medicijnen.
+pixel_med_low:
+  template: alert
+  icon: mdi:pill-off
+  variables:
+    color: 255, 176, 96
+    pulse: false
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/pixel_medicijnen
+  name: Medicijnen van Pixel bijna op
+  label: |
+    [[[
+      const fmt = v => { const w = Math.floor(v), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((v - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+      const p = parseFloat(states['input_number.pixel_prednison_voorraad']?.state) || 0;
+      const a = parseFloat(states['input_number.pixel_antibraak_voorraad']?.state) || 0;
+      const parts = [];
+      if (p < 2) parts.push(`prednison nog ${fmt(p)} (${Math.floor(p / 0.25)} ${Math.floor(p / 0.25) === 1 ? 'dag' : 'dagen'})`);
+      if (a < 5) parts.push(`antibraak nog ${fmt(a)}`);
+      return `${parts.join(' · ')} · tijd om nieuwe te halen`;
+    ]]]
+
+# Voorraad van een medicijn, groot, met hoeveel dagen het nog genoeg is (prednison: een kwart per dag) en een knop "geven".
+# variables.medicine: prednison of antibraak, variables.dose: de dosis in pillen, variables.low: grens voor bijna op.
+med_stock:
+  template: glass
+  triggers_update: all
+  variables:
+    medicine: prednison
+    dose: 0.25
+    low: 2
+  show_icon: false
+  show_name: false
+  # Templates in target en bevestiging vult button-card niet in, dus via JavaScript met een bevestigingsvraag
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const what = `${variables.dose === 0.25 ? 'een kwart' : 'een'} ${variables.medicine}`;
+        if (window.confirm(`Heeft Pixel ${what} gekregen?`))
+          hass.callService('input_button', 'press', { entity_id: `input_button.pixel_${variables.medicine}_gegeven` });
+      ]]]
+  hold_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const fmt = v => { const w = Math.floor(v), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((v - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+        const stock = parseFloat(entity?.state) || 0;
+        const rgb = stock < variables.low ? '255, 107, 107' : stock < variables.low * 2 ? '255, 176, 96' : '74, 222, 128';
+        const name = variables.medicine === 'prednison' ? 'Prednison' : 'Antibraak';
+        const days = variables.medicine === 'prednison' ? `genoeg voor ${Math.floor(stock / variables.dose)} dagen` : `${Math.floor(stock)} keer`;
+        const last = states['sensor.pixel_medicijnen']?.attributes?.[`laatste_${variables.medicine}`];
+        const lastText = last ? `laatst ${new Date(last).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${new Date(last).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : 'nog niet gegeven';
+        return `<div style="display:flex;align-items:center;gap:16px;text-align:left">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;opacity:0.75">${name} · ${variables.dose === 0.25 ? '¼ pil per keer' : '1 pil per keer'}</div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:52px;font-weight:200;line-height:1.05;color:rgb(${rgb})">${fmt(stock)}</span>
+                <span style="font-size:13px;font-weight:600">${stock === 1 ? 'pil' : 'pillen'} · ${days}</span>
+              </div>
+              <div style="font-size:12px;opacity:0.65;margin-top:4px">${lastText}</div>
+            </div>
+            <div style="width:74px;height:74px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+              background:rgba(${rgb},0.22);box-shadow:inset 0 0 0 2px rgba(${rgb},0.6)">
+              <span style="font-size:20px;font-weight:700;line-height:1">${variables.dose === 0.25 ? '−¼' : '−1'}</span>
+              <span style="font-size:10px;opacity:0.8">geven</span>
+            </div>
+          </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 16px 18px
+      - cursor: pointer
+    custom_fields:
+      body:
+        - width: 100%
+
+# Geschiedenis van de medicijnen, per dag: wat Pixel kreeg en wanneer, en elke aanpassing van de voorraad.
+med_history:
+  template: glass
+  entity: sensor.pixel_medicijnen
+  triggers_update:
+    - sensor.pixel_medicijnen
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    list: |
+      [[[
+        const fmt = v => { const a = Math.abs(v), w = Math.floor(a), f = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[Math.round((a - w) * 4) / 4]; return f ? `${w || ''}${f}` : `${w}`; };
+        const events = entity?.attributes?.geschiedenis ?? [];
+        if (!events.length) return '<div style="opacity:0.6;padding:6px">Nog niets gegeven of aangepast.</div>';
+        let out = '', lastDay = '';
+        for (const e of events) {
+          const t = new Date(e.tijd);
+          const day = t.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: t.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+          if (day !== lastDay) {
+            out += `<div style="font-size:12px;font-weight:700;opacity:0.7;margin:${lastDay ? 12 : 0}px 0 4px">${day.charAt(0).toUpperCase() + day.slice(1)}</div>`;
+            lastDay = day;
+          }
+          const isPred = e.medicijn === 'prednison';
+          const given = e.soort === 'gegeven';
+          const color = given ? (isPred ? '#ffb060' : '#60a5fa') : '#4ade80';
+          const text = given
+            ? `${fmt(e.hoeveelheid)} ${isPred ? 'prednison' : 'antibraak'} gegeven`
+            : `Voorraad ${isPred ? 'prednison' : 'antibraak'} ${e.hoeveelheid > 0 ? '+' : '−'}${fmt(e.hoeveelheid)}`;
+          out += `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid rgba(255,255,255,0.05)">
+              <div style="width:30px;height:30px;border-radius:50%;background:${color}33;display:flex;align-items:center;justify-content:center">
+                <ha-icon icon="${given ? (isPred ? 'mdi:pill' : 'mdi:pill-multiple') : 'mdi:package-variant-plus'}" style="--mdc-icon-size:17px;color:${color}"></ha-icon></div>
+              <div style="text-align:left"><div style="font-size:13px;font-weight:600">${text}</div>
+                <div style="font-size:11px;opacity:0.6">nog ${fmt(e.voorraad)} ${e.voorraad === 1 ? 'pil' : 'pillen'}</div></div>
+              <div style="font-size:13px;font-weight:600;opacity:0.85">${t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>`;
+        }
+        return out;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - width: 100%

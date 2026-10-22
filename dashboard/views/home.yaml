@@ -337,6 +337,33 @@ sections:
       # Opvallende meldingen: alleen zichtbaar als ze nu spelen
       - type: conditional
         conditions:
+          - condition: state
+            entity: sensor.pixel_medicijnen
+            state:
+              - nodig
+              - vergeten
+        card:
+          type: custom:button-card
+          template: pixel_med_alert
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: numeric_state
+                entity: input_number.pixel_prednison_voorraad
+                below: 2
+              - condition: numeric_state
+                entity: input_number.pixel_antibraak_voorraad
+                below: 5
+        card:
+          type: custom:button-card
+          template: pixel_med_low
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
           - condition: or
             conditions:
               - condition: numeric_state
