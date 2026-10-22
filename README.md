@@ -34,15 +34,30 @@ required HACS cards are described in [`dashboard/README.md`](dashboard/README.md
 ### Weather card
 
 The heart of the Home page: a live sky (sun and moon at their real position, generated clouds, rain, snow, fog and
-storms) over a landscape that changes with the season and the holidays. It also tells what is going on at home:
-smoke from the chimney and a lit window while someone is home, the laundry on the line (swaying in the wind),
-garbage bags or the paper bin at the curb when they go out, and Pixel wandering around — ten minutes before his
-food he sits at the front door, wagging his tail. The pills show who is home, asleep or working, and kitchen timers
-count down live.
+storms, KNMI weather warnings, and planes overhead from Flightradar24) over a landscape that changes with the season.
+Our house on the hill tells what is going on at home:
+
+- **Who is home** — smoke from the chimney and a lit window; on warm days an open window with a waving curtain instead
+- **Inside** — music notes rising from the roof when a speaker plays, blue TV light behind the window
+- **Outside** — the laundry on the line (swaying in the wind), garbage bags or the paper bin at the curb, a paddling
+  pool with a rubber duck on hot sunny days
+- **Post** — the letterbox fills up when there is mail, and today's parcels stand stacked at the door
+- **On vacation** — curtains closed, a sign by the path and a banner plane; the light is on when the house sitter is there
+- **Pixel** — he wanders around and, ten minutes before his food, sits at the front door wagging his tail, wearing a
+  hat that fits the day: a Santa hat, a mitre, bunny ears, a crown on King's Day, a party hat on birthdays, a rain hat,
+  a woolly hat when it freezes or a straw hat with sunglasses when it's hot
+
+Holidays and our own days get their own decorations: Sinterklaas, Christmas, New Year, Easter, Halloween, King's Day,
+Valentine's Day, Liberation Day, Remembrance Day (the flag at half-mast), our birthdays (also Pixel's) and our
+anniversary. The birthday dates live in Home Assistant helpers, not in this repository. The pills show who is home,
+asleep or working, and kitchen timers count down live. For testing, `?test` in the URL shows drop-downs to pick a
+theme, a time of day and a scenario (weather, warnings, music and TV, post, vacation, ...).
 
 ![Weather card on an autumn afternoon](docs/images/dashboard/weather-card-day.png)
 
 ![Weather card on Christmas Eve](docs/images/dashboard/weather-card-christmas.png)
+
+![King's Day, Halloween night, a hot summer day and being on vacation](docs/images/dashboard/weather-card-moments.png)
 
 ### Alerts on Home
 
