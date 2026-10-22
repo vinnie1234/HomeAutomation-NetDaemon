@@ -52,7 +52,7 @@ sections:
           color: 74, 222, 128
         label: |
           [[[
-            const s = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+            const s = states['media_player.spotify_vincent_maarschalkerweerd'];
             if (s?.state !== 'playing') return 'Stil · per kamer bedienen';
             return [s.attributes.media_title, s.attributes.source].filter(Boolean).join(' · ');
           ]]]
@@ -112,12 +112,12 @@ sections:
       - type: conditional
         conditions:
           - condition: state
-            entity: media_player.spotifyplus_vincent_maarschalkerweerd
+            entity: media_player.spotify_vincent_maarschalkerweerd
             state: playing
         card:
           type: custom:bubble-card
           card_type: media-player
-          entity: media_player.spotifyplus_vincent_maarschalkerweerd
+          entity: media_player.spotify_vincent_maarschalkerweerd
           name: Spotify
           icon: mdi:spotify
           cover_background: true

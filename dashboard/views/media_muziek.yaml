@@ -27,7 +27,7 @@ sections:
         icon: mdi:spotify
       - type: custom:bubble-card
         card_type: media-player
-        entity: media_player.spotifyplus_vincent_maarschalkerweerd
+        entity: media_player.spotify_vincent_maarschalkerweerd
         name: Spotify
         icon: mdi:spotify
         cover_background: true
@@ -73,7 +73,7 @@ sections:
           action: perform-action
           perform_action: media_player.media_pause
           target:
-            entity_id: media_player.spotifyplus_vincent_maarschalkerweerd
+            entity_id: media_player.spotify_vincent_maarschalkerweerd
 
   # Per kamer: links de speaker (afspelen/pauze, volume), rechts "Speel hier"
   - type: grid

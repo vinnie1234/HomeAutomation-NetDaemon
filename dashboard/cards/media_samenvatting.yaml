@@ -4,7 +4,7 @@ template: summary
 icon: mdi:play-circle-outline
 name: |
   [[[
-    const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+    const spotify = states['media_player.spotify_vincent_maarschalkerweerd'];
     const tv = states['media_player.tv'];
     const tvOn = tv && !['off', 'unavailable', 'unknown'].includes(tv.state);
     const ps5 = states['switch.ps5_vincent_power']?.state === 'on';
@@ -16,7 +16,7 @@ name: |
   ]]]
 label: |
   [[[
-    const spotify = states['media_player.spotifyplus_vincent_maarschalkerweerd'];
+    const spotify = states['media_player.spotify_vincent_maarschalkerweerd'];
     const ps = states['media_player.playstation_5'];
     const parts = [];
     if (spotify?.state === 'playing') parts.push([spotify.attributes.media_title, spotify.attributes.media_artist].filter(Boolean).join(' – '));

@@ -403,6 +403,17 @@ weather_hero:
     - sensor.hub_vincent_timers
     - weather.weer_thuis_waarnemingen
     - sun.sun
+    - media_player.spotify_vincent_maarschalkerweerd
+    - media_player.tv
+    - media_player.woonkamer
+    - media_player.nestmini9818
+    - media_player.googlehome0351
+    - media_player.friends_speakers
+    - media_player.hub_vincent
+    - media_player.hele_huis
+    - media_player.googlehome7421
+    - media_player.googlehome8627
+    - media_player.soundbar
     - sensor.weer_thuis_temperatuur
     - sensor.weer_thuis_bewolking
     - sensor.weer_thuis_windsnelheid
@@ -480,6 +491,8 @@ weather_hero:
     }
     @keyframes hero-warning { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
     @keyframes hero-star-glow { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+    @keyframes hero-note { 0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; } 15%, 55% { opacity: 1; } 100% { transform: translate(-9px, -19px) rotate(12deg); opacity: 0; } }
+    @keyframes hero-tv { 0%, 100% { fill: #6fa8ff; } 18% { fill: #c4dcff; } 40% { fill: #5272d0; } 58% { fill: #e6efff; } 80% { fill: #8a9cff; } }
     @keyframes hero-smoke { 0% { transform: translate(0, 0) scale(0.6); opacity: 0.8; } 100% { transform: translate(-14px, -40px) scale(2.2); opacity: 0; } }
     @keyframes hero-sleigh { 0% { transform: translate(0, 0); } 50% { transform: translate(85vw, -10px); } 100% { transform: translate(170vw, 6px); } }
     @keyframes hero-sint { from { transform: translateX(0); } to { transform: translateX(-140vw); } }
@@ -517,7 +530,8 @@ weather_hero:
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
             'sensor.afval_vandaag', 'sensor.afval_morgen', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
-            'input_datetime.pixelfeedthirdtime', 'input_datetime.pixelfeedfourthtime'].map(id => states[id]?.state)
+            'input_datetime.pixelfeedthirdtime', 'input_datetime.pixelfeedfourthtime', 'media_player.spotify_vincent_maarschalkerweerd',
+            'media_player.tv', 'media_player.woonkamer', 'media_player.nestmini9818', 'media_player.googlehome0351', 'media_player.friends_speakers', 'media_player.hub_vincent', 'media_player.hele_huis', 'media_player.googlehome7421', 'media_player.googlehome8627', 'media_player.soundbar'].map(id => states[id]?.state)
         ]);
         if (this._heroSky?.signature === skySignature) return this._heroSky.html;
 
@@ -756,29 +770,44 @@ weather_hero:
                     <rect x="9" y="22" width="2" height="2" fill="${night('rgb(70,50,40)')}"/>${lights}
                   </svg>`;
         };
-        // lit: licht achter het raam (anders donker glas), smoke: rook uit de schoorsteen
-        const house = (x, size, chimney, { lit = true, smoke = false } = {}) => {
+        // lit: licht achter het raam (anders donker glas), smoke: rook uit de schoorsteen,
+        // tv: blauw flikkerend tv-licht achter het raam, music: muzieknootjes die van het dak opstijgen
+        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false } = {}) => {
           const top = groundTop(x);
           const glow = !lit ? (day ? 'rgba(70,82,104,0.75)' : 'rgb(18,22,34)') : day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
           let puffs = '';
           if (chimney && smoke) for (let i = 0; i < 4; i++) puffs += `<circle cx="17.5" cy="1.5" r="${1.3 + i * 0.3}" fill="rgba(236,240,247,${day ? 0.8 : 0.45})"
               style="transform-box:fill-box;transform-origin:center;animation:hero-chimney-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
+          let notes = '';
+          if (music) ['♪', '♫', '♪', '♬'].forEach((n, i) => {
+            notes += `<text x="${4 + (i % 2) * 2.5}" y="10" font-size="${4.8 + (i % 2) * 0.8}" font-weight="700" fill="${['#ffe08a', '#a7f3d0', '#c4b5fd', '#fda4af'][i]}"
+                style="transform-box:fill-box;transform-origin:center;animation:hero-note 3.2s ease-out ${(-i * 0.8).toFixed(1)}s infinite;
+                filter:drop-shadow(0 0 0.6px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(0,0,0,0.35))">${n}</text>`;
+          });
           return `<svg viewBox="0 0 24 22" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-96%);width:${size}px;height:${size * 0.92}px;overflow:visible">
                     ${puffs}${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
                     <path d="M2 11 L12 3 L22 11 Z" fill="${night('rgb(120,48,40)')}"/>
                     ${wintry ? `<path d="M2 11 L12 3 L22 11 L20.5 11 L12 4.6 L3.5 11 Z" fill="${snowCap}"/>` : ''}
                     <rect x="4" y="11" width="16" height="11" fill="${night('rgb(168,140,112)')}"/>
                     <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day || !lit ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>
-                    <rect x="14" y="15" width="3" height="7" fill="${night('rgb(96,64,46)')}"/>
+                    ${tv ? `<rect x="7" y="14" width="4" height="4" style="animation:hero-tv 2.6s steps(6) infinite;opacity:${day ? 0.75 : 0.95};
+                      filter:drop-shadow(0 0 ${day ? 1.5 : 3}px #6fa8ff)"/>` : ''}
+                    <rect x="14" y="15" width="3" height="7" fill="${night('rgb(96,64,46)')}"/>${notes}
                   </svg>`;
         };
         // Iemand thuis: rook uit de schoorsteen, en 's avonds en 's nachts licht achter het raam
         const someoneHome = states['input_boolean.away']?.state !== 'on';
+        // Muziek op een speaker thuis (de speaker zelf, of Spotify die erop speelt) en de tv aan
+        const homeSpeakers = ['media_player.woonkamer', 'media_player.nestmini9818', 'media_player.googlehome0351', 'media_player.friends_speakers', 'media_player.hub_vincent', 'media_player.hele_huis', 'media_player.googlehome7421', 'media_player.googlehome8627', 'media_player.soundbar'];
+        const spotifyNow = states['media_player.spotify_vincent_maarschalkerweerd'];
+        const musicOn = homeSpeakers.some(id => states[id]?.state === 'playing')
+          || (spotifyNow?.state === 'playing' && homeSpeakers.some(id => (states[id]?.attributes.friendly_name ?? '').toLowerCase() === String(spotifyNow.attributes.source ?? '').toLowerCase()));
+        const tvOn = !['off', 'unavailable', 'unknown', undefined].includes(states['media_player.tv']?.state);
         let scene = '';
         if (theme === 'kerst') {
           [[8, 30], [16, 22], [92, 26]].forEach(([x, s]) => { scene += tree(x, s); });
         } else if (theme === 'nieuwjaar') {
-          scene += house(76, 36, true);
+          scene += house(76, 36, true, { tv: tvOn, music: musicOn });
           [[12, 30], [20, 22], [62, 26], [88, 32], [94, 22]].forEach(([x, s]) => { scene += tree(x, s); });
         } else if (theme === 'pasen') {
           [[8, 26], [66, 24], [86, 22]].forEach(([x, s]) => { scene += tree(x, s); });
@@ -794,7 +823,7 @@ weather_hero:
                 fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
                 stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
-          scene += house(homeX, 78, true, { lit: someoneHome, smoke: someoneHome });
+          scene += house(homeX, 78, true, { lit: someoneHome, smoke: someoneHome, tv: tvOn, music: musicOn });
         }
         out += scene;
 
@@ -1710,12 +1739,14 @@ network_count:
 
 # Knop "Speel hier" naast de speaker van een kamer (entity = de speaker).
 # Speelt Spotify al ergens anders, dan verhuist de muziek naar deze speaker; anders start variables.playlist hier.
-# Groen als de muziek nu op deze speaker speelt.
+# Groen als de muziek nu op deze speaker speelt. Of er muziek speelt weet de gewone Spotify-speler; verhuizen gaat via
+# SpotifyPlus, want alleen die kent alle speakers (de gewone kent de Cast-speakers niet als bron).
 play_here:
   template: action
   triggers_update: all
   variables:
-    spotify: media_player.spotifyplus_vincent_maarschalkerweerd
+    spotify: media_player.spotify_vincent_maarschalkerweerd
+    transfer: media_player.spotifyplus_vincent_maarschalkerweerd
     playlist: https://open.spotify.com/playlist/6oZLDHU5xcpk3lwe8ZXnqd
   icon: mdi:music-note-plus
   name: '[[[ return entity.state === "playing" ? "Speelt hier" : "Speel hier"; ]]]'
@@ -1725,17 +1756,15 @@ play_here:
       [[[
         const spotify = states[variables.spotify];
         const name = (entity.attributes.friendly_name ?? '').toLowerCase();
-        const source = (spotify?.attributes.source_list ?? []).find(s => s.toLowerCase() === name);
+        const source = (states[variables.transfer]?.attributes.source_list ?? []).find(s => s.toLowerCase() === name);
         if (spotify?.state === 'playing' && source) {
-          hass.callService('media_player', 'select_source', { entity_id: variables.spotify, source });
+          hass.callService('media_player', 'select_source', { entity_id: variables.transfer, source });
           return;
         }
         const deviceId = hass.entities?.[entity.entity_id]?.device_id;
         hass.callService('spotcast', 'play_media', {
           media_player: deviceId ? { device_id: deviceId } : { entity_id: entity.entity_id },
-          spotify_uri: spotify?.state === 'playing' && spotify.attributes.sp_context_uri
-            ? spotify.attributes.sp_context_uri
-            : variables.playlist,
+          spotify_uri: variables.playlist,
           data: { shuffle: true }
         });
       ]]]
