@@ -560,3 +560,15 @@ sections:
             entity: input_boolean.pixelskipnextautofeed
             name: Volgende automatische voeding overslaan
             icon: mdi:skip-next-outline
+
+  # Pixels verjaardag: dan viert de weerkaart feest (met een taartje met een visje)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Verjaardag
+        heading_style: title
+        icon: mdi:cake-variant-outline
+      - type: tile
+        entity: input_datetime.verjaardag_pixel
+        name: Pixel is jarig op
+        icon: mdi:cat

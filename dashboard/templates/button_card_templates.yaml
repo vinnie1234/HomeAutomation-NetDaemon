@@ -403,6 +403,7 @@ weather_hero:
     - sensor.hub_vincent_timers
     - weather.weer_thuis_waarnemingen
     - sun.sun
+    - sensor.flightradar24_current_in_area
     - media_player.spotify_vincent_maarschalkerweerd
     - media_player.tv
     - media_player.woonkamer
@@ -493,6 +494,8 @@ weather_hero:
     @keyframes hero-star-glow { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
     @keyframes hero-note { 0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; } 15%, 55% { opacity: 1; } 100% { transform: translate(-9px, -19px) rotate(12deg); opacity: 0; } }
     @keyframes hero-tv { 0%, 100% { fill: #6fa8ff; } 18% { fill: #c4dcff; } 40% { fill: #5272d0; } 58% { fill: #e6efff; } 80% { fill: #8a9cff; } }
+    @keyframes hero-flag { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(5deg) scaleX(0.94); } }
+    @keyframes hero-plane { from { left: -18%; } to { left: 112%; } }
     @keyframes hero-curtain { 0%, 100% { transform: rotate(-4deg) skewY(-3deg); } 50% { transform: rotate(10deg) skewY(5deg); } }
     @keyframes hero-bat { 0% { transform: translate(0, 0); } 25% { transform: translate(30vw, -16px); } 50% { transform: translate(60vw, 8px); } 75% { transform: translate(90vw, -12px); } 100% { transform: translate(125vw, 0); } }
     @keyframes hero-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(-0.6); } }
@@ -550,6 +553,9 @@ weather_hero:
           if (scenario === 'was buiten') set('input_boolean.laundryhangingoutside', 'on');
           if (scenario === 'afval buiten') { set('sensor.afval_vandaag', 'PMD'); set('sensor.afval_morgen', 'Papier'); }
           if (scenario === 'niemand thuis') set('input_boolean.away', 'on');
+          if (scenario === 'vliegtuig') set('sensor.flightradar24_current_in_area', '2', { flights: [
+            { id: 'test1', flight_number: 'KL1001', altitude: 9000, heading: 80, airport_origin_city: 'Amsterdam', airport_destination_city: 'Londen' },
+            { id: 'test2', flight_number: 'HV6123', altitude: 34000, heading: 250, airport_origin_city: 'Rome', airport_destination_city: 'Amsterdam' }] });
           if (scenario === 'pixel bij de deur') {
             // Voeren over 5 minuten, vast vanaf het moment dat het scenario gekozen werd (anders tekent hij elke minuut opnieuw)
             if (window.huisTestFeed?.scenario !== scenario) {
@@ -567,9 +573,12 @@ weather_hero:
           // Wind en bewolking in stapjes, anders begint bij elke kleine meting alles opnieuw; of de kachel brandt (20°)
           // en of het badje buiten staat (25°)
           parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 20, parseFloat(states['sensor.weer_thuis_temperatuur']?.state) >= 25,
+          // Welke vliegtuigen er in de buurt zijn (niet hun positie, die verandert steeds), en of het 18:00 / 20:00 geweest is
+          (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3).map(f => f.id ?? f.flight_number ?? f.callsign).join(),
+          new Date().getHours() >= 18, new Date().getHours() * 60 + new Date().getMinutes() >= 20 * 60 + 3,
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
-            'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.jubileum',
+            'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
@@ -701,6 +710,34 @@ weather_hero:
           }
         }
 
+        // Vliegtuigen in de buurt (Flightradar24, sensor.flightradar24_current_in_area): ze vliegen over in hun richting,
+        // hoe hoger hoe kleiner en hoger in de lucht, met het vluchtnummer en waar ze vandaan komen en heen gaan
+        const flights = (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3);
+        flights.forEach((f, i) => {
+          const feet = parseFloat(f.altitude) || 10000;
+          const size = Math.round(Math.max(30, 64 - feet / 1000));
+          const top = Math.max(8, Math.min(40, 42 - feet / 1100));
+          const eastward = ((parseFloat(f.heading) || 90) % 360 + 360) % 360 < 180;
+          const duration = 30 + i * 7;
+          const route = [f.airport_origin_city, f.airport_destination_city].filter(Boolean).join(' → ');
+          const label = [f.flight_number || f.callsign, route].filter(Boolean).join(' · ');
+          out += `<div style="position:absolute;top:${top}%;left:-18%;pointer-events:none;z-index:1;
+              animation:hero-plane ${duration}s linear ${clockDelay(i * 0.37, duration / 2)}s infinite${eastward ? '' : ' reverse'}">
+              <svg viewBox="0 0 64 22" style="width:${size}px;height:${size * 0.34}px;overflow:visible;${eastward ? '' : 'transform:scaleX(-1);'}
+                  filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
+                ${day ? '<path d="M-60 11 L4 11" stroke="url(#hero-trail)" stroke-width="2.4" stroke-linecap="round"/>' : ''}
+                <defs><linearGradient id="hero-trail"><stop offset="0" stop-color="rgba(255,255,255,0)"/><stop offset="1" stop-color="rgba(255,255,255,0.75)"/></linearGradient></defs>
+                <path d="M6 9 L2 1 L8 1 L16 9 Z" fill="#1d4ed8"/>
+                <path d="M4 9 H52 Q62 10 62 12.4 Q60 15 52 15 H8 Q3 15 4 9 Z" fill="#f8fafc"/>
+                <path d="M26 12 L36 21 L41 21 L36 12 Z" fill="#94a3b8"/><path d="M28 11 L34 5 L38 5 L35 11 Z" fill="#cbd5e1"/>
+                ${[14, 19, 24, 29, 34, 39, 44, 49].map(x => `<circle cx="${x}" cy="11.2" r="0.9" fill="#475569"/>`).join('')}
+                <path d="M54 10 Q58 10 60 11.6 L55 11.6 Z" fill="#334155"/>
+                ${day ? '' : '<circle cx="62" cy="12.4" r="1" fill="#fff"/><circle cx="34" cy="20.6" r="1" fill="#ef4444" style="animation:hero-twinkle 1s steps(2) infinite"/>'}
+              </svg>
+              ${label ? `<div style="font-size:10px;color:#fff;white-space:nowrap;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,0.6);opacity:0.9">✈ ${label}</div>` : ''}
+            </div>`;
+        });
+
         // Gouden uur: warm licht van de kant waar de zon staat valt over de wolken
         if (golden > 0 && day) {
           const sx = Math.max(5, Math.min(95, (azimuth - 90) / 180 * 100));
@@ -769,14 +806,27 @@ weather_hero:
         };
         const choice = String(states['input_select.weerkaart_thema']?.state ?? '').toLowerCase();
         const theme = ['lente', 'zomer', 'herfst', 'winter', 'sinterklaas', 'pasen', 'kerst', 'nieuwjaar', 'halloween'].includes(choice) ? choice : autoTheme();
-        // Feestje op een verjaardag of ons jubileum (datums uit input_datetime.verjaardag_vincent, _carleen en jubileum),
-        // bovenop het thema van het seizoen; in het thema-lijstje te kiezen om te testen
+        // Een feest- of gedenkdag bovenop het thema van het seizoen; in het thema-lijstje te kiezen om te testen.
+        // De verjaardagen en ons jubileum komen uit input_datetime.verjaardag_vincent, _carleen, _pixel en jubileum.
+        // kind: birthday (ballonnen, feesthoedje), love (hartjes), king (oranje, vlag met wimpel, kroontje),
+        // liberation (vlag, rood-wit-blauw) of remembrance (vlag halfstok vanaf 18:00, een kaarsje; geen feest)
         const dateOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m.slice(1).map(Number) : null; };
-        const celebrations = [['verjaardag vincent', 'input_datetime.verjaardag_vincent', 'Vincent'], ['verjaardag carleen', 'input_datetime.verjaardag_carleen', 'Carleen'],
-          ['jubileum', 'input_datetime.jubileum', null]].map(([key, id, name]) => ({ key, name, date: dateOf(id) }));
+        const kingsDay = new Date(today.getFullYear(), 3, 27).getDay() === 0 ? 26 : 27;  // valt 27 april op zondag, dan de 26e
+        const celebrations = [
+          { key: 'verjaardag vincent', kind: 'birthday', name: 'Vincent', date: dateOf('input_datetime.verjaardag_vincent') },
+          { key: 'verjaardag carleen', kind: 'birthday', name: 'Carleen', date: dateOf('input_datetime.verjaardag_carleen') },
+          { key: 'verjaardag pixel', kind: 'birthday', name: 'Pixel', date: dateOf('input_datetime.verjaardag_pixel') },
+          { key: 'jubileum', kind: 'love', date: dateOf('input_datetime.jubileum') },
+          { key: 'valentijn', kind: 'love', valentine: true, date: [0, 2, 14] },
+          { key: 'koningsdag', kind: 'king', date: [0, 4, kingsDay] },
+          { key: 'dodenherdenking', kind: 'remembrance', date: [0, 5, 4] },
+          { key: 'bevrijdingsdag', kind: 'liberation', date: [0, 5, 5] }
+        ];
         const celebration = celebrations.find(c => c.key === choice)
           ?? celebrations.find(c => c.date && c.date[1] === month && c.date[2] === date) ?? null;
-        const celebrationYears = celebration?.date ? today.getFullYear() - celebration.date[0] : null;
+        const celebrationYears = celebration?.date?.[0] ? today.getFullYear() - celebration.date[0] : null;
+        // Met dodenherdenking hangt de vlag vanaf 18:00 halfstok (bij testen meteen)
+        const halfMast = celebration?.kind === 'remembrance' && (celebration.key === choice || today.getHours() >= 18);
         const wintry = ['winter', 'kerst', 'sinterklaas', 'nieuwjaar'].includes(theme);
         const springy = ['lente', 'pasen'].includes(theme);
 
@@ -1227,30 +1277,61 @@ weather_hero:
           }
         }
 
-        // Verjaardag of jubileum: ballonnen bij de deur en vlaggetjes; met het jubileum hartjes die opstijgen
+        // Feest- en gedenkdagen: ballonnen bij de deur, vlaggetjes en confetti; hartjes bij liefde; de vlag uit bij Koningsdag
+        // en Bevrijdingsdag; met dodenherdenking alleen de vlag halfstok en 's avonds een kaarsje
         if (celebration) {
-          const colors = celebration.name ? ['#ef4444', '#facc15', '#3b82f6', '#22c55e', '#e879f9'] : ['#f43f5e', '#fb7185', '#fda4af', '#ffffff'];
+          const kind = celebration.kind;
+          const colors = { birthday: ['#ef4444', '#facc15', '#3b82f6', '#22c55e', '#e879f9'], love: ['#f43f5e', '#fb7185', '#fda4af', '#ffffff'],
+                           king: ['#f97316', '#fb923c', '#fdba74', '#ffffff'], liberation: ['#ae1c28', '#ffffff', '#21468b'] }[kind] ?? [];
           const bx = homeX !== null ? homeX - 5 : 30;
-          let balloons = '';
-          [[10, 16, 0], [20, 8, 1], [30, 14, 2], [16, 2, 3], [26, 0, 4]].forEach(([x, y, i]) => {
-            const c = colors[i % colors.length];
-            balloons += `<path d="M${x} ${y + 12} Q${x + (i % 2 ? 2 : -2)} ${y + 24} 20 46" stroke="rgba(255,255,255,0.7)" stroke-width="0.5" fill="none"/>
-              <g style="transform-box:fill-box;transform-origin:center bottom;animation:hero-balloon ${2.4 + i * 0.3}s ease-in-out ${-i * 0.5}s infinite">
-                ${celebration.name
-                  ? `<ellipse cx="${x}" cy="${y + 5}" rx="5.4" ry="6.6" fill="${c}"/><path d="M${x - 1} ${y + 11.5} L${x + 1} ${y + 11.5} L${x} ${y + 12.6} Z" fill="${c}"/>`
-                  : `<path d="M${x} ${y + 11} C${x - 9} ${y + 4} ${x - 5} ${y - 3} ${x} ${y + 2} C${x + 5} ${y - 3} ${x + 9} ${y + 4} ${x} ${y + 11} Z" fill="${c}"/>`}
-                <ellipse cx="${x - 2}" cy="${y + 3}" rx="1.4" ry="2.2" fill="rgba(255,255,255,0.45)"/></g>`;
-          });
-          festive += svgAt(bx, groundBottom(bx) - 1, 70, 82, '0 0 40 47', balloons, 'filter:drop-shadow(0 2px 3px rgba(0,0,0,0.25))');
-          if (!['kerst', 'sinterklaas', 'pasen'].includes(theme)) festive += bunting(colors);
-          if (!celebration.name && homeX !== null) for (let i = 0; i < 6; i++) {
-            festive += `<div style="position:absolute;left:${homeX - 1 + (i % 3) * 1.6}%;bottom:${groundBottom(homeX) + 20}%;font-size:${12 + (i % 3) * 3}px;
-                color:${colors[i % 3]};animation:hero-heart 4s ease-out ${-i * 0.7}s infinite;filter:drop-shadow(0 0 3px rgba(255,80,120,0.6))">♥</div>`;
+          // De vlag naast het huisje (met een oranje wimpel op Koningsdag); halfstok met dodenherdenking
+          if (['king', 'liberation'].includes(kind) || halfMast) {
+            const fx = homeX !== null ? homeX - 9 : 40, fy = halfMast ? 22 : 4;
+            festive += svgAt(fx, groundBottom(fx) - 1, 40, 70, '0 0 34 60', `
+                <path d="M4 60 V2" stroke="${dim('rgb(226,232,240)')}" stroke-width="1.6"/><circle cx="4" cy="2" r="1.4" fill="#facc15"/>
+                <g style="transform-box:view-box;transform-origin:4px ${fy}px;animation:hero-flag 2.4s ease-in-out infinite">
+                  <rect x="4" y="${fy}" width="22" height="4.4" fill="#ae1c28"/><rect x="4" y="${fy + 4.4}" width="22" height="4.4" fill="#fff"/>
+                  <rect x="4" y="${fy + 8.8}" width="22" height="4.4" fill="#21468b"/>
+                  ${kind === 'king' ? `<path d="M4 ${fy - 2.6} L33 ${fy - 1.2} L4 ${fy + 0.2} Z" fill="#f97316"/>` : ''}</g>`,
+              'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))');
           }
-          // Confetti die naar beneden dwarrelt
-          for (let i = 0; i < 26; i++) {
-            festive += `<div style="position:absolute;left:${rnd() * 100}%;top:-10px;width:5px;height:8px;border-radius:1px;background:${colors[i % colors.length]};
-                animation:hero-petal ${7 + rnd() * 6}s linear ${-rnd() * 12}s infinite"></div>`;
+          if (kind === 'remembrance' && !day && homeX !== null) {
+            festive += svgAt(homeX + 4.4, groundBottom(homeX + 4.4) - 1.5, 14, 22, '0 0 14 22', `
+                <rect x="3" y="9" width="8" height="12" rx="1" fill="#f1f5f9"/>
+                <path d="M7 2 Q9.5 5.5 7 8.6 Q4.5 5.5 7 2 Z" fill="#ffd166" style="animation:hero-flicker 1.2s ease-in-out infinite;filter:drop-shadow(0 0 4px #ffb703)"/>`);
+          }
+          if (kind !== 'remembrance') {
+            let balloons = '';
+            [[10, 16, 0], [20, 8, 1], [30, 14, 2], [16, 2, 3], [26, 0, 4]].forEach(([x, y, i]) => {
+              const c = colors[i % colors.length];
+              balloons += `<path d="M${x} ${y + 12} Q${x + (i % 2 ? 2 : -2)} ${y + 24} 20 46" stroke="rgba(255,255,255,0.7)" stroke-width="0.5" fill="none"/>
+                <g style="transform-box:fill-box;transform-origin:center bottom;animation:hero-balloon ${2.4 + i * 0.3}s ease-in-out ${-i * 0.5}s infinite">
+                  ${kind === 'love'
+                    ? `<path d="M${x} ${y + 11} C${x - 9} ${y + 4} ${x - 5} ${y - 3} ${x} ${y + 2} C${x + 5} ${y - 3} ${x + 9} ${y + 4} ${x} ${y + 11} Z" fill="${c}"/>`
+                    : `<ellipse cx="${x}" cy="${y + 5}" rx="5.4" ry="6.6" fill="${c}"/><path d="M${x - 1} ${y + 11.5} L${x + 1} ${y + 11.5} L${x} ${y + 12.6} Z" fill="${c}"/>`}
+                  <ellipse cx="${x - 2}" cy="${y + 3}" rx="1.4" ry="2.2" fill="rgba(255,255,255,0.45)"/></g>`;
+            });
+            festive += svgAt(bx, groundBottom(bx) - 1, 70, 82, '0 0 40 47', balloons, 'filter:drop-shadow(0 2px 3px rgba(0,0,0,0.25))');
+            if (!['kerst', 'sinterklaas', 'pasen'].includes(theme)) festive += bunting(colors);
+            if (kind === 'love' && homeX !== null) for (let i = 0; i < 6; i++) {
+              festive += `<div style="position:absolute;left:${homeX - 1 + (i % 3) * 1.6}%;bottom:${groundBottom(homeX) + 20}%;font-size:${12 + (i % 3) * 3}px;
+                  color:${colors[i % 3]};animation:hero-heart 4s ease-out ${-i * 0.7}s infinite;filter:drop-shadow(0 0 3px rgba(255,80,120,0.6))">♥</div>`;
+            }
+            // Pixel is jarig: een taartje met een visje bij de voordeur
+            if (celebration.name === 'Pixel' && homeX !== null) {
+              festive += svgAt(homeX + 4.6, groundBottom(homeX + 4.6) - 2, 30, 30, '0 0 30 30', `
+                  <rect x="3" y="15" width="24" height="12" rx="2" fill="#fbcfe8"/><rect x="3" y="15" width="24" height="3.4" rx="1.6" fill="#fff"/>
+                  <path d="M5 18 q2.5 3 5 0 q2.5 3 5 0 q2.5 3 5 0 q2.5 3 5 0" stroke="#f9a8d4" stroke-width="1.2" fill="none"/>
+                  <path d="M9 12 Q14 8 19 12 Q14 16 9 12 Z M19 12 L23 9 L23 15 Z" fill="#60a5fa"/><circle cx="11.5" cy="11.4" r="0.7" fill="#1e293b"/>
+                  <rect x="14.2" y="3" width="1.6" height="6" fill="#facc15"/>
+                  <path d="M15 -1 Q16.6 1.4 15 3 Q13.4 1.4 15 -1 Z" fill="#fb923c" style="animation:hero-flicker 1s ease-in-out infinite"/>`,
+                'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.25))');
+            }
+            // Confetti die naar beneden dwarrelt
+            for (let i = 0; i < 26; i++) {
+              festive += `<div style="position:absolute;left:${rnd() * 100}%;top:-10px;width:5px;height:8px;border-radius:1px;background:${colors[i % colors.length]};
+                  animation:hero-petal ${7 + rnd() * 6}s linear ${-rnd() * 12}s infinite"></div>`;
+            }
           }
         }
         out += festive;
@@ -1349,12 +1430,17 @@ weather_hero:
               <ellipse cx="${hx + 0.8}" cy="56.6" rx="4.4" ry="2.4" fill="${fill}"/></g>`;
           const farLegs = still => `${leg(61, 43, far, 1, still)}${leg(30, 42, far, 0, still)}`;
           const nearLegs = still => `${leg(66, 43, near, 0, still)}${leg(35, 42, near, 1, still)}`;
-          // Verkleed: een heksenhoed met Halloween, een feesthoedje op een verjaardag (cx = midden van de kop, y = onderkant)
-          const catHat = (cx, y, k) => theme === 'halloween'
+          // Verkleed: een heksenhoed met Halloween, een kroontje op Koningsdag, een feesthoedje op een verjaardag
+          // (cx = midden van de kop, y = onderkant)
+          const catHat = (cx, y, k) => celebration?.kind === 'king'
+            ? `<path d="M${cx - 7 * k} ${y} L${cx - 8 * k} ${y - 8 * k} L${cx - 3.5 * k} ${y - 4 * k} L${cx} ${y - 10 * k} L${cx + 3.5 * k} ${y - 4 * k}
+                 L${cx + 8 * k} ${y - 8 * k} L${cx + 7 * k} ${y} Z" fill="#facc15" stroke="#ca8a04" stroke-width="${0.6 * k}"/>
+               <circle cx="${cx}" cy="${y - 2.6 * k}" r="${1.4 * k}" fill="#ef4444"/>`
+            : theme === 'halloween'
             ? `<ellipse cx="${cx}" cy="${y}" rx="${13 * k}" ry="${2.6 * k}" fill="#3b1d5a"/>
                <path d="M${cx - 7 * k} ${y} Q${cx - 2 * k} ${y - 9 * k} ${cx + 4 * k} ${y - 19 * k} Q${cx + 3 * k} ${y - 9 * k} ${cx + 7.5 * k} ${y} Z" fill="#4c1d95"/>
                <path d="M${cx - 6.4 * k} ${y - 1.6 * k} Q${cx} ${y - 3.6 * k} ${cx + 7 * k} ${y - 1.6 * k} L${cx + 7.2 * k} ${y - 0.2 * k} Q${cx} ${y - 2 * k} ${cx - 6.8 * k} ${y - 0.2 * k} Z" fill="#f97316"/>`
-            : celebration?.name
+            : celebration?.kind === 'birthday'
               ? `<path d="M${cx - 6 * k} ${y} L${cx + 1 * k} ${y - 15 * k} L${cx + 7 * k} ${y} Z" fill="#3b82f6"/>
                  <path d="M${cx - 3.6 * k} ${y - 5 * k} L${cx + 4.6 * k} ${y - 5 * k} M${cx - 1.4 * k} ${y - 10 * k} L${cx + 2.6 * k} ${y - 10 * k}" stroke="#facc15" stroke-width="${1.6 * k}"/>
                  <circle cx="${cx + 1 * k}" cy="${y - 15.5 * k}" r="${2 * k}" fill="#ef4444"/>`
@@ -1571,12 +1657,17 @@ weather_hero:
         let badges = `<div style="display:inline-block;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);
             font-size:12px;color:#fff;white-space:nowrap">${labels[theme]}</div>`;
         if (celebration) {
-          const text = celebration.name
-            ? `🎂 Hoera, ${celebration.name} is jarig${celebrationYears > 0 ? ` · ${celebrationYears} jaar` : ''}!`
-            : `💕 ${celebrationYears > 0 ? `${celebrationYears} jaar samen` : 'Ons jubileum'}!`;
+          const age = celebrationYears > 0 ? ` · ${celebrationYears} jaar` : '';
+          const [text, background] = {
+            birthday: [`${celebration.name === 'Pixel' ? '🐱' : '🎂'} Hoera, ${celebration.name} is jarig${age}!`, 'linear-gradient(90deg, #ef4444, #f59e0b, #3b82f6)'],
+            love: [celebration.valentine ? '💘 Fijne Valentijnsdag!' : `💕 ${celebrationYears > 0 ? `${celebrationYears} jaar samen` : 'Ons jubileum'}!`, 'linear-gradient(90deg, #f43f5e, #fb7185)'],
+            king: ['👑 Fijne Koningsdag!', 'linear-gradient(90deg, #ea580c, #f97316)'],
+            liberation: ['🕊️ Fijne Bevrijdingsdag!', 'linear-gradient(90deg, #ae1c28, #21468b)'],
+            remembrance: [`🕯️ Dodenherdenking${today.getHours() < 20 || (today.getHours() === 20 && today.getMinutes() < 3) ? ' · om 20:00 twee minuten stilte' : ''}`,
+              'rgba(30,32,40,0.75)']
+          }[celebration.kind];
           badges += `<div style="margin-top:6px;display:block;width:max-content;padding:5px 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;
-              background:${celebration.name ? 'linear-gradient(90deg, #ef4444, #f59e0b, #3b82f6)' : 'linear-gradient(90deg, #f43f5e, #fb7185)'};
-              box-shadow:0 4px 16px rgba(0,0,0,0.25)">${text}</div>`;
+              background:${background};box-shadow:0 4px 16px rgba(0,0,0,0.25)">${text}</div>`;
         }
 
         // Weerwaarschuwing (KNMI): pulserende rand en een banner in de kleur van de code
