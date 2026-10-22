@@ -4193,23 +4193,33 @@ jelly_overlay:
           ]);
           return results.filter(r => r.status === 'rejected').map(r => r.reason?.message ?? String(r.reason));
         };
-        // Afspelen in de Jellyfin-app op de Google TV: de app openen, wachten tot hij als sessie van Vincent bij Jellyfin
-        // verschijnt (sensor.jellyha_connected_clients, alleen Vincent), en daar het item starten. Lukt dat niet binnen
-        // 30 seconden, dan false (en wordt er gecast).
+        // Afspelen in de Jellyfin-app op de Google TV: de app openen en dan elke 2 seconden jellyha.session_play proberen tot de
+        // app er is. JellyHA vraagt de sessies dan zelf live aan Jellyfin (de sensoren verversen pas na een minuut) en kiest bij
+        // een serie zelf de volgende aflevering. Eerst herkend aan de client "Android TV"; zodra Vincents sessie daar in de
+        // sensor staat wordt de apparaatnaam onthouden, zodat het daarna precies dit apparaat is. Lukt het niet in 40 seconden: false.
         const playInApp = async (id, toast) => {
-          const h = live(), wait = ms => new Promise(r => setTimeout(r, ms));
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          const learn = () => {
+            const c = (live().states['sensor.jellyha_connected_clients']?.attributes?.clients ?? [])
+              .find(x => x.user === 'Vincent' && /android ?tv/i.test(`${x.client} ${x.device}`));
+            if (c?.device) localStorage.setItem('huisJellyTvDevice', c.device);
+          };
+          // Kijkt iemand anders ook via een Android TV-app, dan niet op "Android TV" gokken maar wachten op Vincents eigen apparaat
+          const others = () => (live().states['sensor.jellyha_connected_clients']?.attributes?.clients ?? [])
+            .some(x => x.user !== 'Vincent' && /android ?tv/i.test(`${x.client} ${x.device}`));
           toast('Jellyfin openen op de tv…');
-          h.callService('remote', 'turn_on', { entity_id: 'remote.tv_in_woonkamer', activity: 'org.jellyfin.androidtv' }).catch(() => {});
-          for (let i = 0; i < 15; i++) {
+          live().callService('remote', 'turn_on', { entity_id: 'remote.tv_in_woonkamer', activity: 'org.jellyfin.androidtv' }, undefined, false).catch(() => {});
+          for (let i = 0; i < 20; i++) {
             await wait(2000);
-            live().callService('homeassistant', 'update_entity', { entity_id: 'sensor.jellyha_connected_clients' }).catch(() => {});
-            const client = (live().states['sensor.jellyha_connected_clients']?.attributes?.clients ?? [])
-              .find(c => c.user === 'Vincent' && /android ?tv/i.test(`${c.client} ${c.device}`));
-            if (!client) continue;
+            learn();
+            const device = localStorage.getItem('huisJellyTvDevice');
+            if (!device && others()) continue;
             try {
-              await live().callService('jellyha', 'session_play', { item_id: id, device_name: client.device, client: client.client, play_command: 'PlayNow' });
+              await live().callService('jellyha', 'session_play',
+                { item_id: id, play_command: 'PlayNow', ...(device ? { device_name: device } : { client: 'Android TV' }) }, undefined, false);
+              setTimeout(learn, 70000);
               return true;
-            } catch (err) { toast(`Jellyfin-app gevonden, maar afspelen lukt niet: ${err?.message ?? err}`); return false; }
+            } catch (err) { if (i % 5 === 4) toast('Wachten tot Jellyfin op de tv klaar is…'); }
           }
           return false;
         };
@@ -4291,15 +4301,15 @@ jelly_overlay:
             if (a === 'open') window.open(item.jellyfin_url, '_blank');
             if (a === 'trailer') window.open(item.trailer_url, '_blank');
             if (a === 'play') {
+              const problems = await prepareTv(toast);
+              const note = problems.length ? ` (niet gelukt: ${problems.join('; ')})` : '';
+              if (await playInApp(item.id, toast)) { toast(`▶ ${item.name} speelt in de Jellyfin-app${note}`); return; }
               let id = item.id, label = item.name;
               if (item.type === 'Series') {
                 const episodes = (await call('search', { media_type: 'Episode', parent_id: item.id, is_played: false, limit: 50 })).items ?? [];
                 episodes.sort((x, y) => (x.season ?? 0) - (y.season ?? 0) || (x.episode ?? x.index_number ?? 0) - (y.episode ?? y.index_number ?? 0));
                 if (episodes[0]) { id = episodes[0].id; label = `S${String(episodes[0].season ?? 1).padStart(2, '0')}E${String(episodes[0].episode ?? episodes[0].index_number ?? 1).padStart(2, '0')} ${episodes[0].name}`; }
               }
-              const problems = await prepareTv(toast);
-              const note = problems.length ? ` (niet gelukt: ${problems.join('; ')})` : '';
-              if (await playInApp(id, toast)) { toast(`▶ ${label} speelt in de Jellyfin-app${note}`); return; }
               toast(`De Jellyfin-app reageert niet, ik cast ${label}…`);
               live().callService('jellyha', 'play_on_chromecast', { entity_id: TV, item_id: id })
                 .then(() => toast(`▶ ${label} speelt op de tv (gecast)${note}`))
