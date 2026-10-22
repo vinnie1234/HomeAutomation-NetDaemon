@@ -166,15 +166,16 @@ public class PixelMedicationTests : IDisposable
     }
 
     [Fact]
-    public void LateDoseAfterMidnight_CountsForTheEveningBefore()
+    public void TheDayChangesAtMidnight()
     {
         StartAt(20, 11);
-        At(21, 1);
-
+        At(20, 21);
         Press(PrednisonButton);
-
         _app.PrednisonStatus().Should().Be("gegeven");
-        // That evening a new dose is due again
+
+        // The next morning the dose of last evening no longer counts for today
+        At(21, 9);
+        _app.PrednisonStatus().Should().Be("wacht");
         At(21, 20, 30);
         _app.PrednisonStatus().Should().Be("nodig");
     }

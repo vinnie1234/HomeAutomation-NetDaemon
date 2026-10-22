@@ -10,10 +10,9 @@ namespace Automation.apps.General;
 /// Keeps track of Pixel's medicines, prednison (a quarter pill every evening) and antibraak (half a pill when needed).
 /// The "gegeven" buttons take the dose off the stock; every dose and every change of the stock is saved forever.
 /// <para>
-/// The prednison of a day counts as given when a dose was given between 12:00 that day and 12:00 the next day, so a late
-/// dose after midnight still belongs to the evening before. From the reminder time (<c>input_datetime.pixel_prednison_tijd</c>,
-/// 20:00) the status is <c>nodig</c> until it is given; when a day passed without a dose the status is <c>vergeten</c> until
-/// the next dose. Status, stock and history are published as <c>sensor.pixel_medicijnen</c> for the dashboard.
+/// The prednison of a day counts as given when a dose was given that day (the day changes at midnight). From the reminder
+/// time (<c>input_datetime.pixel_prednison_tijd</c>, 20:00) the status is <c>nodig</c> until it is given; when the day before
+/// passed without a dose the status is <c>vergeten</c> until the next dose. Status, stock and history are published as <c>sensor.pixel_medicijnen</c> for the dashboard.
 /// </para>
 /// <para>
 /// An hour after the reminder time Vincent and Carleen get a phone notification when the prednison is still needed, and at
@@ -38,7 +37,6 @@ public class PixelMedication : BaseApp
     /// <summary>A stock change by hand is saved once the field has not changed for this long, so typing or clicking makes one line.</summary>
     private static readonly TimeSpan StockSettleTime = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan DefaultReminder = new(20, 0, 0);
-    private static readonly TimeSpan DayStartsAt = new(12, 0, 0);
     private static readonly TimeSpan PhoneReminderDelay = TimeSpan.FromHours(1);
     private static readonly TimeSpan ForgottenNotificationAt = new(8, 0, 0);
     private const string UndoButton = "input_button.pixel_medicijn_ongedaan";
@@ -106,7 +104,6 @@ public class PixelMedication : BaseApp
         Scheduler.RunDailyAt(reminderTime, DefaultReminder, () => Scheduler.Schedule(PhoneReminderDelay, RemindOnPhone));
         Scheduler.RunDaily(ForgottenNotificationAt, RemindOnPhone);
         Scheduler.RunDaily(new TimeSpan(0, 0, 30), Publish);
-        Scheduler.RunDaily(DayStartsAt.Add(TimeSpan.FromSeconds(30)), Publish);
 
         _ = CreateSensorAsync();
     }
@@ -208,31 +205,23 @@ public class PixelMedication : BaseApp
 
     /// <summary>
     /// The prednison status: <c>gegeven</c> (today's dose is in), <c>wacht</c> (not yet, before the reminder time), <c>nodig</c>
-    /// (after the reminder time and not given yet) or <c>vergeten</c> (a whole day passed without a dose, until the next one).
+    /// (after the reminder time and not given yet) or <c>vergeten</c> (yesterday passed without a dose, until the next one).
     /// </summary>
     public string PrednisonStatus()
     {
         var now = Scheduler.NowNl();
-        var lastDose = Doses(Prednison).Select(x => x.Time).DefaultIfEmpty(DateTimeOffset.MinValue).Max();
+        var doses = Doses(Prednison).Select(x => x.Time).ToList();
+        DateTimeOffset Start(DateTime date) =>
+            new(date.Date, Automation.Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(date.Date));
+        bool Given(DateTime date) => doses.Any(x => x >= Start(date) && x < Start(date.AddDays(1)));
+        // Only days the app was already running at the reminder time: no "forgotten" for the days before
+        bool Tracked(DateTime date) => Start(date) + ReminderTime() >= _since;
 
-        // A dose day runs from 12:00 to 12:00 the next day, so before 12:00 it is still the day before
-        var day = now.TimeOfDay < DayStartsAt ? now.Date.AddDays(-1) : now.Date;
-        DateTimeOffset Start(DateTime date)
-        {
-            var local = date.Date + DayStartsAt;
-            return new DateTimeOffset(local, Automation.Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
-        }
-        bool Given(DateTime date) => lastDose >= Start(date);
-        bool Tracked(DateTime date) => Start(date) >= _since;
+        if (Given(now.Date)) return "gegeven";
 
-        // The day before was missed entirely: forgotten until the next dose
-        var previous = day.AddDays(-1);
-        if (Tracked(previous) && !Given(previous)) return "vergeten";
-
-        if (Given(day)) return "gegeven";
-
-        // Past midnight and still nothing for the evening before: forgotten
-        if (now.Date > day && Tracked(day)) return "vergeten";
+        // Yesterday was missed: forgotten until the next dose
+        var yesterday = now.Date.AddDays(-1);
+        if (Tracked(yesterday) && !Given(yesterday)) return "vergeten";
 
         return now.TimeOfDay >= ReminderTime() ? "nodig" : "wacht";
     }

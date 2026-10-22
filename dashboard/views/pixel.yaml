@@ -460,7 +460,7 @@ sections:
       - type: custom:button-card
         template: vomit_chart
 
-  # Medicijnen: voorraad en of de prednison van de avond gegeven is (een avond loopt tot 12:00 de volgende dag); tik opent de pagina Medicijnen
+  # Medicijnen: voorraad en of de prednison van vandaag gegeven is; tik opent de pagina Medicijnen
   - type: grid
     cards:
       - type: heading
@@ -478,7 +478,7 @@ sections:
           navigation_path: /dashboard-huis/pixel_medicijnen
         name: |
           [[[
-            return { gegeven: `Prednison van ${new Date().getHours() < 12 ? 'gisteravond' : 'vanavond'} gegeven`, nodig: 'Prednison nog geven', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[entity?.state] ?? 'Medicijnen';
+            return { gegeven: 'Prednison van vandaag gegeven', nodig: 'Prednison nog geven', vergeten: 'Prednison vergeten!', wacht: 'Prednison vanavond' }[entity?.state] ?? 'Medicijnen';
           ]]]
         label: |
           [[[
