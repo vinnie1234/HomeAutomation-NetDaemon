@@ -56,6 +56,23 @@ public class BathRoomLightsTests
     }
 
     [Fact]
+    public void MotionOn_WhileShowering_DoesNotDimTheLights()
+    {
+        // Carleen still sleeps (night brightness), Vincent is showering: moving in the shower keeps the lights at 100%
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "on" });
+        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.HaContext.DidNotReceive().CallService("light", "turn_on",
+            Arg.Is<ServiceTarget>(t => t.EntityIds!.Contains("light.plafond_badkamer")), Arg.Any<object?>());
+    }
+
+    [Fact]
     public void MotionOn_DoesNothing_WhenAutomationDisabled()
     {
         // Arrange

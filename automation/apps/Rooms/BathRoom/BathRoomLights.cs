@@ -69,9 +69,11 @@ public class BathRoomLights : BaseApp
     /// </summary>
     private void InitializeLights()
     {
+        // While showering the lights stay at full strength: moving under the shower must not dim them to the
+        // circadian (or, while someone else still sleeps, night) brightness
         Entities.BinarySensor.BadkamerMotion
             .StateChanges()
-            .Where(x => x.Old.IsOff() && x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended)
+            .Where(x => x.Old.IsOff() && x.New.IsOn() && !DisableLightAutomations && !IsHouseUnattended && !IsDouching)
             .Subscribe(_ => ChangeLight(true, GetBrightness()));
 
         // Lights off once there was no motion for a while: shorter while someone sleeps. The waiting time is
