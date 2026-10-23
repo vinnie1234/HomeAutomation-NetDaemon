@@ -18,7 +18,7 @@ namespace Automation.apps.Rooms.LivingRoom;
 [NetDaemonApp(Id = nameof(TabletScreen))]
 public class TabletScreen : BaseApp
 {
-    private const string Tablet = "tablet_vincent";
+    private const string Tablet = "mobile_app_sm_t860";
     private const string Dashboard = "/dashboard-huis/home";
     /// <summary>How long the screen stays on after the last wake-up, in milliseconds (the screen timeout of Android).</summary>
     private const int AwakeTimeoutMs = 5 * 60 * 1000;

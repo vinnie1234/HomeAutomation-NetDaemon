@@ -37,7 +37,7 @@ public class TabletScreenTests
     /// <summary>The commands sent to the companion app on the tablet, in order.</summary>
     private List<string> Commands() =>
         _ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "notify" && (string)c.GetArguments()[1]! == "tablet_vincent")
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "notify" && (string)c.GetArguments()[1]! == "mobile_app_sm_t860")
             .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("message").GetString()!)
             .ToList();
 
