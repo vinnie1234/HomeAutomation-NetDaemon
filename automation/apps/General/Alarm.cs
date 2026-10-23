@@ -18,6 +18,10 @@ public class Alarm : BaseApp
     private readonly IDataRepository _storage;
     private const string PetsnowyLastCleanedDateKey = "PetsnowyLastCleanedDate";
 
+    /// <summary>On while more than <see cref="HighUsageWatts"/> is used for 10 minutes, for the alert on the dashboard.</summary>
+    public const string HighUsageSensor = "sensor.hoog_stroomverbruik";
+    private const double HighUsageWatts = 2000;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Alarm"/> class.
     /// </summary>
@@ -94,11 +98,14 @@ public class Alarm : BaseApp
     /// </summary>
     private void EnergyCheck()
     {
+        _ = CreateHighUsageSensorAsync();
+
         Entities.Sensor.P1Meter3c39e72a64e8ActivePower
             .StateChanges()
-            .WhenStateIsFor(x => x?.State > 2000, TimeSpan.FromMinutes(10), Scheduler)
+            .WhenStateIsFor(x => x?.State > HighUsageWatts, TimeSpan.FromMinutes(10), Scheduler)
             .Subscribe(x =>
                 {
+                    SetHighUsage(true, Scheduler.NowNl().AddMinutes(-10));
                     Notify.NotifyPhoneVincent("Hoog energie verbruik",
                         $"Energie verbruik is al voor 10 minuten {x.Entity.State}",
                         true,
@@ -110,7 +117,35 @@ public class Alarm : BaseApp
                         channel: "ALARM", vibrationPattern: "100, 1000, 100, 1000, 100");
                 }
             );
+
+        // Off again once the usage is below the limit for 2 minutes (a short dip is not the end of it)
+        Entities.Sensor.P1Meter3c39e72a64e8ActivePower
+            .StateChanges()
+            .WhenStateIsFor(x => x?.State <= HighUsageWatts, TimeSpan.FromMinutes(2), Scheduler)
+            .Subscribe(_ => SetHighUsage(false, null));
     }
+
+    private async Task CreateHighUsageSensorAsync()
+    {
+        try
+        {
+            if (!_entityManager.EntityExists(HighUsageSensor))
+                await _entityManager.Create(HighUsageSensor, new EntityCreationOptions { Name = "Hoog stroomverbruik", Icon = "mdi:flash-alert" });
+            SetHighUsage(false, null);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not create {Sensor}", HighUsageSensor);
+        }
+    }
+
+    /// <summary>Publishes whether the usage is high, and since when.</summary>
+    private void SetHighUsage(bool high, DateTimeOffset? since) =>
+        _entityManager.SetState(HighUsageSensor, high ? "on" : "off", new
+        {
+            sinds = since?.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+            grens = HighUsageWatts
+        });
 
     /// <summary>
     /// Schedules a daily check for garbage collection and sends a reminder notification with action button.

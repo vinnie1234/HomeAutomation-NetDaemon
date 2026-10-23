@@ -3330,6 +3330,39 @@ price_alert:
       return until ? `${advice} · tot ${until.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : advice;
     ]]]
 
+# Hoog stroomverbruik: NetDaemon (Alarm) zet sensor.hoog_stroomverbruik aan zodra er 10 minuten meer dan 2000 W wordt
+# verbruikt, en uit als het 2 minuten onder de grens is. Toont het vermogen van nu, sinds wanneer, en wat het per uur kost.
+usage_alert:
+  template: alert
+  entity: sensor.hoog_stroomverbruik
+  triggers_update:
+    - sensor.hoog_stroomverbruik
+    - sensor.p1_meter_3c39e72a64e8_active_power
+    - sensor.anwb_electricity_all_in_price_current
+  variables:
+    color: 251, 146, 60
+    pulse: true
+  icon: mdi:flash-alert
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/energie-verbruik
+  name: |
+    [[[
+      const w = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state) || 0;
+      return `Hoog stroomverbruik: ${(w / 1000).toFixed(1).replace('.', ',')} kW`;
+    ]]]
+  label: |
+    [[[
+      const since = entity?.attributes?.sinds ? new Date(entity.attributes.sinds) : null;
+      const w = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state) || 0;
+      const price = parseFloat(states['sensor.anwb_electricity_all_in_price_current']?.state);
+      const parts = [];
+      if (since) parts.push(`al sinds ${since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`);
+      if (!isNaN(price)) parts.push(`kost nu € ${(w / 1000 * price).toFixed(2).replace('.', ',')} per uur`);
+      parts.push('tik voor de grootste verbruikers');
+      return parts.join(' · ');
+    ]]]
+
 # Thuiswerken: stroom en kosten van vandaag en deze maand (NetDaemon HomeWorkEnergyTracker). Tik opent #thuiswerken.
 homework_tile:
   template: glass

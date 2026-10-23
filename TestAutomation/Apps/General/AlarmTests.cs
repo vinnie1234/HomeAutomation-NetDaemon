@@ -183,6 +183,24 @@ public class AlarmTests
     }
 
     [Fact]
+    public void EnergyCheck_HighUsageFor10Minutes_TurnsTheDashboardSensorOn_AndOffWhenItDrops()
+    {
+        CreateApp();
+
+        _ctx.ChangeStateFor("sensor.p1_meter_3c39e72a64e8_active_power").FromState("1000").ToState("2500");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        _ctx.AdvanceTimeBy(TimeSpan.FromMinutes(10).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+        _entityManager.Received().SetState(Alarm.HighUsageSensor, "on", Arg.Any<object?>());
+
+        _ctx.ChangeStateFor("sensor.p1_meter_3c39e72a64e8_active_power").FromState("2500").ToState("800");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        _ctx.AdvanceTimeBy(TimeSpan.FromMinutes(2).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+        _entityManager.Received().SetState(Alarm.HighUsageSensor, "off", Arg.Any<object?>());
+    }
+
+    [Fact]
     public void EnergyCheck_HighEnergyForLess10Minutes_DoesNotSendNotification()
     {
         // Arrange

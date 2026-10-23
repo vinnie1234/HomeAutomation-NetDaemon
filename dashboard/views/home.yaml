@@ -389,6 +389,17 @@ sections:
           template: price_alert
         grid_options:
           columns: 12
+      # Hoog stroomverbruik (10 minuten meer dan 2000 W, zie NetDaemon Alarm)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.hoog_stroomverbruik
+            state: "on"
+        card:
+          type: custom:button-card
+          template: usage_alert
+        grid_options:
+          columns: 12
       - type: conditional
         conditions:
           - condition: state
