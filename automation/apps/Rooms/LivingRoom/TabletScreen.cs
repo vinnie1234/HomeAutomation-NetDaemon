@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
@@ -6,24 +5,24 @@ using Microsoft.Extensions.Options;
 namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
-/// Wakes Vincent's tablet in the living room (Galaxy Tab S6, HA companion app) and opens the dashboard on Home: on motion
+/// Wakes Vincent's tablet in the living room (Galaxy Tab S6, Fully Kiosk Browser) and opens the dashboard on Home: on motion
 /// in the living room, at someone's wake-up time, when someone comes home and on important alerts. Not while everyone at
 /// home sleeps and not while the TV is on. The screen goes off again when everyone goes to sleep and when the TV turns on.
 /// <para>
-/// The companion app gets commands as notifications. Android does not let an app unlock a PIN or pattern from outside,
-/// so the tablet needs Smart Lock (trusted place: home) or no screen lock. Turning the screen off works by setting the
-/// screen timeout to the minimum, waking it sets a normal timeout again.
+/// Fully Kiosk does it through its HA integration: the screen switch turns the screen on and off, the start URL is Home,
+/// and the screen off timer turns the screen off again when nobody touches it. Fully can unlock a swipe lock but not a
+/// PIN or pattern, so the tablet needs no screen lock (or swipe) and Fully's kiosk mode instead.
 /// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(TabletScreen))]
 public class TabletScreen : BaseApp
 {
-    private const string Tablet = "mobile_app_sm_t860";
-    private const string Dashboard = "/dashboard-huis/home";
-    /// <summary>How long the screen stays on after the last wake-up, in milliseconds (the screen timeout of Android).</summary>
-    private const int AwakeTimeoutMs = 5 * 60 * 1000;
-    /// <summary>The shortest screen timeout Android allows: the screen goes off almost right away.</summary>
-    private const int OffTimeoutMs = 15 * 1000;
+    private const string Screen = "switch.tab_s6_van_vincent_scherm";
+    /// <summary>Loads the start URL of Fully: Home on the dashboard.</summary>
+    private const string LoadStartUrl = "button.tab_s6_van_vincent_start_url_laden";
+    private const string ScreenOffTimer = "number.tab_s6_van_vincent_scherm_uit_timer";
+    /// <summary>How long the screen stays on without anyone touching it, in seconds (the screen off timer of Fully).</summary>
+    private const int AwakeTimeoutSeconds = 5 * 60;
     /// <summary>Motion keeps coming in; waking the tablet again within this time is not needed, it is still on.</summary>
     private static readonly TimeSpan WakeAgainAfter = TimeSpan.FromMinutes(2);
 
@@ -123,9 +122,9 @@ public class TabletScreen : BaseApp
         _lastWake = now;
 
         Logger.LogInformation("Tablet aan: {Reason}", reason);
-        Command("command_screen_off_timeout", AwakeTimeoutMs.ToString(CultureInfo.InvariantCulture));
-        Command("command_screen_on");
-        Command("command_webview", Dashboard);
+        HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
+        HaContext.CallService("switch", "turn_on", ServiceTarget.FromEntity(Screen));
+        HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
     }
 
     private void ScreenOffIfAllAsleep()
@@ -137,12 +136,6 @@ public class TabletScreen : BaseApp
     {
         Logger.LogInformation("Tablet uit: {Reason}", reason);
         _lastWake = DateTimeOffset.MinValue;
-        Command("command_screen_off_timeout", OffTimeoutMs.ToString(CultureInfo.InvariantCulture));
+        HaContext.CallService("switch", "turn_off", ServiceTarget.FromEntity(Screen));
     }
-
-    /// <summary>Sends a command to the companion app on the tablet.</summary>
-    private void Command(string message, string? command = null) =>
-        HaContext.CallService("notify", Tablet, data: command == null
-            ? new { message }
-            : new { message, data = new { command } });
 }

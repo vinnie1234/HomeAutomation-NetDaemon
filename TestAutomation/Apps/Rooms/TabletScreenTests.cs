@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Automation.apps.Rooms.LivingRoom;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
+using NetDaemon.HassModel;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
@@ -34,11 +34,12 @@ public class TabletScreenTests
         _ctx.HaContextMock.ProcessPendingOperations();
     }
 
-    /// <summary>The commands sent to the companion app on the tablet, in order.</summary>
+    /// <summary>The service calls to the Fully Kiosk entities of the tablet, as "domain.service", in order.</summary>
     private List<string> Commands() =>
         _ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "notify" && (string)c.GetArguments()[1]! == "mobile_app_sm_t860")
-            .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("message").GetString()!)
+            .Where(c => c.GetMethodInfo().Name == "CallService" &&
+                        (c.GetArguments()[2] as ServiceTarget)?.EntityIds?.Any(e => e.Contains("tab_s6_van_vincent")) == true)
+            .Select(c => $"{c.GetArguments()[0]}.{c.GetArguments()[1]}")
             .ToList();
 
     [Fact]
@@ -48,7 +49,7 @@ public class TabletScreenTests
 
         Change("binary_sensor.motionwoonkamer", "off", "on");
 
-        Commands().Should().Equal("command_screen_off_timeout", "command_screen_on", "command_webview");
+        Commands().Should().Equal("number.set_value", "switch.turn_on", "button.press");
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public class TabletScreenTests
 
         Change("binary_sensor.motionwoonkamer", "off", "on");
 
-        Commands().Should().Contain("command_screen_on");
+        Commands().Should().Contain("switch.turn_on");
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public class TabletScreenTests
 
         Change("binary_sensor.motionwoonkamer", "off", "on");
 
-        Commands().Count(c => c == "command_screen_on").Should().Be(1);
+        Commands().Count(c => c == "switch.turn_on").Should().Be(1);
     }
 
     [Fact]
@@ -100,7 +101,7 @@ public class TabletScreenTests
 
         Change("input_boolean.awaycarleen", "on", "off");
 
-        Commands().Should().Contain("command_screen_on");
+        Commands().Should().Contain("switch.turn_on");
     }
 
     [Fact]
@@ -110,7 +111,7 @@ public class TabletScreenTests
 
         Change("media_player.tv", "off", "on");
 
-        Commands().Should().Equal("command_screen_off_timeout");
+        Commands().Should().Equal("switch.turn_off");
     }
 
     [Fact]
@@ -123,6 +124,6 @@ public class TabletScreenTests
         SetState("input_boolean.sleepingvincent", "on");
         Change("input_boolean.sleepingvincent", "off", "on");
 
-        Commands().Should().Equal("command_screen_off_timeout");
+        Commands().Should().Equal("switch.turn_off");
     }
 }

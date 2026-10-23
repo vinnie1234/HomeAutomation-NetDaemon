@@ -497,9 +497,19 @@ sections:
           count: 4
         show_empty: false
 
-  # Taken en agenda
+  # Camera, taken en agenda
   - type: grid
     cards:
+      # De voorcamera van de tablet in de woonkamer (Fully Kiosk). Geen stream: HA ververst het beeld elke paar seconden.
+      - type: heading
+        heading: Woonkamer
+        heading_style: title
+        icon: mdi:cctv
+      - type: picture-entity
+        entity: camera.tab_s6_van_vincent
+        camera_view: auto
+        show_name: false
+        show_state: false
       - type: heading
         heading: Vandaag doen
         heading_style: title
