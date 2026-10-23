@@ -64,7 +64,7 @@ public class BaseApp
     protected bool IsVincentSleepMode => Vincent.IsSleeping;
 
     /// <summary>
-    /// True on the morning of an office day of Vincent or Carleen: from an hour before their office wake-up time until they
+    /// True on the morning of an office day of Vincent or Carleen: from their office wake-up time (never earlier) until they
     /// leave (at the latest 12:00), while they are home and awake. They have to get ready, so the lights then work as usual,
     /// also when the other one still sleeps.
     /// </summary>
@@ -81,7 +81,7 @@ public class BaseApp
     {
         var now = Scheduler.NowNl();
         return person.IsHome && !person.IsSleeping && schedule.IsOfficeDay(now.DayOfWeek)
-               && now.TimeOfDay >= schedule.WakeUpOfficeTime - TimeSpan.FromHours(1) && now.TimeOfDay < new TimeSpan(12, 0, 0);
+               && now.TimeOfDay >= schedule.WakeUpOfficeTime && now.TimeOfDay < new TimeSpan(12, 0, 0);
     }
 
     /// <summary>
