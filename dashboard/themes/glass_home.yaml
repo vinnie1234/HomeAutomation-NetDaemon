@@ -51,13 +51,9 @@ Glass Home:
       -webkit-backdrop-filter: blur(20px) saturate(140%);
       transition: background 0.4s ease, box-shadow 0.4s ease;
     }
-  # Tablet (en een smal laptopvenster): tussen 870 en 1400 pixels breed mogen de kolommen van een sections-pagina
-  # smaller en dichter op elkaar, zodat er drie naast elkaar passen in plaats van twee. Telefoon (smaller) en een
-  # breed scherm vallen erbuiten en blijven zoals ze zijn.
-  card-mod-root: |
-    @media (min-width: 870px) and (max-width: 1400px) {
-      :host {
-        --ha-view-sections-column-min-width: 280px;
-        --ha-view-sections-column-gap: 16px;
-      }
-    }
+  # Kolommen van een sections-pagina smaller en dichter op elkaar (standaard 320 en 32 pixels), zodat er op de tablet
+  # (Galaxy Tab S6, liggend) drie naast elkaar passen in plaats van twee. Gewone themavariabelen en geen card-mod-root:
+  # dit thema hangt aan de view, en card-mod-root werkt alleen voor het thema dat de gebruiker zelf gekozen heeft.
+  # Een telefoon blijft één kolom; op een breed scherm blijft het bij max_columns.
+  ha-view-sections-column-min-width: "280px"
+  ha-view-sections-column-gap: "16px"

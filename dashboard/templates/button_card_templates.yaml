@@ -2414,17 +2414,17 @@ hero_person:
 hero_tablet:
   show_icon: false
   show_name: false
-  entity: sensor.sm_t860_battery_level
+  entity: sensor.sm_t860_battery_level_2
   triggers_update:
-    - sensor.sm_t860_battery_level
-    - binary_sensor.sm_t860_is_charging
+    - sensor.sm_t860_battery_level_2
+    - sensor.sm_t860_battery_state_2
   tap_action:
     action: more-info
   custom_fields:
     pill: |
       [[[
         const level = parseInt(entity?.state);
-        const charging = states['binary_sensor.sm_t860_is_charging']?.state === 'on';
+        const charging = ['charging', 'full'].includes(states['sensor.sm_t860_battery_state_2']?.state);
         const low = !isNaN(level) && level <= 20 && !charging;
         const icon = charging ? 'mdi:battery-charging' : isNaN(level) ? 'mdi:battery-unknown'
           : `mdi:battery${level >= 95 ? '' : `-${Math.max(10, Math.round(level / 10) * 10)}`}`;
