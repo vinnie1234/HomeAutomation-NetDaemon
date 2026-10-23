@@ -151,6 +151,18 @@ public class PixelMedicationTests : IDisposable
     }
 
     [Fact]
+    public void Sensor_ShowsNeeded_AtTheReminderTime()
+    {
+        StartAt(20, 13);
+
+        // Half a minute after the reminder time, so a timer that fires a little early still sees the reminder time passed
+        At(20, 20, 1);
+
+        var call = _entityManager.ReceivedCalls().Last(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState));
+        call.GetArguments()[1].Should().Be("nodig");
+    }
+
+    [Fact]
     public void Status_IsForgotten_TheNextDay_UntilTheNextDose()
     {
         StartAt(20, 11);

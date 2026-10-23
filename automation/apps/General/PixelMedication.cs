@@ -98,9 +98,10 @@ public class PixelMedication : BaseApp
             .Where(x => x.Old?.State is not (null or "unavailable") && x.New?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ => UndoLastDose());
 
-        // The status changes at the reminder time and when a new day begins
+        // The status changes at the reminder time and when a new day begins. Always 30 seconds later: a timer can fire
+        // a few milliseconds early, and at 19:59:59.998 the prednison would still be "wacht" instead of "nodig".
         var reminderTime = new InputDatetimeEntity(HaContext, "input_datetime.pixel_prednison_tijd");
-        Scheduler.RunDailyAt(reminderTime, DefaultReminder, Publish);
+        Scheduler.RunDailyAt(reminderTime, DefaultReminder, () => Scheduler.Schedule(TimeSpan.FromSeconds(30), Publish));
         Scheduler.RunDailyAt(reminderTime, DefaultReminder, () => Scheduler.Schedule(PhoneReminderDelay, RemindOnPhone));
         Scheduler.RunDaily(ForgottenNotificationAt, RemindOnPhone);
         Scheduler.RunDaily(new TimeSpan(0, 0, 30), Publish);
