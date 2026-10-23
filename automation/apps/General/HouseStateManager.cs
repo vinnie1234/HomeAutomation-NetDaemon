@@ -15,7 +15,7 @@ public class HouseStateManager : BaseApp
     private static readonly TimeSpan DefaultNighttimeWeekends = new(0, 30, 0);
     private static readonly TimeSpan DefaultDaytimeWeekend = new(10, 0, 0);
     private static readonly TimeSpan DefaultDaytimeHomeWork = new(8, 15, 0);
-    private static readonly TimeSpan DefaultDaytimeOffice = new(7, 15, 0);
+    private static readonly TimeSpan DefaultDaytimeOffice = Models.Persons.WorkSchedule.DefaultWakeUpOffice;
     private static readonly TimeSpan DefaultWorkStart = new(8, 30, 0);
     private static readonly TimeSpan DefaultWorkEnd = new(17, 0, 0);
 

@@ -73,6 +73,27 @@ public class BathRoomLightsTests
     }
 
     [Fact]
+    public void OfficeMorning_LightsWorkAsDuringTheDay_WhileTheOtherStillSleeps()
+    {
+        // Friday 23 October 2026, 07:30 (UTC+2): Vincent's office day, he is up; Carleen still sleeps
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.SetCurrentTime(new DateTime(2026, 10, 23, 5, 30, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("input_select.werkdag_vincent_vrijdag").Returns(new EntityState { State = "Kantoor" });
+        ctx.HaContext.GetState("input_datetime.opstaan_kantoor_vincent").Returns(new EntityState { State = "07:15:00" });
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { State = "off" });
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("on").ToState("off");
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(3).Ticks);
+        ctx.VerifyCallService("light", "turn_off", "plafond_badkamer", times: 0);
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(3).Ticks);
+        ctx.VerifyCallService("light", "turn_off", "plafond_badkamer");
+    }
+
+    [Fact]
     public void MotionOn_DoesNothing_WhenAutomationDisabled()
     {
         // Arrange

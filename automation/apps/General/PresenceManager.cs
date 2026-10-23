@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Models.Persons;
 using Automation.Enum;
 using Microsoft.Extensions.Options;
 using static Automation.Globals;
@@ -125,6 +126,10 @@ public class PresenceManager : BaseApp
         // Vincent leaving: notify him and (if Carleen is home sleeping) schedule her wake-up.
         Entities.InputBoolean.Awayvincent.WhenTurnsOn(_ => OnVincentLeaves());
 
+        // Someone leaves while the other one is still asleep at home (e.g. off to the office): the lights they used go off
+        Entities.InputBoolean.Awayvincent.WhenTurnsOn(_ => LightsOffIfAsleep(Carleen));
+        Entities.InputBoolean.Awaycarleen.WhenTurnsOn(_ => LightsOffIfAsleep(Vincent));
+
         // Both away: turn everything off. The departure notification was already sent above.
         Entities.InputBoolean.Away.WhenTurnsOn(_ => OnBothAway());
 
@@ -146,6 +151,18 @@ public class PresenceManager : BaseApp
             Notify.NotifyPhoneVincent("Werkse Vincent", "Succes op kantoor :)", false, 5);
         else
             Notify.NotifyPhoneVincent("Tot ziens", "Je laat je huis weer alleen :(", false, 5);
+    }
+
+    /// <summary>
+    /// When the one who stays home is still asleep, turns off all lights: the one who left had them on to get ready.
+    /// When the one at home is awake, nothing happens.
+    /// </summary>
+    private void LightsOffIfAsleep(IPerson stayingHome)
+    {
+        if (!stayingHome.IsHome || !stayingHome.IsSleeping) return;
+
+        Logger.LogInformation("Presence: left while the other one still sleeps — turning the lights off");
+        Entities.Light.TurnAllOff();
     }
 
     /// <summary>

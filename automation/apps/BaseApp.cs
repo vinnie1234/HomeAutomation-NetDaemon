@@ -64,6 +64,27 @@ public class BaseApp
     protected bool IsVincentSleepMode => Vincent.IsSleeping;
 
     /// <summary>
+    /// True on the morning of an office day of Vincent or Carleen: from an hour before their office wake-up time until they
+    /// leave (at the latest 12:00), while they are home and awake. They have to get ready, so the lights then work as usual,
+    /// also when the other one still sleeps.
+    /// </summary>
+    protected bool IsOfficeMorning =>
+        IsOfficeMorningOf(Vincent, VincentSchedule) || IsOfficeMorningOf(Carleen, CarleenSchedule);
+
+    /// <summary>
+    /// <see cref="IsSleepMode"/> for the lights: dimmed and off quickly while someone sleeps, except on an
+    /// <see cref="IsOfficeMorning"/>.
+    /// </summary>
+    protected bool IsLightSleepMode => IsSleepMode && !IsOfficeMorning;
+
+    private bool IsOfficeMorningOf(IPerson person, WorkSchedule schedule)
+    {
+        var now = Scheduler.NowNl();
+        return person.IsHome && !person.IsSleeping && schedule.IsOfficeDay(now.DayOfWeek)
+               && now.TimeOfDay >= schedule.WakeUpOfficeTime - TimeSpan.FromHours(1) && now.TimeOfDay < new TimeSpan(12, 0, 0);
+    }
+
+    /// <summary>
     /// True when we're on vacation, nobody is home and the house sitter isn't there either.
     /// Motion is then not caused by a resident, so automations must not turn on lights.
     /// </summary>

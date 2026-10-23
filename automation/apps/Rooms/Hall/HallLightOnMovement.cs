@@ -65,17 +65,9 @@ public class HallLightOnMovement : BaseApp
     }
 
     /// <summary>
-    /// Gets the brightness level based on the sleeping state.
+    /// The brightness for the time of day: dimmed while someone sleeps, except on the morning of an office day.
     /// </summary>
-    /// <returns>The brightness level.</returns>
-    private int GetBrightness()
-    {
-        // On office days Vincent needs full brightness regardless of Carleen sleeping
-        if (VincentSchedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
-            return 100;
-
-        return _circadianLightingService.GetBrightness(IsSleepMode);
-    }
+    private int GetBrightness() => _circadianLightingService.GetBrightness(IsLightSleepMode);
 
     /// <summary>
     /// How long the lights stay on after the last motion: the night time while someone sleeps, otherwise
@@ -83,7 +75,7 @@ public class HallLightOnMovement : BaseApp
     /// </summary>
     private TimeSpan GetLightOffDelay()
     {
-        var minutes = IsSleepMode
+        var minutes = IsLightSleepMode
             ? Entities.InputNumber.Halllightnighttime.State
             : Entities.InputNumber.Halllightdaytime.State;
 
@@ -102,7 +94,7 @@ public class HallLightOnMovement : BaseApp
             case true:
                 var colorTemp = _circadianLightingService.GetColorTemperature(Entities.Light.Hal2);
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
-                if (!IsSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
+                if (!IsLightSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     // An unavailable Hal has no power (wall switch off): the bot presses the switch.
                     // Decided before TurnOn, because the state doesn't update right after the call.

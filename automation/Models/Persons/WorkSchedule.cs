@@ -31,6 +31,9 @@ public class WorkSchedule
     public const string Home = "Thuis";
     public const string Office = "Kantoor";
 
+    /// <summary>The wake-up time on an office day while <see cref="WakeUpOffice"/> has no value.</summary>
+    public static readonly TimeSpan DefaultWakeUpOffice = new(7, 15, 0);
+
     private readonly IHaContext _haContext;
     private readonly string _person;
 
@@ -46,6 +49,9 @@ public class WorkSchedule
     public InputBooleanEntity DayOff => new(_haContext, $"input_boolean.vrij_{_person}");
     public InputDatetimeEntity WakeUpOffice => new(_haContext, $"input_datetime.opstaan_kantoor_{_person}");
     public InputDatetimeEntity WakeUpHomeWork => new(_haContext, $"input_datetime.opstaan_thuiswerk_{_person}");
+
+    /// <summary>The wake-up time on an office day, or <see cref="DefaultWakeUpOffice"/> while the helper has no value.</summary>
+    public TimeSpan WakeUpOfficeTime => Extensions.SchedulerExtensions.ParseTimeOfDay(WakeUpOffice.State) ?? DefaultWakeUpOffice;
     public InputDatetimeEntity WorkStart => new(_haContext, $"input_datetime.werk_start_{_person}");
     public InputDatetimeEntity WorkEnd => new(_haContext, $"input_datetime.werk_eind_{_person}");
 

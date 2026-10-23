@@ -7,9 +7,11 @@ namespace TestAutomation.Apps.General;
 
 public class PresenceManagerTests
 {
-    private static AppTestContext Arrange(string awayVincent, string awayCarleen, string away)
+    private static AppTestContext Arrange(string awayVincent, string awayCarleen, string away, string sleepingCarleen = "off")
     {
         var ctx = AppTestContext.NewWithScheduler();
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.sleepingcarleen", State = sleepingCarleen });
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(
             new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_boolean.awayvincent", State = awayVincent });
         ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(
@@ -59,6 +61,30 @@ public class PresenceManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         ctx.VerifyCallService("input_boolean", "turn_off", "away");
+    }
+
+    [Fact]
+    public void VincentLeaves_WhileCarleenSleeps_TurnsTheLightsOff()
+    {
+        var ctx = Arrange(awayVincent: "off", awayCarleen: "off", away: "off", sleepingCarleen: "on");
+        ctx.HaContext.GetAllEntities().Returns(new List<NetDaemon.HassModel.Entities.Entity> { new(ctx.HaContext, "light.hal") });
+
+        ctx.ChangeStateFor("input_boolean.awayvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("light", "turn_off", "hal");
+    }
+
+    [Fact]
+    public void VincentLeaves_WhileCarleenIsAwake_LeavesTheLightsAlone()
+    {
+        var ctx = Arrange(awayVincent: "off", awayCarleen: "off", away: "off", sleepingCarleen: "off");
+        ctx.HaContext.GetAllEntities().Returns(new List<NetDaemon.HassModel.Entities.Entity> { new(ctx.HaContext, "light.hal") });
+
+        ctx.ChangeStateFor("input_boolean.awayvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyNotCallService("light.turn_off");
     }
 
     [Fact]

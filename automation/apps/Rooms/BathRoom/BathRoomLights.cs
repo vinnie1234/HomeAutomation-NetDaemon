@@ -139,12 +139,12 @@ public class BathRoomLights : BaseApp
     }
 
     /// <summary>
-    /// How long the lights stay on after the last motion: the night time while someone sleeps, otherwise
+    /// How long the lights stay on after the last motion: the night time while someone sleeps (not on an office morning), otherwise
     /// the day time. Falls back to <see cref="DefaultLightOffDelay"/> when the input_number has no value.
     /// </summary>
     private TimeSpan GetLightOffDelay()
     {
-        var minutes = IsSleepMode
+        var minutes = IsLightSleepMode
             ? Entities.InputNumber.Bathroomlightnighttime.State
             : Entities.InputNumber.Bathroomlightdaytime.State;
 
@@ -152,17 +152,9 @@ public class BathRoomLights : BaseApp
     }
 
     /// <summary>
-    /// Gets the brightness level based on the sleeping state.
+    /// The brightness for the time of day: dimmed while someone sleeps, except on the morning of an office day.
     /// </summary>
-    /// <returns>The brightness level.</returns>
-    private int GetBrightness()
-    {
-        // On office days Vincent needs full brightness regardless of Carleen sleeping
-        if (VincentSchedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek) && !Vincent.IsSleeping)
-            return 100;
-
-        return _circadianLightingService.GetBrightness(IsSleepMode);
-    }
+    private int GetBrightness() => _circadianLightingService.GetBrightness(IsLightSleepMode);
 
     /// <summary>
     /// Changes the state of the lights.
