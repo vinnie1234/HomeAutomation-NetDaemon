@@ -5,6 +5,12 @@ button_card_templates: !include templates/button_card_templates.yaml
 # Tijdelijk uitzetten: zet ?disable_km achter de URL.
 kiosk_mode:
   hide_header: true
+  # Op de tablet (account "dashboard") ook de zijbalk van HA weg: de navigatiebalk van het dashboard is er al, en het
+  # HA-menu zit onder "Menu". Dat geeft de kolommen de ruimte.
+  user_settings:
+    - users:
+        - dashboard
+      hide_sidebar: true
 views:
   - !include views/home.yaml
   - !include views/energie.yaml

@@ -51,3 +51,13 @@ Glass Home:
       -webkit-backdrop-filter: blur(20px) saturate(140%);
       transition: background 0.4s ease, box-shadow 0.4s ease;
     }
+  # Tablet (en een smal laptopvenster): tussen 870 en 1400 pixels breed mogen de kolommen van een sections-pagina
+  # smaller en dichter op elkaar, zodat er drie naast elkaar passen in plaats van twee. Telefoon (smaller) en een
+  # breed scherm vallen erbuiten en blijven zoals ze zijn.
+  card-mod-root: |
+    @media (min-width: 870px) and (max-width: 1400px) {
+      :host {
+        --ha-view-sections-column-min-width: 280px;
+        --ha-view-sections-column-gap: 16px;
+      }
+    }
