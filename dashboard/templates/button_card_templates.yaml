@@ -1984,6 +1984,11 @@ weather_hero:
                 working: input_boolean.workingcarleen
                 battery: sensor.carleen_mobiel_battery_level
                 charging: sensor.carleen_mobiel_battery_state
+          # De batterij van de tablet in de woonkamer, alleen voor het account van de tablet ("dashboard")
+          t:
+            card:
+              type: custom:button-card
+              template: hero_tablet
   styles:
     card:
       - cursor: default
@@ -2403,6 +2408,49 @@ hero_person:
       - overflow: visible
     grid:
       - grid-template-areas: '"pill"'
+# De batterij van de tablet (Galaxy Tab S6) als klein label naast de personen in de weerkaart. Alleen zichtbaar voor
+# een gebruiker met "dashboard" in de naam: het account waarmee de tablet is ingelogd. Rood als hij bijna leeg is en
+# niet laadt, met een bliksem als hij laadt.
+hero_tablet:
+  show_icon: false
+  show_name: false
+  entity: sensor.sm_t860_battery_level
+  triggers_update:
+    - sensor.sm_t860_battery_level
+    - binary_sensor.sm_t860_is_charging
+  tap_action:
+    action: more-info
+  custom_fields:
+    pill: |
+      [[[
+        const level = parseInt(entity?.state);
+        const charging = states['binary_sensor.sm_t860_is_charging']?.state === 'on';
+        const low = !isNaN(level) && level <= 20 && !charging;
+        const icon = charging ? 'mdi:battery-charging' : isNaN(level) ? 'mdi:battery-unknown'
+          : `mdi:battery${level >= 95 ? '' : `-${Math.max(10, Math.round(level / 10) * 10)}`}`;
+        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 12px 4px 8px;border-radius:20px;height:30px;box-sizing:content-box;
+                  background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);color:#fff;box-shadow:inset 0 0 0 2px ${low ? 'rgba(255,107,107,0.9)' : 'rgba(255,255,255,0.15)'}">
+                  <ha-icon icon="mdi:tablet" style="--mdc-icon-size:18px;opacity:0.85"></ha-icon>
+                  <div style="line-height:1.15;text-align:left">
+                    <div style="font-size:13px;font-weight:600;white-space:nowrap">Tablet</div>
+                    <div style="font-size:11px;white-space:nowrap;color:${low ? '#ff6b6b' : 'inherit'};display:flex;align-items:center;gap:2px">
+                      <ha-icon icon="${icon}" style="--mdc-icon-size:13px"></ha-icon>${isNaN(level) ? '?' : `${level}%`}</div>
+                  </div>
+                </div>`;
+      ]]]
+  styles:
+    card:
+      - display: '[[[ return /dashboard/i.test(user?.name ?? "") ? "block" : "none"; ]]]'
+      - cursor: pointer
+      - background: none
+      - border: none
+      - box-shadow: none
+      - backdrop-filter: none
+      - padding: 0
+      - overflow: visible
+    grid:
+      - grid-template-areas: '"pill"'
+
 # Verwachting per uur als strook die je horizontaal doorschuift: tijd, icoon, temperatuurlijn, regen (mm en kans).
 # Bron: sensor.weer_verwachting_per_uur (template-sensor met het attribuut forecast, zie README).
 forecast_strip:
