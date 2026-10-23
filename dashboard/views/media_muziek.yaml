@@ -25,12 +25,9 @@ sections:
         heading: Muziek
         heading_style: title
         icon: mdi:spotify
-      - type: custom:bubble-card
-        card_type: media-player
-        entity: media_player.spotify_vincent_maarschalkerweerd
-        name: Spotify
-        icon: mdi:spotify
-        cover_background: true
+      # Wat er nu speelt, op welke speaker en van welk account ook
+      - type: custom:button-card
+        template: music_now_card
 
       - type: heading
         heading: Snel starten

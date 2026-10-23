@@ -2451,6 +2451,70 @@ hero_tablet:
     grid:
       - grid-template-areas: '"pill"'
 
+# Wat er nu speelt, voor iedere kaart die muziek laat zien (template: [..., music_now] en dan variables.now).
+# Eerst de speakers zelf: speelt een speaker, dan staat er muziek aan, van welk Spotify-account of welke app ook (de
+# speaker geeft zelf titel, artiest en hoes door). Groepen gaan voor (speelt het hele huis, dan "Hele huis"). Speelt geen
+# speaker, dan Vincents eigen Spotify-account, bijvoorbeeld op de pc. Niets: null.
+music_now:
+  triggers_update: all
+  variables:
+    now: |
+      [[[
+        const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
+          ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
+          ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
+        const speaker = speakers.find(([id]) => states[id]?.state === 'playing');
+        const spotify = states['media_player.spotify_vincent_maarschalkerweerd'];
+        const from = (s, room, app) => ({ entity: s.entity_id, room, title: s.attributes.media_title, picture: s.attributes.entity_picture,
+          artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
+        if (speaker) return from(states[speaker[0]], speaker[1]);
+        if (spotify?.state === 'playing') return from(spotify, spotify.attributes.source, 'Spotify');
+        return null;
+      ]]]
+
+# De kaart "wat speelt er nu": hoes, titel en artiest, in welke kamer en met welke app. Tik = pauze / verder, lang
+# drukken = de speaker. Zonder muziek "Stil" (op Home en Media staat hij in een conditional en is hij dan weg).
+music_now_card:
+  template: [glass, music_now]
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: "[[[ if (variables.now) hass.callService('media_player', 'media_play_pause', { entity_id: variables.now.entity }); ]]]"
+  hold_action:
+    action: javascript
+    javascript: |
+      [[[
+        if (variables.now) this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: variables.now.entity } }));
+      ]]]
+  custom_fields:
+    body: |
+      [[[
+        const n = variables.now;
+        if (!n) return `<div style="display:flex;align-items:center;gap:12px;text-align:left;opacity:0.7">
+            <ha-icon icon="mdi:music-off" style="--mdc-icon-size:28px"></ha-icon><div><div style="font-weight:600">Stil</div>
+            <div style="font-size:12px">Er speelt nergens muziek</div></div></div>`;
+        return `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px">
+            ${n.picture ? `<img src="${n.picture}" style="width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.35)">`
+              : `<div style="width:72px;height:72px;border-radius:14px;background:rgba(74,222,128,0.18);display:flex;align-items:center;justify-content:center">
+                   <ha-icon icon="mdi:music" style="--mdc-icon-size:30px;color:#4ade80"></ha-icon></div>`}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;color:#4ade80;font-weight:600">▶ ${[n.room, n.app].filter(Boolean).join(' · ')}</div>
+              <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title ?? 'Muziek'}</div>
+              <div style="font-size:13px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.artist ?? ''}</div>
+            </div>
+            <ha-icon icon="mdi:pause-circle-outline" style="--mdc-icon-size:30px;opacity:0.8"></ha-icon></div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 12px 14px
+      - cursor: pointer
+    custom_fields:
+      body:
+        - width: 100%
+
 # Verwachting per uur als strook die je horizontaal doorschuift: tijd, icoon, temperatuurlijn, regen (mm en kans).
 # Bron: sensor.weer_verwachting_per_uur (template-sensor met het attribuut forecast, zie README).
 forecast_strip:

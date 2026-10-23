@@ -1,0 +1,39 @@
+# Wat er nu speelt (template music_now_card), alleen zichtbaar als er ergens muziek speelt: op een speaker (elk
+# Spotify-account of elke app) of op Vincents eigen Spotify. Op Home en Media.
+type: conditional
+conditions:
+  - condition: or
+    conditions:
+      - condition: state
+        entity: media_player.hele_huis
+        state: playing
+      - condition: state
+        entity: media_player.friends_speakers
+        state: playing
+      - condition: state
+        entity: media_player.woonkamer
+        state: playing
+      - condition: state
+        entity: media_player.nestmini9818
+        state: playing
+      - condition: state
+        entity: media_player.googlehome0351
+        state: playing
+      - condition: state
+        entity: media_player.hub_vincent
+        state: playing
+      - condition: state
+        entity: media_player.googlehome7421
+        state: playing
+      - condition: state
+        entity: media_player.googlehome8627
+        state: playing
+      - condition: state
+        entity: media_player.soundbar
+        state: playing
+      - condition: state
+        entity: media_player.spotify_vincent_maarschalkerweerd
+        state: playing
+card:
+  type: custom:button-card
+  template: music_now_card
