@@ -1,4 +1,4 @@
-# PS5: staat hij uit, dan dezelfde stappen als de Gaming-app (TV aan op HDMI2, soundbar aan); staat hij aan, dan uit
+# PS5: staat hij uit, dan dezelfde stappen als de Gaming-app (de PS5 wekt de TV, TV op HDMI2, soundbar aan); staat hij aan, dan uit
 type: custom:button-card
 template: action
 entity: switch.ps5_vincent_power
@@ -13,7 +13,7 @@ tap_action:
         return;
       }
       hass.callService('switch', 'turn_on', { entity_id: 'switch.ps5_vincent_power' });
-      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' });
+      // De Samsung kan niet zelf aan via HA (geen turn_on): de PS5 wekt hem via HDMI-CEC
       hass.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
       setTimeout(() => hass.callService('media_player', 'select_source',
         { entity_id: 'media_player.tv', source: 'HDMI2' }), 8000);

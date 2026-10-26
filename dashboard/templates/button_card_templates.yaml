@@ -3024,6 +3024,83 @@ carrier:
         - font-size: 18px
         - font-weight: 700
 
+# Elk pakket dat onderweg is, van alle vervoerders, tot het bezorgd is. Niet uit de losse entiteit per pakket
+# (sensor.buiten_postnl_pakket_<barcode>, die komt er bij elk pakket bij), maar uit het attribuut parcels van de vaste
+# sensoren per vervoerder: inkomend, onderweg naar een afhaalpunt en klaar om af te halen (dubbele eruit op barcode).
+# Tik op een pakket opent track & trace. Verborgen als er niets onderweg is.
+parcel_list:
+  template: glass
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  variables:
+    carriers:
+      - { key: postnl, name: PostNL, color: '255, 98, 0', sensors: [inkomende_pakketten, onderweg_naar_postnl_punt, klaar_voor_afhalen] }
+      - { key: dhl, name: DHL, color: '255, 204, 0', sensors: [inkomende_pakketten, onderweg_naar_servicepoint, klaar_voor_afhalen] }
+      - { key: dpd, name: DPD, color: '220, 0, 50', sensors: [inkomende_pakketten, onderweg_naar_parcelshop, klaar_voor_afhalen] }
+      - { key: gls, name: GLS, color: '60, 110, 200', sensors: [inkomende_pakketten, onderweg_naar_parcelshop, klaar_voor_afhalen] }
+    # Elk pakket als { c: vervoerder, p: pakket }, op geplande bezorging (zonder tijd achteraan)
+    parcels: |
+      [[[
+        const seen = new Set();
+        const rows = [];
+        for (const c of variables.carriers) {
+          for (const s of c.sensors) {
+            for (const p of states[`sensor.buiten_${c.key}_${s}`]?.attributes?.parcels ?? []) {
+              const id = p.barcode ?? p.url ?? JSON.stringify(p);
+              if (p.delivered || seen.has(id)) continue;
+              seen.add(id);
+              rows.push({ c, p, planned: new Date(p.planned_from).getTime() || Infinity });
+            }
+          }
+        }
+        return rows.sort((x, y) => x.planned - y.planned);
+      ]]]
+  custom_fields:
+    list: |
+      [[[
+        const status = {
+          registered: 'Aangemeld', pre_transit: 'Aangemeld', in_transit: 'Onderweg', out_for_delivery: 'Wordt vandaag bezorgd',
+          to_pickup_point: 'Naar afhaalpunt', ready_for_pickup: 'Klaar om af te halen', exception: 'Probleem', failed: 'Niet bezorgd'
+        };
+        const when = (from, to) => {
+          const a = new Date(from), b = new Date(to);
+          if (isNaN(a)) return '';
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const day = new Date(a); day.setHours(0, 0, 0, 0);
+          const diff = Math.round((day - today) / 86400000);
+          const time = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+          const date = diff === 0 ? 'vandaag' : diff === 1 ? 'morgen'
+            : a.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+          return `${date} ${time(a)}${isNaN(b) ? '' : `–${time(b)}`}`;
+        };
+        return variables.parcels.map(({ c, p }, i) => {
+          const title = p.sender && p.sender !== p.barcode ? p.sender : `${c.name} ${p.barcode ?? ''}`;
+          const line = [status[p.status] ?? p.status, when(p.planned_from, p.planned_to), p.pickup_point?.name ?? p.pickup_point]
+            .filter(x => x && typeof x === 'string').join(' · ');
+          const detail = p.raw_status && p.raw_status !== line ? p.raw_status : '';
+          const open = p.url ? `onclick="window.open('${p.url}', '_blank')"` : '';
+          return `<div ${open} style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;cursor:${p.url ? 'pointer' : 'default'};${i ? 'border-top:1px solid rgba(255,255,255,0.06)' : ''}">
+                    <div style="flex:none;width:6px;align-self:stretch;border-radius:3px;background:rgb(${c.color})"></div>
+                    <div style="min-width:0;text-align:left">
+                      <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+                      <div style="font-size:12px">${c.name} · ${line}</div>
+                      ${detail ? `<div style="font-size:12px;opacity:0.6;white-space:normal">${detail}</div>` : ''}
+                    </div>
+                  </div>`;
+        }).join('');
+      ]]]
+  styles:
+    card:
+      - display: '[[[ return variables.parcels.length ? "block" : "none"; ]]]'
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - justify-self: stretch
+
 # Pixel gekotst: tik telt er een bij, lang drukken maakt de laatste ongedaan (na bevestiging).
 # Het label toont hoe vaak het in twee weken gebeurde en wanneer het laatst (uit sensor.pixel_gekotst_momenten van NetDaemon).
 vomit_button:

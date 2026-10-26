@@ -42,7 +42,7 @@ public class Gaming : BaseApp
 
         if (!DisableLightAutomations)
         {
-            Entities.MediaPlayer.Tv.TurnOn();
+            // The Samsung cannot be turned on through HA (no turn_on); the PS5 wakes it over HDMI-CEC
             Entities.MediaPlayer.Tv.SelectSource("HDMI2");
             Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();

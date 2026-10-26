@@ -11,8 +11,8 @@ tap_action:
         hass.callService('remote', 'turn_off', { entity_id: 'remote.tv_in_woonkamer' });
         return;
       }
-      hass.callService('media_player', 'turn_on', { entity_id: 'media_player.tv' });
       hass.callService('media_player', 'turn_on', { entity_id: 'media_player.soundbar' });
+      // De Samsung kan niet zelf aan via HA (geen turn_on): de Google TV aanzetten wekt hem via HDMI-CEC
       hass.callService('remote', 'turn_on', { entity_id: 'remote.tv_in_woonkamer' });
     ]]]
 state:

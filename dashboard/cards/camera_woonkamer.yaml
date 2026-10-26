@@ -1,0 +1,12 @@
+# De voorcamera van de tablet in de woonkamer (Fully Kiosk), op Home en Huis. Alleen als er niemand thuis is: zone.home
+# telt de personen die thuis zijn. Geen stream: HA ververst het beeld elke paar seconden.
+type: picture-entity
+entity: camera.tab_s6_van_vincent
+camera_view: auto
+name: Woonkamer · niemand thuis
+show_name: true
+show_state: false
+visibility:
+  - condition: state
+    entity: zone.home
+    state: "0"

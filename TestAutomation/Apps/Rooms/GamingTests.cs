@@ -24,7 +24,6 @@ public class GamingTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        ctx.VerifyCallService("media_player", "turn_on", "tv");
         ctx.VerifyCallService("media_player", "select_source", "tv");
         ctx.VerifyCallService("media_player", "turn_on", "av_soundbar");
         ctx.VerifyCallService("light", "turn_off", "plafond_woonkamer");
