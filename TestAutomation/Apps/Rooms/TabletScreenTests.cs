@@ -14,7 +14,7 @@ public class TabletScreenTests
     private void SetState(string entityId, string state) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState { EntityId = entityId, State = state });
 
-    private TabletScreenTests Start(string tv = "off", string sleepingVincent = "off", string sleepingCarleen = "off")
+    private void Start(string tv = "off", string sleepingVincent = "off", string sleepingCarleen = "off")
     {
         SetState("input_boolean.awayvincent", "off");
         SetState("input_boolean.awaycarleen", "off");
@@ -24,7 +24,6 @@ public class TabletScreenTests
         SetState("input_boolean.away", "off");
         SetState("media_player.tv", tv);
         _ctx.InitApp<TabletScreen>();
-        return this;
     }
 
     private void Change(string entityId, string from, string to)

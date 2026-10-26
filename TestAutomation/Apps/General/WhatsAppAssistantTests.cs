@@ -42,11 +42,11 @@ public class WhatsAppAssistantTests : IDisposable
 
     public void Dispose() => Directory.Delete(_storagePath, recursive: true);
 
-    private WhatsAppAssistant CreateApp()
+    private void CreateApp()
     {
         _ctx.HaContext.Events.Returns(_events);
         var config = Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = Vincent, Carleen = Carleen } });
-        return _ctx.InitApp<WhatsAppAssistant>(_mediaClient, _assistPipeline, _textToSpeech, _storage, config);
+        _ctx.InitApp<WhatsAppAssistant>(_mediaClient, _assistPipeline, _textToSpeech, _storage, config);
     }
 
     private void SendEvent(string remoteJid, bool fromMe, string type, object message) =>

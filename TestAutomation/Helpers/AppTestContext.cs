@@ -13,7 +13,6 @@ namespace TestAutomation.Helpers;
 
 public class AppTestContext : IDisposable
 {
-    private ICircadianLightingService? _circadianLightingService;
     private ILivingRoomPresenceService? _livingRoomPresenceService;
 
     /// <summary>
@@ -42,7 +41,7 @@ public class AppTestContext : IDisposable
     /// Gets the real circadian lighting service, so apps under test use the actual curve.
     /// </summary>
     public ICircadianLightingService CircadianLightingService =>
-        _circadianLightingService ??= new CircadianLightingService(
+        field ??= new CircadianLightingService(
             HaContext,
             Options.Create(Config),
             NullLogger<CircadianLightingService>.Instance);

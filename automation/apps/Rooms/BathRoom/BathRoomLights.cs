@@ -15,7 +15,7 @@ public class BathRoomLights : BaseApp
     /// <summary>The "showering for an hour" check of the current shower, cancelled when showering stops.</summary>
     private readonly SerialDisposable _douchingTooLongCheck = new();
 
-    private ISpotcast _spotcast;
+    private readonly ISpotcast _spotcast;
     private readonly AppConfig _config;
     private readonly ICircadianLightingService _circadianLightingService;
     

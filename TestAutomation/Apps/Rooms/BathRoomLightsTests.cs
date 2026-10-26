@@ -301,7 +301,7 @@ public class BathRoomLightsTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - the second shower is not turned off
-        ctx.VerifyNotCallService("input_boolean.turn_off", "douchen");
+        ctx.VerifyNotCallService("input_boolean.turn_off");
     }
 
     [Fact]

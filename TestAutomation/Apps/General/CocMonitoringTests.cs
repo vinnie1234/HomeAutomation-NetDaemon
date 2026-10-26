@@ -19,14 +19,14 @@ public class CocMonitoringTests
         var storage = Substitute.For<IDataRepository>();
         var config = Options.Create(new AppConfig 
         { 
-            Discord = new DiscordConfig { COC = "coc_channel" },
+            Discord = new DiscordConfig { Coc = "coc_channel" },
             Twitter = new TwitterConfig { BearerToken = "fake_token" }
         });
 
 
         // We assume last run time is empty
         storage.Get<string>("COC_LAST_RUN_TIME").Returns((string?)null);
-        storage.Get<List<COCModel>>("COC_TWEET_ID_LIST").Returns(new List<COCModel>());
+        storage.Get<List<CocModel>>("COC_TWEET_ID_LIST").Returns(new List<CocModel>());
 
         ctx.InitApp<CocMonitoring>(storage, config);
 
@@ -49,7 +49,7 @@ public class CocMonitoringTests
         var storage = Substitute.For<IDataRepository>();
         var config = Options.Create(new AppConfig 
         { 
-            Discord = new DiscordConfig { COC = "coc_channel" },
+            Discord = new DiscordConfig { Coc = "coc_channel" },
             Twitter = new TwitterConfig { BearerToken = "fake_token" }
         });
 
@@ -77,7 +77,7 @@ public class CocMonitoringTests
         var storage = Substitute.For<IDataRepository>();
         var config = Options.Create(new AppConfig 
         { 
-            Discord = new DiscordConfig { COC = "coc_channel" },
+            Discord = new DiscordConfig { Coc = "coc_channel" },
             Twitter = new TwitterConfig { BearerToken = "fake_token" }
         });
 

@@ -56,9 +56,9 @@ public class AlarmTests
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = DateTime.Now.ToString("O") });
     }
 
-    private Alarm CreateApp()
+    private void CreateApp()
     {
-        return new Alarm(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _entityManager, _config, _storage);
+        _ = new Alarm(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _entityManager, _config, _storage);
     }
 
     [Fact]

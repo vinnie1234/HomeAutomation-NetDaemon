@@ -233,7 +233,7 @@ public class SleepManager : BaseApp
     {
         Scheduler.ScheduleCronNl("00 10 * * *", () =>
         {
-            if (Carleen.IsHome && Carleen.IsSleeping)
+            if (Carleen is { IsHome: true, IsSleeping: true })
             {
                 Logger.LogInformation("Scheduled 10:00 wake-up: setting Carleen sleeping off");
                 Entities.InputBoolean.Sleepingcarleen.TurnOff();

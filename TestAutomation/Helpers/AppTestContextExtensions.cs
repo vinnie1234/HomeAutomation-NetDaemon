@@ -1,7 +1,6 @@
 using FluentAssertions;
 using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;
-using NetDaemonApps.Tests.Helpers;
 using NSubstitute;
 using JsonElement = System.Text.Json.JsonElement;
 using System.Runtime.CompilerServices;
@@ -54,8 +53,7 @@ public static class AppTestContextExtensions
             var matchedCalls = calls.Where(c => 
                 (string)c.GetArguments()[0]! == domain && 
                 (string)c.GetArguments()[1]! == service &&
-                c.GetArguments()[2] is ServiceTarget st && 
-                st.EntityIds != null && 
+                c.GetArguments()[2] is ServiceTarget { EntityIds: not null } st && 
                 st.EntityIds.Contains($"{domain}.{entityId}")).ToList();
 
             if (matchedCalls.Count != times)

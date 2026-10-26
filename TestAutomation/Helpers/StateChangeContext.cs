@@ -3,9 +3,9 @@ using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
 
-namespace NetDaemonApps.Tests.Helpers;
+namespace TestAutomation.Helpers;
 
-public class StateChangeContext : IFromState, IToState, IWithState
+public class StateChangeContext : IToState, IWithState
 {
     private readonly AppTestContext _ctx;
     private readonly string _entityId;

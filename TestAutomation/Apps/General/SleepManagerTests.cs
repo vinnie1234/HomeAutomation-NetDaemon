@@ -73,7 +73,7 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
 
-        ctx.VerifyNotCallService("input_boolean.turn_on", "sleepingcarleen");
+        ctx.VerifyNotCallService("input_boolean.turn_on");
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
         
-        TestExceptionCatcher.CaughtException.Should().BeNull("because Sleeping() should not throw: " + TestExceptionCatcher.CaughtException?.ToString());
+        TestExceptionCatcher.CaughtException.Should().BeNull("because Sleeping() should not throw: " + TestExceptionCatcher.CaughtException);
 
         ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
     }

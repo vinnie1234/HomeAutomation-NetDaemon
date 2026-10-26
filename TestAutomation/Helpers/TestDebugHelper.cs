@@ -13,23 +13,6 @@ public static class TestDebugHelper
 {
     private static readonly bool IsDebugEnabled = true; // Always enable for now
 
-    private static bool GetDebugSetting()
-    {
-        try
-        {
-            var configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true)
-                .AddJsonFile("appsettings.Development.json", optional: true)
-                .Build();
-
-            return configuration.GetValue<bool>("Testing:Debug", false);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     /// <summary>
     /// Executes an assertion with debug logging for ReceivedCallsException
     /// </summary>

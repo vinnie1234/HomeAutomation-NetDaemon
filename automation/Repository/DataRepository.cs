@@ -13,7 +13,7 @@ public class DataRepository : IDataRepository
     private readonly string _dataStoragePath;
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<string, string> _cache;
-    private readonly object _fileLock = new();
+    private readonly Lock _fileLock = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DataRepository"/> class.

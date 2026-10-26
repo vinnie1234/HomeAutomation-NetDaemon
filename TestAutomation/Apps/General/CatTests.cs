@@ -51,9 +51,9 @@ public class CatTests
         _ctx.HaContext.GetState("input_number.pixellastamountmanualfeed").Returns(new EntityState { EntityId = "input_number.pixellastamountmanualfeed", State = "0" });
     }
 
-    private Cat CreateApp()
+    private void CreateApp()
     {
-        return new Cat(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _config);
+        _ = new Cat(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _config);
     }
 
     [Fact]

@@ -9,6 +9,6 @@ public class DiscordConfig
     public string Logs { get; set; } = "";
     public string Updates { get; set; } = "";
     public string Yts { get; set; } = "";
-    public string COC { get; set; } = "";
-    public string TODO { get; set; } = "";
+    public string Coc { get; set; } = "";
+    public string Todo { get; set; } = "";
 }

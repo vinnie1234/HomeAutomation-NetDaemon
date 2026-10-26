@@ -14,7 +14,7 @@ public class CocMonitoring : BaseApp
     public CocMonitoring(IHaContext haContext,  ILogger<CocMonitoring> logger, INotify notify, IScheduler scheduler, IDataRepository dataRepository, IOptions<AppConfig> config) : base(haContext, logger, notify, scheduler, config)
     {
         var config1 = config.Value;
-        var discordChannel = config1.Discord.COC;
+        var discordChannel = config1.Discord.Coc;
         var bearerToken = config1.Twitter.BearerToken;
         
         Scheduler.RunDaily(TimeSpan.Parse("07:00:00", new CultureInfo("nl-Nl")),
@@ -58,7 +58,7 @@ public class CocMonitoring : BaseApp
 
         const string twitterUserId = "1671940215013867529";
 
-        var idListModel = dataRepository.Get<List<COCModel>>("COC_TWEET_ID_LIST") ?? [];
+        var idListModel = dataRepository.Get<List<CocModel>>("COC_TWEET_ID_LIST") ?? [];
         
         var options = new RestClientOptions("https://api.twitter.com");
         var client = new RestClient(options);
@@ -76,7 +76,7 @@ public class CocMonitoring : BaseApp
                         if (tweet.Id != null && idListModel.All(x => x.Id != tweet.Id))
                         {
                             SendToDiscord(discordChannel, tweet);
-                            idListModel.Add(new COCModel
+                            idListModel.Add(new CocModel
                             {
                                 Id = tweet.Id,
                                 InertDate = now.DateTime

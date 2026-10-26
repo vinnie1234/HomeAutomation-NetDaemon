@@ -53,7 +53,7 @@ public class BaseApp
     /// This is when Vincent is sleeping, OR when Carleen is home and sleeping.
     /// Use this for rooms near the bedroom (hall, bathroom) where Carleen's sleep matters.
     /// </summary>
-    protected bool IsSleepMode => Vincent.IsSleeping || (Carleen.IsHome && Carleen.IsSleeping);
+    protected bool IsSleepMode => Vincent.IsSleeping || Carleen is { IsHome: true, IsSleeping: true };
 
     /// <summary>
     /// True only when Vincent himself is sleeping, regardless of Carleen.
@@ -79,7 +79,7 @@ public class BaseApp
     private bool IsOfficeMorningOf(IPerson person, WorkSchedule schedule)
     {
         var now = Scheduler.NowNl();
-        return person.IsHome && !person.IsSleeping && schedule.IsOfficeDay(now.DayOfWeek)
+        return person is { IsHome: true, IsSleeping: false } && schedule.IsOfficeDay(now.DayOfWeek)
                && now.TimeOfDay >= schedule.WakeUpOfficeTime && now.TimeOfDay < new TimeSpan(12, 0, 0);
     }
 

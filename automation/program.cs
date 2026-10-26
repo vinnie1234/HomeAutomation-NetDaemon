@@ -98,4 +98,4 @@ catch (Exception ex)
     throw;
 }
 
-public partial class Program { }
+public partial class Program;

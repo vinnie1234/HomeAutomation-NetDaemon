@@ -149,7 +149,7 @@ public class Laundry : BaseApp
             : CountConsecutiveDryHours(futureForecast, 0);
 
         // Only "can go outside now" within the hanging window (not e.g. at 22:30 on a dry night)
-        var isWithinWindow = fromNow.Hour >= StartWindowHour && fromNow.Hour < EndWindowHour;
+        var isWithinWindow = fromNow.Hour is >= StartWindowHour and < EndWindowHour;
         var isDryNow = isWithinWindow && dryHours >= RequiredDryHours;
 
         DateTime? nextWindowTime = null;
@@ -181,10 +181,9 @@ public class Laundry : BaseApp
         string? dryUntilDescription = null;
         if (isDryNow)
         {
-            if (!dryUntil.HasValue)
-                dryUntilDescription = "de rest van de dag";
-            else
-                dryUntilDescription = $"{(int)(dryUntil.Value - fromNow).TotalHours} uur";
+            dryUntilDescription = !dryUntil.HasValue
+                    ? "de rest van de dag"
+                    : $"{(int)(dryUntil.Value - fromNow).TotalHours} uur";
         }
 
         return new DryWindowResult(isDryNow, dryUntil, dryUntilDescription, nextWindowTime);
@@ -275,7 +274,7 @@ public class Laundry : BaseApp
         {
             var forecast = await GetHourlyForecastAsync();
             var now2 = Scheduler.NowNl().DateTime;
-            if (forecast != null && forecast.Count > 0)
+            if (forecast is { Count: > 0 })
             {
                 var result = CalculateDryWindow(forecast, now2);
                 if (result.IsDryNow)

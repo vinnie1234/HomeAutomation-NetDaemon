@@ -64,8 +64,8 @@ public class LaundryTests
         SetSunNextSetting(DateTime.Today.AddHours(20).ToUniversalTime());
     }
 
-    private Laundry CreateApp() =>
-        new(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _config);
+    private void CreateApp() =>
+        _ = new Laundry(_ctx.HaContext, _logger, _notify, _ctx.Scheduler, _config);
 
     // ──────────────────────────────────────────────────────────────────────────
     //  Test helpers
@@ -101,7 +101,7 @@ public class LaundryTests
         {
             datetime = e.dt.ToUniversalTime().ToString("O"),
             condition = e.precipitation > 0 ? "rainy" : "sunny",
-            precipitation = e.precipitation,
+            e.precipitation,
             precipitation_probability = e.precipitation > 0 ? 80 : 0,
             temperature = 18
         }).ToList();
@@ -130,7 +130,7 @@ public class LaundryTests
     {
         var timeout = DateTime.UtcNow.AddSeconds(5);
         while (DateTime.UtcNow < timeout &&
-               !_notify.ReceivedCalls().Any(c => c.GetMethodInfo().Name == nameof(INotify.NotifyPeopleHome)))
+               _notify.ReceivedCalls().All(c => c.GetMethodInfo().Name != nameof(INotify.NotifyPeopleHome)))
             await Task.Delay(20);
     }
 

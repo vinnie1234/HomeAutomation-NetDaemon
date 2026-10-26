@@ -17,16 +17,15 @@ public class CatVomitTrackerTests : IDisposable
     private readonly AppTestContext _ctx = AppTestContext.New();
     private readonly IEntityManager _entityManager = Substitute.For<IEntityManager>();
     private readonly string _storagePath = Path.Combine(Path.GetTempPath(), $"CatVomitTrackerTests_{Guid.NewGuid():N}");
-    private readonly IDataRepository _storage;
 
     public CatVomitTrackerTests()
     {
         Directory.CreateDirectory(_storagePath);
-        _storage = new DataRepository(_storagePath, Substitute.For<ILogger>());
+        var storage = new DataRepository(_storagePath, Substitute.For<ILogger>());
         _entityManager.EntityExists(CatVomitTracker.SensorId).Returns(true);
         // Tuesday 20 October 2026, 10:00 Dutch time (summer time, UTC+2)
         _ctx.SetCurrentTime(new DateTime(2026, 10, 20, 8, 0, 0, DateTimeKind.Utc));
-        _ctx.InitApp<CatVomitTracker>(Options.Create(new AppConfig()), _storage, _entityManager);
+        _ctx.InitApp<CatVomitTracker>(Options.Create(new AppConfig()), storage, _entityManager);
     }
 
     public void Dispose() => Directory.Delete(_storagePath, recursive: true);

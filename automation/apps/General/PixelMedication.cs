@@ -286,7 +286,7 @@ public class PixelMedication : BaseApp
         lock (_lock)
         {
             var status = PrednisonStatus();
-            var last = (string medicine) => Doses(medicine).LastOrDefault()?.Time.ToString("yyyy-MM-ddTHH:mm:sszzz");
+            string? Last(string medicine) => Doses(medicine).LastOrDefault()?.Time.ToString("yyyy-MM-ddTHH:mm:sszzz");
             var undoable = Doses(null).LastOrDefault();
             var prednison = Stock(Prednison);
             var antibraak = Stock(Antibraak);
@@ -298,8 +298,8 @@ public class PixelMedication : BaseApp
                 prednison_bijna_op = prednison < Medicines[Prednison].Low,
                 antibraak_bijna_op = antibraak < Medicines[Antibraak].Low,
                 prednison_dagen_over = Math.Floor(prednison / Medicines[Prednison].Dose),
-                laatste_prednison = last(Prednison),
-                laatste_antibraak = last(Antibraak),
+                laatste_prednison = Last(Prednison),
+                laatste_antibraak = Last(Antibraak),
                 herinnering = ReminderTime().ToString(@"hh\:mm"),
                 prednison_prijs_per_pil = Math.Round(PricePerPill(Prednison), 4),
                 antibraak_prijs_per_pil = Math.Round(PricePerPill(Antibraak), 4),

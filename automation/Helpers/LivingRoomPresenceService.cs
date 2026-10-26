@@ -60,9 +60,8 @@ public class LivingRoomPresenceService : ILivingRoomPresenceService, IDisposable
         var gracePeriod = config.Value.Presence.LivingRoomGracePeriod;
         _isOccupiedSubject = new BehaviorSubject<bool>(ReadInitialAnchorState());
 
-        var anchorChanges = Observable.Merge(
-                _entities.BinarySensor.Motionwoonkamer.StateChanges().Select(_ => Unit.Default),
-                _entities.MediaPlayer.Tv.StateChanges().Select(_ => Unit.Default))
+        var anchorChanges = _entities.BinarySensor.Motionwoonkamer.StateChanges().Select(_ => Unit.Default)
+                .Merge(_entities.MediaPlayer.Tv.StateChanges().Select(_ => Unit.Default))
             .Select(_ => HasActiveAnchor())
             .DistinctUntilChanged();
 

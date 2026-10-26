@@ -27,7 +27,7 @@ public class Notify : INotify
     private readonly VincentModel _vincentModel;
 
     /// <summary>Guards the notification history, which is shared by the Notify instances of all apps.</summary>
-    private static readonly object HistoryLock = new();
+    private static readonly Lock HistoryLock = new();
 
     /// <summary>How long the buttons of an actionable notification keep working when nobody presses them.</summary>
     private static readonly TimeSpan NotificationActionLifetime = TimeSpan.FromDays(1);
@@ -282,9 +282,9 @@ public class Notify : INotify
     {
         try
         {
-            await _discordResiliencePipeline.ExecuteAsync(async _ =>
+            await _discordResiliencePipeline.ExecuteAsync(async cancellationToken =>
             {
-                await Task.Run(() => _services.Notify.DiscordHomeassistant(message, "", target, data));
+                await Task.Run(() => _services.Notify.DiscordHomeassistant(message, "", target, data), cancellationToken);
             });
             
             _logger.LogDebug("Discord notification sent successfully to channels: {Channels}", string.Join(", ", target));

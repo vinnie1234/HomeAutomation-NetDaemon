@@ -40,7 +40,7 @@ public class IntegrationMonitor : BaseApp
     private readonly AppConfig _config;
 
     /// <summary>Guards <see cref="_inProgress"/>, the stored reload history and the stored loaded entities.</summary>
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>The integrations that are being repaired right now, so the next check doesn't repair them twice.</summary>
     private readonly HashSet<string> _inProgress = [];
