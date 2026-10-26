@@ -2455,12 +2455,13 @@ hero_person:
         let status = asleep ? 'Slaapt' : working ? (home ? 'Werkt thuis' : 'Aan het werk')
           : home ? 'Thuis' : entity?.state === 'not_home' ? 'Weg' : entity?.state ?? '';
 
-        // Onderweg: afstand tot huis en of de persoon naar huis komt
+        // Onderweg: afstand tot huis en of de persoon naar huis komt. De richting alleen buiten alle zones: in een zone (werk)
+        // wipt de GPS een paar meter heen en weer en springt de sensor tientallen keren per dag op towards en away_from.
         const d = states[variables.distance];
         const meters = parseFloat(d?.state) * (d?.attributes.unit_of_measurement === 'km' ? 1000 : 1);
         if (!home && !isNaN(meters)) {
           const dist = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1).replace('.', ',')} km` : `${Math.round(meters)} m`;
-          const dir = { towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '';
+          const dir = entity?.state === 'not_home' ? ({ towards: ' · komt eraan', away_from: ' · gaat weg' }[states[variables.direction]?.state] ?? '') : '';
           status = `${working ? 'Werkt · ' : ''}${dist}${dir}`;
         }
 
