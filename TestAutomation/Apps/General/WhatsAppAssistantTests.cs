@@ -182,7 +182,7 @@ public class WhatsAppAssistantTests : IDisposable
         SendEvent(Stranger, fromMe: false, type: "conversation", message: new { conversation = "doe de deur open" });
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        _ctx.HaContext.DidNotReceiveWithAnyArgs().CallServiceWithResponseAsync(null!, null!, null, null);
+        _ctx.HaContext.DidNotReceiveWithAnyArgs().CallServiceWithResponseAsync(null!, null!);
         _ctx.HaContext.DidNotReceive().CallService("whatsapp", "send_message", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
     }
 
@@ -196,7 +196,7 @@ public class WhatsAppAssistantTests : IDisposable
         SendEvent(Vincent, fromMe: true, type: "conversation", message: new { conversation = "De woonkamerlamp staat aan" });
         _ctx.HaContextMock.ProcessPendingOperations();
 
-        _ctx.HaContext.DidNotReceiveWithAnyArgs().CallServiceWithResponseAsync(null!, null!, null, null);
+        _ctx.HaContext.DidNotReceiveWithAnyArgs().CallServiceWithResponseAsync(null!, null!);
     }
 
     [Fact]

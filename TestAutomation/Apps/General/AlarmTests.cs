@@ -101,7 +101,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -370,8 +370,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false);
     }
 
     [Fact]
@@ -434,8 +434,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false);
     }
 
     [Fact]
@@ -465,8 +465,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false);
     }
 
     [Fact]
@@ -480,8 +480,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false);
     }
 
     [Fact]
@@ -526,7 +526,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincentCarleen(null!, null!, false!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincentCarleen(null!, null!, false);
     }
 
     [Fact]
@@ -561,7 +561,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
     }
 
     /// <summary>
