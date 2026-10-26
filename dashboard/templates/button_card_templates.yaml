@@ -370,6 +370,104 @@ sun:
         - display: block
         - width: 100%
 
+# Het thema van de weerkaart (seizoen of feestdag) voor elke datum, en wanneer het er staat: variables.theme_info met
+# theme, label, manual (gekozen in input_select.weerkaart_thema), from en to (de dagen waarop het er automatisch staat:
+# nu, of de eerstvolgende keer) en holidays (de feestdagen zelf binnen die periode, met datum).
+# Sinterklaas: 1 t/m 5 dec · Kerst: 6 dec t/m 6 jan · Nieuwjaar: 31 dec en 1 jan · Pasen: Goede Vrijdag t/m Tweede Paasdag
+# · Halloween: 24 t/m 31 okt. Anders het seizoen (astronomisch, op de dag af ongeveer: 20 mrt, 21 jun, 22 sep, 21 dec).
+holiday_theme:
+  variables:
+    theme_info: |
+      [[[
+        const day = (y, m, d) => new Date(y, m - 1, d);
+        const addDays = (dt, n) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n);
+        const easterSunday = y => {
+          const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+          const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+          const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+          return day(y, Math.floor((h + l - 7 * m + 114) / 31), ((h + l - 7 * m + 114) % 31) + 1);
+        };
+        const season = dt => {
+          const md = (dt.getMonth() + 1) * 100 + dt.getDate();
+          return md >= 1221 || md < 320 ? 'winter' : md < 621 ? 'lente' : md < 922 ? 'zomer' : 'herfst';
+        };
+        const themeOn = dt => {
+          const month = dt.getMonth() + 1, date = dt.getDate();
+          const fromEaster = Math.round((dt - easterSunday(dt.getFullYear())) / 86400000);
+          if ((month === 12 && date === 31) || (month === 1 && date === 1)) return 'nieuwjaar';
+          if (month === 10 && date >= 24) return 'halloween';
+          if (month === 12 && date <= 5) return 'sinterklaas';
+          if ((month === 12 && date >= 6) || (month === 1 && date <= 6)) return 'kerst';
+          if (fromEaster >= -2 && fromEaster <= 1) return 'pasen';
+          return season(dt);
+        };
+        const now = new Date(), today = day(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const names = ['lente', 'zomer', 'herfst', 'winter', 'sinterklaas', 'pasen', 'kerst', 'nieuwjaar', 'halloween'];
+        const choice = String(states['input_select.weerkaart_thema']?.state ?? '').toLowerCase();
+        const manual = names.includes(choice);
+        const theme = manual ? choice : themeOn(today);
+        // De periode: vandaag (of de eerstvolgende dag met dit thema) en dan terug en vooruit tot het thema wisselt
+        let from = today;
+        for (let i = 0; i < 400 && themeOn(from) !== theme; i++) from = addDays(from, 1);
+        let to = from;
+        while (themeOn(addDays(from, -1)) === theme) from = addDays(from, -1);
+        while (themeOn(addDays(to, 1)) === theme) to = addDays(to, 1);
+        const holidaysOf = y => ({
+          halloween: [['Halloween', day(y, 10, 31)]],
+          sinterklaas: [['Pakjesavond', day(y, 12, 5)]],
+          kerst: [['Kerstavond', day(y, 12, 24)], ['Eerste Kerstdag', day(y, 12, 25)], ['Tweede Kerstdag', day(y, 12, 26)], ['Driekoningen', day(y, 1, 6)]],
+          nieuwjaar: [['Oudejaarsdag', day(y, 12, 31)], ['Nieuwjaarsdag', day(y, 1, 1)]],
+          pasen: [['Goede Vrijdag', addDays(easterSunday(y), -2)], ['Eerste Paasdag', easterSunday(y)], ['Tweede Paasdag', addDays(easterSunday(y), 1)]]
+        }[theme] ?? []);
+        const holidays = [...holidaysOf(from.getFullYear()), ...(to.getFullYear() !== from.getFullYear() ? holidaysOf(to.getFullYear()) : [])]
+          .filter(([, dt]) => dt >= from && dt <= to)
+          .map(([name, date]) => ({ name, date }));
+        const label = { lente: '🌸 Lente', zomer: '☀️ Zomer', herfst: '🍂 Herfst', winter: '❄️ Winter', pasen: '🐣 Pasen',
+          sinterklaas: '🎁 Sinterklaas', kerst: '🎄 Kerst', nieuwjaar: '🎆 Nieuwjaar', halloween: '🎃 Halloween' }[theme];
+        return { theme, label, manual, from, to, holidays };
+      ]]]
+
+# Pop-up #thema (opent via het thema-label linksboven in de weerkaart): de periode van het thema en de feestdagen erin.
+theme_info_card:
+  template: [glass, holiday_theme]
+  show_icon: false
+  show_label: true
+  tap_action:
+    action: none
+  name: '[[[ return variables.theme_info.label; ]]]'
+  label: |
+    [[[
+      const t = variables.theme_info;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const fmt = dt => dt.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'long' });
+      const until = dt => {
+        const n = Math.round((dt - today) / 86400000);
+        return n === 0 ? 'vandaag' : n === 1 ? 'morgen' : n === -1 ? 'gisteren' : n > 0 ? `over ${n} dagen` : `${-n} dagen geleden`;
+      };
+      const now = t.from <= today && today <= t.to;
+      const lines = [`${now ? 'Staat er' : 'Staat er weer'} van <b>${fmt(t.from)}</b> t/m <b>${fmt(t.to)}</b>`];
+      if (t.manual) lines.push('<span style="opacity:0.7">Nu met de hand gekozen bij Thema weerkaart</span>');
+      if (t.holidays.length) {
+        lines.push('');
+        t.holidays.forEach(h => lines.push(`${h.name}: <b>${fmt(h.date)}</b> <span style="opacity:0.7">(${until(h.date)})</span>`));
+      }
+      return lines.join('<br>');
+    ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"n" "l"'
+    name:
+      - justify-self: start
+      - font-size: 18px
+      - font-weight: 700
+    label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - font-size: 14px
+      - line-height: 1.6
+      - padding-top: 6px
+
 # Weer-hero voor Home: een realistische lucht van het weer van nu, aangekleed per seizoen of feestdag
 # (input_select.weerkaart_thema, "Automatisch" volgt de datum en sensor.season) en met KNMI-weerwaarschuwingen.
 # - Zon op de echte plek (azimut = links/rechts, hoogte = hoe hoog), gouden uur bij een lage zon.
@@ -379,6 +477,7 @@ sun:
 # Alleen opnieuw tekenen bij weer, zon en personen, zodat de animaties niet steeds herstarten.
 # De klok is een geneste markdown-kaart; die werkt zichzelf elke minuut bij.
 weather_hero:
+  template: holiday_theme
   triggers_update:
     - input_boolean.away
     - input_datetime.pixelfeedfirsttime
@@ -812,32 +911,12 @@ weather_hero:
             </svg>`;
         }
 
-        // ---------- Thema: seizoen of feestdag ----------
-        // Keuze uit input_select.weerkaart_thema; "Automatisch" volgt de datum (feestdagen) en anders sensor.season.
-        // Sinterklaas: 1 t/m 5 dec · Kerst: 6 dec t/m 6 jan · Nieuwjaar: 31 dec en 1 jan · Pasen: Goede Vrijdag t/m Tweede Paasdag.
+        // ---------- Thema: seizoen of feestdag (uit holiday_theme) ----------
         const today = new Date();
-        const easterSunday = y => {
-          const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-          const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
-          const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
-          const month = Math.floor((h + l - 7 * m + 114) / 31), dayOfMonth = ((h + l - 7 * m + 114) % 31) + 1;
-          return new Date(y, month - 1, dayOfMonth);
-        };
         const dayOnly = dt => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-        const easter = easterSunday(today.getFullYear());
-        const daysFromEaster = Math.round((dayOnly(today) - easter) / 86400000);
         const month = today.getMonth() + 1, date = today.getDate();
-        const autoTheme = () => {
-          if ((month === 12 && date === 31) || (month === 1 && date === 1)) return 'nieuwjaar';
-          if (month === 10 && date >= 24) return 'halloween';
-          if (month === 12 && date <= 5) return 'sinterklaas';
-          if ((month === 12 && date >= 6) || (month === 1 && date <= 6)) return 'kerst';
-          if (daysFromEaster >= -2 && daysFromEaster <= 1) return 'pasen';
-          const season = { spring: 'lente', summer: 'zomer', autumn: 'herfst', winter: 'winter' }[states['sensor.season']?.state];
-          return season ?? (month <= 2 || month === 12 ? 'winter' : month <= 5 ? 'lente' : month <= 8 ? 'zomer' : 'herfst');
-        };
         const choice = String(states['input_select.weerkaart_thema']?.state ?? '').toLowerCase();
-        const theme = ['lente', 'zomer', 'herfst', 'winter', 'sinterklaas', 'pasen', 'kerst', 'nieuwjaar', 'halloween'].includes(choice) ? choice : autoTheme();
+        const theme = variables.theme_info.theme;
         // Een feest- of gedenkdag bovenop het thema van het seizoen; in het thema-lijstje te kiezen om te testen.
         // De verjaardagen en ons jubileum komen uit input_datetime.verjaardag_vincent, _carleen, _pixel en jubileum.
         // kind: birthday (ballonnen, feesthoedje), love (hartjes), king (oranje, vlag met wimpel, kroontje),
@@ -1753,8 +1832,10 @@ weather_hero:
           nieuwjaar: month === 12 && date === 31 ? '🥂 Oudejaarsdag' : '🎆 Gelukkig nieuwjaar!',
           halloween: month === 10 && date === 31 ? '🎃 Happy Halloween!' : '🎃 Halloween'
         };
-        let badges = `<div style="display:inline-block;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);
-            font-size:12px;color:#fff;white-space:nowrap">${labels[theme]}</div>`;
+        // Tik op het thema opent de pop-up #thema: van wanneer tot wanneer het er staat en wanneer de feestdag zelf is
+        let badges = `<div onclick="event.stopPropagation(); history.pushState(null, '', '#thema'); window.dispatchEvent(new CustomEvent('location-changed'))"
+            style="display:inline-block;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);
+            font-size:12px;color:#fff;white-space:nowrap;cursor:pointer;pointer-events:auto">${labels[theme]}</div>`;
         if (celebration) {
           const age = celebrationYears > 0 ? ` · ${celebrationYears} jaar` : '';
           const [text, background] = {

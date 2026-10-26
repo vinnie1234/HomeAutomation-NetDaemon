@@ -842,3 +842,4 @@ sections:
       - !include ../popups/badkamer.yaml
       - !include ../popups/gang.yaml
       - !include ../popups/berging.yaml
+      - !include ../popups/thema.yaml

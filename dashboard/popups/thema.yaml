@@ -1,0 +1,10 @@
+# Pop-up thema, opent via #thema (tik op het thema-label linksboven in de weerkaart): van wanneer tot wanneer het thema
+# er staat en wanneer de feestdag zelf is.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#thema"
+name: Thema
+icon: mdi:palette-outline
+cards:
+  - type: custom:button-card
+    template: theme_info_card
