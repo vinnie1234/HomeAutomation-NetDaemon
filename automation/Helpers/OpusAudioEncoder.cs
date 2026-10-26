@@ -26,14 +26,14 @@ public static class OpusAudioEncoder
         samples = AudioResampler.Resample(samples, channels: 1, sampleRate, WhatsAppVoiceNoteSampleRate);
 
         var encoder = OpusCodecFactory.CreateEncoder(WhatsAppVoiceNoteSampleRate, 1, OpusApplication.OPUS_APPLICATION_VOIP);
-        var frameSize = WhatsAppVoiceNoteSampleRate / 50; // 20ms frames
+        const int frameSize = WhatsAppVoiceNoteSampleRate / 50; // 20ms frames
         var packets = new List<byte[]>();
 
         for (var offset = 0; offset + frameSize <= samples.Length; offset += frameSize)
         {
             var outBuffer = new byte[4000];
             var length = encoder.Encode(samples.AsSpan(offset, frameSize), frameSize, outBuffer, outBuffer.Length);
-            packets.Add(outBuffer.AsSpan(0, length).ToArray());
+            packets.Add([.. outBuffer.AsSpan(0, length)]);
         }
 
         using var stream = new MemoryStream();

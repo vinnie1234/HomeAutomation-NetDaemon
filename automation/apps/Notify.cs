@@ -528,7 +528,7 @@ public class Notify : INotify
         // Every app has its own Notify, but they share the history: update it one at a time
         lock (HistoryLock)
         {
-            var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
+            var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? [];
             var data = oldData.Find(x => x.Name == title);
             if (data != null)
             {
@@ -550,7 +550,7 @@ public class Notify : INotify
     /// <returns>The last notification model for the specified title.</returns>
     private static NotificationModel? GetLastNotification(IDataRepository storage, string title)
     {
-        var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? new List<NotificationModel>();
+        var oldData = storage.Get<List<NotificationModel>>("notificationHistory") ?? [];
         return oldData.Find(x => x.Name == title);
     }
 }

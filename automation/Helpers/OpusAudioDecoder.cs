@@ -10,10 +10,10 @@ namespace Automation.Helpers;
 public static class OpusAudioDecoder
 {
     /// <summary>The "OggS" page magic that starts every Ogg page.</summary>
-    private static readonly byte[] PageMagic = "OggS"u8.ToArray();
+    private static readonly byte[] PageMagic = [.. "OggS"u8];
 
     /// <summary>The Opus identification header packet, which must be the first packet of the stream.</summary>
-    private static readonly byte[] OpusHeadMagic = "OpusHead"u8.ToArray();
+    private static readonly byte[] OpusHeadMagic = [.. "OpusHead"u8];
 
     /// <summary>
     /// Opus's native sample rate. Decoding always happens at this rate, then is resampled down ourselves if a
@@ -43,7 +43,7 @@ public static class OpusAudioDecoder
         // part of the actual sound. PreSkip is always defined in 48kHz units, matching the decode rate here.
         var samplesToSkip = header.PreSkip;
 
-        var maxFrameSize = NativeSampleRate * 120 / 1000; // the longest Opus frame is 120ms
+        const int maxFrameSize = NativeSampleRate * 120 / 1000; // the longest Opus frame is 120ms
         var frameBuffer = new short[maxFrameSize * header.Channels];
         var pcm = new List<short>();
         var skippedPackets = 0;
@@ -71,11 +71,11 @@ public static class OpusAudioDecoder
                 var skip = Math.Min(samplesToSkip, samples);
                 samplesToSkip -= skip;
                 if (skip == samples) continue;
-                pcm.AddRange(frameBuffer.AsSpan(skip, samples - skip).ToArray());
+                pcm.AddRange([.. frameBuffer.AsSpan(skip, samples - skip)]);
             }
             else
             {
-                pcm.AddRange(frameBuffer.AsSpan(0, samples).ToArray());
+                pcm.AddRange([.. frameBuffer.AsSpan(0, samples)]);
             }
         }
 
@@ -125,19 +125,19 @@ public static class OpusAudioDecoder
             // A page that doesn't continue the previous packet starts a fresh one
             if ((headerType & 0x01) == 0 && current.Count > 0)
             {
-                packets.Add(current.ToArray());
+                packets.Add([.. current]);
                 current = [];
             }
 
             foreach (var segmentLength in segmentTable)
             {
-                current.AddRange(ogg.Slice(dataOffset, segmentLength).ToArray());
+                current.AddRange([.. ogg.Slice(dataOffset, segmentLength)]);
                 dataOffset += segmentLength;
 
                 // A segment shorter than 255 ends the packet; 255 means the packet continues in the next segment
                 if (segmentLength < 255)
                 {
-                    packets.Add(current.ToArray());
+                    packets.Add([.. current]);
                     current = [];
                 }
             }

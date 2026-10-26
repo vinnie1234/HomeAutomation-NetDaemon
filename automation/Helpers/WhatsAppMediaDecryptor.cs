@@ -45,12 +45,12 @@ public static class WhatsAppMediaDecryptor
             throw new CryptographicException("The media MAC does not match; it may be corrupt, or the key/kind is wrong");
 
         using var aes = Aes.Create();
-        aes.Key = cipherKey.ToArray();
-        aes.IV = iv.ToArray();
+        aes.Key = [.. cipherKey];
+        aes.IV = [.. iv];
         aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
         using var decryptor = aes.CreateDecryptor();
-        return decryptor.TransformFinalBlock(ciphertext.ToArray(), 0, ciphertext.Length);
+        return decryptor.TransformFinalBlock([.. ciphertext], 0, ciphertext.Length);
     }
 
     /// <summary>The length, in bytes, of the HMAC-SHA256 tag WhatsApp appends to encrypted media.</summary>
@@ -74,6 +74,6 @@ public static class WhatsAppMediaDecryptor
 
         Span<byte> fullMac = stackalloc byte[32];
         HMACSHA256.HashData(macKey, data, fullMac);
-        return fullMac[..MacLength].ToArray();
+        return [.. fullMac[..MacLength]];
     }
 }
