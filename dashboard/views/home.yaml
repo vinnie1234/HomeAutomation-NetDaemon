@@ -843,3 +843,4 @@ sections:
       - !include ../popups/gang.yaml
       - !include ../popups/berging.yaml
       - !include ../popups/thema.yaml
+      - !include ../popups/pakketten.yaml

@@ -3114,7 +3114,9 @@ carrier:
 # Niet uit de losse entiteit per pakket (sensor.buiten_postnl_pakket_<barcode>, die komt er bij elk pakket bij), maar uit
 # het attribuut parcels van de vaste sensoren per vervoerder: inkomend, onderweg naar een afhaalpunt en klaar om af te
 # halen (dubbele eruit op barcode). Per pakket: carrier (naam en kleur), title, line (status, wanneer, afhaalpunt),
-# detail (de tekst van de vervoerder), url en urgent (vandaag bezorgd of klaar om af te halen). Op geplande bezorging.
+# detail (de tekst van de vervoerder), url, urgent (vandaag bezorgd of klaar om af te halen) en history (de stappen met
+# date en text, nieuwste eerst: uit history als de vervoerder die vult, anders uit raw.observations van PostNL).
+# Op geplande bezorging.
 parcels:
   triggers_update: all
   variables:
@@ -3131,8 +3133,9 @@ parcels:
         };
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const daysFromToday = d => { const day = new Date(d); day.setHours(0, 0, 0, 0); return Math.round((day - today) / 86400000); };
+        // new Date(null) is 1 januari 1970: zonder tijdvak geen datum
         const when = (from, to) => {
-          const a = new Date(from), b = new Date(to);
+          const a = from ? new Date(from) : NaN, b = to ? new Date(to) : NaN;
           if (isNaN(a)) return '';
           const diff = daysFromToday(a);
           const time = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
@@ -3148,7 +3151,7 @@ parcels:
               const id = p.barcode ?? p.url ?? JSON.stringify(p);
               if (p.delivered || seen.has(id)) continue;
               seen.add(id);
-              const planned = new Date(p.planned_from);
+              const planned = p.planned_from ? new Date(p.planned_from) : new Date(NaN);
               const line = [status[p.status] ?? p.status, when(p.planned_from, p.planned_to), p.pickup_point?.name ?? p.pickup_point]
                 .filter(x => x && typeof x === 'string').join(' · ');
               rows.push({
@@ -3157,6 +3160,13 @@ parcels:
                 line,
                 detail: p.raw_status && p.raw_status !== line ? p.raw_status : '',
                 url: p.url,
+                history: (Array.isArray(p.history) ? p.history : p.raw?.observations ?? [])
+                  .map(h => ({
+                    date: new Date(h.date ?? h.datetime ?? h.timestamp ?? h.observationDate),
+                    text: String(h.description ?? h.text ?? h.status ?? h.message ?? '').trim()
+                  }))
+                  .filter(h => h.text)
+                  .sort((x, y) => (y.date.getTime() || 0) - (x.date.getTime() || 0)),
                 urgent: ['out_for_delivery', 'ready_for_pickup'].includes(p.status) || s === 'klaar_voor_afhalen'
                   || (!isNaN(planned) && daysFromToday(planned) === 0),
                 planned: planned.getTime() || Infinity
@@ -3199,7 +3209,7 @@ parcel_list:
         - justify-self: stretch
 
 # Melding bovenaan Home zolang er een pakket onderweg is: één pakket met zijn status, of het aantal met per pakket een
-# regel. Het icoon pulseert als er vandaag een komt of er een klaar ligt om af te halen. Tik opent Huis (met track & trace).
+# regel. Het icoon pulseert als er vandaag een komt of er een klaar ligt om af te halen. Tik opent de pop-up #pakketten.
 parcel_alert:
   template: [alert, parcels]
   icon: mdi:package-variant-closed
@@ -3208,7 +3218,7 @@ parcel_alert:
     pulse: '[[[ return variables.parcels.some(r => r.urgent); ]]]'
   tap_action:
     action: navigate
-    navigation_path: /dashboard-huis/huishouden
+    navigation_path: '#pakketten'
   name: |
     [[[
       const rows = variables.parcels;
@@ -3227,6 +3237,54 @@ parcel_alert:
       - display: '[[[ return variables.parcels.length ? "block" : "none"; ]]]'
     grid:
       - grid-template-rows: auto auto
+
+# Pop-up #pakketten (opent via de pakketmelding op Home): per pakket de status, wanneer het komt, track & trace en de
+# geschiedenis als tijdlijn, nieuwste stap bovenaan.
+parcel_details:
+  template: [glass, parcels]
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    list: |
+      [[[
+        const fmt = d => isNaN(d) ? '' : d.toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        if (!variables.parcels.length) return '<div style="opacity:0.6">Geen pakketten onderweg</div>';
+        return variables.parcels.map((r, i) => {
+          const steps = r.history.map((h, j) => `
+            <div style="display:grid;grid-template-columns:14px 1fr;column-gap:10px">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div style="width:10px;height:10px;margin-top:4px;border-radius:50%;flex:none;
+                  background:${j === 0 ? `rgb(${r.carrier.color})` : 'rgba(255,255,255,0.3)'}"></div>
+                ${j < r.history.length - 1 ? '<div style="flex:1;width:2px;background:rgba(255,255,255,0.12)"></div>' : ''}
+              </div>
+              <div style="padding-bottom:10px">
+                <div style="font-size:13px;${j === 0 ? 'font-weight:600' : 'opacity:0.85'}">${h.text}</div>
+                <div style="font-size:11px;opacity:0.55">${fmt(h.date)}</div>
+              </div>
+            </div>`).join('');
+          return `<div style="${i ? 'margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)' : ''}">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:6px;align-self:stretch;border-radius:3px;background:rgb(${r.carrier.color})"></div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</div>
+                  <div style="font-size:13px;opacity:0.85">${r.carrier.name} · ${r.line}</div>
+                </div>
+                ${r.url ? `<div onclick="window.open('${r.url}', '_blank')" style="flex:none;cursor:pointer;padding:6px 12px;border-radius:14px;
+                    font-size:12px;font-weight:600;background:rgba(${r.carrier.color},0.25)">Track & trace</div>` : ''}
+              </div>
+              <div style="margin-top:12px">${steps || '<div style="font-size:13px;opacity:0.6">Nog geen geschiedenis van de vervoerder</div>'}</div>
+            </div>`;
+        }).join('');
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"list"'
+    custom_fields:
+      list:
+        - justify-self: stretch
+        - text-align: left
 
 # Pixel gekotst: tik telt er een bij, lang drukken maakt de laatste ongedaan (na bevestiging).
 # Het label toont hoe vaak het in twee weken gebeurde en wanneer het laatst (uit sensor.pixel_gekotst_momenten van NetDaemon).

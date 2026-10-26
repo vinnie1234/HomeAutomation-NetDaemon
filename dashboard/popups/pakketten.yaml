@@ -1,0 +1,10 @@
+# Pop-up pakketten, opent via #pakketten (tik op de pakketmelding bovenaan Home): per pakket de status, track & trace en
+# de geschiedenis.
+type: custom:bubble-card
+card_type: pop-up
+hash: "#pakketten"
+name: Pakketten
+icon: mdi:package-variant-closed
+cards:
+  - type: custom:button-card
+    template: parcel_details
