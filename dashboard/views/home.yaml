@@ -347,6 +347,24 @@ sections:
                 navigation_path: /dashboard-huis/systeem
 
       # Opvallende meldingen: alleen zichtbaar als ze nu spelen
+      # Pakketten: bovenaan, zolang er een onderweg is of klaar ligt om af te halen
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - { condition: numeric_state, entity: sensor.buiten_postnl_inkomende_pakketten, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_dhl_inkomende_pakketten, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_dpd_inkomende_pakketten, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_gls_inkomende_pakketten, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_postnl_klaar_voor_afhalen, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_dhl_klaar_voor_afhalen, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_dpd_klaar_voor_afhalen, above: 0 }
+              - { condition: numeric_state, entity: sensor.buiten_gls_klaar_voor_afhalen, above: 0 }
+        card:
+          type: custom:button-card
+          template: parcel_alert
+        grid_options:
+          columns: 12
       - type: conditional
         conditions:
           - condition: state
@@ -784,11 +802,6 @@ sections:
           tomorrow: Morgen
           yesterday: Gisteren
           moreEvents: Meer afspraken
-      # Pakketten die onderweg zijn, tot ze bezorgd zijn (verborgen als er niets onderweg is)
-      - type: custom:button-card
-        template: parcel_list
-        grid_options:
-          columns: full
 
       # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
       - type: conditional
