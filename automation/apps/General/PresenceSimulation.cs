@@ -31,6 +31,7 @@ public class PresenceSimulation : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for timed tasks.</param>
+    /// <param name="config">The application settings.</param>
     public PresenceSimulation(
         IHaContext ha,
         ILogger<PresenceSimulation> logger,

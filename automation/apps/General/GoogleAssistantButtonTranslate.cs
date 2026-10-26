@@ -17,6 +17,7 @@ public class GoogleAssistantButtonTranslate : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="config">The application settings.</param>
     public GoogleAssistantButtonTranslate(IHaContext haContext, ILogger<GoogleAssistantButtonTranslate> logger, INotify notify, IScheduler scheduler,
         IOptions<AppConfig> config)
         : base(haContext, logger, notify, scheduler, config)

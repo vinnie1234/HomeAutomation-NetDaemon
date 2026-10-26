@@ -25,6 +25,7 @@ public class Vacuum : BaseApp
     /// <param name="logger">The logger instance.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="config">The application settings.</param>
     public Vacuum(
         IHaContext ha,
         ILogger<Vacuum> logger,

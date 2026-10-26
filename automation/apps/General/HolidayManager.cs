@@ -24,6 +24,7 @@ public class HolidayManager : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="storage">The data repository, remembering whether the calendar turned the holiday on.</param>
+    /// <param name="config">The application settings.</param>
     public HolidayManager(
         IHaContext ha,
         ILogger<HolidayManager> logger,

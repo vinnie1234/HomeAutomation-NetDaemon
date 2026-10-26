@@ -26,6 +26,7 @@ public class CircadianLightingServiceTests
     /// <param name="dawnBeforeNoon">How long before solar noon dawn is.</param>
     /// <param name="duskAfterNoon">How long after solar noon dusk is.</param>
     /// <param name="elevation">Optional elevation, only used when the timestamps are unusable.</param>
+    /// <param name="brokenNoon">Optional: makes the solar noon timestamp unusable, to test the fallback.</param>
     private static AppTestContext ArrangeWithSolarDay(
         TimeSpan noonRelativeToNow,
         TimeSpan dawnBeforeNoon,

@@ -28,6 +28,7 @@ public class SleepManager : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="storage">The data repository for storing and retrieving data.</param>
+    /// <param name="config">The application settings.</param>
     public SleepManager(
         IHaContext ha,
         ILogger<SleepManager> logger,

@@ -15,6 +15,7 @@ public static class EntityExtensions
     /// <param name="entity">The entity to observe.</param>
     /// <param name="observer">The action to perform when the entity turns on.</param>
     /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
+    /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
     public static void WhenTurnsOn<T, TAttributes>(this Entity<T, EntityState<TAttributes>, TAttributes> entity,
         Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
         where TAttributes : class
@@ -42,6 +43,7 @@ public static class EntityExtensions
     /// <param name="entity">The entity to observe.</param>
     /// <param name="observer">The action to perform when the entity turns off.</param>
     /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
+    /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
     public static void WhenTurnsOff<T, TAttributes>(this Entity<T, EntityState<TAttributes>, TAttributes> entity,
         Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
         where TAttributes : class

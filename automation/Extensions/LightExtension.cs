@@ -13,6 +13,7 @@ public static class LightExtension
     /// Turns off all lights except specified ones.
     /// </summary>
     /// <param name="lightEntities">The light entities to turn off.</param>
+    /// <param name="config">The light configuration; the defaults when null.</param>
     public static void TurnAllOff(this LightEntities lightEntities, AppConfiguration? config = null)
     {
         config ??= new AppConfiguration();

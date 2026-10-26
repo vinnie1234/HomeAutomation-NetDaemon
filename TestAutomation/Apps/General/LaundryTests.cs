@@ -17,7 +17,7 @@ namespace TestAutomation.Apps.General;
 /// Unit tests for the <see cref="Laundry"/> automation.
 ///
 /// Because the forecast is fetched via <c>CallServiceWithResponseAsync</c> (async HA service call)
-/// the tests mock the <see cref="IHaContext"/> to return a pre-built <see cref="JsonElement"/> for
+/// the tests mock the <see cref="NetDaemon.HassModel.IHaContext"/> to return a pre-built <see cref="JsonElement"/> for
 /// the <c>weather.get_forecasts</c> call, then verify the resulting notification behaviour.
 /// </summary>
 public class LaundryTests
@@ -94,7 +94,7 @@ public class LaundryTests
 
     /// <summary>
     /// Builds a <see cref="JsonElement"/> that mimics the HA <c>get_forecasts</c> response,
-    /// and wires it up so the mocked <see cref="IHaContext"/> returns it.
+    /// and wires it up so the mocked <see cref="NetDaemon.HassModel.IHaContext"/> returns it.
     /// </summary>
     private void SetupForecast(List<(DateTime dt, double precipitation)> entries)
     {

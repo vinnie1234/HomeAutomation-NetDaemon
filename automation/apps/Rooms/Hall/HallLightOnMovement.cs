@@ -27,6 +27,7 @@ public class HallLightOnMovement : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="circadianLightingService">The service providing the brightness and color temperature that match the time of day.</param>
+    /// <param name="config">The application settings.</param>
     public HallLightOnMovement(
         IHaContext ha,
         ILogger<HallLightOnMovement> logger,

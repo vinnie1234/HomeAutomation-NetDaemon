@@ -35,6 +35,7 @@ public class AwayManager : BaseApp
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="config">The application configuration.</param>
+    /// <param name="appConfig">The application settings.</param>
     public AwayManager(
         IHaContext ha,
         ILogger<AwayManager> logger,

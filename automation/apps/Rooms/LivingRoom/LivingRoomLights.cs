@@ -18,6 +18,7 @@ public class LivingRoomLights : BaseApp
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="config">The application configuration.</param>
     /// <param name="livingRoomPresenceService">The service that tracks whether the living room is occupied.</param>
+    /// <param name="appConfig">The application settings.</param>
     public LivingRoomLights(
         IHaContext ha,
         ILogger<LivingRoomLights> logger,

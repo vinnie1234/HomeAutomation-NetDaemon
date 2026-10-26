@@ -25,6 +25,7 @@ public class Reset : BaseApp
     /// <param name="storage">The data repository for storing and retrieving data.</param>
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
+    /// <param name="config">The application settings.</param>
     public Reset(
         IHaContext ha,
         ILogger<Reset> logger,

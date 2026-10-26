@@ -12,6 +12,7 @@ namespace Automation.apps.General;
 public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
 {
     private readonly AppConfig _config;
+    private readonly IDataRepository _storage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetDaemon"/> class.
@@ -21,8 +22,7 @@ public class NetDaemon : BaseApp, IAsyncInitializable, IDisposable
     /// <param name="notify">The notification service.</param>
     /// <param name="scheduler">The scheduler for cron jobs.</param>
     /// <param name="storage">The data repository for storing and retrieving data.</param>
-    private readonly IDataRepository _storage;
-
+    /// <param name="config">The application settings.</param>
     public NetDaemon(IHaContext ha, ILogger<NetDaemon> logger,
         INotify notify, IScheduler scheduler, IDataRepository storage,
         IOptions<AppConfig> config)
