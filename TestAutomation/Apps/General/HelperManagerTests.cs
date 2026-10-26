@@ -129,6 +129,64 @@ public class HelperManagerTests
         _connection.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<UpdateHelperCommand>().Should().BeEmpty();
     }
 
+    private void ExistingJson(string json) =>
+        _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(Arg.Any<ListHelpersCommand>(), Arg.Any<CancellationToken>())
+            .Returns(JsonSerializer.Deserialize<List<HelperItem>>(json)!);
+
+    private JsonElement UpdateCommand() =>
+        JsonSerializer.SerializeToElement(_connection.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<UpdateHelperCommand>().Single());
+
+    [Fact]
+    public async Task ExistingSelect_WithAnInitialTheDefinitionDoesNotHave_LosesIt_AndKeepsItsOtherSettings()
+    {
+        // Home Assistant puts a helper with initial back on that value at every restart: the work schedule got lost that way
+        ExistingJson("""[{ "id": "werkdag_vincent_maandag", "name": "Werkdag Vincent maandag", "options": ["Vrij", "Thuis", "Kantoor"], "initial": "Vrij", "icon": "mdi:briefcase-variant-outline" }]""");
+
+        await _app.EnsureHelpersAsync([HelperDefinitions.All.Single(x => x.Id == "werkdag_vincent_maandag")]);
+
+        var json = UpdateCommand();
+        json.TryGetProperty("initial", out _).Should().BeFalse();
+        json.GetProperty("icon").GetString().Should().Be("mdi:briefcase-variant-outline");
+        json.GetProperty("name").GetString().Should().Be("Werkdag Vincent maandag");
+        json.GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Vrij", "Thuis", "Kantoor");
+    }
+
+    [Fact]
+    public async Task ExistingSelect_GettingMissingOptions_KeepsItsIcon()
+    {
+        // Home Assistant replaces all settings with an update, so the icon has to be sent along
+        ExistingJson("""[{ "id": "weerkaart_thema", "name": "weerkaart_thema", "options": ["Automatisch"], "icon": "mdi:palette" }]""");
+
+        await _app.EnsureHelpersAsync([Theme]);
+
+        UpdateCommand().GetProperty("icon").GetString().Should().Be("mdi:palette");
+    }
+
+    [Fact]
+    public async Task NewTime_IsCreatedWithoutInitial_AndGetsItsStartValue()
+    {
+        Existing("input_datetime");
+        _connection.SendCommandAndReturnResponseAsync<CreateHelperCommand, HelperItem>(Arg.Any<CreateHelperCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new HelperItem { Id = "werk_start_carleen", Name = "Werk start Carleen" });
+        var helper = HelperDefinitions.All.Single(x => x.Id == "werk_start_carleen");
+
+        await _app.EnsureHelpersAsync([helper]);
+
+        JsonSerializer.SerializeToElement(CreateCommands().Single()).TryGetProperty("initial", out _).Should().BeFalse();
+        _ctx.HaContext.Received(1).CallService("input_datetime", "set_datetime",
+            Arg.Is<NetDaemon.HassModel.Entities.ServiceTarget>(t => t.EntityIds!.Single() == "input_datetime.werk_start_carleen"),
+            Arg.Is<object>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("08:30:00")));
+    }
+
+    [Fact]
+    public void Definitions_OnlyGiveAnInitialToCountersThatRestore()
+    {
+        HelperDefinitions.All
+            .Where(x => x.Settings.ContainsKey("initial") && !(x.Domain == "counter" && x.Settings.TryGetValue("restore", out var r) && r is true))
+            .Select(x => $"{x.Domain}.{x.Id}")
+            .Should().BeEmpty();
+    }
+
     [Fact]
     public void Definitions_HaveUniqueIdsPerDomain()
     {

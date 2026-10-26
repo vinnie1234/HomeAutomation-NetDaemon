@@ -5,7 +5,7 @@ namespace Automation.Models.Helpers;
 
 /// <summary>
 /// Websocket command that changes settings of an existing helper, e.g. <c>input_select/update</c> with the new options.
-/// Home Assistant expects the id as <c>{domain}_id</c> and always the name; other settings that are not sent stay as they are.
+/// Home Assistant expects the id as <c>{domain}_id</c> and replaces all settings: what is not sent (an icon, ...) is gone.
 /// </summary>
 public record UpdateHelperCommand : CommandMessage
 {

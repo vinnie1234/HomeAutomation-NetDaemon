@@ -2,6 +2,8 @@
 # er staat en wanneer de feestdag zelf is.
 type: custom:bubble-card
 card_type: pop-up
+# Zo hoog als de inhoud, niet over de hele hoogte van het scherm
+popup_mode: fit-content
 hash: "#thema"
 name: Thema
 icon: mdi:palette-outline

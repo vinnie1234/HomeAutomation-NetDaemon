@@ -9,8 +9,10 @@ namespace Automation.apps.General;
 /// <summary>
 /// Makes sure the helpers in <see cref="HelperDefinitions"/> exist in Home Assistant. When NetDaemon starts it lists the
 /// helpers per domain over the websocket (<c>{domain}/list</c>) and creates the missing ones (<c>{domain}/create</c>), the
-/// same way the Home Assistant UI does. Existing helpers are left alone, so changes made in the UI stay; only an
-/// input_select gets the options it misses added at the end (e.g. a new theme), its other options and order stay.
+/// same way the Home Assistant UI does. Existing helpers are left alone, so changes made in the UI stay, with two
+/// exceptions: an input_select gets the options it misses added at the end (e.g. a new theme), its other options and
+/// order stay; and an <c>initial</c> that the definition doesn't have is removed, because a helper with <c>initial</c>
+/// goes back to that value at every restart of Home Assistant (that is how the work schedule kept getting lost).
 /// </summary>
 [NetDaemonApp(Id = nameof(HelperManager))]
 public class HelperManager : BaseApp
@@ -59,7 +61,7 @@ public class HelperManager : BaseApp
             }
 
             var ids = existing.Select(x => x.Id).ToHashSet();
-            foreach (var item in existing) await AddMissingOptionsAsync(connection, domain.FirstOrDefault(x => x.Id == item.Id), item);
+            foreach (var item in existing) await UpdateExistingAsync(connection, domain.FirstOrDefault(x => x.Id == item.Id), item);
 
             foreach (var helper in domain.Where(x => !ids.Contains(x.Id)))
             {
@@ -76,7 +78,7 @@ public class HelperManager : BaseApp
                     else
                         Logger.LogInformation("Created {Domain}.{Id}", helper.Domain, helper.Id);
 
-                    if (helper.CopyFrom != null) CopyValue(helper, $"{helper.Domain}.{item?.Id ?? helper.Id}");
+                    if (helper.CopyFrom != null || helper.StartValue != null) SetStartValue(helper, $"{helper.Domain}.{item?.Id ?? helper.Id}");
                 }
                 catch (Exception ex)
                 {
@@ -89,45 +91,59 @@ public class HelperManager : BaseApp
     }
 
     /// <summary>
-    /// Adds the options of <paramref name="helper"/> that the existing input_select <paramref name="item"/> doesn't have yet.
+    /// Brings the existing helper <paramref name="item"/> in line with <paramref name="helper"/>: adds the options an
+    /// input_select misses and removes an <c>initial</c> the definition doesn't have. Home Assistant replaces all settings
+    /// with an update, so the current settings are sent along.
     /// </summary>
-    private async Task AddMissingOptionsAsync(IHomeAssistantConnection connection, HelperDefinition? helper, HelperItem item)
+    private async Task UpdateExistingAsync(IHomeAssistantConnection connection, HelperDefinition? helper, HelperItem item)
     {
-        if (helper?.Domain != "input_select" || item.Options == null || !helper.Settings.TryGetValue("options", out var value)) return;
-        var missing = ((IEnumerable<string>)value).Except(item.Options).ToList();
-        if (missing.Count == 0) return;
+        if (helper == null) return;
+        var settings = (item.OtherSettings ?? []).ToDictionary(x => x.Key, x => (object)x.Value);
+        settings["name"] = item.Name;
+        var changes = new List<string>();
 
+        if (helper.Domain == "input_select" && item.Options != null && helper.Settings.TryGetValue("options", out var value))
+        {
+            var missing = ((IEnumerable<string>)value).Except(item.Options).ToList();
+            settings["options"] = item.Options.Concat(missing).ToList();
+            if (missing.Count > 0) changes.Add($"added {string.Join(", ", missing)}");
+        }
+
+        if (settings.ContainsKey("initial") && !helper.Settings.ContainsKey("initial"))
+        {
+            settings.Remove("initial");
+            changes.Add("removed initial (it reset the value at every restart)");
+        }
+
+        if (changes.Count == 0) return;
         try
         {
             await connection.SendCommandAndReturnResponseAsync<UpdateHelperCommand, HelperItem>(
-                new UpdateHelperCommand(helper.Domain, item.Id, new Dictionary<string, object>
-                {
-                    // Home Assistant wants the name with every update; the other settings it keeps as they are
-                    ["name"] = item.Name,
-                    ["options"] = item.Options.Concat(missing).ToList()
-                }),
-                CancellationToken.None);
-            Logger.LogInformation("Added {Options} to {Domain}.{Id}", string.Join(", ", missing), helper.Domain, item.Id);
+                new UpdateHelperCommand(helper.Domain, item.Id, settings), CancellationToken.None);
+            Logger.LogInformation("{Domain}.{Id}: {Changes}", helper.Domain, item.Id, string.Join("; ", changes));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Could not add {Options} to {Domain}.{Id}", string.Join(", ", missing), helper.Domain, item.Id);
+            Logger.LogError(ex, "Could not update {Domain}.{Id} ({Changes})", helper.Domain, item.Id, string.Join("; ", changes));
         }
     }
 
     /// <summary>
-    /// Gives a newly created helper the value of the entity it replaces, translated with <see cref="HelperDefinition.CopyMap"/>.
+    /// Gives a newly created helper the value of the entity it replaces, translated with <see cref="HelperDefinition.CopyMap"/>,
+    /// or else its <see cref="HelperDefinition.StartValue"/>.
     /// </summary>
-    private void CopyValue(HelperDefinition helper, string entityId)
+    private void SetStartValue(HelperDefinition helper, string entityId)
     {
-        var value = HaContext.GetState(helper.CopyFrom!)?.State;
-        if (value is null or "unknown" or "unavailable")
+        var copied = helper.CopyFrom == null ? null : HaContext.GetState(helper.CopyFrom)?.State;
+        if (copied is "unknown" or "unavailable") copied = null;
+        if (copied != null && helper.CopyMap?.TryGetValue(copied, out var mapped) == true) copied = mapped;
+        var value = copied ?? helper.StartValue;
+        if (value == null)
         {
             Logger.LogInformation("{CopyFrom} has no value to copy to {EntityId}", helper.CopyFrom, entityId);
             return;
         }
 
-        if (helper.CopyMap?.TryGetValue(value, out var mapped) == true) value = mapped;
         var target = ServiceTarget.FromEntity(entityId);
         switch (helper.Domain)
         {
@@ -144,10 +160,10 @@ public class HelperManager : BaseApp
                 HaContext.CallService("input_number", "set_value", target, new { value });
                 break;
             default:
-                Logger.LogWarning("Copying a value to a {Domain} helper is not supported", helper.Domain);
+                Logger.LogWarning("Setting a value on a {Domain} helper is not supported", helper.Domain);
                 return;
         }
 
-        Logger.LogInformation("Copied {Value} from {CopyFrom} to {EntityId}", value, helper.CopyFrom, entityId);
+        Logger.LogInformation("Set {EntityId} to {Value} ({Source})", entityId, value, copied != null ? $"from {helper.CopyFrom}" : "start value");
     }
 }

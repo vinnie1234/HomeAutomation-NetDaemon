@@ -20,10 +20,10 @@ public static class HelperDefinitions
         Button("pixel_medicijn_ongedaan", "Pixel medicijn ongedaan", icon: "mdi:undo"),
         Time("pixel_prednison_tijd", "Pixel prednison tijd", "20:00:00"),
         // De prijs van een doosje en hoeveel pillen erin zitten (factuur 21-10-2026), voor de kosten per pil en tot nu toe
-        Number("pixel_prednison_doosprijs", "Pixel prednison doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", initial: 7.85),
-        Number("pixel_prednison_doosgrootte", "Pixel prednison doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", initial: 21),
-        Number("pixel_antibraak_doosprijs", "Pixel antibraak doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", initial: 20.30),
-        Number("pixel_antibraak_doosgrootte", "Pixel antibraak doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", initial: 4),
+        Number("pixel_prednison_doosprijs", "Pixel prednison doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", start: 7.85),
+        Number("pixel_prednison_doosgrootte", "Pixel prednison doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", start: 21),
+        Number("pixel_antibraak_doosprijs", "Pixel antibraak doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", start: 20.30),
+        Number("pixel_antibraak_doosgrootte", "Pixel antibraak doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", start: 4),
 
         // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
         WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
@@ -190,9 +190,9 @@ public static class HelperDefinitions
         new("input_button", id, name, Settings(("icon", icon)));
 
     private static HelperDefinition Number(string id, string name, double min, double max, double? step = null,
-        string? mode = null, string? unit = null, string? icon = null, double? initial = null) =>
+        string? mode = null, string? unit = null, string? icon = null, double? start = null) =>
         new("input_number", id, name, Settings(("min", min), ("max", max), ("step", step), ("mode", mode),
-            ("unit_of_measurement", unit), ("icon", icon), ("initial", initial)));
+            ("unit_of_measurement", unit), ("icon", icon)), StartValue: start?.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
     private static HelperDefinition Select(string id, string name, IReadOnlyList<string> options, string? icon = null) =>
         new("input_select", id, name, Settings(("options", options), ("icon", icon)));
@@ -200,18 +200,19 @@ public static class HelperDefinitions
     private static HelperDefinition DateTime(string id, string name, bool hasDate, bool hasTime, string? icon = null) =>
         new("input_datetime", id, name, Settings(("has_date", hasDate), ("has_time", hasTime), ("icon", icon)));
 
-    /// <summary>A time of day (input_datetime without a date), starting at <paramref name="initial"/> (<c>HH:mm:ss</c>).</summary>
-    private static HelperDefinition Time(string id, string name, string initial, string? copyFrom = null) =>
-        new("input_datetime", id, name, Settings(("has_date", false), ("has_time", true), ("initial", initial), ("icon", "mdi:clock-outline")), copyFrom);
+    /// <summary>A time of day (input_datetime without a date), starting at <paramref name="start"/> (<c>HH:mm:ss</c>).</summary>
+    private static HelperDefinition Time(string id, string name, string start, string? copyFrom = null) =>
+        new("input_datetime", id, name, Settings(("has_date", false), ("has_time", true), ("icon", "mdi:clock-outline")), copyFrom,
+            StartValue: start);
 
     /// <summary>
     /// A weekday of someone's work schedule: Vrij, Thuis or Kantoor (see <see cref="Models.Persons.WorkSchedule"/>). Copying
-    /// from an old office day boolean turns on into Kantoor and off into Thuis.
+    /// from an old office day boolean turns on into Kantoor and off into Thuis. A new one starts at Vrij, the first option.
     /// </summary>
     private static HelperDefinition WorkDay(string id, string name, string? copyFrom = null) =>
         new("input_select", id, name,
             Settings(("options", new[] { Models.Persons.WorkSchedule.Off, Models.Persons.WorkSchedule.Home, Models.Persons.WorkSchedule.Office }),
-                ("initial", Models.Persons.WorkSchedule.Off), ("icon", "mdi:briefcase-variant-outline")),
+                ("icon", "mdi:briefcase-variant-outline")),
             copyFrom,
             new Dictionary<string, string> { ["on"] = Models.Persons.WorkSchedule.Office, ["off"] = Models.Persons.WorkSchedule.Home });
 

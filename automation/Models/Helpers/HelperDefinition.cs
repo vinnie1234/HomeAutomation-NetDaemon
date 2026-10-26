@@ -10,10 +10,13 @@ namespace Automation.Models.Helpers;
 /// <param name="Settings">The other settings, with the keys Home Assistant uses (<c>icon</c>, <c>min</c>, <c>options</c>, ...).</param>
 /// <param name="CopyFrom">An older entity whose value the helper takes over once it is created, when it replaces that one.</param>
 /// <param name="CopyMap">Translates the value of <paramref name="CopyFrom"/>, e.g. <c>on</c> to <c>Kantoor</c>; unknown values are copied as they are.</param>
+/// <param name="StartValue">The value a newly created helper gets when there is nothing to copy. Not the <c>initial</c>
+/// setting of Home Assistant: a helper with <c>initial</c> goes back to it at every restart instead of keeping its value.</param>
 public record HelperDefinition(
     string Domain,
     string Id,
     string Name,
     IReadOnlyDictionary<string, object> Settings,
     string? CopyFrom = null,
-    IReadOnlyDictionary<string, string>? CopyMap = null);
+    IReadOnlyDictionary<string, string>? CopyMap = null,
+    string? StartValue = null);

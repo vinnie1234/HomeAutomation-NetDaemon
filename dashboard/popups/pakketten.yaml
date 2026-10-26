@@ -2,6 +2,8 @@
 # de geschiedenis.
 type: custom:bubble-card
 card_type: pop-up
+# Zo hoog als de inhoud, niet over de hele hoogte van het scherm
+popup_mode: fit-content
 hash: "#pakketten"
 name: Pakketten
 icon: mdi:package-variant-closed

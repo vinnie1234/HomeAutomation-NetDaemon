@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Automation.Models.Helpers;
@@ -16,4 +17,8 @@ public record HelperItem
     /// <summary>The options of an input_select; null for other helpers.</summary>
     [JsonPropertyName("options")]
     public IReadOnlyList<string>? Options { get; init; }
+
+    /// <summary>The other settings as Home Assistant stores them (<c>icon</c>, <c>initial</c>, <c>min</c>, ...).</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? OtherSettings { get; init; }
 }
