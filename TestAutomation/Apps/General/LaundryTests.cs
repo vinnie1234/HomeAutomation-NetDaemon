@@ -3,7 +3,6 @@ using Automation.apps.General;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models;
-using HomeAssistantGenerated;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;
@@ -202,7 +201,7 @@ public class LaundryTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false);
     }
 
     [Fact]

@@ -1,7 +1,6 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using Automation.Helpers;
-using static Automation.Globals;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 

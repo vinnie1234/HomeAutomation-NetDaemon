@@ -84,7 +84,7 @@ public class PowerEstimatorTests
 
         _ctx.ChangeStateFor(Washer.EnergySensor).FromState("692.8").ToState("692.9");
 
-        _entityManager.DidNotReceiveWithAnyArgs().SetState(default!, default!);
+        _entityManager.DidNotReceiveWithAnyArgs().SetState(null!, null!);
     }
 
     [Fact]

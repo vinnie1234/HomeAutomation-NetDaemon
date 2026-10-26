@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using Automation.apps.General;
 using Automation.Configuration;
@@ -10,7 +9,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetDaemon.Client;
-using NetDaemon.HassModel;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -64,7 +62,7 @@ public class IntegrationMonitorTests : IDisposable
 
         VerifyReloads("hue", 1);
         Records().Should().BeEmpty();
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
     }
 
     [Fact]
@@ -81,7 +79,7 @@ public class IntegrationMonitorTests : IDisposable
         Advance(IntegrationMonitor.RetryDelay);
 
         Records().Should().BeEmpty();
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
     }
 
     [Fact]
@@ -117,7 +115,7 @@ public class IntegrationMonitorTests : IDisposable
         // Later checks neither reload nor notify again
         Advance(TimeSpan.FromHours(1));
         VerifyReloads("hue", 2);
-        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(default!, default!);
+        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(null!, null!);
     }
 
     [Fact]
@@ -134,7 +132,7 @@ public class IntegrationMonitorTests : IDisposable
         VerifyReloads("hue", 1);
 
         Advance(IntegrationMonitor.RetryDelay);
-        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(default!, default!);
+        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(null!, null!);
     }
 
     [Fact]
@@ -164,7 +162,7 @@ public class IntegrationMonitorTests : IDisposable
         AdvanceToFirstCheck();
 
         _ctx.HaContext.DidNotReceive().CallService("homeassistant", "reload_config_entry", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
     }
 
     [Fact]
@@ -244,7 +242,7 @@ public class IntegrationMonitorTests : IDisposable
         Records().Should().BeEmpty();
         Advance(TimeSpan.FromHours(1));
         VerifyReloads("hue", 2);
-        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(default!, default!);
+        _notify.ReceivedWithAnyArgs(1).NotifyDiscord(null!, null!);
     }
 
     [Fact]

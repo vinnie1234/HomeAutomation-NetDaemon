@@ -48,7 +48,7 @@ public static class TestDebugHelper
             if (IsDebugEnabled)
             {
                 var debugInfo = new System.Text.StringBuilder();
-                debugInfo.AppendLine($"========== TEST FAILURE DEBUG INFO ==========");
+                debugInfo.AppendLine("========== TEST FAILURE DEBUG INFO ==========");
                 debugInfo.AppendLine($"Test: {testName}");
                 debugInfo.AppendLine($"Original Exception: {ex.Message}");
                 debugInfo.AppendLine($"Substitute Type: {typeof(T).Name}");
@@ -114,7 +114,7 @@ public static class TestDebugHelper
                     debugInfo.AppendLine($"Error trying to get received calls: {reflectionEx.Message}");
                 }
 
-                debugInfo.AppendLine($"============================================");
+                debugInfo.AppendLine("============================================");
                 
                 // Throw new exception with debug info
                 throw new ReceivedCallsException($"{ex.Message}\n\n{debugInfo}");

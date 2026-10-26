@@ -8,10 +8,10 @@ public record ActionModel
 {
     [JsonPropertyName("action")]
     // ReSharper disable once PropertyCanBeMadeInitOnly.Global
-    public string Action { get; set; } = default!;
+    public string Action { get; set; } = null!;
     
     [JsonPropertyName("title")]
-    public string Title { get; } = default!;
+    public string Title { get; } = null!;
     
     [JsonPropertyName("uri")]
     public string? Uri { get; set; }

@@ -1,6 +1,5 @@
 using System.IO;
 using System.Net.WebSockets;
-using System.Threading;
 using Automation.Configuration;
 using Automation.Models.Assist;
 using Microsoft.Extensions.Options;

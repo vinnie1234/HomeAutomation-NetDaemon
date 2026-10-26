@@ -3,7 +3,6 @@ using Automation.Configuration;
 using Automation.Models.Persons;
 using Automation.Enum;
 using Microsoft.Extensions.Options;
-using static Automation.Globals;
 
 namespace Automation.apps.General;
 

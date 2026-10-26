@@ -60,7 +60,7 @@ public class DataRepository : IDataRepository
             _logger.LogError("Error getting storage file {Id}, error message: {Error}", id, ex.Message);
         }
 
-        return default;
+        return null;
     }
 
     /// <summary>

@@ -43,7 +43,7 @@ public class OpusAudioDecoderTests
         // Opus is lossy and the exact sample count can differ slightly (frame boundaries, pre-skip rounding),
         // so compare duration and signal energy rather than requiring a bit-exact match.
         var expectedSamples = (int)(inputRate * durationSeconds);
-        decoded.Length.Should().BeCloseTo(expectedSamples, (uint)(inputRate / 10));
+        decoded.Length.Should().BeCloseTo(expectedSamples, (inputRate / 10));
 
         var originalRms = Rms(original);
         var decodedRms = Rms(decoded);
@@ -95,7 +95,7 @@ public class OpusAudioDecoderTests
         {
             var segmentCount = corrupted[offset + 26];
             var packetStart = offset + 27 + segmentCount;
-            var packetLength = corrupted.AsSpan(offset + 27, segmentCount).ToArray().Sum(b => (int)b);
+            var packetLength = corrupted.AsSpan(offset + 27, segmentCount).ToArray().Sum(b => b);
 
             // Pages 0 and 1 are the OpusHead and OpusTags packets; corrupt the first audio packet after those
             if (pageIndex == 2 && packetLength >= 2)

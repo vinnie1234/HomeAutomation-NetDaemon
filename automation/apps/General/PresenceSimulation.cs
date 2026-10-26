@@ -1,6 +1,5 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
-using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;

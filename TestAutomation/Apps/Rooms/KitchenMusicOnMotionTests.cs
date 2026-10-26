@@ -1,5 +1,4 @@
 using Automation.apps.Rooms.Kitchen;
-using Automation.Configuration;
 using HomeAssistantGenerated;
 using NSubstitute;
 using TestAutomation.Helpers;

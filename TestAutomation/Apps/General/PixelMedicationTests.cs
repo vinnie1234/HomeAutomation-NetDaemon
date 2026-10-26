@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using Automation.apps.General;
 using Automation.Configuration;
@@ -143,7 +142,7 @@ public class PixelMedicationTests : IDisposable
 
         At(20, 19, 59);
         _app.PrednisonStatus().Should().Be("wacht");
-        At(20, 20, 0);
+        At(20, 20);
         _app.PrednisonStatus().Should().Be("nodig");
 
         Press(PrednisonButton);

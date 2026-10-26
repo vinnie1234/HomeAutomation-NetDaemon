@@ -101,7 +101,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class AlarmTests
             action: null);
         _notify.Received(1).NotifyDiscord(
             "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.Contains("logs")),
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -329,7 +329,7 @@ public class AlarmTests
             action: null);
         _notify.Received(1).NotifyDiscord(
             "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.Contains("logs")),
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -346,7 +346,7 @@ public class AlarmTests
         // Assert
         _notify.Received(1).NotifyDiscord(
             "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.Contains("logs")),
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -370,8 +370,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
     }
 
     [Fact]
@@ -388,7 +388,7 @@ public class AlarmTests
         // Assert
         _notify.Received(1).NotifyDiscord(
             "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.Contains("logs")),
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
@@ -403,8 +403,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
-        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
+        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10);
     }
 
     [Fact]
@@ -419,8 +419,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
-        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyDiscord("ENERGY IS NEGATIEF - -3", Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
+        _notify.Received(1).NotifyPeopleHome("ENERGY IS NEGATIEF - -3", "Je energy is negatief, dit kan geld kosten.", false, 10);
     }
 
     [Fact]
@@ -434,8 +434,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincent(null!, null!, false!);
     }
 
     [Fact]
@@ -450,8 +450,8 @@ public class AlarmTests
 
         // Assert - format the price like the app does, so the test passes regardless of the machine's culture ("0,6" vs "0.6")
         var expectedTitle = $"ENERGY IS ENORM DUUR - {0.6}";
-        _notify.Received(1).NotifyDiscord(expectedTitle, Arg.Is<string[]>(t => t.Contains("logs")), null);
-        _notify.Received(1).NotifyPeopleHome(expectedTitle, "Je energy is hoog, dit kan geld kosten.", false, 10, null, null, null, null);
+        _notify.Received(1).NotifyDiscord(expectedTitle, Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
+        _notify.Received(1).NotifyPeopleHome(expectedTitle, "Je energy is hoog, dit kan geld kosten.", false, 10);
     }
 
     [Fact]
@@ -465,8 +465,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
     }
 
     [Fact]
@@ -480,8 +480,8 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
-        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false!);
     }
 
     [Fact]
@@ -497,7 +497,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.Received(1).NotifyDiscord($"Er is al 2 dagen geen backup, laatste backup is van {oldBackup}", Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyDiscord($"Er is al 2 dagen geen backup, laatste backup is van {oldBackup}", Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
     }
 
     [Fact]
@@ -512,7 +512,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.Received(1).NotifyDiscord("Er is geen  backup", Arg.Is<string[]>(t => t.Contains("logs")), null);
+        _notify.Received(1).NotifyDiscord("Er is geen  backup", Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
     }
 
     [Fact]
@@ -526,7 +526,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincentCarleen(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyPhoneVincentCarleen(null!, null!, false!);
     }
 
     [Fact]
@@ -542,7 +542,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.Received(1).NotifyDiscord("De backup status is onbekend (unavailable)", Arg.Any<string[]>(), null);
+        _notify.Received(1).NotifyDiscord("De backup status is onbekend (unavailable)", Arg.Any<string[]>());
     }
 
     [Fact]
@@ -561,7 +561,7 @@ public class AlarmTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(default!, default!, default!);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!, null!);
     }
 
     /// <summary>

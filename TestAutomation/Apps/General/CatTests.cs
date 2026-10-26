@@ -207,7 +207,7 @@ public class CatTests
         
         _notify.Received(1).NotifyDiscord(
             "", 
-            Arg.Is<string[]>(t => t.Contains("pixel_channel")), 
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("pixel_channel")), 
             Arg.Is<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>(m => m.Embed!.Title!.Contains("FOUNTAIN STAAT UIT")));
     }
     
@@ -224,7 +224,7 @@ public class CatTests
         
         _notify.Received(1).NotifyDiscord(
             "", 
-            Arg.Is<string[]>(t => t.Contains("pixel_channel")), 
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("pixel_channel")), 
             Arg.Is<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>(m => m.Embed!.Title!.Contains("KATTENBAK STAAT UIT")));
     }
     
@@ -241,7 +241,7 @@ public class CatTests
         var calls = _ctx.HaContext.ReceivedCalls()
             .Where(x => x.GetMethodInfo().Name == "CallService")
             .Where(x => (string)x.GetArguments()[0]! == "input_number" && (string)x.GetArguments()[1]! == "set_value")
-            .Where(x => x.GetArguments()[3] is HomeAssistantGenerated.InputNumberSetValueParameters p && p.Value == 0)
+            .Where(x => x.GetArguments()[3] is InputNumberSetValueParameters p && p.Value == 0)
             .ToList();
         Assert.Single(calls);
     }
@@ -256,7 +256,7 @@ public class CatTests
         
         _notify.Received(1).NotifyDiscord(
             "", 
-            Arg.Is<string[]>(t => t.Contains("pixel_channel")), 
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("pixel_channel")), 
             Arg.Is<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>(m => m.Embed!.Title == "Pixel heeft handmatig eten gehad"));
     }
     
@@ -270,7 +270,7 @@ public class CatTests
         
         _notify.Received(1).NotifyDiscord(
             "", 
-            Arg.Is<string[]>(t => t.Contains("pixel_channel")), 
+            Arg.Is<string[]>(t => t.AsEnumerable().Contains("pixel_channel")), 
             Arg.Is<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>(m => m.Embed!.Title == "Pixel heeft eten gehad"));
     }
     
@@ -291,11 +291,7 @@ public class CatTests
             "Kat voeding gefaald",
             Arg.Is<string>(s => s.Contains("is mislukt")),
             true,
-            Arg.Any<double?>(),
-            null,
-            null,
-            null,
-            null);
+            Arg.Any<double?>());
     }
 }
 

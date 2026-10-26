@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reactive.Concurrency;
 
 using Automation.Models.DiscordNotificationModels;

@@ -1,6 +1,5 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
-using Automation.Enum;
 using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 

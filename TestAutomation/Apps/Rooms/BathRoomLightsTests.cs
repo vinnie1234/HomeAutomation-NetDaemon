@@ -422,7 +422,7 @@ public class BathRoomLightsTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        spotcast.DidNotReceiveWithAnyArgs().PlaySpotify(default!, default!);
+        spotcast.DidNotReceiveWithAnyArgs().PlaySpotify(null!, null!);
         ctx.VerifyNotCallService("media_player.volume_set");
     }
 
@@ -466,7 +466,7 @@ public class BathRoomLightsTests
         // Let's re-init because Events subscription happens in constructor
         ctx.InitApp<BathRoomLights>(spotcast, config);
         
-        eventSubject.OnNext(new NetDaemon.HassModel.Event
+        eventSubject.OnNext(new Event
         {
             EventType = "hue_event",
             DataElement = jsonElement

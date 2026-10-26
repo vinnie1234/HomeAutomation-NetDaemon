@@ -146,7 +146,7 @@ public class ParcelNotifications : BaseApp
 
     private static DateTimeOffset? ParseTime(string? value) =>
         DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var time)
-            ? Automation.Extensions.SchedulerExtensions.ToDutchTime(time)
+            ? Extensions.SchedulerExtensions.ToDutchTime(time)
             : null;
 
     private string DayName(DateOnly day)

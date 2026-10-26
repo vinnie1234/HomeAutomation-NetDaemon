@@ -213,7 +213,7 @@ public class PixelMedication : BaseApp
         var now = Scheduler.NowNl();
         var doses = Doses(Prednison).Select(x => x.Time).ToList();
         DateTimeOffset Start(DateTime date) =>
-            new(date.Date, Automation.Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(date.Date));
+            new(date.Date, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(date.Date));
         bool Given(DateTime date) => doses.Any(x => x >= Start(date) && x < Start(date.AddDays(1)));
         // Only days the app was already running at the reminder time: no "forgotten" for the days before
         bool Tracked(DateTime date) => Start(date) + ReminderTime() >= _since;

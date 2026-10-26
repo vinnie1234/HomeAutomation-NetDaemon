@@ -1,6 +1,5 @@
 using System.IO;
 using Concentus;
-using Concentus.Structs;
 
 namespace Automation.Helpers;
 

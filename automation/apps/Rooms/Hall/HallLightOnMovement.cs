@@ -2,7 +2,6 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
-using static Automation.Globals;
 
 namespace Automation.apps.Rooms.Hall;
 

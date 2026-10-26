@@ -1,5 +1,4 @@
 using Automation.Models.DiscordNotificationModels;
-using Automation.Models.Persons;
 
 namespace Automation.Interfaces;
 

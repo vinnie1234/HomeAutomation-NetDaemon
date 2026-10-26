@@ -11,7 +11,7 @@ public static class AudioResampler
     {
         if (pcm.Length == 0 || inputRate == outputRate) return pcm;
 
-        var resampler = ResamplerFactory.CreateResampler(channels, inputRate, outputRate, 7, null);
+        var resampler = ResamplerFactory.CreateResampler(channels, inputRate, outputRate, 7);
         var samplesPerChannel = pcm.Length / channels;
         var outCapacityPerChannel = (int)((long)samplesPerChannel * outputRate / inputRate) + 64;
 

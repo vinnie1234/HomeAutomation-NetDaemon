@@ -30,7 +30,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("scene", "turn_on", "woonkamer_movie_2", times: 1);
@@ -81,7 +81,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("light", "turn_off", "plafond_woonkamer", times: 1);
@@ -103,7 +103,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("media_player", "turn_on", "av_soundbar", times: 1);
@@ -120,7 +120,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("media_player", "volume_set", "tv", times: 1);
@@ -138,7 +138,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyNotCallService("scene.turn_on");
@@ -158,7 +158,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("scene", "turn_on", "woonkamerday", times: 1);
@@ -176,7 +176,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("scene", "turn_on", "woonkamerevening", times: 1);
@@ -194,7 +194,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("scene", "turn_on", "woonkamermorning", times: 1);
@@ -212,7 +212,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("scene", "turn_on", "woonkamernight", times: 1);
@@ -229,7 +229,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("media_player", "turn_off", "av_soundbar", times: 1);
@@ -246,7 +246,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("switch", "turn_off", "ps5_vincent_power", times: 1);
@@ -264,7 +264,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
@@ -282,7 +282,7 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
         ctx.HaContextMock.ProcessPendingOperations();
-        System.Threading.Thread.Sleep(50);
+        Thread.Sleep(50);
 
         // Assert
         ctx.VerifyNotCallService("scene.turn_on");

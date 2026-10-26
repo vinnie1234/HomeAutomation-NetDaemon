@@ -1,7 +1,6 @@
 using Automation.apps.Rooms.LivingRoom;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
-using NetDaemon.HassModel;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;

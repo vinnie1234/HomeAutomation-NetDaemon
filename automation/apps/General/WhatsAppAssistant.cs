@@ -125,7 +125,7 @@ public class WhatsAppAssistant : BaseApp
         {
             keys = new { id = message.Key.Id, remoteJid = message.Key.RemoteJid, fromMe = message.Key.FromMe }
         });
-        Services.Whatsapp.SendPresenceUpdate(clientId: message.ClientId, @type: "available", to: message.Key.RemoteJid);
+        Services.Whatsapp.SendPresenceUpdate(clientId: message.ClientId, type: "available", to: message.Key.RemoteJid);
     }
 
     /// <summary>Decrypts and transcribes a voice note, then processes the transcript like a typed message.</summary>
