@@ -28,7 +28,7 @@ public class BatteryMonitoringTests
             AttributesJson = JsonSerializer.SerializeToDocument(new { device_class = "battery", friendly_name = "Sensor 1", unit_of_measurement = "%" }).RootElement
         };
 
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
         ctx.InitApp<BatteryMonitoring>(config, appConfig);
@@ -63,7 +63,7 @@ public class BatteryMonitoringTests
             AttributesJson = JsonSerializer.SerializeToDocument(new { device_class = "battery", friendly_name = "Sensor 1", unit_of_measurement = "%" }).RootElement
         };
 
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
         ctx.InitApp<BatteryMonitoring>(config, appConfig);
@@ -104,7 +104,7 @@ public class BatteryMonitoringTests
             AttributesJson = JsonSerializer.SerializeToDocument(new { device_class = "battery", friendly_name = "Sensor 1", unit_of_measurement = "%" }).RootElement
         };
 
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
         ctx.InitApp<BatteryMonitoring>(config, appConfig);
@@ -138,7 +138,7 @@ public class BatteryMonitoringTests
             AttributesJson = JsonSerializer.SerializeToDocument(new { device_class = "battery", friendly_name = "Sensor 1", unit_of_measurement = "%" }).RootElement
         };
 
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
         ctx.InitApp<BatteryMonitoring>(config, appConfig);
@@ -176,7 +176,7 @@ public class BatteryMonitoringTests
             AttributesJson = JsonSerializer.SerializeToDocument(new { device_class = "battery", friendly_name = "Sensor 1", unit_of_measurement = "%" }).RootElement
         };
 
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
         ctx.InitApp<BatteryMonitoring>(config, appConfig);

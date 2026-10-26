@@ -22,14 +22,13 @@ public class AppFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
             // Override configuration to prevent real connections if needed
-            config.AddInMemoryCollection(new[]
-            {
+            config.AddInMemoryCollection([
                 new KeyValuePair<string, string?>("AppConfiguration:Discord:WebhookUrl", "http://localhost/dummy"),
                 new KeyValuePair<string, string?>("BaseUrlHomeAssistant", "http://localhost:8123")
-            });
+            ]);
         });
 
         builder.ConfigureServices(services =>

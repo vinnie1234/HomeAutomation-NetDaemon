@@ -7,7 +7,7 @@ namespace Automation.Models.Integrations;
 public record IntegrationRepairRecord
 {
     public string EntryId { get; init; } = string.Empty;
-    public string Domain { get; init; } = string.Empty;
+    public string Domain {  get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
 
     /// <summary>How often the integration has been reloaded since it started failing.</summary>

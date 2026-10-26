@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using NSubstitute.Exceptions;
 using NetDaemon.HassModel;

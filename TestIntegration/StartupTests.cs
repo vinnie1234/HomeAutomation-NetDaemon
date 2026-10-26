@@ -35,7 +35,7 @@ public class StartupTests : IClassFixture<AppFactory>
         // Arrange
         var assembly = Assembly.Load("Automation");
         var appTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && t.GetCustomAttribute<NetDaemonAppAttribute>() != null)
+            .Where(t => t is { IsClass: true, IsAbstract: false } && t.GetCustomAttribute<NetDaemonAppAttribute>() != null)
             .ToList();
             
         await using var scope = _factory.Services.CreateAsyncScope();

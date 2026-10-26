@@ -36,8 +36,8 @@ public class AutoUpdateAppTests
         };
 
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { 
-            new Entity(ctx.HaContext, "update.test1"), 
-            new Entity(ctx.HaContext, "update.test2") 
+            new(ctx.HaContext, "update.test1"), 
+            new(ctx.HaContext, "update.test2") 
         });
         ctx.HaContext.GetState("update.test1").Returns(updateEntity1);
         ctx.HaContext.GetState("update.test2").Returns(updateEntity2);

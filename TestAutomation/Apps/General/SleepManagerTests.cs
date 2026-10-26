@@ -108,7 +108,7 @@ public class SleepManagerTests
         var ctx = SetupContext();
         ctx.HaContext.GetState("input_boolean.disablelightautomationgeneral").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("light.dummy_light").Returns(new EntityState { EntityId = "light.dummy_light", State = "on" });
-        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "light.dummy_light") });
+        ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new(ctx.HaContext, "light.dummy_light") });
         ctx.InitApp<SleepManager>();
 
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");

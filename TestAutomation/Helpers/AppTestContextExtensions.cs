@@ -135,10 +135,8 @@ public static class AppTestContextExtensions
     {
         TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
         {
-            if (entityId != null)
-                haContext.Received(times).CallService(domain, service, Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.FirstOrDefault() == $"{domain}.{entityId}"), Arg.Any<T>());
-            else
-                haContext.Received(times).CallService(domain, service, null, Arg.Any<T>());
+            haContext.Received(times).CallService(domain, service,
+                    entityId != null ? Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.FirstOrDefault() == $"{domain}.{entityId}") : null, Arg.Any<T>());
         }, testName);
         
         T? calledData = null;

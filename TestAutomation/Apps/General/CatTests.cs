@@ -241,7 +241,7 @@ public class CatTests
         var calls = _ctx.HaContext.ReceivedCalls()
             .Where(x => x.GetMethodInfo().Name == "CallService")
             .Where(x => (string)x.GetArguments()[0]! == "input_number" && (string)x.GetArguments()[1]! == "set_value")
-            .Where(x => x.GetArguments()[3] is InputNumberSetValueParameters p && p.Value == 0)
+            .Where(x => x.GetArguments()[3] is InputNumberSetValueParameters { Value: 0 })
             .ToList();
         Assert.Single(calls);
     }
