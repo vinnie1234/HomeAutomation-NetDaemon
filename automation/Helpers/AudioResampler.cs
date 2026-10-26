@@ -21,13 +21,13 @@ public static class AudioResampler
             var inLen = samplesPerChannel;
             var outLen = output.Length;
             resampler.Process(0, pcm, ref inLen, output, ref outLen);
-            return output.AsSpan(0, outLen).ToArray();
+            return [.. output.AsSpan(0, outLen)];
         }
 
         var interleavedOutput = new short[outCapacityPerChannel * channels];
         var inLenInterleaved = samplesPerChannel;
         var outLenInterleaved = outCapacityPerChannel;
         resampler.ProcessInterleaved(pcm, ref inLenInterleaved, interleavedOutput, ref outLenInterleaved);
-        return interleavedOutput.AsSpan(0, outLenInterleaved * channels).ToArray();
+        return [.. interleavedOutput.AsSpan(0, outLenInterleaved * channels)];
     }
 }

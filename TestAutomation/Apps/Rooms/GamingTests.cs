@@ -17,7 +17,7 @@ public class GamingTests
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "not_home" });
         
-        var app = ctx.InitApp<Gaming>();
+        ctx.InitApp<Gaming>();
 
         // Act
         ctx.ChangeStateFor("device_tracker.sony").FromState("not_home").ToState("home");
@@ -43,7 +43,7 @@ public class GamingTests
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { State = "on" });
         ctx.HaContext.GetState("device_tracker.sony").Returns(new EntityState { State = "not_home" });
         
-        var app = ctx.InitApp<Gaming>();
+        ctx.InitApp<Gaming>();
 
         // Act
         ctx.ChangeStateFor("device_tracker.sony").FromState("not_home").ToState("home");

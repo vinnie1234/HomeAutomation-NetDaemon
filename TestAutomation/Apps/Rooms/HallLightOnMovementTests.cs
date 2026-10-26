@@ -25,7 +25,7 @@ public class HallLightOnMovementTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -44,7 +44,7 @@ public class HallLightOnMovementTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("light.hal").Returns(new EntityState { EntityId = "light.hal", State = halState });
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -60,7 +60,7 @@ public class HallLightOnMovementTests
         // Arrange - the day delay is changed from 10 to 2 minutes after the app started
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
         ctx.HaContext.GetState("input_number.halllightdaytime").Returns(new EntityState { EntityId = "input_number.halllightdaytime", State = "2" });
 
         // Act
@@ -78,7 +78,7 @@ public class HallLightOnMovementTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -97,7 +97,7 @@ public class HallLightOnMovementTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -116,7 +116,7 @@ public class HallLightOnMovementTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.disablelightautomationhall").Returns(new EntityState { EntityId = "input_boolean.disablelightautomationhall", State = "on" });
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -132,7 +132,7 @@ public class HallLightOnMovementTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("on").ToState("off");
@@ -152,7 +152,7 @@ public class HallLightOnMovementTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<HallLightOnMovement>();
+        ctx.InitApp<HallLightOnMovement>();
 
         // Act
         ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("on").ToState("off");

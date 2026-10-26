@@ -44,7 +44,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio" });
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
@@ -63,7 +63,7 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
         ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "on" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -123,7 +123,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
@@ -143,7 +143,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act - motion goes off and stays off for 5 minutes (bathroomlightdaytime)
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("on").ToState("off");
@@ -167,7 +167,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act - motion goes off and stays off for 2 minutes (bathroomlightnighttime)
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("on").ToState("off");
@@ -190,7 +190,7 @@ public class BathRoomLightsTests
         // Carleen is home (default), so SpotifyDoucheUrl is used
         var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio", SpotifyDoucheUrl = "spotify:douche" });
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("input_boolean.douchen").FromState("off").ToState("on");
@@ -214,7 +214,7 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
@@ -237,7 +237,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("input_boolean.douchen").FromState("on").ToState("off");
@@ -267,7 +267,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("input_boolean.douchen").FromState("off").ToState("on"); // Start douching
@@ -287,7 +287,7 @@ public class BathRoomLightsTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "on" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         ctx.ChangeStateFor("input_boolean.douchen").FromState("off").ToState("on");
         ctx.AdvanceTimeBy(TimeSpan.FromMinutes(20).Ticks);
@@ -312,7 +312,7 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { State = "Morning" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         // Act - motion stops; the night delay is 2 minutes
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("on").ToState("off");
@@ -334,7 +334,7 @@ public class BathRoomLightsTests
         // Carleen is home (default), so SpotifyDoucheUrl is used for toothbrush too
         var config = Options.Create(new AppConfig { SpotifyRadioNlUrl = "spotify:radio", SpotifyDoucheUrl = "spotify:douche" });
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("idle").ToState("running");
@@ -357,7 +357,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("running").ToState("idle");
@@ -376,7 +376,7 @@ public class BathRoomLightsTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("media_player.googlehome0351").Returns(new EntityState { State = "idle" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         // Act
         ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("running").ToState("idle");
@@ -397,7 +397,7 @@ public class BathRoomLightsTests
         ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { State = "on" });
         ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { State = "on" });
         ctx.HaContext.GetState("person.timo").Returns(new EntityState { State = "not_home" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         // Act
         ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
@@ -415,7 +415,7 @@ public class BathRoomLightsTests
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { State = "on" });
         var spotcast = Substitute.For<ISpotcast>();
-        var app = ctx.InitApp<BathRoomLights>(spotcast, Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(spotcast, Options.Create(new AppConfig()));
 
         // Act
         ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("idle").ToState("running");
@@ -433,7 +433,7 @@ public class BathRoomLightsTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { State = "on" });
-        var app = ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
 
         // Act
         ctx.ChangeStateFor("sensor.smart_series_4000_97ae_toothbrush_state").FromState("running").ToState("idle");
@@ -454,7 +454,7 @@ public class BathRoomLightsTests
         var spotcast = Substitute.For<ISpotcast>();
         var config = Options.Create(new AppConfig());
 
-        var app = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
 
         // Act
         var eventSubject = new Subject<Event>();
@@ -464,7 +464,7 @@ public class BathRoomLightsTests
         var jsonElement = JsonSerializer.SerializeToElement(eventModel);
         
         // Let's re-init because Events subscription happens in constructor
-        var app2 = ctx.InitApp<BathRoomLights>(spotcast, config);
+        ctx.InitApp<BathRoomLights>(spotcast, config);
         
         eventSubject.OnNext(new NetDaemon.HassModel.Event
         {

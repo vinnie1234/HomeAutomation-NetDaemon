@@ -83,7 +83,7 @@ public class SaveInStateTests
         });
 
         // Act
-        var app = await ctx.InitAppAsync<SaveInState>(storage);
+        await ctx.InitAppAsync<SaveInState>(storage);
 
         // Assert
         storage.Received(1).Save("AlarmState", Arg.Any<List<AlarmStateModel?>>());

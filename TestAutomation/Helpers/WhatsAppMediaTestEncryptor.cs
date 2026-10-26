@@ -29,6 +29,6 @@ public static class WhatsAppMediaTestEncryptor
         var macInput = iv.Concat(ciphertext).ToArray();
         var mac = HMACSHA256.HashData(macKey, macInput)[..10];
 
-        return ciphertext.Concat(mac).ToArray();
+        return [.. ciphertext, .. mac];
     }
 }

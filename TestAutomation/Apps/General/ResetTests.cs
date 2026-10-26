@@ -21,7 +21,7 @@ public class ResetTests
         ctx.HaContext.GetState("input_boolean.disablereset").Returns(new EntityState { EntityId = "input_boolean.disablereset", State = "on" });
 
         // Act
-        var app = ctx.InitApp<Reset>(storage);
+        ctx.InitApp<Reset>(storage);
 
         // Assert
         storage.DidNotReceive().Get<List<LightStateModel>>("LightState");
@@ -43,7 +43,7 @@ public class ResetTests
         storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
-        var app = ctx.InitApp<Reset>(storage);
+        ctx.InitApp<Reset>(storage);
 
         // Assert
         ctx.VerifyCallService("light", "turn_off", "bureau", times: 1);
@@ -77,7 +77,7 @@ public class ResetTests
         storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
-        var app = ctx.InitApp<Reset>(storage);
+        ctx.InitApp<Reset>(storage);
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
@@ -110,7 +110,7 @@ public class ResetTests
         storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
-        var app = ctx.InitApp<Reset>(storage);
+        ctx.InitApp<Reset>(storage);
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
@@ -143,7 +143,7 @@ public class ResetTests
         storage.Get<List<LightStateModel>>("LightState").Returns(lightStates);
 
         // Act
-        var app = ctx.InitApp<Reset>(storage);
+        ctx.InitApp<Reset>(storage);
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);

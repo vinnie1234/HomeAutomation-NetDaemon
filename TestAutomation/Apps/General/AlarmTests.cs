@@ -68,7 +68,7 @@ public class AlarmTests
         _ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "on" });
         _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
         _ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "on" });
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -94,7 +94,7 @@ public class AlarmTests
         _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
         _ctx.HaContext.GetState("input_boolean.away").Returns(new EntityState { EntityId = "input_boolean.away", State = "on" });
         _ctx.HaContext.GetState("person.timo").Returns(new EntityState { EntityId = "person.timo", State = "home" });
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -109,7 +109,7 @@ public class AlarmTests
     {
         // Arrange
         // default state has vincent and carleen at home
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
@@ -123,7 +123,7 @@ public class AlarmTests
     public void TemperatureCheck_HighTemperature_WhenNotNightMode_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_temperature").FromState("20").ToState("26");
@@ -146,7 +146,7 @@ public class AlarmTests
     {
         // Arrange
         _ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_temperature").FromState("20").ToState("26");
@@ -160,7 +160,7 @@ public class AlarmTests
     public void EnergyCheck_HighEnergyFor10Minutes_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.p1_meter_3c39e72a64e8_active_power").FromState("1000").ToState("2500");
@@ -204,7 +204,7 @@ public class AlarmTests
     public void EnergyCheck_HighEnergyForLess10Minutes_DoesNotSendNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.p1_meter_3c39e72a64e8_active_power").FromState("1000").ToState("2500");
@@ -226,7 +226,7 @@ public class AlarmTests
     public void GarbageCheck_SendsNotification_WhenGarbageNextDay_AndCarleenHome()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Restafval" });
 
         // Act
@@ -247,7 +247,7 @@ public class AlarmTests
     {
         // Arrange
         _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Restafval" });
 
         // Act
@@ -267,7 +267,7 @@ public class AlarmTests
     public void GarbageCheck_DoesNotSendNotification_WhenNoGarbage()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Geen" });
 
         // Act
@@ -282,7 +282,7 @@ public class AlarmTests
     public void PetSnowyCheck_ErrorsFound_SendsNotification_WhenCarleenHome()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "1" });
 
         // Act
@@ -310,7 +310,7 @@ public class AlarmTests
     {
         // Arrange
         _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "1" });
 
         // Act
@@ -337,7 +337,7 @@ public class AlarmTests
     public void PetSnowyCheck_NoErrorsAndNotCleanedToday_SendsNotification()
     {
         // Arrange - no errors, and the litter box never reported "Cleaning" today
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -361,7 +361,7 @@ public class AlarmTests
         _storage.When(x => x.Save("PetsnowyLastCleanedDate", Arg.Any<string>()))
             .Do(call => savedDate = call.ArgAt<string>(1));
 
-        var app = CreateApp();
+        CreateApp();
         _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("Idle").ToState("Cleaning");
         _ctx.HaContextMock.ProcessPendingOperations();
 
@@ -378,7 +378,7 @@ public class AlarmTests
     public void PetSnowyCheck_CleanedYesterdayNotToday_SendsNotification()
     {
         // Arrange - no errors, but the last recorded cleaning was yesterday, not today
-        var app = CreateApp();
+        CreateApp();
         _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().AddDays(-1).ToString("O"));
 
         // Act
@@ -396,7 +396,7 @@ public class AlarmTests
     public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification_WhenCarleenHome()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("-3.0");
@@ -412,7 +412,7 @@ public class AlarmTests
     {
         // Arrange
         _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("10.0").ToState("-3.0");
@@ -427,7 +427,7 @@ public class AlarmTests
     public void EnergyNegativeCheck_WhenPriceIsPositive_DoesNotSendNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.20");
@@ -442,7 +442,7 @@ public class AlarmTests
     public void EnergyHighPriceCheck_WhenPriceIsHigh_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.60");
@@ -458,7 +458,7 @@ public class AlarmTests
     public void EnergyHighPriceCheck_WhenPriceIsAtThreshold_DoesNotSendNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act - exactly 0.55 should not trigger, since the check requires strictly greater than 0.55
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.55");
@@ -473,7 +473,7 @@ public class AlarmTests
     public void EnergyHighPriceCheck_WhenPriceIsNormal_DoesNotSendNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.20");
@@ -488,7 +488,7 @@ public class AlarmTests
     public void BackUpCheck_WhenNoRecentBackup_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         var oldBackup = DateTime.Now.AddDays(-3).ToString("O");
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = oldBackup });
 
@@ -504,7 +504,7 @@ public class AlarmTests
     public void BackUpCheck_WhenNoBackupAtAll_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = "" });
 
         // Act
@@ -519,7 +519,7 @@ public class AlarmTests
     public void TemperatureCheck_StaysAboveThreshold_DoesNotNotifyAgain()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
 
         // Act - from 26 to 26.1 degrees: already above 25
         _ctx.ChangeStateFor("sensor.badkamer_temperature").FromState("26").ToState("26.1");
@@ -533,7 +533,7 @@ public class AlarmTests
     public void BackUpCheck_WhenBackupSensorIsUnavailable_SendsNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = "unavailable" });
         _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().ToString("O"));
 
@@ -549,7 +549,7 @@ public class AlarmTests
     public void BackUpCheck_WhenRecentBackup_DoesNotSendNotification()
     {
         // Arrange
-        var app = CreateApp();
+        CreateApp();
         var recentBackup = DateTime.Now.AddDays(-1).ToString("O");
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = recentBackup });
 

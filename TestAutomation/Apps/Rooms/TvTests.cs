@@ -25,7 +25,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
@@ -43,7 +43,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -60,7 +60,7 @@ public class TvTests
         // Arrange - the TV reports "playing" while on, so it can go straight from playing to off
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("playing").ToState("off");
@@ -76,7 +76,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
@@ -98,7 +98,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
@@ -115,7 +115,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
@@ -133,7 +133,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { EntityId = "input_boolean.disablelightautomationlivingroom", State = "on" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
@@ -153,7 +153,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Day" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -171,7 +171,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Evening" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -189,7 +189,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Morning" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -207,7 +207,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Night" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -224,7 +224,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -241,7 +241,7 @@ public class TvTests
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -259,7 +259,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.WithEntityState("input_boolean.working", "on");
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
@@ -277,7 +277,7 @@ public class TvTests
         var ctx = AppTestContext.NewWithScheduler();
         SetupDefaultStates(ctx);
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { EntityId = "input_boolean.disablelightautomationlivingroom", State = "on" });
-        var app = ctx.InitApp<Tv>();
+        ctx.InitApp<Tv>();
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");

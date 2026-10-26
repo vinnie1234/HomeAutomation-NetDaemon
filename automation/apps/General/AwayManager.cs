@@ -18,7 +18,7 @@ namespace Automation.apps.General;
 public class AwayManager : BaseApp
 {
     private readonly AppConfiguration _config;
-    private HomePresenceState _currentState = HomePresenceState.Home;
+    private HomePresenceState _currentState;
     private readonly object _stateLock = new();
 
     /// <summary>How long to wait for motion in the hall after returning home before giving up on the welcome.</summary>

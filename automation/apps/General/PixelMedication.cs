@@ -162,7 +162,7 @@ public class PixelMedication : BaseApp
     {
         lock (_lock)
         {
-            if (ReadNumber(oldState) is not { } before || ReadNumber(newState) is not { } after || before == after) return;
+            if (ReadNumber(oldState) is not { } before || ReadNumber(newState) is not { } after || Math.Abs(before - after) < 0.001) return;
             if (_expectedStock.TryGetValue(medicine, out var expected) && Math.Abs(expected - after) < 0.001)
             {
                 _expectedStock.Remove(medicine);

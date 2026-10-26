@@ -59,7 +59,7 @@ public class CatTests
     [Fact]
     public void PetSnowyStatus_WhenPetInto_IncrementsPixelInitCounter()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("pet_into");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -70,7 +70,7 @@ public class CatTests
     [Fact]
     public void PetSnowyStatus_WhenCleaning_IncrementsCleaningCounter()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("cleaning");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -81,7 +81,7 @@ public class CatTests
     [Fact]
     public void PetSnowyStatus_WhenEmptying_IncrementsEmptyingCounter()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("emptying");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -92,7 +92,7 @@ public class CatTests
     [Fact]
     public void ButtonFeedCat_WhenPressed_FeedsCatAndUpdatesStats()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("input_button.feedcat").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -111,7 +111,7 @@ public class CatTests
     [Fact]
     public void AutoFeedCat_WhenTimeReached_FeedsCat()
     {
-        var app = CreateApp();
+        CreateApp();
         
         // Set time to just before 08:00
 
@@ -135,7 +135,7 @@ public class CatTests
     public void AutoFeedCat_WhenSkipNextAutoFeedIsTrue_SkipsFeedingAndTurnsOffBool()
     {
         _ctx.HaContext.GetState("input_boolean.pixelskipnextautofeed").Returns(new EntityState { EntityId = "input_boolean.pixelskipnextautofeed", State = "on" });
-        var app = CreateApp();
+        CreateApp();
         
         // Set time to just before 08:00
 
@@ -153,7 +153,7 @@ public class CatTests
     [Fact]
     public void EarlyFeed_WhenTriggered_FeedsNextAmountAndSetsSkipBool()
     {
-        var app = CreateApp();
+        CreateApp();
         
         // Let's set time to 07:00, next feed is 08:00 (15 amount)
 
@@ -172,7 +172,7 @@ public class CatTests
     [Fact]
     public void CleanPetSnowy_WhenTriggered_SendsCleanCommand()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("input_button.cleanpetsnowy").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -184,7 +184,7 @@ public class CatTests
     [Fact]
     public void EmptyPetSnowy_WhenTriggered_SendsEmptyCommand()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("input_button.emptypetsnowy").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -196,7 +196,7 @@ public class CatTests
     [Fact]
     public void FountainOff_TriggersAlarm()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("switch.petsnowy_fountain_ison").FromState("on").ToState("off");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -214,7 +214,7 @@ public class CatTests
     [Fact]
     public void LitterBoxOff_TriggersAlarm()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("switch.petsnowy_litterbox_auto_clean").FromState("on").ToState("off");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -231,7 +231,7 @@ public class CatTests
     [Fact]
     public void MidnightCron_ResetsDailyTotalFeed()
     {
-        var app = CreateApp();
+        CreateApp();
         
         // "59 23 * * *" -> 23:59:00
 
@@ -249,7 +249,7 @@ public class CatTests
     [Fact]
     public void MonitorCat_ManualFeed_SendsDiscordNotification()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("input_datetime.pixellastmanualfeed").FromState("2023-01-01 10:00:00").ToState("2023-01-01 12:00:00");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -263,7 +263,7 @@ public class CatTests
     [Fact]
     public void MonitorCat_AutomatedFeed_SendsDiscordNotification()
     {
-        var app = CreateApp();
+        CreateApp();
         
         _ctx.ChangeStateFor("input_datetime.pixellastautomatedfeed").FromState("2023-01-01 10:00:00").ToState("2023-01-01 12:00:00");
         _ctx.HaContextMock.ProcessPendingOperations();
@@ -277,7 +277,7 @@ public class CatTests
     [Fact]
     public void FeedCat_WhenLocalTuyaFails_NotifiesManualFeeding()
     {
-        var app = CreateApp();
+        CreateApp();
         
         // Throw exception when calling localtuya.set_dp
         _ctx.HaContext

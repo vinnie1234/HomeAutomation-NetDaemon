@@ -28,7 +28,7 @@ public class CocMonitoringTests
         storage.Get<string>("COC_LAST_RUN_TIME").Returns((string?)null);
         storage.Get<List<COCModel>>("COC_TWEET_ID_LIST").Returns(new List<COCModel>());
 
-        var app = ctx.InitApp<CocMonitoring>(storage, config);
+        ctx.InitApp<CocMonitoring>(storage, config);
 
         // Act
         // Advance to 07:00:00 to trigger the morning schedule
@@ -59,7 +59,7 @@ public class CocMonitoringTests
         // Set that it already ran at 7 AM today
         storage.Get<string>("COC_LAST_RUN_TIME").Returns("2023-01-01 07:15:00");
         
-        var app = ctx.InitApp<CocMonitoring>(storage, config);
+        ctx.InitApp<CocMonitoring>(storage, config);
 
         // Act
         ctx.AdvanceTimeBy(TimeSpan.FromMinutes(1).Ticks);
@@ -85,7 +85,7 @@ public class CocMonitoringTests
         // Last run was 7 AM today
         storage.Get<string>("COC_LAST_RUN_TIME").Returns("2023-01-01 07:00:00");
         
-        var app = ctx.InitApp<CocMonitoring>(storage, config);
+        ctx.InitApp<CocMonitoring>(storage, config);
 
         // Act
         ctx.AdvanceTimeBy(TimeSpan.FromHours(19).Ticks);

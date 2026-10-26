@@ -96,12 +96,11 @@ public class HallLightOnMovement : BaseApp
                 Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
                 if (!IsLightSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
-                    // An unavailable Hal has no power (wall switch off): the bot presses the switch.
-                    // Decided before TurnOn, because the state doesn't update right after the call.
-                    var halHasNoPower = Entities.Light.Hal.State is "unavailable";
-                    Entities.Light.Hal.TurnOn();
-                    // if (halHasNoPower)
+                    // Bot29ff is off for now: an unavailable Hal has no power (wall switch off) and the bot presses the switch.
+                    // Decide before TurnOn, because the state doesn't update right after the call:
+                    // if (Entities.Light.Hal.State is "unavailable")
                     //     Entities.Switch.Bot29ff.TurnOn();
+                    Entities.Light.Hal.TurnOn();
                     
                     if(Entities.MediaPlayer.Tv.IsOff())
                         Entities.Light.GangSigaret.TurnOn();

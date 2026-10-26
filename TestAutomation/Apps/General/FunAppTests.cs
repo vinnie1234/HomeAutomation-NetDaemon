@@ -19,7 +19,7 @@ public class FunAppTests
         
         ctx.HaContext.GetState("input_button.start_friends").Returns(new EntityState { State = "unknown" });
         
-        var app = ctx.InitApp<FunApp>(config);
+        ctx.InitApp<FunApp>(config);
 
         // Act
         ctx.ChangeStateFor("input_button.start_friends").FromState("unknown").ToState("2021-01-01T00:00:00+00:00");
@@ -43,7 +43,7 @@ public class FunAppTests
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { State = "Morning" });
         ctx.HaContext.GetState("device_tracker.a52s_van_eddy").Returns(new EntityState { State = "not_home" });
         
-        var app = ctx.InitApp<FunApp>(config);
+        ctx.InitApp<FunApp>(config);
 
         // Act
         ctx.ChangeStateFor("device_tracker.a52s_van_eddy").FromState("not_home").ToState("home");
@@ -63,7 +63,7 @@ public class FunAppTests
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { State = "Day" });
         ctx.HaContext.GetState("device_tracker.s20_fe_van_jannette").Returns(new EntityState { State = "not_home" });
         
-        var app = ctx.InitApp<FunApp>(config);
+        ctx.InitApp<FunApp>(config);
 
         // Act
         ctx.ChangeStateFor("device_tracker.s20_fe_van_jannette").FromState("not_home").ToState("home");

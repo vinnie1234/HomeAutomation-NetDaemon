@@ -35,7 +35,7 @@ public class GoogleAssistantButtonTranslateTests
         var ctx = AppTestContext.NewWithScheduler();
         
         ctx.HaContext.GetState(booleanEntityId).Returns(new EntityState { EntityId = booleanEntityId, State = "off" });
-        var app = ctx.InitApp<GoogleAssistantButtonTranslate>();
+        ctx.InitApp<GoogleAssistantButtonTranslate>();
 
         // Act
         ctx.ChangeStateFor(booleanEntityId).FromState("off").ToState("on");
@@ -55,7 +55,7 @@ public class GoogleAssistantButtonTranslateTests
         var buttonEntityId = "button.vincent_pc_afsluiten";
 
         ctx.HaContext.GetState(booleanEntityId).Returns(new EntityState { EntityId = booleanEntityId, State = "off" });
-        var app = ctx.InitApp<GoogleAssistantButtonTranslate>();
+        ctx.InitApp<GoogleAssistantButtonTranslate>();
 
         // Act
         ctx.ChangeStateFor(booleanEntityId).FromState("off").ToState("on");

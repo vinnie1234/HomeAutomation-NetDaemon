@@ -32,7 +32,7 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
 
         // Act
-        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
         await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
@@ -56,7 +56,7 @@ public class NetDaemonTests
         storage.Get<IReadOnlyList<double>>("NetDaemonRestart").Returns((IReadOnlyList<double>?)null);
 
         // Act
-        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
         await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
@@ -74,7 +74,7 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
 
-        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
 
         ctx.HaContext.GetState("input_button.restartnetdaemon").Returns(new EntityState { EntityId = "input_button.restartnetdaemon", State = "unknown" });
 
@@ -102,7 +102,7 @@ public class NetDaemonTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "on" });
-        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(Substitute.For<IDataRepository>(), CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(Substitute.For<IDataRepository>(), CreateConfig());
         ctx.HaContext.ClearReceivedCalls();
 
         // Act

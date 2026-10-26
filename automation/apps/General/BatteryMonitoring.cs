@@ -10,7 +10,6 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(BatteryMonitoring))]
 public class BatteryMonitoring : BaseApp
 {
-    private readonly AppConfiguration _appConfiguration;
     private readonly AppConfig _config;
 
     /// <summary>
@@ -30,17 +29,17 @@ public class BatteryMonitoring : BaseApp
         : base(ha, logger, notify, scheduler, config)
     {
         _config = config.Value;
-        _appConfiguration = appConfiguration.Value;
+        var battery = appConfiguration.Value.Battery;
 
         var batterySensors = Entities.Sensor.
-            EnumerateAllNumeric().Where(x => x.Attributes?.DeviceClass == "battery");
+            EnumerateAllNumeric().Where(x => x.Attributes?.DeviceClass == "battery").ToList();
         
-        Logger.LogDebug("Found {Count} battery sensors", batterySensors.Count());
+        Logger.LogDebug("Found {Count} battery sensors", batterySensors.Count);
         foreach (var battySensor in batterySensors)
         {
             battySensor
                 .StateChanges()
-                .WhenStateIsFor(x => x?.State <= _appConfiguration.Battery.WarningLevel, _appConfiguration.Battery.CheckInterval, Scheduler)
+                .WhenStateIsFor(x => x?.State <= battery.WarningLevel, battery.CheckInterval, Scheduler)
                 .Subscribe(x => SendNotification(battySensor.Attributes?.FriendlyName ?? "", x.Entity.State ?? 0));
 
             battySensor

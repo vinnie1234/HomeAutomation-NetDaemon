@@ -163,7 +163,7 @@ public class LaundryTests
         var nu = DateTime.Today.AddHours(12); // Use a fixed time
         _ctx.Scheduler.AdvanceTo(nu.Ticks);
         SetupForecast(BuildForecast(nu, dryHours: 6));
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
@@ -193,7 +193,7 @@ public class LaundryTests
         var nu = DateTime.Today.AddHours(12);
         _ctx.Scheduler.AdvanceTo(nu.Ticks);
         SetupForecast(BuildForecast(nu, dryHours: 6));
-        var app = CreateApp();
+        CreateApp();
 
         // Act: paused and then switched off, the program did not finish
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
@@ -212,7 +212,7 @@ public class LaundryTests
         var dutchEvening = new DateTimeOffset(2026, 7, 1, 22, 30, 0, TimeSpan.FromHours(2));
         _ctx.Scheduler.AdvanceTo(dutchEvening.UtcTicks);
         SetupForecast(BuildForecast(dutchEvening.UtcDateTime, dryHours: 6));
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
@@ -239,7 +239,7 @@ public class LaundryTests
         var nu = DateTime.Today.AddHours(12);
         _ctx.Scheduler.AdvanceTo(nu.Ticks);
         SetupForecast(BuildForecast(nu, dryHours: 1, wetHoursAfter: 3));
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
@@ -272,7 +272,7 @@ public class LaundryTests
         var entries = BuildForecast(forecastStart, dryHours: 0, wetHoursAfter: 3, dryHoursAfter: 5);
         SetupForecast(entries);
 
-        var app = CreateApp();
+        CreateApp();
 
         // Act
         _ctx.ChangeStateFor("sensor.badkamer_wasmachine_machinestatus")
@@ -302,7 +302,7 @@ public class LaundryTests
     {
         // Arrange: laundry is hanging outside
         SetWasHangtBuiten(true);
-        var app = CreateApp();
+        CreateApp();
 
         // Act: rain sensor turns on
         _ctx.ChangeStateFor("binary_sensor.weer_thuis_neerslag_verwacht")
@@ -327,7 +327,7 @@ public class LaundryTests
     {
         // Arrange: laundry is NOT outside
         SetWasHangtBuiten(false);
-        var app = CreateApp();
+        CreateApp();
 
         // Act: rain sensor fires anyway
         _ctx.ChangeStateFor("binary_sensor.weer_thuis_neerslag_verwacht")
@@ -362,7 +362,7 @@ public class LaundryTests
         var nu = DateTime.Today.AddHours(12);
         _ctx.Scheduler.AdvanceTo(nu.ToUniversalTime().Ticks);
 
-        var app = CreateApp();
+        CreateApp();
 
         var sunsetUtc = nu.AddHours(2).ToUniversalTime();
         
@@ -393,7 +393,7 @@ public class LaundryTests
     {
         // Arrange: laundry is NOT outside
         SetWasHangtBuiten(false);
-        var app = CreateApp();
+        CreateApp();
         
         var nu = DateTime.Today.AddHours(12);
         _ctx.Scheduler.AdvanceTo(nu.Ticks);
@@ -431,7 +431,7 @@ public class LaundryTests
     {
         // Arrange: was hangt buiten
         SetWasHangtBuiten(true);
-        var app = CreateApp();
+        CreateApp();
 
         // Turn off (laundry brought in)
         SetWasHangtBuiten(false);

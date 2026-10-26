@@ -113,7 +113,7 @@ public class Laundry : BaseApp
             var result = await HaContext.CallServiceWithResponseAsync(
                 "weather",
                 "get_forecasts",
-                target: new ServiceTarget { EntityIds = new[] { "weather.weer_thuis" } },
+                target: new ServiceTarget { EntityIds = ["weather.weer_thuis"] },
                 data: new Dictionary<string, object>
                 {
                     ["type"] = "hourly"
@@ -265,45 +265,48 @@ public class Laundry : BaseApp
 
         Logger.LogInformation("Scheduled next chance notification for {Time}", nextChanceTime);
 
-        _nextChanceSchedule = Scheduler.Schedule(delay, async () =>
-        {
-            try
-            {
-                var forecast = await GetHourlyForecastAsync();
-                var now2 = Scheduler.NowNl().DateTime;
-                if (forecast != null && forecast.Count > 0)
-                {
-                    var result = CalculateDryWindow(forecast, now2);
-                    if (result.IsDryNow)
-                    {
-                        var dryInfo = result.DryUntilDescription == "de rest van de dag"
-                            ? "Het blijft de rest van de dag droog."
-                            : $"Het blijft nog {result.DryUntilDescription} droog.";
+        _nextChanceSchedule = Scheduler.Schedule(delay, () => _ = NotifyNextChanceAsync());
+    }
 
-                        Notify.NotifyPeopleHome(
-                            "🧺☀️ Was kan nu buiten!",
-                            $"Nu is er een droog venster. {dryInfo}",
-                            true,
-                            action:
-                            [
-                                new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen",
-                                    func: OnLaundryHangingOutside),
-                            ]);
-                    }
-                    else
-                    {
-                        Notify.NotifyPeopleHome(
-                            "🧺🌧️ Was toch niet buiten",
-                            "Het venster dat verwacht werd is toch te nat geworden. Nog even wachten.",
-                            true);
-                    }
+    /// <summary>Checks the forecast at the next chance and tells whether the laundry can go outside now.</summary>
+    private async Task NotifyNextChanceAsync()
+    {
+        try
+        {
+            var forecast = await GetHourlyForecastAsync();
+            var now2 = Scheduler.NowNl().DateTime;
+            if (forecast != null && forecast.Count > 0)
+            {
+                var result = CalculateDryWindow(forecast, now2);
+                if (result.IsDryNow)
+                {
+                    var dryInfo = result.DryUntilDescription == "de rest van de dag"
+                        ? "Het blijft de rest van de dag droog."
+                        : $"Het blijft nog {result.DryUntilDescription} droog.";
+
+                    Notify.NotifyPeopleHome(
+                        "🧺☀️ Was kan nu buiten!",
+                        $"Nu is er een droog venster. {dryInfo}",
+                        true,
+                        action:
+                        [
+                            new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen",
+                                func: OnLaundryHangingOutside),
+                        ]);
+                }
+                else
+                {
+                    Notify.NotifyPeopleHome(
+                        "🧺🌧️ Was toch niet buiten",
+                        "Het venster dat verwacht werd is toch te nat geworden. Nog even wachten.",
+                        true);
                 }
             }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error in next chance notification");
-            }
-        });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in next chance notification");
+        }
     }
 
     private void OnLaundryHangingOutside()

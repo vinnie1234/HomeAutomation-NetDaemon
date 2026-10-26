@@ -262,7 +262,7 @@ public class Alarm : BaseApp
     /// </summary>
     private void PetSnowyCheck()
     {
-        Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(x =>
+        Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(_ =>
         {
             _storage.Save(PetsnowyLastCleanedDateKey, Scheduler.NowNl().Date.ToString("O"));
         });

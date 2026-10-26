@@ -43,7 +43,7 @@ public class AutoUpdateAppTests
         ctx.HaContext.GetState("update.test2").Returns(updateEntity2);
 
         // Act
-        var app = ctx.InitApp<AutoUpdateApp>(Options.Create(config));
+        ctx.InitApp<AutoUpdateApp>(Options.Create(config));
         
         // Fast forward 31 days to ensure we hit the 30th of the month at 11:00
         ctx.AdvanceTimeBy(TimeSpan.FromDays(35).Ticks);

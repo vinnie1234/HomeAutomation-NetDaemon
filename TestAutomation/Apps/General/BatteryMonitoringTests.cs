@@ -31,7 +31,7 @@ public class BatteryMonitoringTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
-        var app = ctx.InitApp<BatteryMonitoring>(config, appConfig);
+        ctx.InitApp<BatteryMonitoring>(config, appConfig);
 
         ctx.ChangeStateFor("sensor.battery_1").FromState("20").ToState("5");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -66,7 +66,7 @@ public class BatteryMonitoringTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
-        var app = ctx.InitApp<BatteryMonitoring>(config, appConfig);
+        ctx.InitApp<BatteryMonitoring>(config, appConfig);
 
         ctx.ChangeStateFor("sensor.battery_1").FromState("20").ToState("5");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -107,7 +107,7 @@ public class BatteryMonitoringTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
-        var app = ctx.InitApp<BatteryMonitoring>(config, appConfig);
+        ctx.InitApp<BatteryMonitoring>(config, appConfig);
 
         ctx.ChangeStateFor("sensor.battery_1").FromState("90").ToState("100");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -141,7 +141,7 @@ public class BatteryMonitoringTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
-        var app = ctx.InitApp<BatteryMonitoring>(config, appConfig);
+        ctx.InitApp<BatteryMonitoring>(config, appConfig);
 
         // Act
         ctx.ChangeStateFor("sensor.battery_1").FromState("20").ToState("5");
@@ -179,7 +179,7 @@ public class BatteryMonitoringTests
         ctx.HaContext.GetAllEntities().Returns(new List<Entity> { new Entity(ctx.HaContext, "sensor.battery_1") });
         ctx.HaContext.GetState("sensor.battery_1").Returns(sensor1);
         
-        var app = ctx.InitApp<BatteryMonitoring>(config, appConfig);
+        ctx.InitApp<BatteryMonitoring>(config, appConfig);
 
         // Act
         ctx.ChangeStateFor("sensor.battery_1").FromState("90").ToState("100");
