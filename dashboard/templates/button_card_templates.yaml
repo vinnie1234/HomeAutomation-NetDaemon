@@ -445,31 +445,36 @@ theme_info_card:
         return n === 0 ? 'vandaag' : n === 1 ? 'morgen' : n === -1 ? 'gisteren' : n > 0 ? `over ${n} dagen` : `${-n} dagen geleden`;
       };
       const now = t.from <= today && today <= t.to;
-      const lines = [`${now ? 'Staat er' : 'Staat er weer'} van <b>${fmt(t.from)}</b> t/m <b>${fmt(t.to)}</b>`];
-      if (t.manual) lines.push('<span style="opacity:0.7">Nu met de hand gekozen bij Thema weerkaart</span>');
+      let html = `<div>${now ? 'Staat er' : 'Staat er weer'} van <b>${fmt(t.from)}</b> t/m <b>${fmt(t.to)}</b></div>`;
+      if (t.manual) html += '<div style="opacity:0.6;font-size:13px">Nu met de hand gekozen bij Thema weerkaart</div>';
       if (t.holidays.length) {
-        lines.push('');
-        t.holidays.forEach(h => lines.push(`${h.name}: <b>${fmt(h.date)}</b> <span style="opacity:0.7">(${until(h.date)})</span>`));
+        html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08)">'
+          + t.holidays.map(h => `<div style="display:flex;justify-content:space-between;gap:12px">
+              <span>${h.name}</span><span><b>${fmt(h.date)}</b> <span style="opacity:0.6">· ${until(h.date)}</span></span></div>`).join('')
+          + '</div>';
       }
-      return lines.join('<br>');
+      return html;
     ]]]
   styles:
     grid:
       - grid-template-areas: '"n" "l"'
+      - grid-template-rows: auto auto
+      - align-content: start
     name:
       - justify-self: start
       - font-size: 18px
       - font-weight: 700
     label:
-      - justify-self: start
+      - justify-self: stretch
       - text-align: left
       - white-space: normal
       - font-size: 14px
-      - line-height: 1.6
+      - line-height: 1.7
+      - opacity: 1
       - padding-top: 6px
 
 # Weer-hero voor Home: een realistische lucht van het weer van nu, aangekleed per seizoen of feestdag
-# (input_select.weerkaart_thema, "Automatisch" volgt de datum en sensor.season) en met KNMI-weerwaarschuwingen.
+# (input_select.weerkaart_thema, "Automatisch" volgt de datum, zie holiday_theme) en met KNMI-weerwaarschuwingen.
 # - Zon op de echte plek (azimut = links/rechts, hoogte = hoe hoog), gouden uur bij een lage zon.
 # - Lucht en wolken volgen de bewolking in %: overdag nooit donker, bij veel wolken licht grijsblauw.
 # - Wolken zijn afbeeldingen (www/clouds, gemaakt met tools/generate_clouds.py) in drie diepte-lagen, getint per weer.
