@@ -784,6 +784,11 @@ sections:
           tomorrow: Morgen
           yesterday: Gisteren
           moreEvents: Meer afspraken
+      # Pakketten die onderweg zijn, tot ze bezorgd zijn (verborgen als er niets onderweg is)
+      - type: custom:button-card
+        template: parcel_list
+        grid_options:
+          columns: full
 
       # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
       - type: conditional
