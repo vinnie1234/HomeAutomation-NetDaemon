@@ -445,15 +445,15 @@ theme_info_card:
         return n === 0 ? 'vandaag' : n === 1 ? 'morgen' : n === -1 ? 'gisteren' : n > 0 ? `over ${n} dagen` : `${-n} dagen geleden`;
       };
       const now = t.from <= today && today <= t.to;
-      let html = `<div>${now ? 'Staat er' : 'Staat er weer'} van <b>${fmt(t.from)}</b> t/m <b>${fmt(t.to)}</b></div>`;
-      if (t.manual) html += '<div style="opacity:0.6;font-size:13px">Nu met de hand gekozen bij Thema weerkaart</div>';
+      let text = `<div>${now ? 'Staat er' : 'Staat er weer'} van <b>${fmt(t.from)}</b> t/m <b>${fmt(t.to)}</b></div>`;
+      if (t.manual) text += '<div style="opacity:0.6;font-size:13px">Nu met de hand gekozen bij Thema weerkaart</div>';
       if (t.holidays.length) {
-        html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08)">'
+        text += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08)">'
           + t.holidays.map(h => `<div style="display:flex;justify-content:space-between;gap:12px">
               <span>${h.name}</span><span><b>${fmt(h.date)}</b> <span style="opacity:0.6">· ${until(h.date)}</span></span></div>`).join('')
           + '</div>';
       }
-      return html;
+      return text;
     ]]]
   styles:
     grid:
