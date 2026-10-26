@@ -478,10 +478,10 @@ sections:
         icon: mdi:email-outline
         badges:
           - type: entity
-            entity: sensor.buiten_postnl_brieven
+            entity: sensor.brieven_deze_week
             show_state: true
             show_icon: false
-      # Scans van de brieven die vandaag of binnenkort komen (PostNL maakt per brief een image-entiteit)
+      # Scans van de brieven van de laatste 7 dagen, nieuwste eerst (sensor.brieven_deze_week, zie ha/template.yaml)
       - type: custom:auto-entities
         card:
           type: grid
@@ -489,16 +489,12 @@ sections:
           square: false
         card_param: cards
         filter:
-          include:
-            - entity_id: image.buiten_postnl_brief_*
-              options:
-                type: picture-entity
-                show_state: false
-                show_name: true
-        sort:
-          method: last_changed
-          reverse: true
-          count: 4
+          template: >
+            {% set ns = namespace(l=[]) %}
+            {% for e in (state_attr('sensor.brieven_deze_week', 'entities') or [])[:4] %}
+              {% set ns.l = ns.l + [{'entity': e, 'type': 'picture-entity', 'show_state': false, 'show_name': true}] %}
+            {% endfor %}
+            {{ ns.l }}
         show_empty: false
 
   # Camera, taken en agenda

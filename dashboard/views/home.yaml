@@ -114,13 +114,13 @@ sections:
           - type: conditional
             conditions:
               - condition: numeric_state
-                entity: sensor.buiten_postnl_brieven
+                entity: sensor.brieven_deze_week
                 above: 0
             chip:
               type: template
               icon: mdi:email-outline
               icon_color: orange
-              content: "{{ states('sensor.buiten_postnl_brieven') | int(0) }} {{ 'brief' if states('sensor.buiten_postnl_brieven') | int(0) == 1 else 'brieven' }}"
+              content: "{{ states('sensor.brieven_deze_week') | int(0) }} {{ 'brief' if states('sensor.brieven_deze_week') | int(0) == 1 else 'brieven' }}"
               tap_action:
                 action: navigate
                 navigation_path: /dashboard-huis/huishouden

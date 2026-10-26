@@ -55,6 +55,29 @@
         {% set productie_raw = states('sensor.p1_meter_vermogen') | float %}
         {% set productie = productie_raw * -1 if productie_raw < 0 else 0 %}
         {{ verbruik + productie }}
+    # De brieven van PostNL van de laatste 7 dagen (de datum van de brief is de state van zijn image-entiteit). Oudere
+    # brieven blijven bij PostNL staan, maar het dashboard toont alleen deze: het aantal op Home en Huis, en de scans
+    # uit het attribuut entities (nieuwste eerst).
+    - name: Brieven deze week
+      unique_id: brieven_deze_week
+      default_entity_id: sensor.brieven_deze_week
+      icon: mdi:email-outline
+      unit_of_measurement: brieven
+      state: >
+        {% set ns = namespace(n=0) %}
+        {% for s in states.image if s.entity_id.startswith('image.buiten_postnl_brief_') %}
+          {% set d = as_datetime(s.state, none) %}
+          {% if d and d > now() - timedelta(days=7) %}{% set ns.n = ns.n + 1 %}{% endif %}
+        {% endfor %}
+        {{ ns.n }}
+      attributes:
+        entities: >
+          {% set ns = namespace(l=[]) %}
+          {% for s in states.image | sort(attribute='state', reverse=true) if s.entity_id.startswith('image.buiten_postnl_brief_') %}
+            {% set d = as_datetime(s.state, none) %}
+            {% if d and d > now() - timedelta(days=7) %}{% set ns.l = ns.l + [s.entity_id] %}{% endif %}
+          {% endfor %}
+          {{ ns.l }}
 
 # Verwachting per uur voor de weerstrook op de Weer-pagina van het dashboard.
 # Haalt bij het opstarten en elk uur om 5 over de verwachting voor 48 uur op.
