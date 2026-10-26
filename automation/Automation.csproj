@@ -36,14 +36,14 @@
     <ItemGroup>
         <PackageReference Include="Concentus" Version="2.2.2" />
         <PackageReference Include="Discord.Net.Webhook" Version="3.20.1" />
-        <PackageReference Include="NetDaemon.AppModel" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Runtime" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.HassModel" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Client" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.36.0" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.36.0" />
+        <PackageReference Include="NetDaemon.AppModel" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Runtime" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.HassModel" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Client" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.43.1" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.43.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.12" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
         <PackageReference Include="NLayer" Version="3.0.0" />
