@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using Automation.Helpers;
 using Automation.Configuration;
 using Automation.Extensions;
 using Microsoft.Extensions.Logging;
@@ -292,7 +293,7 @@ public class AlarmTests
         // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
         _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond",
+            "Er staat nog een error open voor de PetSnowy",
             false,
             10,
             channel: null,
@@ -320,7 +321,7 @@ public class AlarmTests
         // Assert - Carleen is away, so only NotifyPhoneVincent is used
         _notify.Received(1).NotifyPeopleHome(
             "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond",
+            "Er staat nog een error open voor de PetSnowy",
             false,
             10,
             channel: null,
@@ -356,6 +357,8 @@ public class AlarmTests
         // Arrange - no errors, and the litter box reports "Cleaning" earlier today, which the app persists.
         // _storage is a bare NSubstitute mock, so Get doesn't automatically reflect a prior Save; wire it up
         // here to behave like a simple in-memory store so this test exercises the real Save -> Get round trip.
+        // It cleaned at noon: a cleaning just after midnight would still count as yesterday (PetSnowyCleaning).
+        _ctx.SetCurrentTime(new DateTime(2026, 10, 20, 10, 0, 0, DateTimeKind.Utc));
         string? savedDate = null;
         _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => savedDate);
         _storage.When(x => x.Save("PetsnowyLastCleanedDate", Arg.Any<string>()))
@@ -379,7 +382,7 @@ public class AlarmTests
     {
         // Arrange - no errors, but the last recorded cleaning was yesterday, not today
         CreateApp();
-        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().AddDays(-1).ToString("O"));
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => YesterdayKey());
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -535,7 +538,7 @@ public class AlarmTests
         // Arrange
         CreateApp();
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = "unavailable" });
-        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().ToString("O"));
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => TodayKey());
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -554,7 +557,7 @@ public class AlarmTests
         _ctx.HaContext.GetState("sensor.backup_last_attempted_automatic_backup").Returns(new EntityState { EntityId = "sensor.backup_last_attempted_automatic_backup", State = recentBackup });
 
         // PetSnowy already cleaned today, so the daily cron doesn't also fire a PetSnowy notification
-        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => DutchDateOfTestClock().ToString("O"));
+        _storage.Get<string>("PetsnowyLastCleanedDate").Returns(_ => TodayKey());
 
         // Act
         _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
@@ -567,6 +570,9 @@ public class AlarmTests
     /// <summary>
     /// The Dutch date of the test clock at the moment the app asks for it, matching how the app computes "today".
     /// </summary>
-    private DateTime DutchDateOfTestClock() => SchedulerExtensions.ToDutchTime(_ctx.Scheduler.Now).Date;
+    /// <summary>The day of the PetSnowy (it starts at 06:00) that the test clock is in right now, as stored.</summary>
+    private string TodayKey() => PetSnowyCleaning.DayKey(SchedulerExtensions.ToDutchTime(_ctx.Scheduler.Now));
+
+    private string YesterdayKey() => PetSnowyCleaning.DayKey(SchedulerExtensions.ToDutchTime(_ctx.Scheduler.Now).AddDays(-1));
 }
 

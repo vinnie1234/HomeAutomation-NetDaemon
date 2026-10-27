@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using Automation.Helpers;
 using Automation.Extensions;
 using Automation.Interfaces;
 using FluentAssertions;
@@ -44,9 +45,9 @@ public class SleepManagerTests
     private static IDataRepository StorageWithPetSnowyCleanedToday(AppTestContext ctx)
     {
         var storage = Substitute.For<IDataRepository>();
-        // "Today" is the Dutch date of the test clock at the moment the app asks for it
+        // "Today" is the PetSnowy day of the test clock at the moment the app asks for it
         storage.Get<string>("PetsnowyLastCleanedDate")
-            .Returns(_ => SchedulerExtensions.ToDutchTime(ctx.Scheduler.Now).Date.ToString("O"));
+            .Returns(_ => PetSnowyCleaning.DayKey(SchedulerExtensions.ToDutchTime(ctx.Scheduler.Now)));
         return storage;
     }
 
@@ -171,6 +172,44 @@ public class SleepManagerTests
 
 
         ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 0);
+    }
+
+    /// <summary>Storage that says the PetSnowy last cleaned at this Dutch moment.</summary>
+    private static IDataRepository StorageCleanedAt(DateTime dutchMoment)
+    {
+        var storage = Substitute.For<IDataRepository>();
+        storage.Get<string>("PetsnowyLastCleanedDate").Returns(PetSnowyCleaning.DayKey(new DateTimeOffset(dutchMoment, TimeSpan.FromHours(2))));
+        return storage;
+    }
+
+    [Fact]
+    public void VincentSleepingAfterMidnight_NoPetSnowyMessage_WhenItCleanedYesterdayAfternoon()
+    {
+        // 00:30 Dutch time on the 27th (summer time). The box cleaned at 12:30 on the 26th: that is still "today" for it.
+        var ctx = SetupContext();
+        ctx.SetCurrentTime(new DateTime(2026, 10, 26, 22, 30, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
+        ctx.InitApp<SleepManager>(StorageCleanedAt(new DateTime(2026, 10, 26, 12, 30, 0)));
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+
+        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 0);
+    }
+
+    [Fact]
+    public void VincentSleepingAfterMidnight_SaysItDidNotCleanForAWholeDay_WithoutCallingItAnError()
+    {
+        // Last cleaned on the 25th: it did not clean at all on the 26th
+        var ctx = SetupContext();
+        ctx.SetCurrentTime(new DateTime(2026, 10, 26, 22, 30, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
+        ctx.InitApp<SleepManager>(StorageCleanedAt(new DateTime(2026, 10, 25, 12, 30, 0)));
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+
+        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 1);
+        ctx.HaContext.Received().CallService("notify", "mobile_app_vincent_phone", null,
+            Arg.Is<object>(d => System.Text.Json.JsonSerializer.Serialize(d, (System.Text.Json.JsonSerializerOptions?)null).Contains("PetSnowy is vandaag nog niet geschoond")));
     }
 
     [Fact]

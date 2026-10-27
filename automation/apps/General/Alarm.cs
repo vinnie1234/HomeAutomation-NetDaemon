@@ -3,6 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
 using Automation.Configuration;
+using Automation.Helpers;
 
 namespace Automation.apps.General;
 
@@ -16,7 +17,6 @@ public class Alarm : BaseApp
 
     private readonly IEntityManager _entityManager;
     private readonly IDataRepository _storage;
-    private const string PetsnowyLastCleanedDateKey = "PetsnowyLastCleanedDate";
 
     /// <summary>On while more than <see cref="HighUsageWatts"/> is used for 10 minutes, for the alert on the dashboard.</summary>
     public const string HighUsageSensor = "sensor.hoog_stroomverbruik";
@@ -264,14 +264,15 @@ public class Alarm : BaseApp
     {
         Entities.Sensor.SnowSelfCleaningLitterBoxStatus.StateChanges().Subscribe(_ =>
         {
-            _storage.Save(PetsnowyLastCleanedDateKey, Scheduler.NowNl().Date.ToString("O"));
+            PetSnowyCleaning.MarkCleaned(_storage, Scheduler.NowNl());
         });
 
         Scheduler.ScheduleCronNl("00 22 * * *", () =>
         {
-            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == Scheduler.NowNl().Date.ToString("O");
+            var cleanedToday = PetSnowyCleaning.IsCleanedToday(_storage, Scheduler.NowNl());
+            var hasErrors = int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0;
 
-            if ((int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0) || !cleanedToday)
+            if (hasErrors || !cleanedToday)
             {
                 var discordNotificationModel = new DiscordNotificationModel
                 {
@@ -292,8 +293,11 @@ public class Alarm : BaseApp
                 };
 
                 Notify.NotifyDiscord("PetSnowy heeft errors of is vandaag nog niet geschoond", [_config.Discord.Logs], discordNotificationModel);
-                Notify.NotifyPeopleHome("PetSnowy heeft errors",
-                        "Er staat nog een error open voor de PetSnowy of is vandaag nog niet geschoond", false, 10);
+                // Say what is wrong: "not cleaned" is not an error
+                if (hasErrors)
+                    Notify.NotifyPeopleHome("PetSnowy heeft errors", "Er staat nog een error open voor de PetSnowy", false, 10);
+                else
+                    Notify.NotifyPeopleHome("PetSnowy is vandaag nog niet geschoond", "De PetSnowy heeft vandaag nog niet schoongemaakt", false, 10);
 
             }
         });

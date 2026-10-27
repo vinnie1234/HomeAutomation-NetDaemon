@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
@@ -18,7 +19,6 @@ public class SleepManager : BaseApp
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationgeneral.IsOn();
     
     private readonly IDataRepository _storage;
-    private const string PetsnowyLastCleanedDateKey = "PetsnowyLastCleanedDate";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SleepManager"/> class.
@@ -123,11 +123,13 @@ public class SleepManager : BaseApp
                 Notify.NotifyPeopleHome("Vergeet het afval niet",
                     $"Vergeet je niet op {message} buiten te zetten?", true);
 
-            var cleanedToday = _storage.Get<string>(PetsnowyLastCleanedDateKey) == now.Date.ToString("O");
+            // The day of the PetSnowy starts at 06:00 (PetSnowyCleaning): after midnight it still counts as yesterday
+            var cleanedToday = PetSnowyCleaning.IsCleanedToday(_storage, now);
             var hasErrors = int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var errors) && errors > 0;
-            if (hasErrors || !cleanedToday)
-                Notify.NotifyPeopleHome("PetSnowy heeft errors",
-                    "Er staat nog een error open voor de PetSnowy", true);
+            if (hasErrors)
+                Notify.NotifyPeopleHome("PetSnowy heeft errors", "Er staat nog een error open voor de PetSnowy", true);
+            else if (!cleanedToday)
+                Notify.NotifyPeopleHome("PetSnowy is vandaag nog niet geschoond", "De PetSnowy heeft vandaag nog niet schoongemaakt", true);
         } catch (Exception ex) {
             Logger.LogError(ex, "Error in the sleep routine");
             TestExceptionCatcher.CaughtException = ex;
