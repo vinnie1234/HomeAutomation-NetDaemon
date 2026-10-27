@@ -772,10 +772,19 @@ sections:
 
       - !include ../cards/taak_knop.yaml
 
-  # Auto en wat er nu speelt
+  # Agenda en taken: een kolom breed
+  - type: grid
+    cards:
+      - !include ../cards/agenda.yaml
+
+  # Auto
   - type: grid
     cards:
       - !include ../cards/auto.yaml
+
+  # Wat er nu speelt, en de camera als er niemand thuis is (verborgen zolang er niets te zien is)
+  - type: grid
+    cards:
       - !include ../cards/camera_woonkamer.yaml
       # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
       - type: conditional
@@ -806,12 +815,6 @@ sections:
           name: TV
           icon: mdi:television
           cover_background: true
-
-  # Agenda en taken, twee kolommen breed
-  - type: grid
-    column_span: 2
-    cards:
-      - !include ../cards/agenda.yaml
 
   # Kamer-pop-ups (onzichtbaar tot ze geopend worden)
   - type: grid
