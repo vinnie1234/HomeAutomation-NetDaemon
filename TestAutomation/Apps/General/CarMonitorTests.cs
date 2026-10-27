@@ -29,6 +29,7 @@ public class CarMonitorTests
         SetState(CarMonitor.Tracker, tracker);
         SetState(CarMonitor.Unlocked, "off");
         SetState(CarMonitor.Engine, "off");
+        SetState(CarMonitor.Alarm, "on");
         foreach (var opening in CarMonitor.Openings.Keys) SetState(opening, "off");
         SetState("input_boolean.awayvincent", vincentAway);
         SetState("input_boolean.awaycarleen", carleenAway);
@@ -129,6 +130,29 @@ public class CarMonitorTests
 
         _notify.Received(1).NotifyPeopleHome("De auto is niet dicht", Arg.Is<string>(m => m.Contains("bestuurdersdeur open") && m.Contains("kofferbak open")),
             false, 60, Arg.Any<List<ActionModel>?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public void Evening_WhenTheAlarmIsOff_SaysSo()
+    {
+        Start();
+        SetState(CarMonitor.Alarm, "off");
+
+        Wait(TimeSpan.FromHours(11));
+
+        _notify.Received(1).NotifyPeopleHome("De auto is niet dicht", Arg.Is<string>(m => m.Contains("alarm staat uit")),
+            false, 60, Arg.Any<List<ActionModel>?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public void Evening_WhenTheAlarmIsUnknown_SaysNothing()
+    {
+        Start();
+        SetState(CarMonitor.Alarm, "unknown");
+
+        Wait(TimeSpan.FromHours(11));
+
+        _notify.DidNotReceiveWithAnyArgs().NotifyPeopleHome(null!, null!, false);
     }
 
     [Fact]
@@ -236,6 +260,36 @@ public class CarMonitorTests
         Change(DriverDoor, "off", "on");
 
         VerifyBoth("Auto: bestuurdersdeur open");
+    }
+
+    [Fact]
+    public void AlarmSwitchedOffAtNight_WhileEveryoneSleeps_WarnsBothPhones()
+    {
+        Start(vincentSleeping: "on", carleenSleeping: "on");
+
+        Change(CarMonitor.Alarm, "on", "off");
+
+        VerifyBoth("Auto: alarm uitgeschakeld");
+    }
+
+    [Fact]
+    public void CarUnlockedAtNight_WhileEveryoneSleeps_WarnsBothPhones()
+    {
+        Start(vincentSleeping: "on", carleenSleeping: "on");
+
+        Change(CarMonitor.Unlocked, "off", "on");
+
+        VerifyBoth("Auto: ontgrendeld");
+    }
+
+    [Fact]
+    public void AlarmSwitchedOff_WhileSomeoneIsAwake_SaysNothing()
+    {
+        Start(vincentSleeping: "on", carleenSleeping: "off");
+
+        Change(CarMonitor.Alarm, "on", "off");
+
+        VerifyBoth("Auto: alarm uitgeschakeld", 0);
     }
 
     [Fact]

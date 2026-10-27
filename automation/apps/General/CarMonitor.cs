@@ -9,10 +9,10 @@ namespace Automation.apps.General;
 /// Keeps an eye on the Peugeot 2008 (Stellantis integration, entities <c>*_buiten_peugeot_2008_*</c>):
 /// <list type="bullet">
 /// <item>Reminders to Vincent: the tank is almost empty (less than 100 km left), the service is near (30 days or 1000 km).</item>
-/// <item>At 22:00, with the car at home: not locked or a door or the trunk open, with a button in the message to lock it.
+/// <item>At 22:00, with the car at home: not locked, the alarm off, or a door or the trunk open, with a button in the message to lock it.
 /// A door or the trunk that stays open for ten minutes with the engine off is reported too.</item>
-/// <item>Security, to both phones: the car leaves the zone Thuis while both of us are home, or a door opens at night
-/// while everyone at home sleeps.</item>
+/// <item>Security, to both phones: the car leaves the zone Thuis while both of us are home, or a door opens, the car is
+/// unlocked or its alarm is switched off at night while everyone at home sleeps.</item>
 /// </list>
 /// </summary>
 [NetDaemonApp(Id = nameof(CarMonitor))]
@@ -23,6 +23,8 @@ public class CarMonitor : BaseApp
     public const string Tracker = "device_tracker." + Prefix + "voertuig";
     /// <summary>Device class lock: on means the doors are unlocked.</summary>
     public const string Unlocked = "binary_sensor." + Prefix + "deuren";
+    /// <summary>Device class running: on means the alarm of the car is switched on.</summary>
+    public const string Alarm = "binary_sensor." + Prefix + "alarm";
     public const string Engine = "binary_sensor." + Prefix + "motor";
     public const string LockButton = "button." + Prefix + "deuren_vergrendelen";
     public const string FuelRange = "sensor." + Prefix + "brandstof_bereik";
@@ -71,9 +73,15 @@ public class CarMonitor : BaseApp
                 .Where(x => x.New?.State == "on" && x.Old?.State != "on")
                 .Subscribe(_ =>
                 {
-                    CheckOpeningAtNight(name);
+                    CheckAtNight($"Auto: {name} open", $"De {name} van de auto gaat open terwijl iedereen slaapt");
                     Scheduler.Schedule(LeftOpenAfter, () => CheckStillOpen(id, name));
                 });
+        new Entity(HaContext, Unlocked).StateChanges()
+            .Where(x => x.New?.State == "on" && x.Old?.State == "off")
+            .Subscribe(_ => CheckAtNight("Auto: ontgrendeld", "De auto is ontgrendeld terwijl iedereen slaapt"));
+        new Entity(HaContext, Alarm).StateChanges()
+            .Where(x => x.New?.State == "off" && x.Old?.State == "on")
+            .Subscribe(_ => CheckAtNight("Auto: alarm uitgeschakeld", "Het alarm van de auto is uitgeschakeld terwijl iedereen slaapt"));
 
         // Security
         new Entity(HaContext, Tracker).StateChanges()
@@ -112,6 +120,7 @@ public class CarMonitor : BaseApp
     {
         var problems = new List<string>();
         if (StateOf(Unlocked) == "on") problems.Add("niet op slot");
+        if (StateOf(Alarm) == "off") problems.Add("alarm staat uit");
         problems.AddRange(Openings.Where(o => StateOf(o.Key) == "on").Select(o => $"{o.Value} open"));
         return problems;
     }
@@ -134,10 +143,10 @@ public class CarMonitor : BaseApp
         Notify.NotifyPhoneVincent($"De auto: {name} staat open", $"De {name} van de auto staat al {LeftOpenAfter.TotalMinutes:0} minuten open", false, 60);
     }
 
-    private void CheckOpeningAtNight(string name)
+    private void CheckAtNight(string title, string message)
     {
         if (!AtHome || !AllAsleep) return;
-        Notify.NotifyPhoneVincentCarleen($"Auto: {name} open", $"De {name} van de auto gaat open terwijl iedereen slaapt", true, 10);
+        Notify.NotifyPhoneVincentCarleen(title, message, true, 10);
     }
 
     private void CheckLeftWhileWeAreHome()

@@ -3770,6 +3770,8 @@ car_status:
           : running ? ['Motor loopt', '#7aa2ff']
           : ['Op slot en dicht', '#4ade80'];
 
+        const alarm = st(`binary_sensor.${p}alarm`);
+        const alarmText = alarm === 'on' ? 'Alarm aan' : alarm === 'off' ? 'Alarm uit' : 'Alarm onbekend';
         const tracker = st(`device_tracker.${p}voertuig`);
         const place = tracker === 'home' ? 'Thuis' : tracker === 'not_home' ? 'Niet thuis' : tracker && !['unknown', 'unavailable'].includes(tracker) ? tracker : 'Locatie onbekend';
 
@@ -3788,7 +3790,7 @@ car_status:
               <div style="font-size:16px;font-weight:700">Peugeot 2008</div>
               <div style="font-size:13px;font-weight:600;color:${color}">${status}</div>
             </div>
-            <div style="font-size:12px;opacity:0.8;white-space:nowrap">📍 ${place}</div>
+            <div style="font-size:12px;opacity:0.8;white-space:nowrap;text-align:right;line-height:1.5">📍 ${place}<br>🛡️ ${alarmText}</div>
           </div>
           <div style="margin-top:12px">
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:4px">
