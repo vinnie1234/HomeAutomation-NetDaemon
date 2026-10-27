@@ -1837,8 +1837,11 @@ weather_hero:
           nieuwjaar: month === 12 && date === 31 ? '🥂 Oudejaarsdag' : '🎆 Gelukkig nieuwjaar!',
           halloween: month === 10 && date === 31 ? '🎃 Happy Halloween!' : '🎃 Halloween'
         };
-        // Tik op het thema opent de pop-up #thema: van wanneer tot wanneer het er staat en wanneer de feestdag zelf is
-        let badges = `<div onclick="event.stopPropagation(); history.pushState(null, '', '#thema'); window.dispatchEvent(new CustomEvent('location-changed'))"
+        // Tik op het thema opent de pop-up #thema: van wanneer tot wanneer het er staat en wanneer de feestdag zelf is.
+        // Op pointerup en niet op click: op een aanraakscherm onderdrukt button-card zelf de click na een aanraking, dus de tik
+        // werkte alleen met de muis. De afstand erbij zodat vegen over de kaart het niet opent.
+        let badges = `<div onpointerdown="this._x = event.clientX; this._y = event.clientY"
+            onpointerup="if (Math.hypot(event.clientX - this._x, event.clientY - this._y) < 10) { history.pushState(null, '', '#thema'); window.dispatchEvent(new CustomEvent('location-changed')); }"
             style="display:inline-block;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);
             font-size:12px;color:#fff;white-space:nowrap;cursor:pointer;pointer-events:auto">${labels[theme]}</div>`;
         if (celebration) {
