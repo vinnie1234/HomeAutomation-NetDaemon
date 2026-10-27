@@ -502,11 +502,12 @@ sections:
     cards:
       - !include ../cards/camera_woonkamer.yaml
       - type: heading
-        heading: Vandaag doen
+        heading: Taken
         heading_style: title
         icon: mdi:checkbox-marked-circle-outline
-      - type: todo-list
-        entity: todo.dagelijks
+      - !include ../cards/todo_samen.yaml
+      - !include ../cards/todo_vincent.yaml
+      - !include ../cards/todo_carleen.yaml
       - type: heading
         heading: Agenda
         heading_style: title

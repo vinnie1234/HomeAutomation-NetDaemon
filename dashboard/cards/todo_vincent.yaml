@@ -1,0 +1,13 @@
+# Todo-lijst "Vincent" (todo.vincent): een eigen kleur en kop, zodat je in een oogopslag ziet bij wie een taak hoort.
+# Het invoerveld staat erin: een taak toevoegen kan overal waar de lijst staat. Gebruikt op Home, Huis en de eigen pagina's.
+type: todo-list
+entity: todo.vincent
+title: Vincent
+hide_completed: true
+card_mod:
+  style: |
+    ha-card {
+      border: 1px solid rgba(122, 162, 255, 0.55);
+      box-shadow: 0 0 24px rgba(122, 162, 255, 0.25);
+      background: linear-gradient(135deg, rgba(122, 162, 255, 0.22), rgba(122, 162, 255, 0.06));
+    }

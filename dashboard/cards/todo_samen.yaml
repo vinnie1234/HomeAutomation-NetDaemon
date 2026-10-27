@@ -1,0 +1,13 @@
+# Todo-lijst "Samen" (todo.dagelijks): een eigen kleur en kop, zodat je in een oogopslag ziet bij wie een taak hoort.
+# Het invoerveld staat erin: een taak toevoegen kan overal waar de lijst staat. Gebruikt op Home, Huis en de eigen pagina's.
+type: todo-list
+entity: todo.dagelijks
+title: Samen
+hide_completed: true
+card_mod:
+  style: |
+    ha-card {
+      border: 1px solid rgba(167, 139, 250, 0.55);
+      box-shadow: 0 0 24px rgba(167, 139, 250, 0.25);
+      background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(167, 139, 250, 0.06));
+    }

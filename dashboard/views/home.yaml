@@ -494,19 +494,23 @@ sections:
           - condition: numeric_state
             entity: todo.dagelijks
             above: 0
-        card:
-          type: todo-list
-          entity: todo.dagelijks
-          title: Te doen
-          hide_create: true
-          hide_completed: true
-          card_mod:
-            style: |
-              ha-card {
-                border: 1px solid rgba(167, 139, 250, 0.55);
-                box-shadow: 0 0 24px rgba(167, 139, 250, 0.25);
-                background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(167, 139, 250, 0.06));
-              }
+        card: !include ../cards/todo_samen.yaml
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: todo.vincent
+            above: 0
+        card: !include ../cards/todo_vincent.yaml
+        grid_options:
+          columns: 12
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: todo.carleen
+            above: 0
+        card: !include ../cards/todo_carleen.yaml
         grid_options:
           columns: 12
 

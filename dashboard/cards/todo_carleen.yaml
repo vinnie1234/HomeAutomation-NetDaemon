@@ -1,0 +1,13 @@
+# Todo-lijst "Carleen" (todo.carleen): een eigen kleur en kop, zodat je in een oogopslag ziet bij wie een taak hoort.
+# Het invoerveld staat erin: een taak toevoegen kan overal waar de lijst staat. Gebruikt op Home, Huis en de eigen pagina's.
+type: todo-list
+entity: todo.carleen
+title: Carleen
+hide_completed: true
+card_mod:
+  style: |
+    ha-card {
+      border: 1px solid rgba(255, 143, 171, 0.55);
+      box-shadow: 0 0 24px rgba(255, 143, 171, 0.25);
+      background: linear-gradient(135deg, rgba(255, 143, 171, 0.22), rgba(255, 143, 171, 0.06));
+    }
