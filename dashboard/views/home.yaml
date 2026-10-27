@@ -772,6 +772,7 @@ sections:
           columns: 6
 
       - !include ../cards/camera_woonkamer.yaml
+      - !include ../cards/taak_knop.yaml
       - type: heading
         heading: Vandaag
         heading_style: title
@@ -859,3 +860,4 @@ sections:
       - !include ../popups/berging.yaml
       - !include ../popups/thema.yaml
       - !include ../popups/pakketten.yaml
+      - !include ../popups/taak.yaml

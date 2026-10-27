@@ -47,6 +47,7 @@ sections:
         heading: Taken
         heading_style: title
         icon: mdi:checkbox-marked-circle-outline
+      - !include ../cards/taak_knop.yaml
       - !include ../cards/todo_vincent.yaml
       - !include ../cards/todo_samen.yaml
 
@@ -221,3 +222,8 @@ sections:
         entity: input_datetime.jubileum
         name: Ons jubileum
         icon: mdi:heart-outline
+
+  # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
+  - type: grid
+    cards:
+      - !include ../popups/taak.yaml

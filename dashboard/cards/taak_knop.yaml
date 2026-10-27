@@ -1,0 +1,10 @@
+# Tegel die de pop-up #taak opent (taak met plek toevoegen). De pop-up moet in dezelfde pagina staan (popups/taak.yaml).
+type: custom:button-card
+template: action
+name: Taak met plek
+icon: mdi:map-marker-plus-outline
+tap_action:
+  action: navigate
+  navigation_path: "#taak"
+grid_options:
+  columns: 6

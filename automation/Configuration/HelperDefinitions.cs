@@ -147,6 +147,13 @@ public static class HelperDefinitions
         Number("zedartotalamountfeedalltime", "PixelTotalAmountFeedAllTime", min: 0, max: 1.0000000000000003e+21, step: 1, mode: "box"),
         Number("zedartotalamountfeedday", "PixelTotalAmountFeedDay", min: 0, max: 100, step: 1, mode: "box"),
 
+        // Taak met plek (TodoZoneReminders): het formulier van de pop-up #taak. De opties van todo_zone houdt de app zelf bij.
+        Select("todo_lijst", "todo_lijst", options: ["Vincent", "Carleen", "Samen"], icon: "mdi:account-multiple-outline"),
+        Select("todo_zone", "todo_zone", options: ["Geen plek"], icon: "mdi:map-marker-outline"),
+        Text("todo_tekst", "todo_tekst", min: 0, max: 255, icon: "mdi:checkbox-marked-circle-outline"),
+        Boolean("todo_stuur_bericht", "todo_stuur_bericht", icon: "mdi:whatsapp"),
+        Button("todo_toevoegen", "todo_toevoegen", icon: "mdi:plus"),
+
         // input_select
         Select("housemodeselect", "HouseModeSelect", options: ["Morning", "Day", "Evening", "Night"], icon: "mdi:home-alert"),
         Select("tijd_van_de_dag", "Tijd van de dag", options: ["Ochtend", "Middag", "Avond", "Nacht", "Automatisch"]),

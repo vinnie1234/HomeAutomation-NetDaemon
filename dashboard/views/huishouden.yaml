@@ -505,6 +505,7 @@ sections:
         heading: Taken
         heading_style: title
         icon: mdi:checkbox-marked-circle-outline
+      - !include ../cards/taak_knop.yaml
       - !include ../cards/todo_samen.yaml
       - !include ../cards/todo_vincent.yaml
       - !include ../cards/todo_carleen.yaml
@@ -723,3 +724,8 @@ sections:
             entity: sensor.badkamer_wasmachine_trommelreiniging_over
             name: Trommelreiniging over
             icon: mdi:washing-machine-alert
+
+  # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
+  - type: grid
+    cards:
+      - !include ../popups/taak.yaml

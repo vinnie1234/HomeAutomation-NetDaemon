@@ -1,0 +1,37 @@
+# Pop-up taak met plek, opent via #taak: een taak toevoegen met een plek en eventueel een WhatsApp-bericht als je daar aankomt.
+# De velden zijn gewone Home Assistant-helpers; NetDaemon (TodoZoneReminders) zet er een taak van op de lijst met de plek in de
+# beschrijving, en houdt de keuzes van "Plek" gelijk aan de zones in Home Assistant.
+type: custom:bubble-card
+card_type: pop-up
+popup_mode: fit-content
+hash: "#taak"
+name: Taak met plek
+icon: mdi:map-marker-plus-outline
+cards:
+  - type: entities
+    entities:
+      - entity: input_select.todo_lijst
+        name: Voor wie
+        icon: mdi:account-multiple-outline
+      - entity: input_text.todo_tekst
+        name: Wat moet er gedaan worden
+        icon: mdi:checkbox-marked-circle-outline
+      - entity: input_select.todo_zone
+        name: Plek
+        icon: mdi:map-marker-outline
+      - entity: input_boolean.todo_stuur_bericht
+        name: WhatsApp sturen als je daar aankomt
+        icon: mdi:whatsapp
+  - type: custom:button-card
+    template: action
+    name: Toevoegen
+    icon: mdi:plus-circle-outline
+    tap_action:
+      action: javascript
+      javascript: |
+        [[[
+          hass.callService('input_button', 'press', { entity_id: 'input_button.todo_toevoegen' });
+          // Het venster sluiten: de #taak uit de adresbalk halen
+          history.replaceState(null, '', location.pathname + location.search);
+          window.dispatchEvent(new CustomEvent('location-changed'));
+        ]]]
