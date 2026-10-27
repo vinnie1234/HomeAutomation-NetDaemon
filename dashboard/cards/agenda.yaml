@@ -1,0 +1,55 @@
+# Agenda en taken in één lijst (Calendar & Tasks Card, korova-sq/calendar-tasks-card): onze agenda's en de open taken van de drie
+# lijsten, per dag. De kleur zegt van wie het is: blauw is Vincent, roze is Carleen en paars is samen (de gedeelde agenda en de
+# lijst Dagelijks). Onder elk item staat de naam van de agenda of lijst. Taken vink je hier af en met het plusje voeg je een
+# afspraak of een taak toe aan de agenda of lijst van je keuze. Gebruikt op Home en Huis.
+type: custom:calendar-tasks-card
+title: Agenda en taken
+show_current_date: true
+days: 7
+calendars:
+  - calendar.vincentmaarschalkerweerd_gmail_com
+  - calendar.carleen_vincent
+  - calendar.birthdays
+  - calendar.feestdagen_in_nederland
+  - calendar.buiten_postnl_bezorgingen
+  - calendar.buiten_dhl_bezorgingen
+  - calendar.buiten_dpd_bezorgingen
+  - calendar.buiten_gls_bezorgingen
+todos:
+  - todo.vincent
+  - todo.carleen
+  - todo.dagelijks
+entity_colors:
+  calendar.vincentmaarschalkerweerd_gmail_com: "#7aa2ff"
+  calendar.carleen_vincent: "#a78bfa"
+  calendar.birthdays: "#ffb060"
+  calendar.feestdagen_in_nederland: "#4ade80"
+  calendar.buiten_postnl_bezorgingen: "#ff6200"
+  calendar.buiten_dhl_bezorgingen: "#ffcc00"
+  calendar.buiten_dpd_bezorgingen: "#dc0032"
+  calendar.buiten_gls_bezorgingen: "#3c6ec8"
+  todo.vincent: "#7aa2ff"
+  todo.carleen: "#ff8fab"
+  todo.dagelijks: "#a78bfa"
+show_source: true
+allow_complete: true
+show_add_event: true
+show_view_switch: true
+show_week_number: true
+show_relative_time: true
+show_end_time: true
+show_overdue: true
+show_no_date: true
+show_completed: true
+completed_days: 2
+show_weather: true
+weather_entity: weather.weer_thuis
+show_weather_today: false
+show_weather_per_day: true
+time_format: 24h
+first_day_of_week: monday
+compact_mode: true
+limit_events_visible: true
+max_events_visible: 6
+grid_options:
+  columns: full

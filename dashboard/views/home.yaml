@@ -807,55 +807,11 @@ sections:
           icon: mdi:television
           cover_background: true
 
-  # Vandaag: de agenda, twee kolommen breed
+  # Agenda en taken, twee kolommen breed
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Vandaag
-        heading_style: title
-        icon: mdi:calendar-today
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-huis/huishouden
-      - type: custom:week-planner-card
-        days: 1
-        startingDay: today
-        showNavigation: false
-        compact: true
-        locale: nl
-        calendars:
-          - entity: calendar.vincentmaarschalkerweerd_gmail_com
-            name: Vincent
-            color: "#7aa2ff"
-          - entity: calendar.carleen_vincent
-            name: Carleen & Vincent
-            color: "#ff8fab"
-          - entity: calendar.birthdays
-            name: Verjaardagen
-            color: "#ffb060"
-          - entity: calendar.feestdagen_in_nederland
-            name: Feestdagen
-            color: "#4ade80"
-          - entity: calendar.buiten_postnl_bezorgingen
-            name: PostNL
-            color: "#ff6200"
-          - entity: calendar.buiten_dhl_bezorgingen
-            name: DHL
-            color: "#ffcc00"
-          - entity: calendar.buiten_dpd_bezorgingen
-            name: DPD
-            color: "#dc0032"
-          - entity: calendar.buiten_gls_bezorgingen
-            name: GLS
-            color: "#3c6ec8"
-        texts:
-          fullDay: Hele dag
-          noEvents: Geen afspraken
-          today: Vandaag
-          tomorrow: Morgen
-          yesterday: Gisteren
-          moreEvents: Meer afspraken
+      - !include ../cards/agenda.yaml
 
   # Kamer-pop-ups (onzichtbaar tot ze geopend worden)
   - type: grid

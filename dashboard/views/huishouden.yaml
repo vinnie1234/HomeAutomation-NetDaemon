@@ -513,57 +513,7 @@ sections:
         heading: Agenda
         heading_style: title
         icon: mdi:calendar
-      - type: custom:week-planner-card
-        days: 7
-        startingDay: today
-        showNavigation: true
-        compact: true
-        locale: nl
-        hideWeekend: false
-        hideDaysWithoutEvents: false
-        columns:
-          extraLarge: 2
-          large: 2
-          medium: 2
-          small: 1
-          extraSmall: 1
-        weather:
-          entity: weather.weer_thuis
-          showCondition: true
-          showTemperature: true
-          showLowTemperature: true
-        calendars:
-          - entity: calendar.vincentmaarschalkerweerd_gmail_com
-            name: Vincent
-            color: "#7aa2ff"
-          - entity: calendar.carleen_vincent
-            name: Carleen & Vincent
-            color: "#ff8fab"
-          - entity: calendar.birthdays
-            name: Verjaardagen
-            color: "#ffb060"
-          - entity: calendar.feestdagen_in_nederland
-            name: Feestdagen
-            color: "#4ade80"
-          - entity: calendar.buiten_postnl_bezorgingen
-            name: PostNL
-            color: "#ff6200"
-          - entity: calendar.buiten_dhl_bezorgingen
-            name: DHL
-            color: "#ffcc00"
-          - entity: calendar.buiten_dpd_bezorgingen
-            name: DPD
-            color: "#dc0032"
-          - entity: calendar.buiten_gls_bezorgingen
-            name: GLS
-            color: "#3c6ec8"
-        texts:
-          fullDay: Hele dag
-          noEvents: Geen afspraken
-          today: Vandaag
-          tomorrow: Morgen
-          yesterday: Gisteren
-          moreEvents: Meer afspraken
+      - !include ../cards/agenda.yaml
 
   # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
   - type: grid
