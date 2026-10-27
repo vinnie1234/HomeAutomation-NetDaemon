@@ -1474,69 +1474,72 @@ weather_hero:
         }
         out += festive;
 
-        // ---------- De Peugeot 2008 GT (grijs, zwart dak) staat op straat voor het huis zolang hij thuis is ----------
-        // Zijaanzicht, naar rechts gericht, op schaal 4,30 m x 1,55 m (1 meter = 23,3 eenheden): wielbasis 2,605 m, wielen 17 inch.
-        // Naar de foto's van de 2008 (facelift): zwart dak met dakrails, zwarte C-stijl en spiegelkap, dikke zwarte spatbordranden,
-        // zwarte onderbumpers met een zilveren strip, een zilveren dorpelstrip en zwarte velgen met vijf spaken en zilveren punten.
+        // ---------- De Peugeot 2008 GT (grijs, zwart dak) staat op de oprit naast het huis zolang hij thuis is ----------
+        // Zijaanzicht naar rechts, getekend in de verhoudingen van een zijkantfoto van de facelift: zwart dak met een rechte dakrail
+        // (voeten voor en achter), zwarte A-, B- en C-stijl met de ventilatiesleuven achter, korte steile neus, dikke zwarte
+        // spatbordranden, zwarte onderbumpers, een zilveren strip op de dorpel en tweekleurige velgen met vijf spaken.
+        // De coordinaten zijn beeldpunten van die foto (viewBox 86 230 1316 548).
         if (states['device_tracker.buiten_peugeot_2008_voertuig']?.state === 'home') {
           const k = (r, g, b) => dim(`rgb(${r},${g},${b})`);
-          const outline = 'M3 31 L1.1 28.2 L0.6 21.8 L0.9 15 L2.2 12.4 L12.2 1.9 Q13 1.2 14.6 1 C26 0.5 40 0.2 50 0.5 C58 0.9 63.6 4.6 68 10.2 L71.5 13.3 L97 14.6 Q99.7 15.1 99.8 17.6 L99.9 25.2 L98.9 31 Z';
-          const black = k(20, 21, 24), cladding = k(34, 36, 40), silver = k(176, 184, 192);
+          const outline = 'M140 662 L93 616 L92 566 L112 548 L118 520 L116 446 L126 398 L244 290 L250 272 L330 262 L790 262 Q825 266 852 288 L1042 366 L1250 416 Q1305 430 1336 452 Q1364 470 1374 494 L1395 560 L1397 620 L1392 652 Q1388 674 1370 674 L205 674 Z';
+          const black = k(18, 19, 22), cladding = k(40, 42, 46), silver = k(206, 211, 217);
           const wheel = cx => `
-            <circle cx="${cx}" cy="28.5" r="9.4" fill="${k(8, 9, 11)}" clip-path="url(#peugeot-clip)"/>
-            <circle cx="${cx}" cy="28.5" r="10.2" fill="none" stroke="${cladding}" stroke-width="2.2" clip-path="url(#peugeot-clip)"/>
-            <circle cx="${cx}" cy="28.5" r="7.5" fill="${k(18, 19, 21)}"/>
-            <circle cx="${cx}" cy="28.5" r="6.5" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4"/>
-            <circle cx="${cx}" cy="28.5" r="5.5" fill="${k(30, 32, 36)}" stroke="${k(196, 203, 211)}" stroke-width="0.45"/>
-            <g transform="translate(${cx} 28.5)" stroke-linecap="round">
-              ${[0, 72, 144, 216, 288].map(a => `<g transform="rotate(${a})">
-                <path d="M-0.6 -1.3 L-1.2 -5 M0.6 -1.3 L1.2 -5" stroke="${k(12, 12, 14)}" stroke-width="1.1"/>
-                <path d="M-1.2 -4.2 L-1.2 -5.1 M1.2 -4.2 L1.2 -5.1" stroke="${k(196, 203, 211)}" stroke-width="0.5"/></g>`).join('')}
-            </g>
-            <circle cx="${cx}" cy="28.5" r="1.3" fill="${k(150, 156, 164)}"/>`;
-          const claws = (x, y, dx) => [0, 1, 2].map(i => `<path d="M${x + i * dx} ${y + i * 0.45} l0.35 3.4"/>`).join('');
-          out += svgAt(homeX - 21, 1.5, 78, 29.5, '0 -1.5 100 37.5', `
+            <circle cx="${cx}" cy="662" r="166" fill="${cladding}" clip-path="url(#peugeot-clip)"/>
+            <circle cx="${cx}" cy="662" r="124" fill="${k(8, 9, 11)}" clip-path="url(#peugeot-clip)"/>
+            <circle cx="${cx}" cy="662" r="112" fill="${k(22, 23, 25)}"/>
+            <circle cx="${cx}" cy="662" r="98" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+            <circle cx="${cx}" cy="662" r="82" fill="${k(34, 36, 40)}" stroke="${silver}" stroke-width="4"/>
+            <g transform="translate(${cx} 662)">
+              ${[0, 72, 144, 216, 288].map(a => `<path transform="rotate(${a})" d="M-13 -22 L-27 -76 L27 -76 L13 -22 Z" fill="${k(188, 194, 200)}" stroke="${k(18, 19, 21)}" stroke-width="5" stroke-linejoin="round"/>`).join('')}
+              <circle r="17" fill="${k(60, 64, 70)}" stroke="${silver}" stroke-width="3"/>
+            </g>`;
+          const driveway = homeX - 18;
+          out += svgAt(driveway, groundBottom(driveway) - 1.7, 112, 8, '0 0 100 8',
+            `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${k(128, 124, 120)}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${k(150, 146, 142)}" stroke-width="0.4" fill="none"/>`,
+            'pointer-events:none');
+          out += svgAt(driveway, groundBottom(driveway) - 1.2, 88, 36.6, '86 230 1316 548', `
             <defs>
               <clipPath id="peugeot-clip"><path d="${outline}"/></clipPath>
               <linearGradient id="peugeot-paint" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="${k(168, 174, 181)}"/><stop offset="0.3" stop-color="${k(128, 134, 141)}"/>
-                <stop offset="0.7" stop-color="${k(96, 102, 109)}"/><stop offset="1" stop-color="${k(72, 77, 83)}"/>
+                <stop offset="0" stop-color="${k(190, 191, 194)}"/><stop offset="0.35" stop-color="${k(150, 152, 156)}"/>
+                <stop offset="0.75" stop-color="${k(120, 122, 126)}"/><stop offset="1" stop-color="${k(92, 94, 98)}"/>
               </linearGradient>
-              <linearGradient id="peugeot-glass" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="${k(78, 94, 112)}"/><stop offset="1" stop-color="${k(24, 30, 40)}"/>
+              <linearGradient id="peugeot-glass" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="${k(150, 156, 164)}"/><stop offset="0.35" stop-color="${k(54, 62, 74)}"/><stop offset="1" stop-color="${k(18, 22, 28)}"/>
               </linearGradient>
             </defs>
-            <ellipse cx="50" cy="35.4" rx="48" ry="1.7" fill="rgba(0,0,0,0.34)"/>
-            <path d="M16 -0.4 C28 -0.9 40 -1.2 50 -0.8 C52.4 -0.7 54.4 -0.4 56 0" stroke="${k(150, 156, 164)}" stroke-width="0.7" fill="none" stroke-linecap="round"/>
-            <path d="M18 0.9 L18.2 -0.4 M30 0.7 L30.2 -0.9 M46 0.7 L46.2 -0.8 M54 0.9 L54.4 -0.2" stroke="${black}" stroke-width="0.7"/>
+            <ellipse cx="740" cy="776" rx="650" ry="14" fill="rgba(0,0,0,0.32)"/>
+            <path d="M345 262 L362 246 Q372 238 400 238 L745 238 Q775 240 790 252 L800 262 L772 262 L760 252 L384 252 L374 262 Z" fill="${black}"/>
+            <path d="M380 242 L750 242" stroke="${k(120, 126, 134)}" stroke-width="4" stroke-linecap="round" fill="none"/>
             <path d="${outline}" fill="url(#peugeot-paint)"/>
             <g clip-path="url(#peugeot-clip)">
-              <path d="M0 27.6 L100 27.6 L100 32 L0 32 Z" fill="${cladding}"/>
-              <path d="M91.4 23 L100 23 L100 32 L91.4 32 Z" fill="${black}"/>
-              <path d="M0 24.2 L9.2 24.2 L9.2 32 L0 32 Z" fill="${black}"/>
-              <path d="M0.8 26.4 L9.4 26.4" stroke="${silver}" stroke-width="0.7"/>
-              <path d="M91.6 29.2 L99.4 29.2" stroke="${silver}" stroke-width="0.6"/>
-              <path d="M29.4 26.6 L70.4 26.4" stroke="${silver}" stroke-width="0.8"/>
-              <path d="M4 14.7 C20 14 45 13.7 68 13" stroke="rgba(255,255,255,0.5)" stroke-width="0.45" fill="none"/>
-              <path d="M6 22.2 C30 20.8 60 21.4 96 24.2" stroke="rgba(0,0,0,0.3)" stroke-width="0.6" fill="none"/>
-              <path d="M10 17.4 C30 16.4 55 16.2 80 17.6" stroke="rgba(255,255,255,0.14)" stroke-width="1.6" fill="none"/>
-              <path d="M66 12.6 L66.7 26.4 M39 12.4 L39.2 26.4 M20.2 12 L19.8 26.4" stroke="${k(58, 63, 69)}" stroke-width="0.3" fill="none"/>
-              <rect x="42.6" y="15.3" width="4.4" height="1" rx="0.5" fill="${k(150, 157, 165)}"/>
-              <rect x="23.4" y="15.1" width="4.4" height="1" rx="0.5" fill="${k(150, 157, 165)}"/>
+              <path d="M200 636 L1397 636 L1397 680 L200 680 Z" fill="${cladding}"/>
+              <path d="M90 548 L300 548 L300 680 L90 680 Z" fill="${black}"/>
+              <path d="M1290 596 L1400 580 L1400 680 L1290 680 Z" fill="${black}"/>
+              <path d="M520 630 Q740 640 950 628" stroke="${silver}" stroke-width="7" stroke-linecap="round" fill="none"/>
+              <path d="M150 556 L270 556" stroke="${silver}" stroke-width="5" stroke-linecap="round"/>
+              <path d="M130 438 Q640 392 1040 476" stroke="rgba(255,255,255,0.4)" stroke-width="7" fill="none"/>
+              <path d="M360 524 Q700 566 1030 560" stroke="rgba(0,0,0,0.22)" stroke-width="8" fill="none"/>
+              <path d="M695 420 L698 640 M1040 440 L1030 640 M350 384 C350 450 400 510 450 548" stroke="${k(70, 72, 78)}" stroke-width="3" fill="none"/>
+              <rect x="262" y="440" width="92" height="58" rx="22" fill="none" stroke="${k(112, 114, 118)}" stroke-width="3"/>
+              <rect x="405" y="450" width="82" height="22" rx="11" fill="${k(176, 180, 186)}" stroke="${k(60, 62, 68)}" stroke-width="3"/>
+              <rect x="706" y="472" width="80" height="22" rx="11" fill="${k(176, 180, 186)}" stroke="${k(60, 62, 68)}" stroke-width="3"/>
             </g>
-            <path d="M14.4 11.2 L19.2 3.9 Q20 3.1 22.6 3 L50.2 2.7 C55.6 3.1 59.2 6.5 62.6 11.9 L62.8 12.4 L14.9 11.8 Z" fill="url(#peugeot-glass)"/>
-            <path d="M16.6 11 L21 4 L27 3.9 L22.8 11.2 Z" fill="rgba(255,255,255,0.1)"/>
-            <path d="M26.3 11.6 L27.2 3.1" stroke="${black}" stroke-width="1"/>
-            <path d="M38.2 12.2 L39 2.9" stroke="${black}" stroke-width="1.8"/>
-            <path d="M11.4 11.2 L16.6 3.9 L19.6 3.6 L14.6 11.3 Z" fill="${black}"/>
-            <path d="M12.2 1.9 Q13 1.2 14.6 1 C26 0.5 40 0.2 50 0.5 C58 0.9 63.6 4.6 68 10.2 L66.2 10.5 C62.2 6.1 57.4 2.7 51 2.5 L22.6 2.9 Q19.6 3 18.6 3.9 L16.4 4.2 Q14 3 12.2 1.9 Z" fill="${black}"/>
-            <path d="M50 0.5 C58 0.9 63.6 4.6 68 10.2 L70 12.6 L66.6 13.2 L62.8 11.9 C59.2 6.5 55.6 3.1 50.2 2.7 Z" fill="${black}"/><path d="M61.6 11.4 L66.4 10.6 L67.4 13.4 L62.6 14.2 Z" fill="${black}" stroke="${k(52, 56, 62)}" stroke-width="0.3"/>
-            ${wheel(19.8)}${wheel(80.8)}
-            <path d="M0.9 13.4 L2.3 12.6 L7.4 12.8 L7.2 16.6 L1 16.6 Z" fill="${k(34, 12, 18)}"/>
-            <g stroke="${k(255, 90, 90)}" stroke-width="0.5" stroke-linecap="round" fill="none">${[1.9, 3.6, 5.3].map(x => `<path d="M${x} 13.4 L${x + 0.1} 16"/>`).join('')}</g>
-            <path d="M2.6 25.6 L4.6 25.6 L4.6 27.8 L2.6 27.8 Z" fill="${k(190, 30, 36)}"/>
-            <path d="M90.4 15 Q97.2 15.3 99.4 16.7 L99.7 20.8 Q95.4 19.8 90.8 19.4 Z" fill="${k(26, 28, 32)}" stroke="${k(60, 64, 70)}" stroke-width="0.3"/>
-            <g stroke="${day ? '#ffffff' : '#fffbe0'}" stroke-width="0.6" stroke-linecap="round" fill="none">${claws(92.6, 15.9, 1.7)}</g>`,
+            <path d="M244 290 L250 272 L330 262 L790 262 Q825 266 852 288 L850 332 Q780 316 700 322 L637 308 L445 312 L330 300 Z" fill="${black}"/>
+            <path d="M700 322 Q780 316 850 332 L944 398 L922 432 L700 420 Z" fill="url(#peugeot-glass)"/>
+            <path d="M445 312 L637 308 L640 418 L445 396 Z" fill="url(#peugeot-glass)"/>
+            <path d="M360 342 L412 318 L440 318 L440 394 L352 380 Z" fill="url(#peugeot-glass)"/>
+            <path d="M637 308 L692 308 L694 420 L640 418 Z" fill="${black}"/>
+            <path d="M250 290 L345 262 L418 318 L440 318 L440 396 L352 380 L262 342 Z" fill="${black}"/>
+            <path d="M285 322 L408 354 M300 304 L395 336 M318 286 L385 316" stroke="${k(58, 60, 66)}" stroke-width="3"/>
+            <path d="M852 288 L1042 366 L1046 396 L944 398 L850 332 Z" fill="${black}"/>
+            <path d="M922 408 L976 398 Q992 410 986 438 L926 448 Z" fill="${black}"/>
+            ${wheel(332)}${wheel(1170)}
+            <path d="M122 398 L236 410 L238 434 L150 438 L130 424 Z" fill="${k(26, 10, 14)}"/>
+            <g stroke="${k(255, 70, 80)}" stroke-width="6" stroke-linecap="round" fill="none"><path d="M140 402 L142 424 M160 405 L162 426 M180 407 L182 428"/></g>
+            <path d="M122 590 L150 590 L150 622 L122 622 Z" fill="${k(200, 30, 38)}"/>
+            <path d="M1262 462 L1346 470 L1364 502 L1300 506 Z" fill="${k(22, 24, 28)}" stroke="${k(70, 74, 80)}" stroke-width="3"/>
+            <g stroke="${day ? '#ffffff' : '#fffbe0'}" stroke-width="5" stroke-linecap="round" fill="none"><path d="M1312 476 L1322 498 M1328 478 L1338 500 M1344 482 L1352 502"/></g>`,
             'pointer-events:none;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))');
         }
 
