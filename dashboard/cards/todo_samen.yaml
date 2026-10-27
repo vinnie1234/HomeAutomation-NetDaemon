@@ -3,7 +3,6 @@
 type: todo-list
 entity: todo.dagelijks
 title: Samen
-hide_completed: true
 card_mod:
   style: |
     ha-card {

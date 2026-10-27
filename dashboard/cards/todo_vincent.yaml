@@ -3,7 +3,6 @@
 type: todo-list
 entity: todo.vincent
 title: Vincent
-hide_completed: true
 card_mod:
   style: |
     ha-card {
