@@ -1,6 +1,6 @@
 # Agenda en taken in één lijst (Calendar & Tasks Card, korova-sq/calendar-tasks-card): onze agenda's en de open taken van de drie
 # lijsten, per dag. De kleur zegt van wie het is: blauw is Vincent, roze is Carleen en paars is samen (de gedeelde agenda en de
-# lijst Dagelijks). Onder elk item staat de naam van de agenda of lijst. Taken vink je hier af en met het plusje voeg je een
+# lijst Samen). Onder elk item staat de naam van de agenda of lijst. Taken vink je hier af en met het plusje voeg je een
 # afspraak of een taak toe aan de agenda of lijst van je keuze. Gebruikt op Home en Huis.
 type: custom:calendar-tasks-card
 title: Agenda en taken
