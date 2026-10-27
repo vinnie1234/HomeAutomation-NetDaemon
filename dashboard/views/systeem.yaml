@@ -143,6 +143,40 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#instellingen"
+      # Dashboard verversen: op de tablet (Fully Kiosk) is er geen verversknop of trek-om-te-verversen
+      - type: heading
+        heading: Dashboard
+        heading_style: title
+        icon: mdi:refresh
+      # Dit scherm: de service workers en caches van de browser weggooien en de pagina opnieuw laden, zodat wijzigingen aan het
+      # dashboard of de kaarten er echt in komen. In Fully Kiosk eerst zijn eigen cache wissen en de start-URL laden.
+      - type: custom:button-card
+        template: action
+        name: Ververs dit scherm
+        icon: mdi:cached
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              (async () => {
+                try { if (window.fully?.clearCache) { fully.clearCache(); fully.loadStartUrl(); return; } } catch (e) { /* geen Fully */ }
+                try { for (const worker of await navigator.serviceWorker.getRegistrations()) await worker.unregister(); } catch (e) { /* geen service worker */ }
+                try { for (const key of await caches.keys()) await caches.delete(key); } catch (e) { /* geen cache */ }
+                location.reload();
+              })();
+            ]]]
+      # De tablet vanaf een ander apparaat: Fully Kiosk wist zijn cache en laadt het dashboard opnieuw (via de Fully-integratie)
+      - type: custom:button-card
+        template: action
+        name: Ververs de tablet
+        icon: mdi:tablet-dashboard
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_clear_browser_cache' });
+              setTimeout(() => hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_start_url_laden' }), 1500);
+            ]]]
       - type: heading
         heading: NetDaemon
         heading_style: title

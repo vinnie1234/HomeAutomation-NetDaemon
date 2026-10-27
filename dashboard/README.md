@@ -91,3 +91,6 @@ een keer is gestart.
 - "Taak met plek": kies voor wie, wat, de plek en of er een WhatsApp-bericht moet komen als je daar aankomt.
 - Autokaart: status, tank, locatie en beurt; knoppen om te vergrendelen, ontgrendelen (met bevestiging) en de lichten.
 - Rode melding "NetDaemon reageert niet": tik herstart de add-on (alleen met een beheerdersaccount).
+- Beheer → Dashboard: "Ververs dit scherm" gooit de cache van de browser weg en laadt de pagina opnieuw (op de tablet is er
+  geen verversknop); "Ververs de tablet" doet dat op de tablet vanaf een ander apparaat. Beheer staat ook in het menu van
+  de tablet.

@@ -78,7 +78,7 @@ routes:
     label: Beheer
     icon: mdi:cog-outline
     icon_selected: mdi:cog
-    hidden: "[[[ return !user.is_admin; ]]]"
+    hidden: "[[[ return !user.is_admin && !/dashboard/i.test(user.name ?? ''); ]]]"
   # Klapt het menu van Home Assistant uit (de bovenbalk is verborgen door Kiosk Mode)
   - label: Menu
     icon: mdi:menu
