@@ -172,7 +172,7 @@ public class SleepManager : BaseApp
         if (!string.IsNullOrEmpty(message))
             Notify.NotifyPeopleHome("Telefoon bijna leeg", message, true);
 
-        if (Entities.Sensor.SmT860BatteryLevel.State is < 30 && Entities.BinarySensor.SmT860IsCharging.IsOff())
+        if (Entities.Sensor.TabS6VanVincentBatterij.State is < 30 && Entities.BinarySensor.TabS6VanVincentOpVoedingAangesloten.IsOff())
             Notify.NotifyPhoneVincent("Tabled bijna leeg", "Je moet je tabled opladen", true);
     }
 

@@ -3741,6 +3741,76 @@ usage_alert:
       return parts.join(' · ');
     ]]]
 
+# Status van de Peugeot 2008 (Stellantis, entiteiten buiten_peugeot_2008_*): of hij op slot en dicht staat (of wat openstaat),
+# de tank en het bereik, waar hij staat en wanneer de beurt komt. Tik opent de kaart met de locatie. De knoppen staan eronder
+# (cards/auto.yaml); NetDaemon (CarMonitor) stuurt de meldingen.
+car_status:
+  template: glass
+  entity: device_tracker.buiten_peugeot_2008_voertuig
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const p = 'buiten_peugeot_2008_';
+        const st = id => states[id]?.state;
+        const num = id => { const v = parseFloat(st(id)); return isNaN(v) ? null : v; };
+        const names = { driver_door: 'bestuurdersdeur', passenger_door: 'bijrijdersdeur', rear_left_door: 'linker achterdeur',
+                        rear_right_door: 'rechter achterdeur', trunk: 'kofferbak' };
+        const open = Object.entries(names).filter(([key]) => st(`binary_sensor.${p}${key}`) === 'on').map(([, name]) => name);
+        const unlocked = st(`binary_sensor.${p}deuren`) === 'on';
+        const moving = st(`binary_sensor.${p}rijden`) === 'on';
+        const running = st(`binary_sensor.${p}motor`) === 'on';
+        const [status, color] = moving ? ['Onderweg', '#7aa2ff']
+          : open.length ? [`${open.join(', ')} open`, '#ff6b6b']
+          : unlocked ? ['Niet op slot', '#ffb060']
+          : running ? ['Motor loopt', '#7aa2ff']
+          : ['Op slot en dicht', '#4ade80'];
+
+        const tracker = st(`device_tracker.${p}voertuig`);
+        const place = tracker === 'home' ? 'Thuis' : tracker === 'not_home' ? 'Niet thuis' : tracker && !['unknown', 'unavailable'].includes(tracker) ? tracker : 'Locatie onbekend';
+
+        const fuel = num(`sensor.${p}brandstof`), range = num(`sensor.${p}brandstof_bereik`);
+        const lowFuel = (range !== null && range < 100) || (fuel !== null && fuel < 15);
+        const fuelColor = lowFuel ? '#ff6b6b' : '#7aa2ff';
+        const days = num(`sensor.${p}days_before_maintenance`), km = num(`sensor.${p}mileage_before_maintenance`);
+        const soon = (days !== null && days <= 30) || (km !== null && km <= 1000);
+        const nl = n => Math.round(n).toLocaleString('nl-NL');
+        const service = [days !== null ? `${nl(days)} dagen` : null, km !== null ? `${nl(km)} km` : null].filter(Boolean).join(' of ');
+
+        return `<div style="text-align:left">
+          <div style="display:flex;align-items:center;gap:10px">
+            <ha-icon icon="mdi:car-side" style="--mdc-icon-size:28px;color:${color}"></ha-icon>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:16px;font-weight:700">Peugeot 2008</div>
+              <div style="font-size:13px;font-weight:600;color:${color}">${status}</div>
+            </div>
+            <div style="font-size:12px;opacity:0.8;white-space:nowrap">📍 ${place}</div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:4px">
+              <span>⛽ Tank${lowFuel ? ' bijna leeg' : ''}</span>
+              <span>${fuel !== null ? `${Math.round(fuel)}%` : '–'}${range !== null ? ` · ${nl(range)} km` : ''}</span>
+            </div>
+            <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.12);overflow:hidden">
+              <div style="width:${fuel !== null ? Math.max(2, Math.min(100, fuel)) : 0}%;height:100%;background:${fuelColor}"></div>
+            </div>
+          </div>
+          ${service ? `<div style="margin-top:10px;font-size:12px;opacity:${soon ? 1 : 0.7};color:${soon ? '#ffb060' : 'inherit'}">🔧 Beurt over ${service}</div>` : ''}
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
 # NetDaemon reageert niet: bovenaan Home zolang binary_sensor.netdaemon_online uit staat (het levensteken van NetDaemonHeartbeat
 # is een paar minuten niet gekomen). Tik herstart de add-on, na een bevestiging (hassio.addon_restart vraagt beheerdersrechten).
 netdaemon_alert:

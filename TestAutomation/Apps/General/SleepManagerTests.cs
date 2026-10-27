@@ -212,6 +212,23 @@ public class SleepManagerTests
             Arg.Is<object>(d => System.Text.Json.JsonSerializer.Serialize(d, (System.Text.Json.JsonSerializerOptions?)null).Contains("PetSnowy is vandaag nog niet geschoond")));
     }
 
+    [Theory]
+    [InlineData("20", "off", 1)]   // low and not charging: charge the tablet
+    [InlineData("20", "on", 0)]    // low but on the charger
+    [InlineData("80", "off", 0)]   // not low
+    public void VincentSleeping_WarnsAboutTheTabletBattery_WhenLowAndNotCharging(string level, string charging, int times)
+    {
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
+        ctx.HaContext.GetState("sensor.tab_s6_van_vincent_batterij").Returns(new EntityState { State = level });
+        ctx.HaContext.GetState("binary_sensor.tab_s6_van_vincent_op_voeding_aangesloten").Returns(new EntityState { State = charging });
+        ctx.InitApp<SleepManager>(StorageWithPetSnowyCleanedToday(ctx));
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+
+        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: times);
+    }
+
     [Fact]
     public void VincentSleeping_NotifiesPetSnowyErrors_WhenErrorsExist()
     {

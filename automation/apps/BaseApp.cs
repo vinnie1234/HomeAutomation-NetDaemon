@@ -83,6 +83,12 @@ public class BaseApp
                && now.TimeOfDay >= schedule.WakeUpOfficeTime && now.TimeOfDay < new TimeSpan(12, 0, 0);
     }
 
+    /// <summary>Everyone who is home sleeps (and someone is home).</summary>
+    protected bool AllAsleep =>
+        (Vincent.IsHome || Carleen.IsHome) &&
+        (!Vincent.IsHome || Vincent.IsSleeping) &&
+        (!Carleen.IsHome || Carleen.IsSleeping);
+
     /// <summary>
     /// True when we're on vacation, nobody is home and the house sitter isn't there either.
     /// Motion is then not caused by a resident, so automations must not turn on lights.

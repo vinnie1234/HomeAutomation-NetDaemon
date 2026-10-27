@@ -1,0 +1,39 @@
+# Autokaart voor Home: de status van de Peugeot en knoppen om hem te vergrendelen, te ontgrendelen of de lichten aan te doen.
+# Ontgrendelen vraagt eerst een bevestiging.
+type: vertical-stack
+cards:
+  - type: custom:button-card
+    template: car_status
+  - type: horizontal-stack
+    cards:
+      - type: custom:button-card
+        template: action
+        name: Vergrendel
+        icon: mdi:car-door-lock
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.buiten_peugeot_2008_deuren_vergrendelen
+      - type: custom:button-card
+        template: action
+        name: Ontgrendel
+        icon: mdi:car-door-lock-open
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.buiten_peugeot_2008_deuren_ontgrendelen
+          confirmation:
+            text: De deuren van de auto ontgrendelen?
+      - type: custom:button-card
+        template: action
+        name: Lichten
+        icon: mdi:car-light-high
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.buiten_peugeot_2008_lichten
+grid_options:
+  columns: 12

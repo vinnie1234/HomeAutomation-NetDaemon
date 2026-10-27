@@ -57,12 +57,6 @@ public class TabletScreen : BaseApp
 
     private bool IsTvOn => IsTvOnState(Entities.MediaPlayer.Tv.State);
 
-    /// <summary>Everyone who is home sleeps (and someone is home).</summary>
-    private bool AllAsleep =>
-        (Vincent.IsHome || Carleen.IsHome) &&
-        (!Vincent.IsHome || Vincent.IsSleeping) &&
-        (!Carleen.IsHome || Carleen.IsSleeping);
-
     /// <summary>
     /// At the wake-up time of whoever has an office or home work day (from their work schedule), the tablet comes on too.
     /// This is the moment the alarm goes, so it also wakes while everyone still "sleeps".

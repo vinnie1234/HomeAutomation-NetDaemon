@@ -773,6 +773,7 @@ sections:
 
       - !include ../cards/camera_woonkamer.yaml
       - !include ../cards/taak_knop.yaml
+      - !include ../cards/auto.yaml
       - type: heading
         heading: Vandaag
         heading_style: title
