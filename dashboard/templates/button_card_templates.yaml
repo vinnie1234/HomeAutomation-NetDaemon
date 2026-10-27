@@ -3741,6 +3741,35 @@ usage_alert:
       return parts.join(' · ');
     ]]]
 
+# NetDaemon reageert niet: bovenaan Home zolang binary_sensor.netdaemon_online uit staat (het levensteken van NetDaemonHeartbeat
+# is een paar minuten niet gekomen). Tik herstart de add-on, na een bevestiging (hassio.addon_restart vraagt beheerdersrechten).
+netdaemon_alert:
+  template: alert
+  entity: binary_sensor.netdaemon_online
+  triggers_update:
+    - binary_sensor.netdaemon_online
+    - input_datetime.netdaemon_heartbeat
+  variables:
+    color: 255, 77, 77
+    pulse: true
+  icon: mdi:heart-broken
+  tap_action:
+    action: call-service
+    service: hassio.addon_restart
+    data:
+      addon: c6a2317c_netdaemon6
+    confirmation:
+      text: NetDaemon herstarten? De automatiseringen doen het een halve minuut niet.
+  name: NetDaemon reageert niet
+  label: |
+    [[[
+      const seconds = states['input_datetime.netdaemon_heartbeat']?.attributes?.timestamp;
+      const last = seconds ? new Date(seconds * 1000) : null;
+      const ago = last ? Math.max(1, Math.round((Date.now() - last) / 60000)) : null;
+      const since = last ? `Laatste levensteken om ${last.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} (${ago} min geleden)` : 'Nog geen levensteken';
+      return `${since} · automatiseringen staan stil · tik om te herstarten`;
+    ]]]
+
 # Thuiswerken: stroom en kosten van vandaag en deze maand (NetDaemon HomeWorkEnergyTracker). Tik opent #thuiswerken.
 homework_tile:
   template: glass

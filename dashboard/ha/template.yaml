@@ -79,6 +79,17 @@
           {% endfor %}
           {{ ns.l }}
 
+# NetDaemon is online zolang zijn levensteken (NetDaemonHeartbeat, elke minuut) niet langer dan 4 minuten geleden is.
+# NetDaemon kan zelf niet melden dat hij eruit ligt, dus Home Assistant bewaakt het; het dashboard toont dan een melding met
+# een herstartknop (netdaemon_alert). Niet beschikbaar zolang het levensteken nog niet bestaat, zodat er geen valse melding komt.
+- binary_sensor:
+    - name: NetDaemon online
+      unique_id: netdaemon_online
+      default_entity_id: binary_sensor.netdaemon_online
+      device_class: connectivity
+      availability: "{{ state_attr('input_datetime.netdaemon_heartbeat', 'timestamp') is number }}"
+      state: "{{ now().timestamp() - state_attr('input_datetime.netdaemon_heartbeat', 'timestamp') < 240 }}"
+
 # Verwachting per uur voor de weerstrook op de Weer-pagina van het dashboard.
 # Haalt bij het opstarten en elk uur om 5 over de verwachting voor 48 uur op.
 - trigger:

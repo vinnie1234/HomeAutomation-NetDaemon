@@ -347,6 +347,17 @@ sections:
                 navigation_path: /dashboard-huis/systeem
 
       # Opvallende meldingen: alleen zichtbaar als ze nu spelen
+      # NetDaemon reageert niet (geen levensteken): altijd de eerste melding
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.netdaemon_online
+            state: "off"
+        card:
+          type: custom:button-card
+          template: netdaemon_alert
+        grid_options:
+          columns: 12
       # Pakketten: bovenaan, zolang er een onderweg is of klaar ligt om af te halen
       - type: conditional
         conditions:

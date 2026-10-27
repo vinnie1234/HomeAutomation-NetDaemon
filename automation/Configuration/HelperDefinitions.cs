@@ -161,6 +161,7 @@ public static class HelperDefinitions
         DateTime("verjaardag_carleen", "Verjaardag Carleen", hasDate: true, hasTime: false, icon: "mdi:cake-variant-outline"),
         DateTime("jubileum", "Jubileum", hasDate: true, hasTime: false, icon: "mdi:heart-outline"),
         DateTime("verjaardag_pixel", "Verjaardag Pixel", hasDate: true, hasTime: false, icon: "mdi:cat"),
+        DateTime("netdaemon_heartbeat", "NetDaemon heartbeat", hasDate: true, hasTime: true, icon: "mdi:heart-pulse"),
         DateTime("daytimeweekend", "DaytimeWeekend", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
         DateTime("nighttimeweekdays", "NighttimeWeekdays", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
         DateTime("nighttimeweekends", "NighttimeWeekends", hasDate: false, hasTime: true, icon: "mdi:clock-digital"),
