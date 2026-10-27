@@ -19,14 +19,23 @@ Highlights:
 - **Energy** — dynamic prices, warnings for extreme prices, the cost of working from home, and power estimates for
   devices that only report kWh
 - **Household** — laundry advice and monitoring, garbage pickup, parcels from PostNL, DHL, DPD and GLS
+- **Tasks and agenda** — a to-do list per person plus a shared one, tasks with a place (a WhatsApp message when you walk
+  into that zone) and one agenda that shows appointments and open tasks together
+- **The car** — our Peugeot 2008: status, fuel and service on the dashboard, reminders (low fuel, service, not locked,
+  a door left open) and security (it drives off while we are home, a door opens while we sleep)
+- **The tablet** — the living room tablet (Fully Kiosk) wakes up on motion, wake-up times, coming home and important
+  alerts, and goes off when the TV turns on or everyone sleeps
 - **Notifications** — Discord, the mobile app, text-to-speech and a WhatsApp assistant (text and voice notes)
-- **Self-maintaining** — creates its own Home Assistant helpers, reloads failing integrations and auto-updates
+- **Self-maintaining** — creates its own Home Assistant helpers, reloads failing integrations and auto-updates; sends a
+  heartbeat every minute so Home Assistant notices when NetDaemon itself is down, and the dashboard then shows an alert
+  with a restart button
 
 ## 🖥️ Dashboard
 
 The dashboard lives in [`dashboard/`](dashboard) as a YAML-mode Lovelace dashboard, built mainly with
-[button-card](https://github.com/custom-cards/button-card), [Bubble Card](https://github.com/Clooos/Bubble-Card) and
-[Navbar Card](https://github.com/joseluis9595/lovelace-navbar-card) and the "Glass Home" theme. Installation and the
+[button-card](https://github.com/custom-cards/button-card), [Bubble Card](https://github.com/Clooos/Bubble-Card),
+[Navbar Card](https://github.com/joseluis9595/lovelace-navbar-card) and
+[Calendar & Tasks Card](https://github.com/korova-sq/calendar-tasks-card) and the "Glass Home" theme. Installation and the
 required HACS cards are described in [`dashboard/README.md`](dashboard/README.md).
 
 > The screenshots below are rendered from the real dashboard templates with made-up data.
@@ -66,6 +75,23 @@ matters: extreme electricity prices, the running washing machine with its phase 
 rain is coming, Pixel's medicine when it is due or running out, problems with his things and batteries below 10%.
 
 ![Alerts on the Home page](docs/images/dashboard/home-alerts.png)
+
+### Home: labels, agenda, tasks and the car
+
+- **Labels** next to the weather card show what is on its way (parcels, letters, open tasks). A tap opens a pop-up
+  with the details: the history of every parcel as a timeline, or the three task lists.
+- **Agenda and tasks** — today's and tomorrow's appointments of our calendars and the open tasks of the three lists in
+  one timeline. The colour tells whose it is: blue is Vincent, pink is Carleen, purple is both of us. Tasks can be
+  ticked off and added right there.
+- **Tasks with a place** — the tile "Taak met plek" adds a task to a list, with a zone and, if wanted, a WhatsApp
+  message when that person walks into the zone ("Boodschappen AH: milk, bread").
+- **The car** — a card with the status (locked and closed, or what is open), the alarm, fuel and range, where it is and
+  when the service is due, with buttons to lock, unlock and flash the lights. While the car is at home, it stands on the
+  driveway next to the house in the weather card.
+- **NetDaemon alert** — when NetDaemon stops sending its heartbeat, a red alert appears at the top; a tap restarts the
+  add-on.
+
+> The screenshots in this section were made before these additions.
 
 ### Pixel and the personal pages
 
@@ -125,6 +151,7 @@ dotnet test
 - **[Away Manager](docs/apps/away-manager.md)** - Away and welcome-home state machine
 - **[Battery Monitoring](docs/apps/battery-monitoring.md)** - Low battery notifications for all devices
 - **[Cat Care](docs/apps/cat.md)** - Automatic feeding, litter box and fountain monitoring
+- **Car Monitor** - Peugeot 2008: reminders (low fuel, service, not locked, a door left open) and security
 - **Cat Vomit Tracker** - Remembers when Pixel threw up and publishes the last two weeks for the dashboard
 - **[CoC Monitoring](docs/apps/coc-monitoring.md)** - Clash of Clans activity monitoring via social media
 - **[Fun App](docs/apps/fun.md)** - Entertainment and special occasion automations
@@ -140,11 +167,13 @@ dotnet test
 - **[PC Manager](docs/apps/pc-manager.md)** - PC-related automations and device control
 - **Pixel Medication** - Pixel's doses, stock, prices and reminders, with the full history kept forever
 - **Power Estimator** - Estimated power for devices that only report an energy meter (such as the washing machine)
+- **NetDaemon Heartbeat** - Beats every minute, so Home Assistant and the dashboard notice when NetDaemon is down
 - **Presence Manager** - Per-person presence and the shared away state
 - **Presence Simulation** - Makes the house look lived-in while on vacation
 - **[Reset App](docs/apps/reset.md)** - System reset and restoration capabilities
 - **[Save In State](docs/apps/save-in-state.md)** - Device state management and restoration
 - **[Sleep Manager](docs/apps/sleep-manager.md)** - Sleep routines, roller blind and wake-up
+- **Todo Zone Reminders** - Tasks with a place: a WhatsApp message with what is left to do when someone walks into the zone
 - **[Vacuum](docs/apps/vacuum.md)** - Robot vacuum automation and room-specific cleaning
 - **WhatsApp Assistant** - Answers text and voice messages from Vincent and Carleen through the Home Assistant assistant
 
@@ -154,6 +183,7 @@ dotnet test
 - **[Hall](docs/apps/hall-lights.md)** - Motion detection and light brightness in the hallway
 - **Kitchen Music** - Music in the kitchen on motion when nobody is working
 - **[Living Room](docs/apps/living-room.md)** - Lighting, TV automation and gaming mode
+- **Tablet Screen** - Wakes the living room tablet (Fully Kiosk) on motion, wake-up times, coming home and alerts, and turns it off
 
 ## 🛠️ Development
 
@@ -166,7 +196,11 @@ dotnet publish -c Release -o ./Release
 ```
 
 New helpers are added in `automation/Configuration/HelperDefinitions.cs`: the Helper Manager creates them in Home
-Assistant on the next start, after which code generation makes them available as typed entities.
+Assistant on the next start, after which code generation makes them available as typed entities. Helpers keep their
+value over restarts, so they do not get an `initial` value (Home Assistant puts a helper with `initial` back on it at
+every restart); a start value is set once, when the helper is created.
+
+Code inspections run with the shared Rider settings in `HomeAutomation.sln.DotSettings`.
 
 ## 🏗️ Project Structure
 

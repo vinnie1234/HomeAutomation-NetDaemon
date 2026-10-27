@@ -17,3 +17,5 @@
 /TestIntegration/TestResults
 /test_output.txt
 .idea
+# Output of dotnet publish -o ./RELEASE
+/RELEASE

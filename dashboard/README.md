@@ -8,17 +8,21 @@ YAML-dashboard voor Home Assistant.
 |---|---|
 | `dashboard.yaml` | Startpunt: templates en de lijst met pagina's |
 | `views/` | Eén bestand per pagina |
-| `popups/` | Kamer-pop-ups (Bubble Card), opgenomen in `views/home.yaml` |
+| `popups/` | Pop-ups (Bubble Card): de kamers, thema, pakketten, taken en taak met plek; opgenomen in `views/home.yaml` (en `taak` ook in Huis en op de persoonlijke pagina's) |
 | `templates/button_card_templates.yaml` | Gedeelde stijl en gedrag van tegels (kamer, persoon, actie, info) |
 | `navbar.yaml` | Navigatiebalk, opgenomen in elke pagina |
-| `cards/` | Gedeelde kaarten en lijsten, zoals `power_sources.yaml` (de apparaten van "Grootste verbruikers nu") |
+| `cards/` | Gedeelde kaarten en lijsten: `agenda.yaml` (agenda en taken), `auto.yaml`, `todo_*.yaml` (de drie takenlijsten), `taak_knop.yaml`, `camera_woonkamer.yaml`, `power_sources.yaml` (de apparaten van "Grootste verbruikers nu"), ... |
+| `ha/template.yaml` | Template-sensoren voor `/config/template.yaml`: verwachting per uur, brieven van deze week en of NetDaemon online is |
 | `themes/glass_home.yaml` | Thema "Glass Home" |
 
 ## Benodigd uit HACS
 
 Bubble Card, Mushroom, button-card, card-mod, Navbar Card, Universal Remote Card, auto-entities,
 ApexCharts Card, mini-graph-card, clock-weather-card, upcoming-media-card, tabbed-card,
-Gaming Status Cards, Week Planner Card en Kiosk Mode.
+Gaming Status Cards, Calendar & Tasks Card en Kiosk Mode.
+
+Verder in Home Assistant: de integraties Fully Kiosk Browser (de tablet), Stellantis (de auto) en Local To-do, met de
+takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`.
 
 ## Installeren (eenmalig)
 
@@ -50,31 +54,14 @@ Gaming Status Cards, Week Planner Card en Kiosk Mode.
          filename: dashboards/huis/dashboard.yaml
    ```
 
-4. Voeg de template-sensor voor de verwachting per uur toe (voor de strook op Weer). Staat er al een
-   `template:` in `configuration.yaml`, zet dit blok dan als extra item in die lijst:
+4. Voeg de template-sensoren uit `ha/template.yaml` toe aan `/config/template.yaml` (in `configuration.yaml`:
+   `template: !include template.yaml`). Staat er al een bestand, zet dan alleen de ontbrekende blokken erbij:
+   - de verwachting per uur voor de strook op Weer (`Weer verwachting per uur`),
+   - `Brieven deze week`: de PostNL-brieven van de laatste 7 dagen, voor het aantal en de scans,
+   - `NetDaemon online`: uit als het levensteken van NetDaemon (elke minuut) een paar minuten wegblijft; het dashboard
+     toont dan een melding met een herstartknop.
 
-   ```yaml
-   template:
-     - trigger:
-         - trigger: time_pattern
-           minutes: 5
-         - trigger: homeassistant
-           event: start
-       action:
-         - action: weather.get_forecasts
-           data:
-             type: hourly
-           target:
-             entity_id: weather.weer_thuis
-           response_variable: verwachting
-       sensor:
-         - name: Weer verwachting per uur
-           unique_id: weer_verwachting_per_uur
-           icon: mdi:weather-partly-cloudy
-           state: "{{ now().isoformat() }}"
-           attributes:
-             forecast: "{{ verwachting['weather.weer_thuis'].forecast[:48] }}"
-   ```
+   Herlaad daarna de template-entiteiten (Ontwikkelhulpmiddelen → YAML).
 
 5. Herstart Home Assistant. "Huis" staat daarna in de zijbalk.
 
@@ -86,8 +73,21 @@ Kopieer de gewijzigde bestanden opnieuw naar `/config/dashboards/huis/` en verve
 (rechtsboven ⋮ → Vernieuwen). Herstarten is alleen nodig na wijzigingen in `configuration.yaml`.
 Na een wijziging aan het thema: Ontwikkelhulpmiddelen → YAML → Thema's herladen.
 
+## Helpers
+
+NetDaemon maakt de helpers zelf aan bij het opstarten (`automation/Configuration/HelperDefinitions.cs`), zoals het
+werkrooster, de thema-keuze en het formulier van "Taak met plek". Het dashboard werkt dus pas helemaal nadat NetDaemon
+een keer is gestart.
+
 ## Bediening
 
 - Kamertegel: **tik** opent de pop-up, **lang drukken** zet alle lampen van die kamer aan of uit.
 - Pop-up: lamp **schuiven** = helderheid, **tik op het icoon** = aan/uit. Omlaag swipen sluit.
 - Meldingen bovenaan verschijnen alleen als ze relevant zijn; tik erop om naar de juiste pagina te gaan.
+- De labels naast de weerkaart (pakketten, brieven, taken): tik opent een pop-up met de details. Het thema-label
+  linksboven opent de periode van het thema en de feestdagen.
+- Agenda en taken in één kaart: kleur per agenda of lijst (blauw Vincent, roze Carleen, paars samen); taken afvinken en
+  toevoegen kan er direct in.
+- "Taak met plek": kies voor wie, wat, de plek en of er een WhatsApp-bericht moet komen als je daar aankomt.
+- Autokaart: status, tank, locatie en beurt; knoppen om te vergrendelen, ontgrendelen (met bevestiging) en de lichten.
+- Rode melding "NetDaemon reageert niet": tik herstart de add-on (alleen met een beheerdersaccount).
