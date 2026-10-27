@@ -395,6 +395,50 @@ public class AlarmTests
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
 
+    private const string PetSnowyEventId = "event.snow_self_cleaning_litter_box_device_notifications";
+
+    private void PetSnowyEvent(string from, object? attributes)
+    {
+        CreateApp();
+        _ctx.ChangeStateFor(PetSnowyEventId).FromState(from).ToHassState(new EntityState
+        {
+            EntityId = PetSnowyEventId,
+            State = "2026-10-27T10:00:00.000+00:00",
+            AttributesJson = attributes == null ? null : System.Text.Json.JsonSerializer.SerializeToElement(attributes)
+        });
+        _ctx.HaContextMock.ProcessPendingOperations();
+    }
+
+    [Fact]
+    public void PetSnowyNotification_WithoutAProblemWord_OnlyGoesToTheDiscordLogs()
+    {
+        PetSnowyEvent("unknown", new { event_type = "xt_device_event_notify", message = "cleaning done" });
+
+        _notify.Received(1).NotifyDiscord("PetSnowy meldt iets", Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
+            Arg.Is<Automation.Models.DiscordNotificationModels.DiscordNotificationModel?>(m => m!.Embed!.Fields![0].Value.Contains("cleaning done")));
+        _notify.DidNotReceive().NotifyPeopleHome("PetSnowy meldt een probleem", Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<double?>(),
+            Arg.Any<List<Automation.Models.ActionModel>?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public void PetSnowyNotification_WithAProblemWord_AlsoWarnsThePhones_OnceAnHour()
+    {
+        PetSnowyEvent("unknown", new { event_type = "xt_device_event_notify", code = "FAULT_MOTOR" });
+
+        _notify.Received(1).NotifyPeopleHome("PetSnowy meldt een probleem", Arg.Is<string>(m => m.Contains("FAULT_MOTOR")), false, 60,
+            Arg.Any<List<Automation.Models.ActionModel>?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public void PetSnowyNotification_BecomingUnknownOrUnavailable_IsNotANotification()
+    {
+        CreateApp();
+        _ctx.ChangeStateFor(PetSnowyEventId).FromState("2026-10-27T10:00:00.000+00:00").ToState("unavailable");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        _notify.DidNotReceive().NotifyDiscord("PetSnowy meldt iets", Arg.Any<string[]>(), Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel?>());
+    }
+
     [Fact]
     public void EnergyNegativeCheck_WhenPriceIsNegative_SendsNotification_WhenCarleenHome()
     {

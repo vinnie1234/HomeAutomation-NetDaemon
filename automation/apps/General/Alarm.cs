@@ -18,6 +18,11 @@ public class Alarm : BaseApp
     private readonly IEntityManager _entityManager;
     private readonly IDataRepository _storage;
 
+    private const string PetSnowyEvent = "event.snow_self_cleaning_litter_box_device_notifications";
+
+    /// <summary>Words that make a litter box notification worth waking the phones for (English, Dutch and what a full bin or jam might say).</summary>
+    private static readonly string[] ProblemWords = ["error", "fault", "alarm", "fout", "storing", "stuck", "jam", "blocked", "full", "vol", "overload"];
+
     /// <summary>On while more than <see cref="HighUsageWatts"/> is used for 10 minutes, for the alert on the dashboard.</summary>
     public const string HighUsageSensor = "sensor.hoog_stroomverbruik";
     private const double HighUsageWatts = 2000;
@@ -51,6 +56,7 @@ public class Alarm : BaseApp
         EnergyCheck();
         GarbageCheck();
         PetSnowyCheck();
+        PetSnowyDeviceNotifications();
         EnergyNegativeCheck();
         EnergyHighPriceCheck();
         BackUpCheck();
@@ -255,6 +261,46 @@ public class Alarm : BaseApp
                     }
             }
         });
+    }
+
+    /// <summary>
+    /// The SNOW⁺ litter box reports problems through this event entity. It has not fired yet, so the format is not known:
+    /// every notification goes to the Discord logs channel with all its attributes, to learn what they look like, and one that
+    /// mentions a problem word also goes to the phones. Refine <see cref="ProblemWords"/> when real notifications are known.
+    /// </summary>
+    private void PetSnowyDeviceNotifications() =>
+        new Entity(HaContext, PetSnowyEvent).StateChanges()
+            .Where(x => x.New?.State is not (null or "unknown" or "unavailable") && x.Old?.State != x.New?.State)
+            .Subscribe(x => ReportPetSnowyNotification(x.New!));
+
+    private void ReportPetSnowyNotification(EntityState state)
+    {
+        try
+        {
+            var details = new List<string>();
+            if (state.AttributesJson is { ValueKind: JsonValueKind.Object } attributes)
+                details.AddRange(attributes.EnumerateObject()
+                    .Where(a => a.Name is not ("friendly_name" or "event_types"))
+                    .Select(a => $"{a.Name}: {a.Value}"));
+            var text = details.Count > 0 ? string.Join("\n", details) : "(geen details)";
+            Logger.LogInformation("PetSnowy notification: {Details}", text.Replace('\n', ' '));
+
+            Notify.NotifyDiscord("PetSnowy meldt iets", [_config.Discord.Logs], new DiscordNotificationModel
+            {
+                Embed = new Embed
+                {
+                    Color = 15548997,
+                    Fields = [new Field { Name = "Melding", Value = text.Length > 1000 ? text[..1000] : text }]
+                }
+            });
+
+            if (ProblemWords.Any(word => text.Contains(word, StringComparison.OrdinalIgnoreCase)))
+                Notify.NotifyPeopleHome("PetSnowy meldt een probleem", text, false, 60);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not handle the PetSnowy notification");
+        }
     }
 
     /// <summary>
