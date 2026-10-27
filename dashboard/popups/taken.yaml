@@ -1,0 +1,12 @@
+# Pop-up taken, opent via #taken (tik op het label "n taken" bovenaan Home): de drie lijsten onder elkaar, elk met een eigen kleur
+# en het invoerveld. Ook lege lijsten staan erin, zodat je er meteen een taak aan kunt toevoegen.
+type: custom:bubble-card
+card_type: pop-up
+popup_mode: fit-content
+hash: "#taken"
+name: Taken
+icon: mdi:checkbox-marked-circle-outline
+cards:
+  - !include ../cards/todo_samen.yaml
+  - !include ../cards/todo_vincent.yaml
+  - !include ../cards/todo_carleen.yaml

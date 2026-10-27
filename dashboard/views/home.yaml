@@ -124,6 +124,29 @@ sections:
               tap_action:
                 action: navigate
                 navigation_path: /dashboard-huis/huishouden
+          - type: conditional
+            conditions:
+              - condition: or
+                conditions:
+                  - condition: numeric_state
+                    entity: todo.dagelijks
+                    above: 0
+                  - condition: numeric_state
+                    entity: todo.vincent
+                    above: 0
+                  - condition: numeric_state
+                    entity: todo.carleen
+                    above: 0
+            chip:
+              type: template
+              icon: mdi:checkbox-marked-circle-outline
+              icon_color: purple
+              content: >-
+                {% set n = states('todo.dagelijks') | int(0) + states('todo.vincent') | int(0) + states('todo.carleen') | int(0) %}
+                {{ n }} {{ 'taak' if n == 1 else 'taken' }}
+              tap_action:
+                action: navigate
+                navigation_path: "#taken"
           - type: template
             icon: |
               {{ {'Morning': 'mdi:weather-sunset-up', 'Day': 'mdi:white-balance-sunny', 'Evening': 'mdi:weather-sunset-down', 'Night': 'mdi:weather-night'}.get(states('input_select.housemodeselect'), 'mdi:home') }}
@@ -500,30 +523,6 @@ sections:
         show_empty: false
         grid_options:
           columns: 12
-      - type: conditional
-        conditions:
-          - condition: numeric_state
-            entity: todo.dagelijks
-            above: 0
-        card: !include ../cards/todo_samen.yaml
-        grid_options:
-          columns: 12
-      - type: conditional
-        conditions:
-          - condition: numeric_state
-            entity: todo.vincent
-            above: 0
-        card: !include ../cards/todo_vincent.yaml
-        grid_options:
-          columns: 12
-      - type: conditional
-        conditions:
-          - condition: numeric_state
-            entity: todo.carleen
-            above: 0
-        card: !include ../cards/todo_carleen.yaml
-        grid_options:
-          columns: 12
 
   # Kamers: tik opent de pop-up, lang drukken zet alle lampen aan of uit
   - type: grid
@@ -771,9 +770,47 @@ sections:
         grid_options:
           columns: 6
 
-      - !include ../cards/camera_woonkamer.yaml
       - !include ../cards/taak_knop.yaml
+
+  # Auto en wat er nu speelt
+  - type: grid
+    cards:
       - !include ../cards/auto.yaml
+      - !include ../cards/camera_woonkamer.yaml
+      # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.playstation_5
+            state: playing
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.playstation_5
+          name: PlayStation 5
+          icon: mdi:sony-playstation
+          cover_background: true
+      - !include ../cards/muziek_nu.yaml
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.tv
+            state_not:
+              - "off"
+              - unavailable
+              - unknown
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.tv
+          name: TV
+          icon: mdi:television
+          cover_background: true
+
+  # Vandaag: de agenda, twee kolommen breed
+  - type: grid
+    column_span: 2
+    cards:
       - type: heading
         heading: Vandaag
         heading_style: title
@@ -820,36 +857,6 @@ sections:
           yesterday: Gisteren
           moreEvents: Meer afspraken
 
-      # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: media_player.playstation_5
-            state: playing
-        card:
-          type: custom:bubble-card
-          card_type: media-player
-          entity: media_player.playstation_5
-          name: PlayStation 5
-          icon: mdi:sony-playstation
-          cover_background: true
-      - !include ../cards/muziek_nu.yaml
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: media_player.tv
-            state_not:
-              - "off"
-              - unavailable
-              - unknown
-        card:
-          type: custom:bubble-card
-          card_type: media-player
-          entity: media_player.tv
-          name: TV
-          icon: mdi:television
-          cover_background: true
-
   # Kamer-pop-ups (onzichtbaar tot ze geopend worden)
   - type: grid
     cards:
@@ -862,3 +869,4 @@ sections:
       - !include ../popups/thema.yaml
       - !include ../popups/pakketten.yaml
       - !include ../popups/taak.yaml
+      - !include ../popups/taken.yaml
