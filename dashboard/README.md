@@ -72,8 +72,9 @@ De pagina's zetten zelf het thema "Glass Home", je hoeft je profiel niet aan te 
 
 ## Bijwerken
 
-Kopieer de gewijzigde bestanden opnieuw naar `/config/dashboards/huis/` en ververs de pagina
-(rechtsboven ⋮ → Vernieuwen). Herstarten is alleen nodig na wijzigingen in `configuration.yaml`.
+Kopieer de gewijzigde bestanden opnieuw naar `/config/dashboards/huis/` en laat Home Assistant ze opnieuw inlezen: een
+YAML-dashboard wordt onthouden tot dat gebeurt, een gewone browser-refresh is dus niet genoeg. Dat kan met
+rechtsboven ⋮ → Vernieuwen, of (Kiosk Mode verbergt dat menu) met Beheer → Dashboard → "Ververs dit scherm". Herstarten is alleen nodig na wijzigingen in `configuration.yaml`.
 Na een wijziging aan het thema: Ontwikkelhulpmiddelen → YAML → Thema's herladen.
 
 ## Helpers
@@ -97,6 +98,7 @@ een keer is gestart.
 - Oranje melding "NetDaemon kan zijn sensoren niet meer bijwerken": NetDaemon draait, maar publiceert niets meer via MQTT.
   Controleer dan de MQTT-gebruiker en het wachtwoord in `appsettings.json` van NetDaemon (de gebruikersnaam in Home
   Assistant is `netdeamon`).
-- Beheer → Dashboard: "Ververs dit scherm" gooit de cache van de browser weg en laadt de pagina opnieuw (op de tablet is er
-  geen verversknop); "Ververs de tablet" doet dat op de tablet vanaf een ander apparaat. Beheer staat ook in het menu van
+- Beheer → Dashboard: "Ververs dit scherm" laat Home Assistant de dashboardbestanden opnieuw inlezen, gooit de cache van de
+  browser weg en laadt de pagina opnieuw (op de tablet is er geen verversknop); "Ververs de tablet" doet dat op de tablet
+  vanaf een ander apparaat. Beheer staat ook in het menu van
   de tablet.
