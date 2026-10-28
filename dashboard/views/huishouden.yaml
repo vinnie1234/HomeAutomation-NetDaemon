@@ -497,22 +497,15 @@ sections:
             {{ ns.l }}
         show_empty: false
 
-  # Camera, taken en agenda
+  # Camera, agenda en taken (de taken staan in de agenda-kaart)
   - type: grid
     cards:
       - !include ../cards/camera_woonkamer.yaml
       - type: heading
-        heading: Taken
+        heading: Agenda en taken
         heading_style: title
-        icon: mdi:checkbox-marked-circle-outline
+        icon: mdi:calendar-check
       - !include ../cards/taak_knop.yaml
-      - !include ../cards/todo_samen.yaml
-      - !include ../cards/todo_vincent.yaml
-      - !include ../cards/todo_carleen.yaml
-      - type: heading
-        heading: Agenda
-        heading_style: title
-        icon: mdi:calendar
       - !include ../cards/agenda.yaml
 
   # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
