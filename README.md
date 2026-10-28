@@ -27,8 +27,8 @@ Highlights:
   alerts, and goes off when the TV turns on or everyone sleeps
 - **Notifications** — Discord, the mobile app, text-to-speech and a WhatsApp assistant (text and voice notes)
 - **Self-maintaining** — creates its own Home Assistant helpers, reloads failing integrations and auto-updates; sends a
-  heartbeat every minute so Home Assistant notices when NetDaemon itself is down, and the dashboard then shows an alert
-  with a restart button
+  heartbeat every minute so Home Assistant notices when NetDaemon itself is down, and a second one over MQTT to notice when
+  its sensors stop updating (for example after a refused login); the dashboard then shows an alert
 
 ## 🖥️ Dashboard
 

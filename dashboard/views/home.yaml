@@ -381,6 +381,20 @@ sections:
           template: netdaemon_alert
         grid_options:
           columns: 12
+      # NetDaemon draait wel, maar publiceert niets meer via MQTT
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.netdaemon_mqtt_ok
+            state: "off"
+          - condition: state
+            entity: binary_sensor.netdaemon_online
+            state: "on"
+        card:
+          type: custom:button-card
+          template: netdaemon_mqtt_alert
+        grid_options:
+          columns: 12
       # Pakketten: bovenaan, zolang er een onderweg is of klaar ligt om af te halen
       - type: conditional
         conditions:

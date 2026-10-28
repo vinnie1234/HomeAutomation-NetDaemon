@@ -1,5 +1,8 @@
 using System.Text.Json;
 using Automation.apps.General;
+using Automation.Configuration;
+using Automation.Interfaces;
+using Microsoft.Extensions.Options;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
@@ -38,6 +41,58 @@ public class NetDaemonHeartbeatTests
         var beats = Beats();
         beats.Should().HaveCount(4);
         beats.Zip(beats.Skip(1), (a, b) => b - a).Should().OnlyContain(seconds => seconds == 60);
+    }
+
+    private readonly IEntityManager _entityManager = Substitute.For<IEntityManager>();
+
+    private void StartWith(bool sensorExists)
+    {
+        var exists = sensorExists;
+        _entityManager.EntityExists(NetDaemonHeartbeat.MqttBeatId).Returns(_ => exists);
+        _entityManager.Create(NetDaemonHeartbeat.MqttBeatId, Arg.Any<EntityCreationOptions>()).Returns(_ =>
+        {
+            exists = true;
+            return Task.CompletedTask;
+        });
+        _ctx.InitApp<NetDaemonHeartbeat>(Options.Create(new AppConfig()), _entityManager);
+    }
+
+    private List<string> MqttBeats() =>
+        _entityManager.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState) && (string)c.GetArguments()[0]! == NetDaemonHeartbeat.MqttBeatId)
+            .Select(c => (string)c.GetArguments()[1]!)
+            .ToList();
+
+    [Fact]
+    public void AtStartup_TheMqttSensorIsCreatedAsATimestamp_AndGetsItsFirstBeat()
+    {
+        StartWith(sensorExists: false);
+
+        _entityManager.Received(1).Create(NetDaemonHeartbeat.MqttBeatId, Arg.Is<EntityCreationOptions>(o => o.DeviceClass == "timestamp"));
+        MqttBeats().Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void WhenTheMqttSensorExists_ItIsNotCreatedAgain_AndEveryMinuteGetsABeat()
+    {
+        StartWith(sensorExists: true);
+
+        _ctx.AdvanceTimeBy(TimeSpan.FromMinutes(3).Ticks);
+
+        _entityManager.DidNotReceiveWithAnyArgs().Create(null!, null!);
+        var beats = MqttBeats();
+        beats.Should().HaveCount(4);
+        beats.Select(b => DateTimeOffset.Parse(b, System.Globalization.CultureInfo.InvariantCulture)).Zip(
+                beats.Skip(1).Select(b => DateTimeOffset.Parse(b, System.Globalization.CultureInfo.InvariantCulture)), (a, b) => b - a)
+            .Should().OnlyContain(gap => gap == TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public void TheMqttBeat_IsAnIsoTimestampWithAnOffset_ThatHomeAssistantCanRead()
+    {
+        StartWith(sensorExists: true);
+
+        MqttBeats().Single().Should().MatchRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$");
     }
 
     [Fact]

@@ -3912,6 +3912,34 @@ netdaemon_alert:
       return `${since} · automatiseringen staan stil · tik om te herstarten`;
     ]]]
 
+# NetDaemon draait wel, maar zijn sensoren worden niet meer bijgewerkt (de MQTT-login is geweigerd of de broker ligt eruit):
+# oranje melding bovenaan Home zolang binary_sensor.netdaemon_mqtt_ok uit staat. Tik herstart de add-on, na een bevestiging;
+# helpt dat niet, controleer dan het MQTT-wachtwoord in de instellingen van NetDaemon.
+netdaemon_mqtt_alert:
+  template: alert
+  entity: binary_sensor.netdaemon_mqtt_ok
+  triggers_update:
+    - binary_sensor.netdaemon_mqtt_ok
+    - sensor.netdaemon_mqtt_heartbeat
+  variables:
+    color: 255, 176, 96
+    pulse: true
+  icon: mdi:lan-disconnect
+  tap_action:
+    action: call-service
+    service: hassio.addon_restart
+    data:
+      addon: c6a2317c_netdaemon6
+    confirmation:
+      text: NetDaemon herstarten? Helpt dat niet, controleer dan het MQTT-wachtwoord.
+  name: NetDaemon kan zijn sensoren niet meer bijwerken
+  label: |
+    [[[
+      const beat = new Date(states['sensor.netdaemon_mqtt_heartbeat']?.state);
+      const since = isNaN(beat) ? 'Geen levensteken via MQTT' : `Laatste levensteken via MQTT om ${beat.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+      return `${since} · Pixel-medicijnen, thuiswerken en andere sensoren staan stil · tik om te herstarten`;
+    ]]]
+
 # Thuiswerken: stroom en kosten van vandaag en deze maand (NetDaemon HomeWorkEnergyTracker). Tik opent #thuiswerken.
 homework_tile:
   template: glass

@@ -89,6 +89,15 @@
       device_class: connectivity
       availability: "{{ state_attr('input_datetime.netdaemon_heartbeat', 'timestamp') is number }}"
       state: "{{ now().timestamp() - state_attr('input_datetime.netdaemon_heartbeat', 'timestamp') < 240 }}"
+    # De MQTT-sensoren van NetDaemon (Pixel-medicijnen, thuiswerken, ...) lopen via MQTT. Weigert de broker de login, dan stopt het
+    # publiceren zonder foutmelding. NetDaemonHeartbeat publiceert daarom elke minuut ook een MQTT-sensor; is die ouder dan
+    # 5 minuten, dan staan al die sensoren stil en toont het dashboard een melding. Niet beschikbaar zolang hij nog niet bestaat.
+    - name: NetDaemon MQTT werkt
+      unique_id: netdaemon_mqtt_ok
+      default_entity_id: binary_sensor.netdaemon_mqtt_ok
+      device_class: connectivity
+      availability: "{{ states('sensor.netdaemon_mqtt_heartbeat') not in ['unknown', 'unavailable', 'none'] }}"
+      state: "{{ now().timestamp() - as_timestamp(states('sensor.netdaemon_mqtt_heartbeat'), 0) < 300 }}"
 
 # Verwachting per uur voor de weerstrook op de Weer-pagina van het dashboard.
 # Haalt bij het opstarten en elk uur om 5 over de verwachting voor 48 uur op.
