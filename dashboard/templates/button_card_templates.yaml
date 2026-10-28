@@ -509,6 +509,8 @@ weather_hero:
     - sun.sun
     - input_boolean.onvacation
     - device_tracker.buiten_peugeot_2008_voertuig
+    - vacuum.jaap
+    - input_datetime.pixellastlitterboxvisit
     - sensor.buiten_postnl_brieven
     - sensor.buiten_postnl_inkomende_pakketten
     - sensor.buiten_postnl_bezorgde_pakketten
@@ -648,6 +650,12 @@ weather_hero:
     @keyframes hero-hop-x { from { transform: translateX(0); } to { transform: translateX(130vw); } }
     @keyframes hero-hop-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
     @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
+    @keyframes hero-zoom { from { left: 10%; } to { left: 92%; } }
+    @keyframes hero-zoom-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+    @keyframes hero-zoom-hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes hero-zoom-puff { 0% { transform: translate(0, 0) scale(0.5); opacity: 0.7; } 100% { transform: translate(-14px, -4px) scale(1.6); opacity: 0; } }
+    @keyframes hero-spin { to { transform: rotate(360deg); } }
+    @keyframes hero-jaap { from { transform: translateX(0); } to { transform: translateX(2.6px); } }
   custom_fields:
     sky: |
       [[[
@@ -697,6 +705,11 @@ weather_hero:
             if (scenario === 'pakketje gemist') set('sensor.buiten_postnl_inkomende_pakketten', '1', { parcels: [{ carrier: 'PostNL', sender: 'Happyshopper', status: 'failed', delivered: false, planned_from: at(-90), planned_to: at(-30) }] });
             if (scenario === 'pakketje bij afhaalpunt') set('sensor.buiten_dhl_bezorgde_pakketten', '1', { parcels: [{ carrier: 'DHL', sender: 'Zalando', status: 'delivered', delivered: true, pickup: true, delivered_at: at(-20) }] });
           } else window.huisTestVan = null;
+          if (scenario === 'stofzuiger aan') set('vacuum.jaap', 'cleaning');
+          if (scenario === 'pixel gekke 10 minuten') {
+            const d = new Date(Date.now() - 60000), p = n => String(n).padStart(2, '0');
+            set('input_datetime.pixellastlitterboxvisit', `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`);
+          }
           if (scenario.startsWith('code ')) {
             const code = scenario.slice(5);
             set('binary_sensor.weer_thuis_waarschuwing_actief', 'on');
@@ -732,7 +745,7 @@ weather_hero:
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit',
             ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
@@ -1031,6 +1044,7 @@ weather_hero:
         };
         // lit: licht achter het raam (anders donker glas), smoke: rook uit de schoorsteen,
         // tv: blauw flikkerend tv-licht achter het raam, music: muzieknootjes die van het dak opstijgen,
+        // vacuum: Jaap (de stofzuiger) is aan het zuigen: hij rijdt achter het raam heen en weer en er stijgen glinsterende sterretjes op
         // airing: het raam staat open en het gordijn waait naar buiten (warm weer en iemand thuis, in plaats van rook)
         // Pieten in kleurrijk pak met kraag en pluim (voor Sinterklaas): met de cadeauzak, of zwaaiend
         const piet = (suit, accent, sack) => `
@@ -1083,14 +1097,14 @@ weather_hero:
               }`;
         // deco: 'kerst' (lichtjes langs het dak en een krans op de deur) of 'sinterklaas' (een Piet die uit de schoorsteen gluurt)
         // curtains: de gordijnen zijn dicht (op vakantie)
-        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null, curtains = false } = {}) => {
+        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null, curtains = false, vacuum = false } = {}) => {
           const top = groundTop(x);
           const glow = !lit ? (day ? 'rgba(70,82,104,0.75)' : 'rgb(18,22,34)') : day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
           let puffs = '';
           if (chimney && smoke) for (let i = 0; i < 4; i++) puffs += `<circle cx="17.5" cy="1.5" r="${1.3 + i * 0.3}" fill="rgba(236,240,247,${day ? 0.8 : 0.45})"
               style="transform-box:fill-box;transform-origin:center;animation:hero-chimney-smoke 5s ease-out ${-i * 1.25}s infinite"/>`;
           let notes = '';
-          if (music) ['♪', '♫', '♪', '♬'].forEach((n, i) => {
+          if (music || vacuum) (vacuum && !music ? ['✦', '✧', '✦', '✧'] : ['♪', '♫', '♪', '♬']).forEach((n, i) => {
             notes += `<text x="${4 + (i % 2) * 2.5}" y="10" font-size="${4.8 + (i % 2) * 0.8}" font-weight="700" fill="${['#ffe08a', '#a7f3d0', '#c4b5fd', '#fda4af'][i]}"
                 style="transform-box:fill-box;transform-origin:center;animation:hero-note 3.2s ease-out ${(-i * 0.8).toFixed(1)}s infinite;
                 filter:drop-shadow(0 0 0.6px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(0,0,0,0.35))">${n}</text>`;
@@ -1101,6 +1115,10 @@ weather_hero:
                     ${wintry ? `<path d="M2 11 L12 3 L22 11 L20.5 11 L12 4.6 L3.5 11 Z" fill="${snowCap}"/>` : ''}
                     <rect x="4" y="11" width="16" height="11" fill="${night('rgb(168,140,112)')}"/>
                     <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day || !lit ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>
+                    ${vacuum ? `<clipPath id="jaap-window"><rect x="7" y="14" width="4" height="4"/></clipPath>
+                      <g clip-path="url(#jaap-window)"><g style="animation:hero-jaap 2.6s ease-in-out infinite alternate"><ellipse cx="8.5" cy="17.3" rx="1" ry="0.45" fill="#2b2d35"/>
+                      <ellipse cx="8.5" cy="17.15" rx="0.75" ry="0.25" fill="none" stroke="#7ee787" stroke-width="0.16" style="animation:hero-twinkle 1s ease-in-out infinite"/></g></g>
+                      <rect x="7" y="14" width="4" height="4" fill="none" stroke="#7ee787" stroke-width="0.25" style="animation:hero-twinkle 1.6s ease-in-out infinite"/>` : ''}
                     ${tv ? `<rect x="7" y="14" width="4" height="4" style="animation:hero-tv 2.6s steps(6) infinite;opacity:${day ? 0.75 : 0.95};
                       filter:drop-shadow(0 0 ${day ? 1.5 : 3}px #6fa8ff)"/>` : ''}
                     ${airing ? `<path d="M7.2 14 Q4.4 15.4 5.2 18.6 Q6.6 17.6 8.2 18.2 Q7.8 16.2 9.6 14 Z" fill="rgba(255,255,255,0.92)"
@@ -1151,7 +1169,7 @@ weather_hero:
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
                 stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
           scene += house(homeX, 78, true, { lit: occupied, smoke: stoking, tv: tvOn, music: musicOn, airing: occupied && temperature >= 20 && !tvOn,
-            deco: theme, curtains: closedUp });
+            deco: theme, curtains: closedUp, vacuum: states['vacuum.jaap']?.state === 'cleaning' });
         }
         // Wat achter het huis langs loopt (Sinterklaas en zijn Piet) komt op deze plek in de tekening, vóór het huis en de bomen
         out += '<!--achter-het-huis-->' + scene;
@@ -1738,6 +1756,11 @@ weather_hero:
           return { start: Math.max(0, until - 600), end: until };   // seconden vanaf nu
         })();
 
+        // ---------- Pixel heeft zijn "gekke 10 minuten": na een bezoek aan de kattenbak (input_datetime.pixellastlitterboxvisit, gezet door NetDaemon) ----------
+        const visitMs = new Date(String(states['input_datetime.pixellastlitterboxvisit']?.state ?? '').replace(' ', 'T')).getTime();
+        const zoomiesLeftS = isNaN(visitMs) || visitMs > Date.now() + 60000 ? 0 : (visitMs + 600000 - Date.now()) / 1000;
+        const zoomies = zoomiesLeftS > 5;
+
         // ---------- Een zwarte kat met een wit plekje in zijn nek dwaalt over de stoep ----------
         // Elke keer dat de kaart tekent kiest hij een nieuwe route van een minuut: lopen naar een willekeurig punt, even
         // stilstaan, weer verder. Bij het lopen zwaaien de pootjes heen en weer; bij stilstaan staan ze recht.
@@ -1863,7 +1886,7 @@ weather_hero:
               @keyframes hero-cat-standing { ${standing} }
             </style>
             <div style="position:absolute;bottom:${roadH + 1}%;left:50%;width:68px;height:42px;margin-left:-34px;pointer-events:none;z-index:1;
-                animation:hero-cat-move ${total}s linear ${catDelay}s infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}">
+                animation:hero-cat-move ${total}s linear ${catDelay}s infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}${zoomies ? `, hero-cat-hide ${zoomiesLeftS.toFixed(0)}s linear 0s 1` : ''}">
               <svg viewBox="0 -4 104 64" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear ${catDelay}s infinite;
                   filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 3px rgba(255,255,255,0.15))'}">
                 <ellipse cx="50" cy="58.6" rx="30" ry="2.2" fill="rgba(0,0,0,0.25)"/>
@@ -1920,6 +1943,32 @@ weather_hero:
               </svg>
             </div>`;
           }
+        }
+
+        // ---------- Gekke 10 minuten: Pixel racet over de stoep heen en weer, met stofwolkjes en snelheidsstrepen ----------
+        // Het gewone katje verdwijnt zolang het duurt (zie de animatie op zijn element) en komt daarna vanzelf terug.
+        if (zoomies) {
+          const fur = day ? '#24242d' : '#1d1d26';
+          out += `<div style="position:absolute;left:0;right:0;bottom:${roadH + 1}%;height:44px;pointer-events:none;z-index:2;opacity:0;
+              animation:hero-cat-show ${zoomiesLeftS.toFixed(0)}s linear 0s 1">
+            <div style="position:absolute;left:0;bottom:0;width:62px;height:34px;margin-left:-31px;animation:hero-zoom 1.7s cubic-bezier(0.45,0,0.55,1) infinite alternate">
+              <div style="width:100%;height:100%;animation:hero-zoom-hop 0.42s ease-in-out infinite">
+                <svg viewBox="0 0 80 40" style="width:100%;height:100%;overflow:visible;animation:hero-zoom-flip 3.4s steps(1) infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))">
+                  <path d="M-12 14 H-2 M-16 22 H-4 M-10 30 H0" stroke="rgba(255,255,255,0.55)" stroke-width="1.6" stroke-linecap="round"/>
+                  ${[0, 1, 2].map(i => `<circle cx="${6 - i * 6}" cy="${33 - i}" r="${3 + i}" fill="rgba(235,230,220,0.7)"
+                    style="transform-box:fill-box;transform-origin:center;animation:hero-zoom-puff 0.55s ease-out ${(-i * 0.18).toFixed(2)}s infinite"/>`).join('')}
+                  <path d="M16 20 Q4 14 6 4" stroke="${fur}" stroke-width="4.4" fill="none" stroke-linecap="round"/>
+                  <path d="M14 21 C20 12 44 12 52 18 L58 23 C60 29 52 31 46 30 L22 30 C14 29 10 25 14 21 Z" fill="${fur}"/>
+                  <path d="M50 27 L65 33 M45 29 L58 36 M24 28 L9 33 M29 29 L15 36" stroke="${fur}" stroke-width="4.4" stroke-linecap="round"/>
+                  <circle cx="62" cy="17" r="8.4" fill="${fur}"/>
+                  <path d="M55 12 L49 5 L59 9 Z M65 9.5 L64 1 L70 8.6 Z" fill="${fur}"/>
+                  <ellipse cx="61" cy="25" rx="3.6" ry="2.6" fill="#ececf0"/>
+                  <ellipse cx="66.4" cy="16" rx="3" ry="3.4" fill="${day ? '#cfe36a' : '#b9cc5a'}"/><ellipse cx="67" cy="16" rx="1.5" ry="2.8" fill="#050507"/>
+                  <ellipse cx="70.6" cy="20.6" rx="1.4" ry="1" fill="#e59aac"/>
+                </svg>
+              </div>
+            </div>
+          </div>`;
         }
 
         // ---------- De was hangt buiten: waslijn met wapperende was (harder bij wind, druppels bij regen) ----------

@@ -99,7 +99,12 @@ public class Cat : BaseApp
         Entities.Sensor.SnowSelfCleaningLitterBoxNumberOfExcretion
             .StateChanges()
             .Where(x => int.TryParse(x.New?.State, out var now) && int.TryParse(x.Old?.State, out var before) && now > before)
-            .Subscribe(_ => Entities.Counter.Petsnowylitterboxpixelinit.Increment());
+            .Subscribe(_ =>
+            {
+                Entities.Counter.Petsnowylitterboxpixelinit.Increment();
+                HaContext.CallService("input_datetime", "set_datetime", ServiceTarget.FromEntity("input_datetime.pixellastlitterboxvisit"),
+                    new { timestamp = Scheduler.Now.ToUnixTimeSeconds() });
+            });
         Entities.BinarySensor.SnowSelfCleaningLitterBoxNotificationEmptyComplete
             .WhenTurnsOn(_ => Entities.Counter.Petsnowylitterboxemptying.Increment());
     }

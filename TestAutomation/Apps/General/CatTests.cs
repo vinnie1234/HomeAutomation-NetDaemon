@@ -63,6 +63,7 @@ public class CatTests
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxpixelinit", times: 1);
+        _ctx.VerifyCallService("input_datetime", "set_datetime", "pixellastlitterboxvisit", times: 1);
     }
     
     [Fact]
