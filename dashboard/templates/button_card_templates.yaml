@@ -705,9 +705,12 @@ weather_hero:
             if (scenario === 'pakketje gemist') set('sensor.buiten_postnl_inkomende_pakketten', '1', { parcels: [{ carrier: 'PostNL', sender: 'Happyshopper', status: 'failed', delivered: false, planned_from: at(-90), planned_to: at(-30) }] });
             if (scenario === 'pakketje bij afhaalpunt') set('sensor.buiten_dhl_bezorgde_pakketten', '1', { parcels: [{ carrier: 'DHL', sender: 'Zalando', status: 'delivered', delivered: true, pickup: true, delivered_at: at(-20) }] });
           } else window.huisTestVan = null;
+          if (scenario !== 'pixel gekke 10 minuten') window.huisTestZoom = null;
           if (scenario === 'stofzuiger aan') set('vacuum.jaap', 'cleaning');
           if (scenario === 'pixel gekke 10 minuten') {
-            const d = new Date(Date.now() - 60000), p = n => String(n).padStart(2, '0');
+            // Vast vanaf het moment dat het scenario gekozen werd; met een tijd die steeds meeschuift tekent de kaart bij elke update opnieuw
+            if (window.huisTestZoom?.scenario !== scenario) window.huisTestZoom = { scenario, t0: Date.now() - 60000 };
+            const d = new Date(window.huisTestZoom.t0), p = n => String(n).padStart(2, '0');
             set('input_datetime.pixellastlitterboxvisit', `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`);
           }
           if (scenario.startsWith('code ')) {
