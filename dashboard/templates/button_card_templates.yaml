@@ -962,13 +962,22 @@ weather_hero:
           : day ? mix([22, 30, 38], seasonGround, 0.55) : mix([4, 6, 12], seasonGround, 0.18);
         const snowCap = day ? 'rgba(240,246,255,0.92)' : 'rgba(170,185,215,0.55)';
         const layers3 = [[62, 6, 11, 1.3, 0.35], [74, 5, 8, 4.1, 0.65], [86, 4, 6, 2.2, 0.9]];
-        out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:38%">
+        // Onderaan de kaart loopt de straat (stoep + weg, samen streetH % hoog); het landschap staat daarboven
+        const roadH = 10, streetH = 18;
+        out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:${streetH}%;width:100%;height:38%">
             ${layers3.map(([b, a, f, p, m]) => hill(b, a, f, p, rgb(mix(bottom, ground, m)))).join('')}
           </svg>`;
 
         // Bomen en huizen op de voorste heuvel (HTML, zodat ze niet mee uitrekken met de heuvel)
-        const groundTop = x => 62 + hillY(x, 86, 4, 6, 2.2) * 0.38;  // in % van de kaarthoogte
+        const groundTop = x => 62 - streetH + hillY(x, 86, 4, 6, 2.2) * 0.38;  // in % van de kaarthoogte
         const night = c => day ? c : rgb(mix(c.match(/\d+/g).map(Number), [5, 8, 18], 0.65));
+        // De straat: een stoeptegelstrook met een stoeprand, en daarvoor de weg met een gestippelde middenlijn
+        out += `<div style="position:absolute;left:0;right:0;bottom:${roadH}%;height:${streetH - roadH}%;background:${night(wintry ? 'rgb(214,220,230)' : 'rgb(176,170,160)')}">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg, transparent 0 31px, rgba(0,0,0,0.13) 31px 32px)"></div></div>
+          <div style="position:absolute;left:0;right:0;bottom:${roadH}%;height:3px;background:${night('rgb(208,203,194)')};box-shadow:0 1px 0 rgba(0,0,0,0.3)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:${roadH}%;background:linear-gradient(${night('rgb(78,80,88)')}, ${night('rgb(52,54,62)')})">
+            <div style="position:absolute;left:0;right:0;top:50%;height:2px;opacity:0.75;
+              background:repeating-linear-gradient(90deg, ${night('rgb(232,232,226)')} 0 24px, transparent 24px 52px)"></div></div>`;
         const crowns = { lente: ['rgb(249,197,213)', 'rgb(253,226,234)', 'rgb(240,170,195)'], pasen: ['rgb(249,197,213)', 'rgb(253,236,200)', 'rgb(214,236,190)'],
                          zomer: ['rgb(47,107,58)', 'rgb(62,128,66)', 'rgb(38,92,50)'], herfst: ['rgb(217,105,43)', 'rgb(184,68,42)', 'rgb(224,160,48)'] }[theme];
         const tree = (x, size) => {
@@ -1118,7 +1127,7 @@ weather_hero:
         const homeX = 54;
         {
           const pathTop = 100 - groundTop(homeX + 0.6) - 0.5;  // % boven de onderrand, bij de voordeur
-          scene += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;width:100%;height:${pathTop}%;pointer-events:none">
+          scene += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:${streetH}%;width:100%;height:${pathTop - streetH}%;pointer-events:none">
               <path d="M${homeX + 0.1} 0 L${homeX + 1.6} 0 C${homeX + 2.6} 30 ${homeX + 9} 55 ${homeX + 12} 100 L${homeX + 2.4} 100 C${homeX + 2.2} 60 ${homeX - 0.6} 34 ${homeX + 0.1} 0 Z"
                 fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
@@ -1479,6 +1488,17 @@ weather_hero:
         // (voeten voor en achter), zwarte A-, B- en C-stijl met de ventilatiesleuven achter, korte steile neus, dikke zwarte
         // spatbordranden, zwarte onderbumpers, een zilveren strip op de dorpel en tweekleurige velgen met vijf spaken.
         // De coordinaten zijn beeldpunten van die foto (viewBox 86 230 1316 548).
+        // De oprit zelf ligt er altijd: een stuk asfalt voor de auto en een helling (verlaagde stoeprand) naar de stoep.
+        const driveway = homeX - 18;
+        {
+          const asphalt = dim('rgb(128,124,120)');
+          const rampH = groundBottom(driveway) - 1.7 - streetH + 0.6;
+          out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:${driveway}%;bottom:${streetH - 0.3}%;width:64px;height:${rampH}%;
+              transform:translateX(-50%);pointer-events:none"><path d="M12 0 L88 0 L100 100 L0 100 Z" fill="${asphalt}"/></svg>`;
+          out += svgAt(driveway, groundBottom(driveway) - 1.7, 112, 8, '0 0 100 8',
+            `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${asphalt}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${dim('rgb(150,146,142)')}" stroke-width="0.4" fill="none"/>`,
+            'pointer-events:none');
+        }
         if (states['device_tracker.buiten_peugeot_2008_voertuig']?.state === 'home') {
           const k = (r, g, b) => dim(`rgb(${r},${g},${b})`);
           const outline = 'M140 662 L93 616 L92 566 L112 548 L118 520 L116 446 L126 398 L244 290 L250 272 L330 262 L790 262 Q825 266 852 288 L1042 366 L1250 416 Q1305 430 1336 452 Q1364 470 1374 494 L1395 560 L1397 620 L1392 652 Q1388 674 1370 674 L205 674 Z';
@@ -1493,10 +1513,6 @@ weather_hero:
               ${[0, 72, 144, 216, 288].map(a => `<path transform="rotate(${a})" d="M-13 -22 L-27 -76 L27 -76 L13 -22 Z" fill="${k(188, 194, 200)}" stroke="${k(18, 19, 21)}" stroke-width="5" stroke-linejoin="round"/>`).join('')}
               <circle r="17" fill="${k(60, 64, 70)}" stroke="${silver}" stroke-width="3"/>
             </g>`;
-          const driveway = homeX - 18;
-          out += svgAt(driveway, groundBottom(driveway) - 1.7, 112, 8, '0 0 100 8',
-            `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${k(128, 124, 120)}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${k(150, 146, 142)}" stroke-width="0.4" fill="none"/>`,
-            'pointer-events:none');
           out += svgAt(driveway, groundBottom(driveway) - 1.2, 88, 36.6, '86 230 1316 548', `
             <defs>
               <clipPath id="peugeot-clip"><path d="${outline}"/></clipPath>
@@ -1543,6 +1559,95 @@ weather_hero:
             'pointer-events:none;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))');
         }
 
+        // ---------- Bezorgbusjes: het busje van de vervoerder rijdt op de weg aan naarmate het bezorgvenster van een pakketje nadert ----------
+        // Vanaf 45 minuten voor het venster kruipt het busje van links het beeld in (hoe dichterbij het is, hoe eerder de post komt),
+        // de laatste minuut rijdt het naar het huis en blijft dan met knipperlichten staan tot het venster voorbij is. Is het pakketje
+        // bezorgd, dan rijdt het busje weg. De tijden lopen via CSS-animaties met een vertraging vanaf nu (net als bij de kat), dus de
+        // kaart hoeft niet opnieuw te tekenen om het busje te laten rijden.
+        {
+          const style = {
+            postnl: { name: 'PostNL', body: '#f97316', band: '#c2410c', text: '#ffffff' },
+            dhl: { name: 'DHL', body: '#facc15', band: '#d40511', text: '#d40511' },
+            dpd: { name: 'dpd', body: '#4b5563', band: '#dc0032', text: '#ffffff' },
+            gls: { name: 'GLS', body: '#1d4ed8', band: '#facc15', text: '#fde047' }
+          };
+          // dim() kent alleen rgb(): de kleuren hierboven zijn hex
+          const tone = hex => dim(`rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(',')})`);
+          const crawlS = 45 * 60, driveS = 60, leaveS = 60;
+          const nowMs = Date.now();
+          const timeOf = v => { const t = new Date(v).getTime(); return isNaN(t) ? null : t; };
+          const clock = ms => new Date(ms).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+          const slots = [homeX + 8, homeX - 6, homeX + 22, homeX - 20];   // waar het busje stopt, per busje een eigen plek
+          const vans = [];
+          for (const [key] of carriers) {
+            const incoming = (states[`sensor.buiten_${key}_inkomende_pakketten`]?.attributes?.parcels ?? [])
+              .filter(p => parcelDay(p) === todayIso && !p.pickup && !p.delivered);
+            const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? [])
+              .filter(p => !p.pickup && timeOf(p.delivered_at) !== null && nowMs - timeOf(p.delivered_at) < 2 * 60000 && nowMs >= timeOf(p.delivered_at));
+            // Het eerstvolgende venster van dit merk; zonder venster maar onderweg: over een paar minuten bij het huis
+            const withWindow = incoming.map(p => ({ p, from: timeOf(p.planned_from), to: timeOf(p.planned_to) })).filter(v => v.from !== null)
+              .sort((a, b) => a.from - b.from).find(v => (v.to ?? v.from + 3600000) + 10 * 60000 > nowMs);
+            const onTheWay = incoming.find(p => p.status === 'out_for_delivery');
+            if (withWindow) vans.push({ key, from: withWindow.from, to: withWindow.to ?? withWindow.from + 3600000, sender: withWindow.p.sender, timed: true });
+            else if (onTheWay) vans.push({ key, from: nowMs + 5 * 60000, to: nowMs + 65 * 60000, sender: onTheWay.sender, timed: false });
+            else if (delivered.length) vans.push({ key, leaving: timeOf(delivered[0].delivered_at), sender: delivered[0].sender });
+          }
+          vans.slice(0, 4).forEach((van, i) => {
+            const s = style[van.key], stop = slots[i];
+            let keyframes, total, delay, hazard = '', spin = '';
+            if (van.leaving) {
+              // Net bezorgd: het busje start bij het huis en rijdt naar rechts weg
+              total = leaveS; delay = (van.leaving - nowMs) / 1000;
+              keyframes = `0% { left: ${stop}%; animation-timing-function: ease-in; } 100% { left: 130%; }`;
+              spin = `0%, 8% { transform: rotate(0deg); } 100% { transform: rotate(${leaveS * 2 * 360}deg); }`;
+            } else {
+              const holdS = Math.max(120, (van.to - van.from) / 1000);
+              total = crawlS + driveS + holdS + leaveS;
+              delay = (van.from - nowMs) / 1000 - crawlS - driveS;
+              const p = v => (v / total * 100).toFixed(3);
+              keyframes = `0% { left: -30%; } ${p(crawlS)}% { left: ${stop - 12}%; animation-timing-function: ease-out; }
+                ${p(crawlS + driveS)}% { left: ${stop}%; } ${p(crawlS + driveS + holdS)}% { left: ${stop}%; animation-timing-function: ease-in; } 100% { left: 130%; }`;
+              spin = `0%, ${p(crawlS)}% { transform: rotate(0deg); } ${p(crawlS + driveS)}% { transform: rotate(${driveS * 2 * 360}deg); }
+                ${p(crawlS + driveS + holdS)}% { transform: rotate(${driveS * 2 * 360}deg); } 100% { transform: rotate(${(driveS + leaveS) * 2 * 360}deg); }`;
+              hazard = `0%, ${p(crawlS + driveS)}% { opacity: 0; } ${(+p(crawlS + driveS) + 0.01).toFixed(3)}%, ${p(crawlS + driveS + holdS)}% { opacity: 1; } ${(+p(crawlS + driveS + holdS) + 0.01).toFixed(3)}%, 100% { opacity: 0; }`;
+            }
+            const id = `hero-van-${i}`;
+            const wheel = cx => `<g style="transform-origin:${cx}px 32px;transform-box:view-box;animation:${id}-spin ${total.toFixed(1)}s linear ${delay.toFixed(1)}s 1 both">
+                <circle cx="${cx}" cy="32" r="5.6" fill="${tone('#16161c')}"/><circle cx="${cx}" cy="32" r="2.6" fill="${tone('#aeb4bd')}"/>
+                <path d="M${cx - 5} 32 H${cx + 5} M${cx} 27 V37" stroke="${tone('#16161c')}" stroke-width="1.1"/></g>`;
+            const label = van.timed && van.to ? `${clock(van.from)}–${clock(van.to)}${van.sender ? ' · ' + String(van.sender).slice(0, 16) : ''}`
+              : van.leaving ? `${s.name} bezorgd` : `${s.name} onderweg`;
+            out += `<style>
+                @keyframes ${id} { ${keyframes} }
+                @keyframes ${id}-spin { ${spin} }
+                ${hazard ? `@keyframes ${id}-hazard { ${hazard} }` : ''}
+              </style>
+              <div style="position:absolute;bottom:1%;left:-30%;width:0;height:0;z-index:2;pointer-events:none;
+                  animation:${id} ${total.toFixed(1)}s linear ${delay.toFixed(1)}s 1 both">
+                <div style="position:absolute;bottom:0;left:0;transform:translateX(-50%);width:66px;height:32px">
+                  <svg viewBox="0 0 84 40" style="width:100%;height:100%;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.4))">
+                    <ellipse cx="42" cy="38.4" rx="39" ry="1.8" fill="rgba(0,0,0,0.3)"/>
+                    <path d="M3 6.5 Q3 4 5.5 4 L52 4 L52 31 L3 31 Z" fill="${tone(s.body)}"/>
+                    <rect x="3" y="25.5" width="49" height="3.2" fill="${tone(s.band)}"/>
+                    <text x="27.5" y="18" text-anchor="middle" font-size="${s.name.length > 4 ? 9.5 : 11}" font-weight="800" font-family="Arial, sans-serif" fill="${tone(s.text)}">${s.name}</text>
+                    <path d="M52 8 L66 8 Q70 8 72.5 12.5 L79 22 Q82 25 82 28 L82 31 L52 31 Z" fill="${tone(s.body)}"/>
+                    <path d="M56 11.2 L65.4 11.2 Q67.8 11.2 69.2 13.8 L74.6 22 L56 22 Z" fill="${tone('#a5c8e8')}"/>
+                    <path d="M56 11.2 L65.4 11.2 L58.6 22 L56 22 Z" fill="rgba(255,255,255,0.28)"/>
+                    <rect x="52" y="25.5" width="30" height="2.4" fill="${tone(s.band)}"/>
+                    <rect x="79" y="25.6" width="3.2" height="2.8" rx="0.6" fill="${day ? '#fde68a' : '#fff7c2'}" style="${day ? '' : 'filter:drop-shadow(0 0 3px #fff3a3)'}"/>
+                    <rect x="1.5" y="29" width="5" height="3" rx="1" fill="${tone('#2a2a32')}"/><rect x="79" y="29.4" width="4.5" height="2.6" rx="1" fill="${tone('#2a2a32')}"/>
+                    ${wheel(17)}${wheel(66)}
+                    ${hazard ? `<g style="animation:${id}-hazard ${total.toFixed(1)}s steps(1) ${delay.toFixed(1)}s 1 both">
+                      <g style="animation:hero-twinkle 0.7s steps(2) infinite"><circle cx="2.4" cy="21" r="2.1" fill="#fb923c"/><circle cx="80.6" cy="21" r="2.1" fill="#fb923c"/>
+                      <circle cx="2.4" cy="21" r="4.6" fill="#fb923c" opacity="0.35"/><circle cx="80.6" cy="21" r="4.6" fill="#fb923c" opacity="0.35"/></g></g>` : ''}
+                  </svg>
+                  <div style="position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:3px;white-space:nowrap;padding:1px 7px;border-radius:9px;
+                      font-size:10px;line-height:15px;font-weight:600;color:#fff;background:rgba(15,18,28,0.62);backdrop-filter:blur(3px);border-left:3px solid ${s.body}">${label}</div>
+                </div>
+              </div>`;
+          });
+        }
+
         // ---------- Afval dat vandaag of morgen buiten moet: PMD-zakken of de blauwe kliko, klein op de stoep ----------
         const bins = [];
         for (const [sensor, when] of [['sensor.afval_vandaag', 'vandaag'], ['sensor.afval_morgen', 'morgen']]) {
@@ -1562,7 +1667,7 @@ weather_hero:
                <circle cx="9" cy="31" r="2" fill="#1f2937"/><circle cx="21" cy="31" r="2" fill="#1f2937"/>`;
           // Op de voorgrond (de stoep) onderaan de kaart: bomen en huizen staan hoger, op de heuvelrand, dus daar staat nooit iets voor.
           // Aan het eind van het tuinpad langs de weg.
-          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:calc(max(${homeX + 15}%, 250px) + ${i * 28}px);bottom:2%;
+          out += `<svg viewBox="0 0 32 40" style="position:absolute;left:calc(max(${homeX + 15}%, 250px) + ${i * 28}px);bottom:${roadH + 1.5}%;
               width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'morgen' ? 0.75 : 1};
               filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
               <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
@@ -1710,7 +1815,7 @@ weather_hero:
               @keyframes hero-cat-walking { ${walking} }
               @keyframes hero-cat-standing { ${standing} }
             </style>
-            <div style="position:absolute;bottom:2%;left:50%;width:68px;height:42px;margin-left:-34px;pointer-events:none;z-index:1;
+            <div style="position:absolute;bottom:${roadH + 1}%;left:50%;width:68px;height:42px;margin-left:-34px;pointer-events:none;z-index:1;
                 animation:hero-cat-move ${total}s linear ${catDelay}s infinite${feedWindow ? `, hero-cat-hide ${(feedWindow.end - feedWindow.start).toFixed(0)}s linear ${feedWindow.start.toFixed(0)}s 1` : ''}">
               <svg viewBox="0 -4 104 64" style="width:100%;height:100%;overflow:visible;animation:hero-cat-face ${total}s linear ${catDelay}s infinite;
                   filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35))${day ? '' : ' drop-shadow(0 0 3px rgba(255,255,255,0.15))'}">
