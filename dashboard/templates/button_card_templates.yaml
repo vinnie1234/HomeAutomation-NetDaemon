@@ -1629,8 +1629,6 @@ weather_hero:
             const wheel = cx => `<g style="transform-origin:${cx}px 32px;transform-box:view-box;animation:${id}-spin ${total.toFixed(1)}s linear ${delay.toFixed(1)}s 1 both">
                 <circle cx="${cx}" cy="32" r="5.6" fill="${tone('#16161c')}"/><circle cx="${cx}" cy="32" r="2.6" fill="${tone('#aeb4bd')}"/>
                 <path d="M${cx - 5} 32 H${cx + 5} M${cx} 27 V37" stroke="${tone('#16161c')}" stroke-width="1.1"/></g>`;
-            const label = van.timed && van.to ? `${clock(van.from)}–${clock(van.to)}${van.sender ? ' · ' + String(van.sender).slice(0, 16) : ''}`
-              : van.leaving ? `${s.name} bezorgd` : `${s.name} onderweg`;
             out += `<style>
                 @keyframes ${id} { ${keyframes} }
                 @keyframes ${id}-spin { ${spin} }
@@ -1655,8 +1653,6 @@ weather_hero:
                       <g style="animation:hero-twinkle 0.7s steps(2) infinite"><circle cx="2.4" cy="21" r="2.1" fill="#fb923c"/><circle cx="80.6" cy="21" r="2.1" fill="#fb923c"/>
                       <circle cx="2.4" cy="21" r="4.6" fill="#fb923c" opacity="0.35"/><circle cx="80.6" cy="21" r="4.6" fill="#fb923c" opacity="0.35"/></g></g>` : ''}
                   </svg>
-                  <div style="position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:3px;white-space:nowrap;padding:1px 7px;border-radius:9px;
-                      font-size:10px;line-height:15px;font-weight:600;color:#fff;background:rgba(15,18,28,0.62);backdrop-filter:blur(3px);border-left:3px solid ${s.body}">${label}</div>
                 </div>
               </div>`;
           });
