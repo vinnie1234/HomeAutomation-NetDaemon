@@ -30,6 +30,8 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(Tv.TurnOnDelay.Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
         // Assert
@@ -81,6 +83,8 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(Tv.TurnOnDelay.Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
         // Assert
@@ -103,6 +107,8 @@ public class TvTests
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(Tv.TurnOnDelay.Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
         // Assert
@@ -119,6 +125,8 @@ public class TvTests
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(Tv.TurnOnDelay.Ticks);
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
@@ -137,6 +145,8 @@ public class TvTests
 
         // Act
         ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(Tv.TurnOnDelay.Ticks);
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
@@ -289,5 +299,26 @@ public class TvTests
         ctx.VerifyNotCallService("media_player.turn_off");
         ctx.VerifyNotCallService("switch.turn_off");
     }
-}
 
+    [Fact]
+    public void TvFlashesOn_ForAFewSeconds_DoesNotStartTheMovieScene()
+    {
+        // Arrange - the TV reported "on" for 15 seconds without anyone switching it on
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.InitApp<Tv>();
+
+        // Act
+        ctx.ChangeStateFor("media_player.tv").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(TimeSpan.FromSeconds(15).Ticks);
+        ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(1).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Assert - the lights stay as they were
+        ctx.VerifyNotCallService("light.turn_off");
+        ctx.VerifyNotCallService("scene.turn_on");
+    }
+}

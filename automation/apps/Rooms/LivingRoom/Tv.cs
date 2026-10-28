@@ -20,6 +20,12 @@ public class Tv : BaseApp
     /// </summary>
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationlivingroom.IsOn();
 
+    /// <summary>How long the TV must stay on before the movie scene starts.</summary>
+    public static readonly TimeSpan TurnOnDelay = TimeSpan.FromSeconds(30);
+
+    private bool _tvIsOn;
+    private bool _turnOnPending;
+
     /// <summary>
     /// Whether a TV state means the TV is on.
     /// </summary>
@@ -41,13 +47,29 @@ public class Tv : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        // The TV also reports playing/paused/idle while it is on, not only "on"
+        // The TV also reports playing/paused/idle while it is on, not only "on". It sometimes flashes "on" for a few seconds without
+        // anyone switching it on (the lights then went out for no reason), so the movie scene only starts when it stays on.
+        Entities.MediaPlayer.Tv.StateChanges().Subscribe(x => _tvIsOn = IsTvOnState(x.New?.State));
         Entities.MediaPlayer.Tv.StateChanges()
             .Where(x => x.Old?.State == "off" && IsTvOnState(x.New?.State))
+            .Do(_ => _turnOnPending = true)
+            .Select(_ => Observable.Timer(TurnOnDelay, Scheduler))
+            .Switch()
+            .Do(_ => _turnOnPending = false)
+            .Where(_ => _tvIsOn)
             .Subscribe(_ => MovieTime());
         Entities.MediaPlayer.Tv.StateChanges()
             .Where(x => IsTvOnState(x.Old?.State) && x.New?.State == "off")
-            .Subscribe(_ => LetThereBeLight());
+            .Subscribe(_ =>
+            {
+                // It went off again before the movie scene started: the lights were never touched, so leave them
+                if (_turnOnPending)
+                {
+                    _turnOnPending = false;
+                    return;
+                }
+                LetThereBeLight();
+            });
 
         // Green is broken, red is always good
         Entities.Light.Bank
