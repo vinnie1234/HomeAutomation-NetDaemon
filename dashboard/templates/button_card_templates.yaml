@@ -511,6 +511,8 @@ weather_hero:
     - device_tracker.buiten_peugeot_2008_voertuig
     - vacuum.jaap
     - input_datetime.pixellastlitterboxvisit
+    - sensor.thuis_3_voertuig_direction_of_travel
+    - sensor.thuis_3_voertuig_afstand
     - sensor.buiten_postnl_brieven
     - sensor.buiten_postnl_inkomende_pakketten
     - sensor.buiten_postnl_bezorgde_pakketten
@@ -706,6 +708,14 @@ weather_hero:
             if (scenario === 'pakketje bij afhaalpunt') set('sensor.buiten_dhl_bezorgde_pakketten', '1', { parcels: [{ carrier: 'DHL', sender: 'Zalando', status: 'delivered', delivered: true, pickup: true, delivered_at: at(-20) }] });
           } else window.huisTestVan = null;
           if (scenario !== 'pixel gekke 10 minuten') window.huisTestZoom = null;
+          if (scenario === 'auto komt thuis') {
+            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('sensor.thuis_3_voertuig_direction_of_travel', 'towards');
+            set('sensor.thuis_3_voertuig_afstand', '1800'); set('sensor.buiten_peugeot_2008_snelheid', '30');
+          }
+          if (scenario === 'auto rijdt weg') {
+            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('sensor.thuis_3_voertuig_direction_of_travel', 'away_from');
+            set('sensor.thuis_3_voertuig_afstand', '1800');
+          }
           if (scenario === 'stofzuiger aan') set('vacuum.jaap', 'cleaning');
           if (scenario === 'pixel gekke 10 minuten') {
             // Vast vanaf het moment dat het scenario gekozen werd; met een tijd die steeds meeschuift tekent de kaart bij elke update opnieuw
@@ -745,10 +755,11 @@ weather_hero:
           // Welke vliegtuigen er in de buurt zijn (niet hun positie, die verandert steeds), en of het 18:00 / 20:00 geweest is
           (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3).map(f => f.id ?? f.flight_number ?? f.callsign).join(),
           new Date().getHours() >= 18, new Date().getHours() * 60 + new Date().getMinutes() >= 20 * 60 + 3,
+          Math.round(parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state) / 1000),
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel',
             ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
@@ -1539,7 +1550,23 @@ weather_hero:
             `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${asphalt}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${dim('rgb(150,146,142)')}" stroke-width="0.4" fill="none"/>`,
             'pointer-events:none');
         }
-        if (states['device_tracker.buiten_peugeot_2008_voertuig']?.state === 'home') {
+        // ---------- De auto komt naar huis: rijdt over de weg langzaam dichterbij, op basis van afstand en richting (proximity "Thuis 3") ----------
+        // Alleen als hij echt onderweg naar huis is ("towards"); rijdt hij ergens anders, dan is hij niet te zien. Eén lange animatie
+        // van nu tot aankomst (afstand / snelheid), zodat de kaart niet elke minuut opnieuw hoeft te tekenen. Is hij thuis, dan staat hij op de oprit.
+        const carHome = states['device_tracker.buiten_peugeot_2008_voertuig']?.state === 'home';
+        const carDistance = parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state);
+        const carComing = !carHome && states['sensor.thuis_3_voertuig_direction_of_travel']?.state === 'towards'
+          && carDistance > 0 && carDistance <= 3000;
+        let carX = driveway, carBottom = groundBottom(driveway) - 1.2, carAnim = '';
+        if (carComing) {
+          const roadX = d => -25 + (1 - Math.min(d, 3000) / 3000) * (driveway + 25);
+          const speedMs = Math.max(20, parseFloat(states['sensor.buiten_peugeot_2008_snelheid']?.state) || 0) / 3.6;
+          const arriveS = Math.max(15, carDistance / speedMs);
+          out += `<style>@keyframes hero-car-come { from { left: ${roadX(carDistance).toFixed(1)}%; } to { left: ${driveway}%; } }</style>`;
+          carX = roadX(carDistance); carBottom = 1.2;
+          carAnim = `;z-index:2;animation:hero-car-come ${arriveS.toFixed(0)}s linear 0s 1 both`;
+        }
+        if (carHome || carComing) {
           const k = (r, g, b) => dim(`rgb(${r},${g},${b})`);
           const outline = 'M140 662 L93 616 L92 566 L112 548 L118 520 L116 446 L126 398 L244 290 L250 272 L330 262 L790 262 Q825 266 852 288 L1042 366 L1250 416 Q1305 430 1336 452 Q1364 470 1374 494 L1395 560 L1397 620 L1392 652 Q1388 674 1370 674 L205 674 Z';
           const black = k(18, 19, 22), cladding = k(40, 42, 46), silver = k(206, 211, 217);
@@ -1553,7 +1580,7 @@ weather_hero:
               ${[0, 72, 144, 216, 288].map(a => `<path transform="rotate(${a})" d="M-13 -22 L-27 -76 L27 -76 L13 -22 Z" fill="${k(188, 194, 200)}" stroke="${k(18, 19, 21)}" stroke-width="5" stroke-linejoin="round"/>`).join('')}
               <circle r="17" fill="${k(60, 64, 70)}" stroke="${silver}" stroke-width="3"/>
             </g>`;
-          out += svgAt(driveway, groundBottom(driveway) - 1.2, 88, 36.6, '86 230 1316 548', `
+          out += svgAt(carX, carBottom, 88, 36.6, '86 230 1316 548', `
             <defs>
               <clipPath id="peugeot-clip"><path d="${outline}"/></clipPath>
               <linearGradient id="peugeot-paint" x1="0" y1="0" x2="0" y2="1">
@@ -1596,7 +1623,7 @@ weather_hero:
             <path d="M122 590 L150 590 L150 622 L122 622 Z" fill="${k(200, 30, 38)}"/>
             <path d="M1262 462 L1346 470 L1364 502 L1300 506 Z" fill="${k(22, 24, 28)}" stroke="${k(70, 74, 80)}" stroke-width="3"/>
             <g stroke="${day ? '#ffffff' : '#fffbe0'}" stroke-width="5" stroke-linecap="round" fill="none"><path d="M1312 476 L1322 498 M1328 478 L1338 500 M1344 482 L1352 502"/></g>`,
-            'pointer-events:none;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))');
+            'pointer-events:none;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))' + carAnim);
         }
 
         // ---------- Bezorgbusjes: het busje van de vervoerder rijdt op de weg aan naarmate het bezorgvenster van een pakketje nadert ----------
