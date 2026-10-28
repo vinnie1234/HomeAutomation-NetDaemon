@@ -1443,7 +1443,7 @@ weather_hero:
               </svg></div>`;
         }
         // ---------- Post: de brievenbus naast de deur, vol (met de vlag omhoog) als er vandaag of gisteren post was ----------
-        // (sensor.buiten_postnl_brieven, per brief een datum), en pakketjes bij de deur als ze vandaag komen of gekomen zijn
+        // (sensor.buiten_postnl_brieven, per brief een datum), en pakketjes bij de deur zodra ze vandaag bezorgd zijn
         const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const todayIso = isoDay(today), yesterdayIso = isoDay(new Date(today.getTime() - 86400000));
         const letters = (states['sensor.buiten_postnl_brieven']?.attributes?.letters ?? [])
@@ -1451,12 +1451,8 @@ weather_hero:
         const carriers = [['postnl', '#f97316'], ['dhl', '#facc15'], ['dpd', '#dc2626'], ['gls', '#1d4ed8']];
         const parcelDay = p => String(p.delivered_at ?? p.delivery_date ?? p.planned_from ?? p.planned_to ?? '').slice(0, 10);
         const parcels = carriers.flatMap(([key, color]) => {
-          const incoming = (states[`sensor.buiten_${key}_inkomende_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
           const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
-          // Zonder data per pakket: de volgende bezorging is vandaag
-          const next = new Date(states[`sensor.buiten_${key}_volgende_bezorging`]?.state);
-          const n = incoming.length + delivered.length || (!isNaN(next) && isoDay(next) === todayIso ? 1 : 0);
-          return Array(n).fill(color);
+          return Array(delivered.length).fill(color);
         }).slice(0, 4);
         {
           const mx = homeX - 4.6;
