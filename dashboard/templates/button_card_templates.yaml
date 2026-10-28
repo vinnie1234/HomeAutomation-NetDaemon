@@ -1560,7 +1560,7 @@ weather_hero:
         }
 
         // ---------- Bezorgbusjes: het busje van de vervoerder rijdt op de weg aan naarmate het bezorgvenster van een pakketje nadert ----------
-        // Vanaf 45 minuten voor het venster kruipt het busje van links het beeld in (hoe dichterbij het is, hoe eerder de post komt),
+        // Vanaf 4 uur voor het venster kruipt het busje van links het beeld in (hoe dichterbij het is, hoe eerder de post komt),
         // de laatste minuut rijdt het naar het huis en blijft dan met knipperlichten staan tot het venster voorbij is. Is het pakketje
         // bezorgd, dan rijdt het busje weg. De tijden lopen via CSS-animaties met een vertraging vanaf nu (net als bij de kat), dus de
         // kaart hoeft niet opnieuw te tekenen om het busje te laten rijden.
@@ -1573,7 +1573,7 @@ weather_hero:
           };
           // dim() kent alleen rgb(): de kleuren hierboven zijn hex
           const tone = hex => dim(`rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(',')})`);
-          const crawlS = 45 * 60, driveS = 60, leaveS = 60;
+          const crawlS = 4 * 3600, driveS = 60, leaveS = 60;
           const nowMs = Date.now();
           const timeOf = v => { const t = new Date(v).getTime(); return isNaN(t) ? null : t; };
           const clock = ms => new Date(ms).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
