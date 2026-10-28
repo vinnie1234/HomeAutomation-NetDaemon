@@ -1153,12 +1153,14 @@ weather_hero:
           scene += house(homeX, 78, true, { lit: occupied, smoke: stoking, tv: tvOn, music: musicOn, airing: occupied && temperature >= 20 && !tvOn,
             deco: theme, curtains: closedUp });
         }
-        out += scene;
+        // Wat achter het huis langs loopt (Sinterklaas en zijn Piet) komt op deze plek in de tekening, vóór het huis en de bomen
+        out += '<!--achter-het-huis-->' + scene;
 
         // ---------- Feestdagen: rijke taferelen voor Kerst, Sinterklaas en Pasen ----------
         const svgAt = (x, bottom, width, height, viewBox, body, extra = '') =>
           `<svg viewBox="${viewBox}" style="position:absolute;left:${x}%;bottom:${bottom}%;width:${width}px;height:${height}px;transform:translateX(-50%);overflow:visible;${extra}">${body}</svg>`;
         // Dingen die op het gras vooraan staan (tulpen, mandje): niet lager dan de rand van de stoep, anders staan ze op straat
+        let behind = '';
         const lawn = bottom => Math.max(bottom, streetH + 0.5);
         const groundBottom = x => 100 - groundTop(x);  // hoogte van de voorste heuvel boven de onderrand, in %
         const dim = c => night(c);
@@ -1257,7 +1259,7 @@ weather_hero:
           festive += `<div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%, rgba(214,40,57,${day ? 0.12 : 0.22}) 0%, transparent 60%)"></div>`;
           // Sinterklaas op zijn witte paard (met mijter en staf) die over de daken rijdt
           // ... over de heuvel achter ons huisje langs, met een Piet met de cadeauzak erachter
-          festive += `<svg viewBox="-4 -14 66 66" style="position:absolute;bottom:${groundBottom(50) + 2}%;left:110%;width:84px;height:84px;animation:hero-sint 46s linear -8s infinite">
+          behind += `<svg viewBox="-4 -14 66 66" style="position:absolute;bottom:${groundBottom(50) + 2}%;left:110%;width:84px;height:84px;animation:hero-sint 46s linear -8s infinite">
               <g transform="translate(58 0) scale(-1 1)"><g style="animation:hero-bob 0.9s ease-in-out infinite">
                 <path d="M14 24 Q10 30 7 38" stroke="${day ? 'rgb(225,225,230)' : 'rgb(190,196,214)'}" stroke-width="3" fill="none" stroke-linecap="round"/>
                 <ellipse cx="29" cy="28" rx="16" ry="8.5" fill="${day ? 'rgb(246,246,248)' : 'rgb(214,220,236)'}"/>
@@ -1270,7 +1272,7 @@ weather_hero:
                 <path d="M27.4 3.6 L30.5 -6 L33.6 3.6 Z" fill="#c1121f"/><path d="M29.6 -2 h1.8 M30.5 -3 v2.4" stroke="#ffd166" stroke-width="0.8"/>
                 <path d="M41 26 V-6 q0 -5 -4 -5 q-3 0 -3 3" stroke="#ffd166" stroke-width="1.4" fill="none" stroke-linecap="round"/>
               </g></g></svg>`;
-          festive += `<svg viewBox="0 -2 32 46" style="position:absolute;bottom:${groundBottom(50) + 2}%;left:110%;width:36px;height:50px;animation:hero-sint 46s linear 0s infinite">
+          behind += `<svg viewBox="0 -2 32 46" style="position:absolute;bottom:${groundBottom(50) + 2}%;left:110%;width:36px;height:50px;animation:hero-sint 46s linear 0s infinite">
               <g style="animation:hero-bob 0.7s ease-in-out infinite">${piet('#c1121f', '#ffd166', true)}</g></svg>`;
           festive += svgAt(84, groundBottom(84) - 1, 30, 42, '0 -2 32 46', `<g style="animation:hero-bob 1.4s ease-in-out infinite">${piet('#1d4ed8', '#f77f00', false)}</g>`);
           // Schoen met een wortel bij onze voordeur
@@ -1301,6 +1303,7 @@ weather_hero:
           const tulipColors = ['#e63946', '#ffb703', '#ff70a6', '#9d4edd', '#fb8500', '#ff4d6d'];
           for (let x = 3, i = 0; x < 99; x += 2.2 + (i % 3) * 0.6, i++) {
             if (x > 18 && x < 30) continue;  // ruimte voor het mandje
+            if (x > homeX - 1.5 && x < homeX + 13) continue;  // niet over het tuinpad
             const h = 38 + (i * 7) % 16;
             tulips += svgAt(x, lawn(groundBottom(x) - 9), 20, h * 1.4, `0 0 14 ${h}`, `
                 <path d="M7 ${h} V9" stroke="${dim('rgb(46,125,50)')}" stroke-width="1.6"/>
@@ -1323,7 +1326,7 @@ weather_hero:
               <polygon points="20,7 23.5,8 20,9" fill="#f77f00"/><circle cx="17.2" cy="6.6" r="0.8" fill="#222"/>
               <path d="M8 14 Q11 11 13 15" stroke="#f4c430" stroke-width="1.2" fill="none"/><path d="M10 21 v1.6 M14 21 v1.6" stroke="#f77f00" stroke-width="1"/>`);
           // Huppelende paashaas
-          festive += `<div style="position:absolute;bottom:${lawn(groundBottom(50) - 6)}%;left:-12%;width:56px;height:52px;animation:hero-hop-x 26s linear -4s infinite">
+          festive += `<div style="position:absolute;bottom:${roadH + 1.5}%;left:-12%;width:56px;height:52px;z-index:2;pointer-events:none;animation:hero-hop-x 26s linear -4s infinite">
               <svg viewBox="0 0 40 38" style="width:100%;height:100%;overflow:visible;animation:hero-hop-y 0.8s ease-in-out infinite">
                 <ellipse cx="18" cy="26" rx="12" ry="9" fill="${dim('rgb(214,190,170)')}"/><circle cx="7" cy="25" r="3.6" fill="#ffffff"/>
                 <circle cx="29" cy="17" r="6.4" fill="${dim('rgb(214,190,170)')}"/>
@@ -1509,9 +1512,9 @@ weather_hero:
         {
           const asphalt = dim('rgb(128,124,120)');
           const rampH = groundBottom(driveway) - 1.7 - streetH + 0.6;
-          out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:${driveway}%;bottom:${streetH - 0.3}%;width:64px;height:${rampH}%;
+          out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:${driveway}%;bottom:${streetH - 0.3}%;width:84px;height:${rampH}%;
               transform:translateX(-50%);pointer-events:none"><path d="M12 0 L88 0 L100 100 L0 100 Z" fill="${asphalt}"/></svg>`;
-          out += svgAt(driveway, groundBottom(driveway) - 1.7, 112, 8, '0 0 100 8',
+          out += svgAt(driveway, groundBottom(driveway) - 1.7, 140, 9, '0 0 100 8',
             `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${asphalt}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${dim('rgb(150,146,142)')}" stroke-width="0.4" fill="none"/>`,
             'pointer-events:none');
         }
@@ -1529,7 +1532,7 @@ weather_hero:
               ${[0, 72, 144, 216, 288].map(a => `<path transform="rotate(${a})" d="M-13 -22 L-27 -76 L27 -76 L13 -22 Z" fill="${k(188, 194, 200)}" stroke="${k(18, 19, 21)}" stroke-width="5" stroke-linejoin="round"/>`).join('')}
               <circle r="17" fill="${k(60, 64, 70)}" stroke="${silver}" stroke-width="3"/>
             </g>`;
-          out += svgAt(driveway, groundBottom(driveway) - 1.2, 88, 36.6, '86 230 1316 548', `
+          out += svgAt(driveway, groundBottom(driveway) - 1.2, 112, 46.6, '86 230 1316 548', `
             <defs>
               <clipPath id="peugeot-clip"><path d="${outline}"/></clipPath>
               <linearGradient id="peugeot-paint" x1="0" y1="0" x2="0" y2="1">
@@ -2096,6 +2099,7 @@ weather_hero:
         }
         out += `<div style="position:absolute;left:16px;top:${theme === 'kerst' ? 46 : 16}px;z-index:2;text-align:left">${badges}</div>`;
 
+        out = out.replace('<!--achter-het-huis-->', behind);
         this._heroSky = { signature: skySignature, html: out };
         return out;
       ]]]
