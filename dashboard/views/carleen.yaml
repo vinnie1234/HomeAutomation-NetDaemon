@@ -30,14 +30,15 @@ sections:
             return parts.join(' · ');
           ]]]
 
-  # Taken: een taak met een plek toevoegen (de taken zelf staan in de agenda op Home)
+  # Agenda en taken, en een taak met een plek toevoegen
   - type: grid
     cards:
       - type: heading
-        heading: Taken
+        heading: Agenda en taken
         heading_style: title
-        icon: mdi:checkbox-marked-circle-outline
+        icon: mdi:calendar-check
       - !include ../cards/taak_knop.yaml
+      - !include ../cards/agenda.yaml
 
   # Werk en slapen
   - type: grid
