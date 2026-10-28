@@ -1662,18 +1662,35 @@ weather_hero:
           });
         }
 
-        // ---------- Gemist of naar een afhaalpunt: een klein bordje op de stoep (geen busje en geen doos bij de deur) ----------
+        // ---------- Gemist of naar een afhaalpunt (geen busje en geen doos bij de deur) ----------
+        // Gemist: een "u was er niet"-kaartje in de kleur van de vervoerder hangt aan de deurknop. Afhaalpunt: een blauw bord met
+        // het pakketje in de kleur van de vervoerder staat op de stoep.
         {
-          const notes = [];
+          const color = { postnl: '#f97316', dhl: '#facc15', dpd: '#dc0032', gls: '#1d4ed8' };
+          const missed = [], pickup = [];
           for (const [key] of carriers) {
-            const name = { postnl: 'PostNL', dhl: 'DHL', dpd: 'dpd', gls: 'GLS' }[key];
             const todays = ['inkomende', 'bezorgde'].flatMap(k => states[`sensor.buiten_${key}_${k}_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
-            if (todays.some(p => p.status === 'failed')) notes.push([`${name} niet bezorgd`, '#ef4444']);
-            if (todays.some(p => p.pickup || p.pickup_point || ['to_pickup_point', 'ready_for_pickup'].includes(p.status))) notes.push([`${name} ligt bij een afhaalpunt`, '#38bdf8']);
+            if (todays.some(p => p.status === 'failed')) missed.push(color[key]);
+            if (todays.some(p => p.pickup || p.pickup_point || ['to_pickup_point', 'ready_for_pickup'].includes(p.status))) pickup.push(color[key]);
           }
-          notes.slice(0, 3).forEach(([text, color], i) => {
-            out += `<div style="position:absolute;left:${homeX + 8}%;bottom:calc(${roadH + 2}% + ${i * 19}px);transform:translateX(-50%);z-index:2;pointer-events:none;white-space:nowrap;
-                padding:1px 7px;border-radius:9px;font-size:10px;line-height:15px;font-weight:600;color:#fff;background:rgba(15,18,28,0.7);border-left:3px solid ${color}">${text}</div>`;
+          missed.slice(0, 3).forEach((c, i) => {
+            out += `<svg viewBox="0 0 20 28" style="position:absolute;left:calc(${homeX}% + ${6 + i * 11}px);bottom:calc(${groundBottom(homeX)}% + 5px);width:15px;height:21px;
+                overflow:visible;pointer-events:none;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))">
+              <g style="transform-origin:10px 0;transform-box:view-box;--swing:9deg;animation:hero-sway ${(3 + i * 0.7).toFixed(1)}s ease-in-out infinite">
+                <path d="M10 -1 L10 4" stroke="${dim('rgb(150,150,160)')}" stroke-width="1.2"/>
+                <rect x="1" y="3" width="18" height="24" rx="2" fill="${dim('rgb(255,247,237)')}" stroke="${dim('rgb(253,186,116)')}" stroke-width="1"/>
+                <rect x="1" y="3" width="18" height="7" rx="2" fill="${dim(`rgb(${[1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16)).join(',')})`)}"/>
+                <text x="10" y="22" text-anchor="middle" font-size="13" font-weight="800" font-family="Arial, sans-serif" fill="${dim('rgb(220,38,38)')}">!</text>
+              </g></svg>`;
+          });
+          pickup.slice(0, 2).forEach((c, i) => {
+            const box = dim(`rgb(${[1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16)).join(',')})`);
+            out += svgAt(homeX - 10 - i * 5, roadH + 1.5, 30, 50, '0 0 24 40', `
+                <ellipse cx="12" cy="39" rx="7" ry="1.4" fill="rgba(0,0,0,0.3)"/>
+                <rect x="11" y="16" width="2.2" height="23" fill="${dim('rgb(120,126,138)')}"/>
+                <rect x="1" y="1" width="22" height="17" rx="2.4" fill="${dim('rgb(14,165,233)')}" stroke="${dim('rgb(255,255,255)')}" stroke-width="1"/>
+                <rect x="5.5" y="4.6" width="13" height="9.6" rx="1" fill="${box}"/><rect x="11" y="4.6" width="2" height="9.6" fill="${dim('rgb(255,255,255)')}" opacity="0.75"/>`,
+              'pointer-events:none;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35))');
           });
         }
 
