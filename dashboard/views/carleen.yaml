@@ -30,7 +30,7 @@ sections:
             return parts.join(' · ');
           ]]]
 
-  # Taken: mijn eigen lijst, en de lijst die we samen doen
+  # Taken: een taak met een plek toevoegen (de taken zelf staan in de agenda op Home)
   - type: grid
     cards:
       - type: heading
@@ -38,8 +38,6 @@ sections:
         heading_style: title
         icon: mdi:checkbox-marked-circle-outline
       - !include ../cards/taak_knop.yaml
-      - !include ../cards/todo_carleen.yaml
-      - !include ../cards/todo_samen.yaml
 
   # Werk en slapen
   - type: grid
