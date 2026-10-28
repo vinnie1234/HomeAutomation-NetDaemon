@@ -3859,14 +3859,14 @@ pixel_alert:
   variables:
     color: |
       [[[
-        const food = states['sensor.zedar_food_storage_status']?.state;
-        const urgent = (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True';
+        const food = states['sensor.zedar_a600_food_storage_status']?.state;
+        const urgent = (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['binary_sensor.zedar_a600_feed_block_status']?.state === 'on';
         return urgent ? '255, 107, 107' : '255, 176, 96';
       ]]]
     pulse: |
       [[[
-        const food = states['sensor.zedar_food_storage_status']?.state;
-        return (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True';
+        const food = states['sensor.zedar_a600_food_storage_status']?.state;
+        return (food && !['full', 'unknown', 'unavailable'].includes(food)) || states['binary_sensor.zedar_a600_feed_block_status']?.state === 'on';
       ]]]
   tap_action:
     action: navigate
@@ -3874,18 +3874,18 @@ pixel_alert:
   name: |
     [[[
       const issues = [];
-      const food = states['sensor.zedar_food_storage_status']?.state;
+      const food = states['sensor.zedar_a600_food_storage_status']?.state;
       if (food && !['full', 'unknown', 'unavailable'].includes(food)) issues.push('Voer bijna op');
-      if (states['sensor.zedar_feed_block_status']?.state === 'True') issues.push('Voer zit vast');
-      if (states['switch.petsnowy_fountain_ison']?.state === 'off') issues.push('Fontein staat uit');
-      if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 0) issues.push('Waterbak schoonmaken');
-      if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 0) issues.push('Filter vervangen');
+      if (states['binary_sensor.zedar_a600_feed_block_status']?.state === 'on') issues.push('Voer zit vast');
+      if (states['switch.snow_automatic_pet_water_fountain_schakelaar']?.state === 'off') issues.push('Fontein staat uit');
+      if (parseFloat(states['sensor.snow_automatic_pet_water_fountain_water_pump_duration']?.state) <= 0) issues.push('Waterbak schoonmaken');
+      if (parseFloat(states['sensor.snow_automatic_pet_water_fountain_filter_days']?.state) <= 0) issues.push('Filter vervangen');
       return issues.length ? `Pixel: ${issues.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase())}` : 'Pixel heeft alles';
     ]]]
   label: |
     [[[
-      const food = states['sensor.zedar_food_storage_status']?.state;
-      if ((food && !['full', 'unknown', 'unavailable'].includes(food)) || states['sensor.zedar_feed_block_status']?.state === 'True')
+      const food = states['sensor.zedar_a600_food_storage_status']?.state;
+      if ((food && !['full', 'unknown', 'unavailable'].includes(food)) || states['binary_sensor.zedar_a600_feed_block_status']?.state === 'on')
         return 'Kijk bij de voerbak · tik voor details';
       return 'Tik om het af te vinken bij Pixel';
     ]]]

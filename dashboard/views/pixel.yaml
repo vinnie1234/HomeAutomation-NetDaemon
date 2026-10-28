@@ -19,18 +19,18 @@ sections:
         variables:
           level: |
             [[[
-              const food = states['sensor.zedar_food_storage_status']?.state;
+              const food = states['sensor.zedar_a600_food_storage_status']?.state;
               if (food && food !== 'full') return 'bad';
-              return parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2
-                || parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1 ? 'warn' : 'ok';
+              return parseFloat(states['sensor.snow_automatic_pet_water_fountain_filter_days']?.state) <= 2
+                || parseFloat(states['sensor.snow_automatic_pet_water_fountain_water_pump_duration']?.state) <= 1 ? 'warn' : 'ok';
             ]]]
         name: |
           [[[
             const issues = [];
-            const food = states['sensor.zedar_food_storage_status']?.state;
+            const food = states['sensor.zedar_a600_food_storage_status']?.state;
             if (food && food !== 'full') issues.push('voer');
-            if (parseFloat(states['sensor.petsnowy_fountain_filter_days_remaining']?.state) <= 2) issues.push('filter fontein');
-            if (parseFloat(states['sensor.petsnowy_fountain_cleaning_days_remaining']?.state) <= 1) issues.push('fontein schoonmaken');
+            if (parseFloat(states['sensor.snow_automatic_pet_water_fountain_filter_days']?.state) <= 2) issues.push('filter fontein');
+            if (parseFloat(states['sensor.snow_automatic_pet_water_fountain_water_pump_duration']?.state) <= 1) issues.push('fontein schoonmaken');
             return issues.length ? `Aandacht nodig: ${issues.join(', ')}` : 'Pixel heeft alles wat hij nodig heeft';
           ]]]
         label: |
@@ -65,7 +65,7 @@ sections:
         label: |
           [[[
             const food = { full: 'Voerbak is vol', lack: 'Voer raakt op', empty: 'Voerbak is leeg' };
-            const s = states['sensor.zedar_food_storage_status']?.state;
+            const s = states['sensor.zedar_a600_food_storage_status']?.state;
             return food[s] ?? 'Voerbak: onbekend';
           ]]]
         custom_fields:
@@ -101,7 +101,7 @@ sections:
             - font-size: 13px
             - color: |
                 [[[
-                  const s = states['sensor.zedar_food_storage_status']?.state;
+                  const s = states['sensor.zedar_a600_food_storage_status']?.state;
                   return s && s !== 'full' ? '#ff6b6b' : 'var(--secondary-text-color)';
                 ]]]
 
@@ -383,12 +383,12 @@ sections:
       - type: custom:bubble-card
         card_type: button
         button_type: switch
-        entity: switch.petsnowy_fountain_ison
+        entity: switch.snow_automatic_pet_water_fountain_schakelaar
         name: Fontein
         icon: mdi:fountain
         show_state: true
       - type: tile
-        entity: select.petsnowy_fountain_mode
+        entity: select.snow_automatic_pet_water_fountain_work_mode
         name: Modus
         icon: mdi:tune-variant
         features_position: bottom
@@ -396,7 +396,7 @@ sections:
           - type: select-options
       - type: custom:button-card
         template: progress
-        entity: sensor.petsnowy_fountain_cleaning_days_remaining
+        entity: sensor.snow_automatic_pet_water_fountain_water_pump_duration
         name: Schoonmaken over
         icon: mdi:spray-bottle
         variables:
@@ -404,7 +404,7 @@ sections:
           unit: dagen
       - type: custom:button-card
         template: progress
-        entity: sensor.petsnowy_fountain_filter_days_remaining
+        entity: sensor.snow_automatic_pet_water_fountain_filter_days
         name: Filter vervangen over
         icon: mdi:air-filter
         variables:

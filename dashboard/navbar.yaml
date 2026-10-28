@@ -27,7 +27,7 @@ routes:
     badge:
       show: |
         [[[
-          return !['full', 'unavailable', 'unknown'].includes(states['sensor.zedar_food_storage_status']?.state);
+          return !['full', 'unavailable', 'unknown'].includes(states['sensor.zedar_a600_food_storage_status']?.state);
         ]]]
       color: "#ff6b6b"
   - url: /dashboard-huis/huishouden

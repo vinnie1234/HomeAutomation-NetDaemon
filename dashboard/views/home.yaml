@@ -329,7 +329,7 @@ sections:
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.zedar_food_storage_status
+                entity: sensor.zedar_a600_food_storage_status
                 state_not:
                   - full
                   - unknown
@@ -493,22 +493,22 @@ sections:
           - condition: or
             conditions:
               - condition: state
-                entity: sensor.zedar_food_storage_status
+                entity: sensor.zedar_a600_food_storage_status
                 state_not:
                   - full
                   - unknown
                   - unavailable
               - condition: state
-                entity: sensor.zedar_feed_block_status
-                state: "True"
+                entity: binary_sensor.zedar_a600_feed_block_status
+                state: "on"
               - condition: state
-                entity: switch.petsnowy_fountain_ison
+                entity: switch.snow_automatic_pet_water_fountain_schakelaar
                 state: "off"
               - condition: numeric_state
-                entity: sensor.petsnowy_fountain_cleaning_days_remaining
+                entity: sensor.snow_automatic_pet_water_fountain_water_pump_duration
                 below: 1
               - condition: numeric_state
-                entity: sensor.petsnowy_fountain_filter_days_remaining
+                entity: sensor.snow_automatic_pet_water_fountain_filter_days
                 below: 1
         card:
           type: custom:button-card
@@ -778,7 +778,7 @@ sections:
           icon:
             - color: |
                 [[[
-                  const food = states['sensor.zedar_food_storage_status']?.state;
+                  const food = states['sensor.zedar_a600_food_storage_status']?.state;
                   return food && food !== 'full' ? '#ff6b6b' : '#4ade80';
                 ]]]
         grid_options:
