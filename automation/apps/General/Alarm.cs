@@ -304,7 +304,8 @@ public class Alarm : BaseApp
     }
 
     /// <summary>
-    /// Schedules a daily check for PetSnowy errors and sends a notification if any errors are found.
+    /// Schedules a daily check whether the PetSnowy has cleaned today, and sends a notification if it has not.
+    /// The litter box reports its problems through <see cref="PetSnowyDeviceNotifications"/>: Xtend Tuya has no entity for its fault codes.
     /// </summary>
     private void PetSnowyCheck()
     {
@@ -315,37 +316,19 @@ public class Alarm : BaseApp
 
         Scheduler.ScheduleCronNl("00 22 * * *", () =>
         {
-            var cleanedToday = PetSnowyCleaning.IsCleanedToday(_storage, Scheduler.NowNl());
-            var hasErrors = int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var litterboxErrors) && litterboxErrors > 0;
+            if (PetSnowyCleaning.IsCleanedToday(_storage, Scheduler.NowNl())) return;
 
-            if (hasErrors || !cleanedToday)
+            var discordNotificationModel = new DiscordNotificationModel
             {
-                var discordNotificationModel = new DiscordNotificationModel
+                Embed = new Embed
                 {
-                    Embed = new Embed
-                    {
-                        Color = 15548997,
-                        Fields =
-                        [
-                            new Field { Name = "Totaal erros", Value = Entities.Sensor.PetsnowyLitterboxErrors.State ?? "0" },
-                            new Field
-                            {
-                                Name = "Laatste error",
-                                Value = Entities.Sensor.PetsnowyLitterboxErrors.EntityState?.LastChanged.ToString() ??
-                                        string.Empty
-                            }
-                        ]
-                    }
-                };
+                    Color = 15548997,
+                    Fields = [new Field { Name = "Status", Value = Entities.Sensor.SnowSelfCleaningLitterBoxStatus.State ?? "onbekend" }]
+                }
+            };
 
-                Notify.NotifyDiscord("PetSnowy heeft errors of is vandaag nog niet geschoond", [_config.Discord.Logs], discordNotificationModel);
-                // Say what is wrong: "not cleaned" is not an error
-                if (hasErrors)
-                    Notify.NotifyPeopleHome("PetSnowy heeft errors", "Er staat nog een error open voor de PetSnowy", false, 10);
-                else
-                    Notify.NotifyPeopleHome("PetSnowy is vandaag nog niet geschoond", "De PetSnowy heeft vandaag nog niet schoongemaakt", false, 10);
-
-            }
+            Notify.NotifyDiscord("PetSnowy is vandaag nog niet geschoond", [_config.Discord.Logs], discordNotificationModel);
+            Notify.NotifyPeopleHome("PetSnowy is vandaag nog niet geschoond", "De PetSnowy heeft vandaag nog niet schoongemaakt", false, 10);
         });
     }
 

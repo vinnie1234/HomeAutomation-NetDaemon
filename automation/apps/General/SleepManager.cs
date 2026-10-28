@@ -125,10 +125,7 @@ public class SleepManager : BaseApp
 
             // The day of the PetSnowy starts at 06:00 (PetSnowyCleaning): after midnight it still counts as yesterday
             var cleanedToday = PetSnowyCleaning.IsCleanedToday(_storage, now);
-            var hasErrors = int.TryParse(Entities.Sensor.PetsnowyLitterboxErrors.State, out var errors) && errors > 0;
-            if (hasErrors)
-                Notify.NotifyPeopleHome("PetSnowy heeft errors", "Er staat nog een error open voor de PetSnowy", true);
-            else if (!cleanedToday)
+            if (!cleanedToday)
                 Notify.NotifyPeopleHome("PetSnowy is vandaag nog niet geschoond", "De PetSnowy heeft vandaag nog niet schoongemaakt", true);
         } catch (Exception ex) {
             Logger.LogError(ex, "Error in the sleep routine");

@@ -28,7 +28,6 @@ public class SleepManagerTests
         
         ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "Geen" });
         ctx.HaContext.GetState("sensor.afval_vandaag").Returns(new EntityState { State = "Geen" });
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { State = "0" });
         ctx.HaContext.GetState("cover.rollerblind_0003").Returns(new EntityState { State = "closed" });
         // Phones are charged by default, so the low battery warning only fires in tests that ask for it
         ctx.HaContext.GetState("sensor.vincent_phone_battery_level").Returns(new EntityState { State = "100" });
@@ -227,20 +226,6 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
         ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: times);
-    }
-
-    [Fact]
-    public void VincentSleeping_NotifiesPetSnowyErrors_WhenErrorsExist()
-    {
-        var ctx = SetupContext();
-        ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { State = "2" });
-        ctx.InitApp<SleepManager>();
-
-        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
-
-        TestExceptionCatcher.CaughtException.Should().BeNull("Because an exception was caught during SleepManager execution");
-
-        ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 1);
     }
 
     [Fact]

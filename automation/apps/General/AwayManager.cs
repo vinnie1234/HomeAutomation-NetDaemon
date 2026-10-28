@@ -207,7 +207,7 @@ public class AwayManager : BaseApp
                 else
                     message = "Welkom thuis Vincent!";
 
-                if (Entities.Sensor.ZedarFoodStorageStatus.State != "full")
+                if (Entities.Sensor.ZedarA600FoodStorageStatus.State != "full")
                     message += " Het eten van Pixel is bijna op!";
 
                 Notify.NotifyHouse("welcomeHome", message, true);

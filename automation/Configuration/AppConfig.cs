@@ -8,10 +8,8 @@ namespace Automation.Configuration;
 /// </summary>
 public class AppConfig
 {
-    public string ZedarDeviceId { get; set; } = "";
     public string SnowyFeeder { get; set; } = "";
     public string SnowyFountain { get; set; } = "";
-    public string PetSnowyDeviceId { get; set; } = "";
 
     [Required]
     [Url]

@@ -26,8 +26,6 @@ public class CatTests
         _config = Options.Create(new AppConfig { 
             BaseUrlHomeAssistant = "http://test", 
             Discord = new DiscordConfig { Pixel = "pixel_channel" },
-            ZedarDeviceId = "zedar_123",
-            PetSnowyDeviceId = "petsnowy_123"
         });
 
         // Setup feed times
@@ -57,11 +55,11 @@ public class CatTests
     }
 
     [Fact]
-    public void PetSnowyStatus_WhenPetInto_IncrementsPixelInitCounter()
+    public void PetSnowyExcretion_WhenCountGoesUp_IncrementsPixelInitCounter()
     {
         CreateApp();
         
-        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("pet_into");
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_number_of_excretion").FromState("1").ToState("2");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxpixelinit", times: 1);
@@ -79,11 +77,11 @@ public class CatTests
     }
     
     [Fact]
-    public void PetSnowyStatus_WhenEmptying_IncrementsEmptyingCounter()
+    public void PetSnowyEmptied_WhenNotificationComes_IncrementsEmptyingCounter()
     {
         CreateApp();
         
-        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("emptying");
+        _ctx.ChangeStateFor("binary_sensor.snow_self_cleaning_litter_box_notification_empty_complete").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxemptying", times: 1);
@@ -101,11 +99,8 @@ public class CatTests
         _ctx.VerifyCallService("input_number", "set_value", "pixeltotalamountfeedalltime", times: 1);
         _ctx.VerifyCallService("input_number", "set_value", "pixellastamountmanualfeed", times: 1);
         _ctx.VerifyCallService("input_datetime", "set_datetime", "pixellastmanualfeed", times: 1);
-        _ctx.VerifyCallService("localtuya", "set_dp", "petsnowy_litterbox_errors", times: 0); // Not petsnowy
         
-        // Assert localtuya call
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Is<object>(o => 
-            (string)((LocaltuyaSetDpParameters)o).DeviceId! == "zedar_123" && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Dp) == 3 && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Value) == 5));
+        _ctx.VerifyCallService("number", "set_value", "zedar_a600_voeden", times: 1);
     }
     
     [Fact]
@@ -124,8 +119,7 @@ public class CatTests
         _ctx.VerifyCallService("input_number", "set_value", "pixellastamountautomationfeed", times: 1);
         _ctx.VerifyCallService("input_datetime", "set_datetime", "pixellastautomatedfeed", times: 1);
         
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Is<object>(o => 
-            (string)((LocaltuyaSetDpParameters)o).DeviceId! == "zedar_123" && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Dp) == 3 && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Value) == 15));
+        _ctx.VerifyCallService("number", "set_value", "zedar_a600_voeden", times: 1);
             
         // Assert input_boolean was turned off
         _ctx.VerifyCallService("input_boolean", "turn_off", "pixelskipnextautofeed", times: 1);
@@ -144,7 +138,7 @@ public class CatTests
         _ctx.HaContextMock.ProcessPendingOperations();
         
         // Assert no feeding occurred
-        _ctx.HaContext.DidNotReceive().CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Any<object>());
+        _ctx.VerifyNotCallService("number.set_value");
         
         // Assert input_boolean was turned off anyway
         _ctx.VerifyCallService("input_boolean", "turn_off", "pixelskipnextautofeed", times: 1);
@@ -165,8 +159,7 @@ public class CatTests
         _ctx.VerifyCallService("input_number", "set_value", "pixellastamountmanualfeed", times: 1);
         _ctx.VerifyCallService("input_datetime", "set_datetime", "pixellastmanualfeed", times: 1);
         
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Is<object>(o => 
-            (string)((LocaltuyaSetDpParameters)o).DeviceId! == "zedar_123" && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Dp) == 3 && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Value) == 15));
+        _ctx.VerifyCallService("number", "set_value", "zedar_a600_voeden", times: 1);
     }
     
     [Fact]
@@ -177,8 +170,7 @@ public class CatTests
         _ctx.ChangeStateFor("input_button.cleanpetsnowy").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
         
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Is<object>(o => 
-            (string)((LocaltuyaSetDpParameters)o).DeviceId! == "petsnowy_123" && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Dp) == 9 && (string)((LocaltuyaSetDpParameters)o).Value! == "true"));
+        _ctx.VerifyCallService("button", "press", "snow_self_cleaning_litter_box_manual_clean", times: 1);
     }
 
     [Fact]
@@ -189,8 +181,7 @@ public class CatTests
         _ctx.ChangeStateFor("input_button.emptypetsnowy").FromState("off").ToState("on");
         _ctx.HaContextMock.ProcessPendingOperations();
         
-        _ctx.HaContext.Received(1).CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Is<object>(o => 
-            (string)((LocaltuyaSetDpParameters)o).DeviceId! == "petsnowy_123" && Convert.ToInt32(((LocaltuyaSetDpParameters)o).Dp) == 109 && (string)((LocaltuyaSetDpParameters)o).Value! == "true"));
+        _ctx.VerifyCallService("button", "press", "snow_self_cleaning_litter_box_empty_litter_box", times: 1);
     }
     
     [Fact]
@@ -198,7 +189,7 @@ public class CatTests
     {
         CreateApp();
         
-        _ctx.ChangeStateFor("switch.petsnowy_fountain_ison").FromState("on").ToState("off");
+        _ctx.ChangeStateFor("switch.snow_automatic_pet_water_fountain_schakelaar").FromState("on").ToState("off");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         // Wait 600 seconds as specified in WhenTurnsOff(_ => ..., 600)
@@ -216,7 +207,7 @@ public class CatTests
     {
         CreateApp();
         
-        _ctx.ChangeStateFor("switch.petsnowy_litterbox_auto_clean").FromState("on").ToState("off");
+        _ctx.ChangeStateFor("switch.snow_self_cleaning_litter_box_auto_clean").FromState("on").ToState("off");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.AdvanceTimeBy(TimeSpan.FromSeconds(601).Ticks);
@@ -275,13 +266,13 @@ public class CatTests
     }
     
     [Fact]
-    public void FeedCat_WhenLocalTuyaFails_NotifiesManualFeeding()
+    public void FeedCat_WhenTuyaFails_NotifiesManualFeeding()
     {
         CreateApp();
         
-        // Throw exception when calling localtuya.set_dp
+        // Throw exception when setting the feeder amount
         _ctx.HaContext
-            .When(x => x.CallService("localtuya", "set_dp", Arg.Any<ServiceTarget>(), Arg.Any<object>()))
+            .When(x => x.CallService("number", "set_value", Arg.Any<ServiceTarget>(), Arg.Any<object>()))
             .Throw(new Exception("Tuya API Error"));
 
         _ctx.ChangeStateFor("input_button.feedcat").FromState("off").ToState("on");

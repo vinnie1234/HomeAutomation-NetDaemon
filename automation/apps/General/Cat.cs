@@ -89,17 +89,19 @@ public class Cat : BaseApp
             {
                 switch (x.New?.State)
                 {
-                    case "pet_into":
-                        Entities.Counter.Petsnowylitterboxpixelinit.Increment();
-                        break;
                     case "cleaning":
                         Entities.Counter.Petsnowylittleboxcleaning.Increment();
                         break;
-                    case "emptying":
-                        Entities.Counter.Petsnowylitterboxemptying.Increment();
-                        break;
                 }
             });
+
+        // Xtend Tuya has no "pet in" and "emptying" status: a visit is the number of excretions going up, emptying is its own notification
+        Entities.Sensor.SnowSelfCleaningLitterBoxNumberOfExcretion
+            .StateChanges()
+            .Where(x => int.TryParse(x.New?.State, out var now) && int.TryParse(x.Old?.State, out var before) && now > before)
+            .Subscribe(_ => Entities.Counter.Petsnowylitterboxpixelinit.Increment());
+        Entities.BinarySensor.SnowSelfCleaningLitterBoxNotificationEmptyComplete
+            .WhenTurnsOn(_ => Entities.Counter.Petsnowylitterboxemptying.Increment());
     }
 
     /// <summary>
@@ -147,24 +149,19 @@ public class Cat : BaseApp
             FeedCatViaTuya(amount);
         }catch(Exception ex)
         {
-            Logger.LogError(ex, "Feeding {Amount}g via LocalTuya failed", amount);
+            Logger.LogError(ex, "Feeding {Amount}g via Tuya failed", amount);
             NotifyManualFeedingRequired(amount);
         }
     }
 
     /// <summary>
-    /// Feeds the cat via LocalTuya integration.
+    /// Feeds the cat through the Xtend Tuya feeder entity.
     /// </summary>
     /// <param name="amount">The amount of food to dispense.</param>
     /// <returns>A task representing the feeding operation.</returns>
     private void FeedCatViaTuya(int amount)
     {
-        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-        {
-            DeviceId = _config.ZedarDeviceId,
-            Dp = 3,
-            Value = amount
-        });
+        Services.Number.SetValue(ServiceTarget.FromEntity(Entities.Number.ZedarA600Voeden.EntityId), amount.ToString());
         
         Logger.LogInformation("Successfully fed cat {Amount}g via Zedar feeder", amount);
     }
@@ -303,7 +300,7 @@ public class Cat : BaseApp
     /// </summary>
     private void SendAlarmWhenStuffIsOff()
     {
-        Entities.Switch.PetsnowyFountainIson.WhenTurnsOff(_ =>
+        Entities.Switch.SnowAutomaticPetWaterFountainSchakelaar.WhenTurnsOff(_ =>
         {
             var discordNotificationModel = new DiscordNotificationModel
             {
@@ -315,7 +312,7 @@ public class Cat : BaseApp
             Notify.NotifyDiscord("", [_config.Discord.Pixel], discordNotificationModel);
         }, 600, Scheduler);
 
-        Entities.Switch.PetsnowyLitterboxAutoClean.WhenTurnsOff(_ =>
+        Entities.Switch.SnowSelfCleaningLitterBoxAutoClean.WhenTurnsOff(_ =>
         {
             var discordNotificationModel = new DiscordNotificationModel
             {
@@ -374,12 +371,7 @@ public class Cat : BaseApp
     /// </summary>
     private void CleanPetSnowy()
     {
-        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-        {
-            DeviceId = _config.PetSnowyDeviceId,
-            Dp = 9,
-            Value = "true"
-        });
+        Entities.Button.SnowSelfCleaningLitterBoxManualClean.Press();
     }
 
     /// <summary>
@@ -387,11 +379,6 @@ public class Cat : BaseApp
     /// </summary>
     private void EmptyPetSnowy()
     {
-        Services.Localtuya.SetDp(new LocaltuyaSetDpParameters
-        {
-            DeviceId = _config.PetSnowyDeviceId,
-            Dp = 109,
-            Value = "true"
-        });
+        Entities.Button.SnowSelfCleaningLitterBoxEmptyLitterBox.Press();
     }
 }

@@ -48,7 +48,6 @@ public class AlarmTests
         _ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "Geen" });
         
         // Petsnowy setup
-        _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "0" });
         
         // Energy negative check setup
         _ctx.HaContext.GetState("sensor.anwb_electricity_all_in_price_current").Returns(new EntityState { EntityId = "sensor.anwb_electricity_all_in_price_current", State = "10.0" });
@@ -280,61 +279,6 @@ public class AlarmTests
     }
 
     [Fact]
-    public void PetSnowyCheck_ErrorsFound_SendsNotification_WhenCarleenHome()
-    {
-        // Arrange
-        CreateApp();
-        _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "1" });
-
-        // Act
-        _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
-        _ctx.HaContextMock.ProcessPendingOperations();
-
-        // Assert - Carleen is home (default), so NotifyPhoneVincentCarleen is used
-        _notify.Received(1).NotifyPeopleHome(
-            "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy",
-            false,
-            10,
-            channel: null,
-            vibrationPattern: null,
-            image: null,
-            action: null);
-        _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
-            Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
-    }
-
-    [Fact]
-    public void PetSnowyCheck_ErrorsFound_SendsNotification_WhenCarleenAway()
-    {
-        // Arrange
-        _ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" });
-        CreateApp();
-        _ctx.HaContext.GetState("sensor.petsnowy_litterbox_errors").Returns(new EntityState { EntityId = "sensor.petsnowy_litterbox_errors", State = "1" });
-
-        // Act
-        _ctx.AdvanceTimeBy(TimeSpan.FromDays(1).Ticks);
-        _ctx.HaContextMock.ProcessPendingOperations();
-
-        // Assert - Carleen is away, so only NotifyPhoneVincent is used
-        _notify.Received(1).NotifyPeopleHome(
-            "PetSnowy heeft errors",
-            "Er staat nog een error open voor de PetSnowy",
-            false,
-            10,
-            channel: null,
-            vibrationPattern: null,
-            image: null,
-            action: null);
-        _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors of is vandaag nog niet geschoond",
-            Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
-            Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
-    }
-
-    [Fact]
     public void PetSnowyCheck_NoErrorsAndNotCleanedToday_SendsNotification()
     {
         // Arrange - no errors, and the litter box never reported "Cleaning" today
@@ -346,7 +290,7 @@ public class AlarmTests
 
         // Assert
         _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors of is vandaag nog niet geschoond",
+            "PetSnowy is vandaag nog niet geschoond",
             Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
@@ -390,7 +334,7 @@ public class AlarmTests
 
         // Assert
         _notify.Received(1).NotifyDiscord(
-            "PetSnowy heeft errors of is vandaag nog niet geschoond",
+            "PetSnowy is vandaag nog niet geschoond",
             Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")),
             Arg.Any<Automation.Models.DiscordNotificationModels.DiscordNotificationModel>());
     }
