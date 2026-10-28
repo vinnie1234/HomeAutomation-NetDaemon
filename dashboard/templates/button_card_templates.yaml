@@ -1451,7 +1451,7 @@ weather_hero:
         const carriers = [['postnl', '#f97316'], ['dhl', '#facc15'], ['dpd', '#dc2626'], ['gls', '#1d4ed8']];
         const parcelDay = p => String(p.delivered_at ?? p.delivery_date ?? p.planned_from ?? p.planned_to ?? '').slice(0, 10);
         const parcels = carriers.flatMap(([key, color]) => {
-          const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
+          const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso && !p.pickup && !p.pickup_point);
           return Array(delivered.length).fill(color);
         }).slice(0, 4);
         {
@@ -1577,7 +1577,7 @@ weather_hero:
           const vans = [];
           for (const [key] of carriers) {
             const incoming = (states[`sensor.buiten_${key}_inkomende_pakketten`]?.attributes?.parcels ?? [])
-              .filter(p => parcelDay(p) === todayIso && !p.pickup && !p.delivered);
+              .filter(p => parcelDay(p) === todayIso && !p.pickup && !p.pickup_point && !p.delivered && !['failed', 'exception', 'to_pickup_point', 'ready_for_pickup'].includes(p.status));
             const delivered = (states[`sensor.buiten_${key}_bezorgde_pakketten`]?.attributes?.parcels ?? [])
               .filter(p => !p.pickup && timeOf(p.delivered_at) !== null && nowMs - timeOf(p.delivered_at) < 2 * 60000 && nowMs >= timeOf(p.delivered_at));
             // Het eerstvolgende venster van dit merk; zonder venster maar onderweg: over een paar minuten bij het huis
@@ -1641,6 +1641,21 @@ weather_hero:
                       font-size:10px;line-height:15px;font-weight:600;color:#fff;background:rgba(15,18,28,0.62);backdrop-filter:blur(3px);border-left:3px solid ${s.body}">${label}</div>
                 </div>
               </div>`;
+          });
+        }
+
+        // ---------- Gemist of naar een afhaalpunt: een klein bordje op de stoep (geen busje en geen doos bij de deur) ----------
+        {
+          const notes = [];
+          for (const [key] of carriers) {
+            const name = { postnl: 'PostNL', dhl: 'DHL', dpd: 'dpd', gls: 'GLS' }[key];
+            const todays = ['inkomende', 'bezorgde'].flatMap(k => states[`sensor.buiten_${key}_${k}_pakketten`]?.attributes?.parcels ?? []).filter(p => parcelDay(p) === todayIso);
+            if (todays.some(p => p.status === 'failed')) notes.push([`${name} niet bezorgd`, '#ef4444']);
+            if (todays.some(p => p.pickup || p.pickup_point || ['to_pickup_point', 'ready_for_pickup'].includes(p.status))) notes.push([`${name} ligt bij een afhaalpunt`, '#38bdf8']);
+          }
+          notes.slice(0, 3).forEach(([text, color], i) => {
+            out += `<div style="position:absolute;left:${homeX + 8}%;bottom:calc(${roadH + 2}% + ${i * 19}px);transform:translateX(-50%);z-index:2;pointer-events:none;white-space:nowrap;
+                padding:1px 7px;border-radius:9px;font-size:10px;line-height:15px;font-weight:600;color:#fff;background:rgba(15,18,28,0.7);border-left:3px solid ${color}">${text}</div>`;
           });
         }
 
