@@ -679,6 +679,24 @@ weather_hero:
             set('sensor.buiten_postnl_inkomende_pakketten', '1', { parcels: [{ carrier: 'PostNL', planned_from: `${iso}T14:00:00+02:00` }] });
             set('sensor.buiten_dhl_bezorgde_pakketten', '2', { parcels: [{ carrier: 'DHL', delivered_at: `${iso}T10:12:00+02:00` }, { carrier: 'DHL', delivered_at: `${iso}T10:12:00+02:00` }] });
           }
+          if (['busje in de verte', 'busje komt aan', 'busje bezorgt', 'busje rijdt weg', 'drie busjes', 'pakketje gemist', 'pakketje bij afhaalpunt'].includes(scenario)) {
+            // Vast vanaf het moment dat het scenario gekozen werd, anders schuift de tijd bij elke tekening mee
+            if (window.huisTestVan?.scenario !== scenario) window.huisTestVan = { scenario, t0: Date.now() };
+            const at = minutes => new Date(window.huisTestVan.t0 + minutes * 60000).toISOString();
+            for (const c of ['postnl', 'dhl', 'dpd', 'gls']) {
+              set(`sensor.buiten_${c}_inkomende_pakketten`, '0', { parcels: [] }); set(`sensor.buiten_${c}_bezorgde_pakketten`, '0', { parcels: [] });
+              set(`sensor.buiten_${c}_volgende_bezorging`, 'unknown');
+            }
+            const coming = (c, name, sender, from, to, status = 'out_for_delivery') =>
+              set(`sensor.buiten_${c}_inkomende_pakketten`, '1', { parcels: [{ carrier: name, sender, status, delivered: false, planned_from: at(from), planned_to: at(to) }] });
+            if (scenario === 'busje in de verte') coming('postnl', 'PostNL', 'Happyshopper', 150, 270, 'in_transit');
+            if (scenario === 'busje komt aan') coming('postnl', 'PostNL', 'Happyshopper', 1.2, 120);
+            if (scenario === 'busje bezorgt') coming('dhl', 'DHL', 'Zalando', -5, 115);
+            if (scenario === 'busje rijdt weg') set('sensor.buiten_dpd_bezorgde_pakketten', '1', { parcels: [{ carrier: 'DPD', sender: 'Coolblue', status: 'delivered', delivered: true, delivered_at: at(0) }] });
+            if (scenario === 'drie busjes') { coming('postnl', 'PostNL', 'Happyshopper', 25, 145, 'in_transit'); coming('dhl', 'DHL', 'Zalando', 1.2, 120); coming('gls', 'GLS', 'bol.com', -5, 115); }
+            if (scenario === 'pakketje gemist') set('sensor.buiten_postnl_inkomende_pakketten', '1', { parcels: [{ carrier: 'PostNL', sender: 'Happyshopper', status: 'failed', delivered: false, planned_from: at(-90), planned_to: at(-30) }] });
+            if (scenario === 'pakketje bij afhaalpunt') set('sensor.buiten_dhl_bezorgde_pakketten', '1', { parcels: [{ carrier: 'DHL', sender: 'Zalando', status: 'delivered', delivered: true, pickup: true, delivered_at: at(-20) }] });
+          } else window.huisTestVan = null;
           if (scenario.startsWith('code ')) {
             const code = scenario.slice(5);
             set('binary_sensor.weer_thuis_waarschuwing_actief', 'on');
