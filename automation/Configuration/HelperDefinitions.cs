@@ -52,12 +52,12 @@ public static class HelperDefinitions
         Time("werk_eind_carleen", "Werk eind Carleen", "17:00:00"),
 
         // Verkeersbericht per persoon (CommuteReport): of het WhatsApp-bericht komt, en hoe laat voor de reis naar kantoor en de reis naar huis
-        Boolean("verkeer_bericht_vincent", "Verkeersbericht Vincent", icon: "mdi:car-clock", start: true),
-        Time("verkeer_heen_vincent", "Verkeersbericht naar kantoor Vincent", "07:50:00"),
-        Time("verkeer_terug_vincent", "Verkeersbericht naar huis Vincent", "17:15:00"),
-        Boolean("verkeer_bericht_carleen", "Verkeersbericht Carleen", icon: "mdi:car-clock", start: true),
-        Time("verkeer_heen_carleen", "Verkeersbericht naar kantoor Carleen", "07:50:00"),
-        Time("verkeer_terug_carleen", "Verkeersbericht naar huis Carleen", "17:15:00"),
+        Boolean("verkeer_bericht_vincent", "Verkeer bericht Vincent", icon: "mdi:car-clock", start: true),
+        Time("verkeer_heen_vincent", "Verkeer heen Vincent", "07:50:00"),
+        Time("verkeer_terug_vincent", "Verkeer terug Vincent", "17:15:00"),
+        Boolean("verkeer_bericht_carleen", "Verkeer bericht Carleen", icon: "mdi:car-clock", start: true),
+        Time("verkeer_heen_carleen", "Verkeer heen Carleen", "07:50:00"),
+        Time("verkeer_terug_carleen", "Verkeer terug Carleen", "17:15:00"),
 
         // input_boolean
         Boolean("away", "Away", icon: "mdi:shield-lock"),
