@@ -513,6 +513,7 @@ weather_hero:
     - input_datetime.pixellastlitterboxvisit
     - sensor.thuis_3_voertuig_direction_of_travel
     - sensor.thuis_3_voertuig_afstand
+    - binary_sensor.buiten_peugeot_2008_motor
     - sensor.buiten_postnl_brieven
     - sensor.buiten_postnl_inkomende_pakketten
     - sensor.buiten_postnl_bezorgde_pakketten
@@ -668,7 +669,8 @@ weather_hero:
         const scenario = String(states['input_select.weerkaart_scenario']?.state ?? '').toLowerCase();
         if (scenario && scenario !== 'automatisch') {
           const fake = {};
-          const set = (id, state, attributes = {}) => { fake[id] = { entity_id: id, state, attributes: { ...(states[id]?.attributes ?? {}), ...attributes } }; };
+          const set = (id, state, attributes = {}, ageS = null) => { fake[id] = { entity_id: id, state, attributes: { ...(states[id]?.attributes ?? {}), ...attributes },
+            last_changed: ageS === null ? states[id]?.last_changed : new Date(Date.now() - ageS * 1000).toISOString() }; };
           const weather = (condition, cover, temperature, wind) => {
             set('weather.weer_thuis', condition); set('weather.weer_thuis_waarnemingen', condition);
             set('sensor.weer_thuis_bewolking', String(cover)); set('sensor.weer_thuis_temperatuur', String(temperature));
@@ -709,12 +711,18 @@ weather_hero:
           } else window.huisTestVan = null;
           if (scenario !== 'pixel gekke 10 minuten') window.huisTestZoom = null;
           if (scenario === 'auto komt thuis') {
-            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('sensor.thuis_3_voertuig_direction_of_travel', 'towards');
-            set('sensor.thuis_3_voertuig_afstand', '1800'); set('sensor.buiten_peugeot_2008_snelheid', '30');
+            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('binary_sensor.buiten_peugeot_2008_motor', 'on', {}, 400);
+            set('sensor.thuis_3_voertuig_direction_of_travel', 'towards', {}, 330); set('sensor.thuis_3_voertuig_afstand', '1800'); set('sensor.buiten_peugeot_2008_snelheid', '25');
           }
           if (scenario === 'auto rijdt weg') {
-            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('sensor.thuis_3_voertuig_direction_of_travel', 'away_from');
-            set('sensor.thuis_3_voertuig_afstand', '1800');
+            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home', {}, 3); set('binary_sensor.buiten_peugeot_2008_motor', 'on', {}, 10);
+            set('sensor.thuis_3_voertuig_direction_of_travel', 'away_from'); set('sensor.thuis_3_voertuig_afstand', '120');
+          }
+          if (scenario === 'auto staat stil') {
+            if (window.huisTestCar?.scenario !== scenario) window.huisTestCar = { scenario };
+            window.huisCar = { t0: Date.now() - 120000, dur: 480000, x0: -30, x1: 36 };
+            set('device_tracker.buiten_peugeot_2008_voertuig', 'not_home'); set('binary_sensor.buiten_peugeot_2008_motor', 'off', {}, 100);
+            set('sensor.thuis_3_voertuig_direction_of_travel', 'stationary'); set('sensor.thuis_3_voertuig_afstand', '1500');
           }
           if (scenario === 'stofzuiger aan') set('vacuum.jaap', 'cleaning');
           if (scenario === 'pixel gekke 10 minuten') {
@@ -755,11 +763,11 @@ weather_hero:
           // Welke vliegtuigen er in de buurt zijn (niet hun positie, die verandert steeds), en of het 18:00 / 20:00 geweest is
           (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3).map(f => f.id ?? f.flight_number ?? f.callsign).join(),
           new Date().getHours() >= 18, new Date().getHours() * 60 + new Date().getMinutes() >= 20 * 60 + 3,
-          Math.round(parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state) / 1000),
+          states['sensor.thuis_3_voertuig_direction_of_travel']?.state === 'towards' ? Math.round(parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state) / 1000) : 0,
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel', 'binary_sensor.buiten_peugeot_2008_motor',
             ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
@@ -1550,23 +1558,50 @@ weather_hero:
             `<path d="M1 6.5 Q50 0.5 99 6.5 L98 8 L2 8 Z" fill="${asphalt}"/><path d="M6 5.2 Q50 1.6 94 5.2" stroke="${dim('rgb(150,146,142)')}" stroke-width="0.4" fill="none"/>`,
             'pointer-events:none');
         }
-        // ---------- De auto komt naar huis: rijdt over de weg langzaam dichterbij, op basis van afstand en richting (proximity "Thuis 3") ----------
-        // Alleen als hij echt onderweg naar huis is ("towards"); rijdt hij ergens anders, dan is hij niet te zien. Eén lange animatie
-        // van nu tot aankomst (afstand / snelheid), zodat de kaart niet elke minuut opnieuw hoeft te tekenen. Is hij thuis, dan staat hij op de oprit.
-        const carHome = states['device_tracker.buiten_peugeot_2008_voertuig']?.state === 'home';
+        // ---------- De auto onderweg: komt naar huis, rijdt weg, of staat stil en verdwijnt (proximity "Thuis 3" en de motor) ----------
+        // - Komt hij naar huis: sinds 5 minuten richting huis ("towards") en de motor aan, waar hij ook is. Dan rijdt hij over de weg
+        //   naar de oprit; de laatste 8 minuten voor aankomst zie je hem rijden. De beweging is één CSS-animatie met een vertraging,
+        //   dus de kaart hoeft niet opnieuw te tekenen.
+        // - Rijdt hij net weg van huis (nog dichtbij, niet meer thuis): hij rijdt van de oprit de weg op en rechts uit beeld.
+        // - Staat hij stil met de motor uit terwijl hij onderweg naar huis te zien was: na 5 minuten rijdt hij rechts uit beeld.
+        // - Rijdt hij ergens anders: dan is hij niet te zien. Thuis staat hij op de oprit.
+        const carState = states['device_tracker.buiten_peugeot_2008_voertuig']?.state;
+        const carHome = carState === 'home';
         const carDistance = parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state);
-        const carComing = !carHome && states['sensor.thuis_3_voertuig_direction_of_travel']?.state === 'towards'
-          && carDistance > 0 && carDistance <= 3000;
-        let carX = driveway, carBottom = groundBottom(driveway) - 1.2, carAnim = '';
+        const carDirection = states['sensor.thuis_3_voertuig_direction_of_travel']?.state;
+        const carEngine = states['binary_sensor.buiten_peugeot_2008_motor']?.state;
+        const sinceS = id => { const t = new Date(states[id]?.last_changed).getTime(); return isNaN(t) ? 0 : (Date.now() - t) / 1000; };
+        const driveBottom = groundBottom(driveway) - 1.2, streetBottom = 1.2;
+        const carComing = carState === 'not_home' && carDirection === 'towards' && carEngine !== 'off' && carDistance > 0;
+        const carLeaving = carState === 'not_home' && !carComing && carDistance < 600 && sinceS('device_tracker.buiten_peugeot_2008_voertuig') < 90;
+        const seen = window.huisCar;
+        const carStopped = carState === 'not_home' && !carComing && !carLeaving && carEngine === 'off' && !!seen && sinceS('binary_sensor.buiten_peugeot_2008_motor') < 306;
+        if (carHome || carLeaving) window.huisCar = null;
+        if (!carHome && !carComing && !carLeaving && !carStopped) window.huisCar = null;
+        let carX = driveway, carBottom = driveBottom, carAnim = '';
         if (carComing) {
-          const roadX = d => -25 + (1 - Math.min(d, 3000) / 3000) * (driveway + 25);
-          const speedMs = Math.max(20, parseFloat(states['sensor.buiten_peugeot_2008_snelheid']?.state) || 0) / 3.6;
-          const arriveS = Math.max(15, carDistance / speedMs);
-          out += `<style>@keyframes hero-car-come { from { left: ${roadX(carDistance).toFixed(1)}%; } to { left: ${driveway}%; } }</style>`;
-          carX = roadX(carDistance); carBottom = 1.2;
-          carAnim = `;z-index:2;animation:hero-car-come ${arriveS.toFixed(0)}s linear 0s 1 both`;
+          const kmh = parseFloat(states['sensor.buiten_peugeot_2008_snelheid']?.state) > 5 ? parseFloat(states['sensor.buiten_peugeot_2008_snelheid'].state) : 50;
+          const arriveS = Math.max(20, carDistance / (kmh / 3.6));
+          const driveS = Math.min(arriveS, 480), lead = arriveS - driveS;
+          const visibleIn = Math.max(0, 300 - sinceS('sensor.thuis_3_voertuig_direction_of_travel'));
+          window.huisCar = { t0: Date.now() + lead * 1000, dur: driveS * 1000, x0: -30, x1: driveway };
+          out += `<style>@keyframes hero-car-come { 0% { left: -30%; bottom: ${streetBottom}%; } 75% { left: ${driveway - 6}%; bottom: ${streetBottom}%; }
+              100% { left: ${driveway}%; bottom: ${driveBottom}%; } }</style>`;
+          carX = -30; carBottom = streetBottom;
+          carAnim = `;z-index:2;opacity:0;animation:hero-car-come ${driveS.toFixed(0)}s linear ${lead.toFixed(0)}s 1 both, hero-cat-show 86400s linear ${visibleIn.toFixed(0)}s 1`;
+        } else if (carLeaving) {
+          const age = sinceS('device_tracker.buiten_peugeot_2008_voertuig');
+          out += `<style>@keyframes hero-car-go { 0% { left: ${driveway}%; bottom: ${driveBottom}%; } 25% { left: ${driveway + 6}%; bottom: ${streetBottom}%; } 100% { left: 130%; bottom: ${streetBottom}%; } }</style>`;
+          carAnim = `;z-index:2;animation:hero-car-go 11s ease-in ${(-Math.min(age, 10)).toFixed(0)}s 1 both`;
+        } else if (carStopped) {
+          const p = Math.min(1, Math.max(0, (Date.now() - seen.t0) / seen.dur));
+          const standX = seen.x0 + (seen.x1 - seen.x0) * p * 0.75;
+          const waitS = Math.max(0, 300 - sinceS('binary_sensor.buiten_peugeot_2008_motor')), goS = 8, pct = waitS / (waitS + goS) * 100;
+          out += `<style>@keyframes hero-car-leave { 0%, ${pct.toFixed(2)}% { left: ${standX.toFixed(1)}%; } 100% { left: 130%; } }</style>`;
+          carX = standX; carBottom = streetBottom;
+          carAnim = `;z-index:2;animation:hero-car-leave ${(waitS + goS).toFixed(0)}s ease-in 0s 1 both`;
         }
-        if (carHome || carComing) {
+        if (carHome || carComing || carLeaving || carStopped) {
           const k = (r, g, b) => dim(`rgb(${r},${g},${b})`);
           const outline = 'M140 662 L93 616 L92 566 L112 548 L118 520 L116 446 L126 398 L244 290 L250 272 L330 262 L790 262 Q825 266 852 288 L1042 366 L1250 416 Q1305 430 1336 452 Q1364 470 1374 494 L1395 560 L1397 620 L1392 652 Q1388 674 1370 674 L205 674 Z';
           const black = k(18, 19, 22), cladding = k(40, 42, 46), silver = k(206, 211, 217);
