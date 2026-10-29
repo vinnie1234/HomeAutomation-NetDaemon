@@ -3082,22 +3082,24 @@ summary:
       - white-space: normal
       - text-align: left
 
-# Verkeer op de woon-werkroute (ANWB File): de reistijd, files op de route en flitsers.
-# - variables.mode: 'auto' = alleen op een kantoordag van Vincent, 's ochtends (05:00-10:00) de heenreis en 's middags
-#   (15:00-19:30) de terugreis; anders verborgen. 'work' of 'home' toont die route altijd.
+# Verkeer op Vincents woon-werkroute (ANWB File): de reistijd, files op de route en flitsers. De routes worden gevonden op eigenaar
+# (attribute person van de routesensor) en op of ze thuis beginnen of eindigen.
+# - variables.mode: 'auto' = alleen op een kantoordag van Vincent: ben je thuis en is het voor 12:00, dan de heenreis naar kantoor;
+#   ben je niet thuis (op kantoor) en is het na 12:00, dan de terugreis naar huis; anders verborgen. 'work' of 'home' toont die route altijd.
 # - Een file telt mee als hij op een weg van de route ligt, binnen het gebied tussen start en einde (+ ~3 km) en dezelfde kant op gaat
 #   (de lijn van de file wijst dezelfde kant op als de route). Flitsers hebben geen richting die we kunnen vergelijken: die tonen we
 #   met de richting van de ANWB.
 commute_card:
   template: glass
   triggers_update:
-    - sensor.anwb_route_thuis_werk_reistijd
-    - sensor.anwb_route_thuis_werk_route
+    - sensor.anwb_route_huis_werk_reistijd
+    - sensor.anwb_route_huis_werk_route
     - sensor.anwb_route_werk_huis_reistijd
     - sensor.anwb_route_werk_huis_route
     - sensor.anwb_file_files
     - sensor.anwb_file_flitsers
     - input_boolean.vrij_vincent
+    - input_boolean.awayvincent
     - input_boolean.onvacation
     - input_select.werkdag_vincent_maandag
     - input_select.werkdag_vincent_dinsdag
@@ -3116,21 +3118,34 @@ commute_card:
     navigation_path: /dashboard-huis/weer
   styles:
     card:
+      - padding: 14px 16px
       - display: |
           [[[
             if (variables.mode !== 'auto') return 'block';
-            const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
+            const now = new Date(), h = now.getHours();
             const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
             const office = states[`input_select.werkdag_vincent_${days[now.getDay()]}`]?.state === 'Kantoor'
               && states['input_boolean.vrij_vincent']?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
-            return office && ((h >= 5 && h < 10) || (h >= 15 && h < 19.5)) ? 'block' : 'none';
+            const home = states['input_boolean.awayvincent']?.state !== 'on';
+            return office && ((home && h < 12) || (!home && h >= 12 && h < 22)) ? 'block' : 'none';
           ]]]
+    grid:
+      - grid-template-areas: '"traffic"'
+    custom_fields:
+      traffic:
+        - display: block
+        - width: 100%
   custom_fields:
     traffic: |
       [[[
         const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
-        const toWork = variables.mode === 'work' || (variables.mode === 'auto' && h < 12);
-        const prefix = toWork ? 'sensor.anwb_route_thuis_werk' : 'sensor.anwb_route_werk_huis';
+        const toWork = variables.mode === 'work' || (variables.mode === 'auto' && states['input_boolean.awayvincent']?.state !== 'on');
+        // Vincents route: de routes hebben een eigenaar (attribute person), en de heenreis begint thuis, de terugreis eindigt thuis
+        const homeZone = states['zone.home']?.attributes ?? {};
+        const nearHome = p => Array.isArray(p) && Math.abs(p[0] - homeZone.latitude) < 0.01 && Math.abs(p[1] - homeZone.longitude) < 0.01;
+        const mine = Object.values(states).filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person === 'person.vincent_maarschalkerweerd');
+        const found = mine.find(s => toWork ? nearHome(s.attributes.origin) : nearHome(s.attributes.destination));
+        const prefix = found ? found.entity_id.replace(/_route$/, '') : 'sensor.anwb_route_onbekend';
         const title = toWork ? 'Naar kantoor' : 'Naar huis';
         const icon = toWork ? 'mdi:office-building-outline' : 'mdi:home-import-outline';
         const duration = parseFloat(states[`${prefix}_reistijd`]?.state);

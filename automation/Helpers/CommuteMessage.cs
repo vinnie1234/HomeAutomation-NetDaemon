@@ -16,10 +16,6 @@ public static class CommuteMessage
 
     private static readonly CultureInfo Dutch = new("nl-NL");
 
-    /// <summary>The entity id prefix of the sensors of one route.</summary>
-    public static string RoutePrefix(CommuteDirection direction) =>
-        direction == CommuteDirection.ToWork ? "sensor.anwb_route_thuis_werk" : "sensor.anwb_route_werk_huis";
-
     /// <summary>The jams on the route: on one of its roads, inside its area and going the same way.</summary>
     public static IReadOnlyList<TrafficIncident> JamsOnRoute(RouteSnapshot route, IEnumerable<TrafficIncident> jams) =>
         jams.Where(jam => OnRoad(route, jam) && (jam.Path.Count > 0 ? jam.Path.Any(p => InArea(route, p)) : InArea(route, jam.Position))

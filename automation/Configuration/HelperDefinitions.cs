@@ -127,6 +127,8 @@ public static class HelperDefinitions
         Button("vacuumcleankattenbak", "VacuumCleanKattenbak", icon: "mdi:robot-vacuum"),
         Button("vacuumcleanslaapkamer", "VacuumCleanSlaapkamer", icon: "mdi:robot-vacuum"),
         Button("vacuumcleanwoonkamer", "VacuumCleanWoonkamer", icon: "mdi:robot-vacuum"),
+        // Sends the two commute messages (to the office and home) right away
+        Button("verkeertestbericht", "VerkeerTestbericht", icon: "mdi:car-clock"),
         Button("zedargivenextfeedeary", "PixelGiveNextFeedEary", icon: "mdi:food-drumstick"),
 
         // input_number
