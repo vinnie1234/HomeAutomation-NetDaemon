@@ -3084,8 +3084,9 @@ summary:
 
 # Verkeer op Vincents woon-werkroute (ANWB File): de reistijd, files op de route en flitsers. De routes worden gevonden op eigenaar
 # (attribute person van de routesensor) en op of ze thuis beginnen of eindigen.
-# - variables.mode: 'auto' = alleen op een kantoordag van Vincent: ben je thuis en is het voor 12:00, dan de heenreis naar kantoor;
-#   ben je niet thuis (op kantoor) en is het na 12:00, dan de terugreis naar huis; anders verborgen. 'work' of 'home' toont die route altijd.
+# - variables.mode: 'auto' = alleen op een kantoordag van Vincent: ben je thuis en is de werkdag nog niet halverwege
+#   (midden tussen werk_start en werk_eind), dan de heenreis naar kantoor; ben je niet thuis (op kantoor) en is de werkdag halverwege voorbij,
+#   dan de terugreis naar huis;  anders verborgen. 'work' of 'home' toont die route altijd.
 # - Een file telt mee als hij op een weg van de route ligt, binnen het gebied tussen start en einde (+ ~3 km) en dezelfde kant op gaat
 #   (de lijn van de file wijst dezelfde kant op als de route). Flitsers hebben geen richting die we kunnen vergelijken: die tonen we
 #   met de richting van de ANWB.
@@ -3101,6 +3102,8 @@ commute_card:
     - input_boolean.vrij_vincent
     - input_boolean.awayvincent
     - input_boolean.onvacation
+    - input_datetime.werk_start_vincent
+    - input_datetime.werk_eind_vincent
     - input_select.werkdag_vincent_maandag
     - input_select.werkdag_vincent_dinsdag
     - input_select.werkdag_vincent_woensdag
@@ -3122,12 +3125,16 @@ commute_card:
       - display: |
           [[[
             if (variables.mode !== 'auto') return 'block';
-            const now = new Date(), h = now.getHours();
+            const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
+            // Halverwege de werkdag (tussen begin en eind van Vincents werktijd) gaat hij niet meer naar kantoor
+            const hours = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
+            const start = hours('input_datetime.werk_start_vincent') ?? 8.5, end = hours('input_datetime.werk_eind_vincent') ?? 17;
+            const middle = (start + end) / 2;
             const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
             const office = states[`input_select.werkdag_vincent_${days[now.getDay()]}`]?.state === 'Kantoor'
               && states['input_boolean.vrij_vincent']?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
             const home = states['input_boolean.awayvincent']?.state !== 'on';
-            return office && ((home && h < 12) || (!home && h >= 12 && h < 22)) ? 'block' : 'none';
+            return office && ((home && h < middle) || (!home && h >= middle && h < 22)) ? 'block' : 'none';
           ]]]
     grid:
       - grid-template-areas: '"traffic"'
