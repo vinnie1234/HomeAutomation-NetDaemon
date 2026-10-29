@@ -191,6 +191,17 @@ sections:
           - entity: input_datetime.werk_eind_vincent
             name: Eind
             icon: mdi:briefcase-check-outline
+          - type: section
+            label: Verkeersbericht (WhatsApp, op kantoordagen)
+          - entity: input_boolean.verkeer_bericht_vincent
+            name: Verkeersbericht sturen
+            icon: mdi:car-clock
+          - entity: input_datetime.verkeer_heen_vincent
+            name: Hoe laat naar kantoor
+            icon: mdi:office-building-outline
+          - entity: input_datetime.verkeer_terug_vincent
+            name: Hoe laat naar huis
+            icon: mdi:home-import-outline
 
   # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
   - type: grid

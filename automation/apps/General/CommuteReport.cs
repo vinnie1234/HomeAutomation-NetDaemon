@@ -2,32 +2,44 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Helpers;
+using Automation.Models.Persons;
 using Automation.Models.Traffic;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
 
 /// <summary>
-/// Sends Vincent a WhatsApp message with the traffic on his commute: at 07:50 on an office day the trip to the office, at
-/// 17:15 the trip home. The message has the travel time, the jams on the route and how long they last, and the speed cameras
-/// (see <see cref="CommuteMessage"/>). It reads the route sensors and the jams and speed cameras of the ANWB File integration.
+/// Sends everyone who has a route in the ANWB File integration a WhatsApp message with the traffic on their commute, on their
+/// office days: the trip to the office in the morning, the trip home in the afternoon. The message has the travel time, the jams
+/// on the route and how long they last, and the speed cameras (see <see cref="CommuteMessage"/>).
+/// <para>
+/// A route belongs to a person (the <c>person</c> attribute of its sensors) and goes the way its name says (see
+/// <see cref="CommuteMessage.DirectionOfName"/>), so a new route for somebody works without changing anything here. Each person
+/// has helpers to switch the message on or off and to set the two times: <c>input_boolean.verkeer_bericht_{person}</c>,
+/// <c>input_datetime.verkeer_heen_{person}</c> and <c>input_datetime.verkeer_terug_{person}</c>.
+/// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(CommuteReport))]
 public class CommuteReport : BaseApp
 {
-    /// <summary>When the message about the trip to the office is sent.</summary>
-    public const string MorningCron = "50 7 * * *";
+    /// <summary>When the message about the trip to the office is sent while the helper has no time.</summary>
+    public static readonly TimeSpan DefaultMorning = new(7, 50, 0);
 
-    /// <summary>When the message about the trip home is sent.</summary>
-    public const string EveningCron = "15 17 * * *";
+    /// <summary>When the message about the trip home is sent while the helper has no time.</summary>
+    public static readonly TimeSpan DefaultEvening = new(17, 15, 0);
 
-    /// <summary>Pressing this button sends both messages right away, to see what they look like.</summary>
+    /// <summary>Pressing this button sends Vincent both messages right away, to see what they look like.</summary>
     public const string TestButton = "input_button.verkeertestbericht";
 
-    /// <summary>The person the routes belong to.</summary>
-    private const string OwnerId = "person.vincent_maarschalkerweerd";
-
     private static readonly string[] GeoSource = ["anwb_file"];
+
+    /// <summary>One person who can get the message.</summary>
+    /// <param name="Id">The name as used in the helper ids: <c>vincent</c> or <c>carleen</c>.</param>
+    /// <param name="PersonId">The person entity, which the routes name as their owner.</param>
+    /// <param name="Person">Whether the person is home.</param>
+    /// <param name="Schedule">Their work schedule.</param>
+    /// <param name="Whatsapp">Their WhatsApp id.</param>
+    private sealed record Commuter(string Id, string PersonId, IPerson Person, WorkSchedule Schedule, string Whatsapp);
 
     public CommuteReport(
         IHaContext ha,
@@ -37,62 +49,88 @@ public class CommuteReport : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        Scheduler.ScheduleCronNl(MorningCron, () => Send(CommuteDirection.ToWork));
-        Scheduler.ScheduleCronNl(EveningCron, () => Send(CommuteDirection.ToHome));
+        Commuter[] commuters =
+        [
+            new("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
+            new("carleen", Entities.Person.Carleen.EntityId, Carleen, CarleenSchedule, Carleen.Whatsapp)
+        ];
 
-        // A test: the button sends both messages now, on any day
+        foreach (var commuter in commuters)
+        {
+            // The time is a helper, so a change in the dashboard applies without a restart
+            Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_heen_{commuter.Id}"), DefaultMorning,
+                () => Send(commuter, CommuteDirection.ToWork));
+            Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_terug_{commuter.Id}"), DefaultEvening,
+                () => Send(commuter, CommuteDirection.ToHome));
+        }
+
+        // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
         new Entity(HaContext, TestButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(_ =>
         {
-            Send(CommuteDirection.ToWork, test: true);
-            Send(CommuteDirection.ToHome, test: true);
+            Send(commuters[0], CommuteDirection.ToWork, test: true);
+            Send(commuters[0], CommuteDirection.ToHome, test: true);
         });
     }
 
-    private void Send(CommuteDirection direction, bool test = false)
+    private void Send(Commuter commuter, CommuteDirection direction, bool test = false)
     {
         try
         {
-            if (!test && !VincentSchedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek)) return;
-            // Already home on his way back: nothing to warn about
-            if (!test && direction == CommuteDirection.ToHome && Vincent.IsHome) return;
-            if (string.IsNullOrEmpty(Vincent.Whatsapp))
+            if (!test)
             {
-                Logger.LogWarning("No WhatsApp id for Vincent, the commute message is not sent");
+                // Switched off by the person, or not an office day
+                if (HaContext.GetState($"input_boolean.verkeer_bericht_{commuter.Id}")?.State == "off") return;
+                if (!commuter.Schedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek)) return;
+                // Already home on the way back: nothing to warn about
+                if (direction == CommuteDirection.ToHome && commuter.Person.IsHome) return;
+            }
+
+            if (FindRoutePrefix(commuter.PersonId, direction) is not { } prefix)
+            {
+                // Somebody without a route in this direction gets nothing, just like somebody without a WhatsApp id
+                Logger.LogInformation("{Person} has no {Direction} route, no commute message", commuter.Id, direction);
+                return;
+            }
+            if (string.IsNullOrEmpty(commuter.Whatsapp))
+            {
+                Logger.LogWarning("No WhatsApp id for {Person}, the commute message is not sent", commuter.Id);
                 return;
             }
 
-            var text = ReadRoute(direction) is { } route
+            var text = ReadRoute(prefix) is { } route
                 ? (test ? "🧪 Test\n" : "") + CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now)
                 : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).";
-            Services.Whatsapp.SendMessage(clientId: "default", to: Vincent.Whatsapp, body: new { text });
-            Logger.LogInformation("Sent the {Direction} commute message", direction);
+            Services.Whatsapp.SendMessage(clientId: "default", to: commuter.Whatsapp, body: new { text });
+            Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Could not send the {Direction} commute message", direction);
+            Logger.LogError(ex, "Could not send the {Direction} commute message to {Person}", direction, commuter.Id);
         }
     }
 
     /// <summary>
-    /// The entity id prefix of Vincent's route in this direction. The ANWB File integration gives every route an owner (the
-    /// <c>person</c> attribute of its sensors) and names the sensors after the route, so the route is found by its owner and by
-    /// whether it ends or starts at home, not by name.
+    /// The entity id prefix of the route of this person in this direction. The ANWB File integration gives every route an owner
+    /// (the <c>person</c> attribute of its sensors); which way it goes follows from its name (<see cref="CommuteMessage.DirectionOfName"/>),
+    /// or else from whether it starts or ends at home.
     /// </summary>
-    private string? FindRoutePrefix(CommuteDirection direction)
+    private string? FindRoutePrefix(string personId, CommuteDirection direction)
     {
         var homeAttributes = HaContext.GetState("zone.home")?.AttributesJson;
-        if (homeAttributes is not { ValueKind: JsonValueKind.Object } home) return null;
-        var homePoint = new GeoPoint(Number(home, "latitude") ?? 0, Number(home, "longitude") ?? 0);
+        var homePoint = homeAttributes is { ValueKind: JsonValueKind.Object } home
+            ? new GeoPoint(Number(home, "latitude") ?? 0, Number(home, "longitude") ?? 0)
+            : default;
 
         foreach (var entity in HaContext.GetAllEntities().Where(e => e.EntityId.StartsWith("sensor.anwb_route_", StringComparison.Ordinal)
                                                                    && e.EntityId.EndsWith("_route", StringComparison.Ordinal)))
         {
-            if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != OwnerId) continue;
-            var endsAtHome = Near(Point(a, "destination"), homePoint);
-            var startsAtHome = Near(Point(a, "origin"), homePoint);
-            if ((direction == CommuteDirection.ToHome && endsAtHome) || (direction == CommuteDirection.ToWork && startsAtHome))
-                return entity.EntityId[..^"_route".Length];
+            if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != personId) continue;
+            var name = Text(a, "friendly_name") ?? entity.EntityId;
+            var routeDirection = CommuteMessage.DirectionOfName(name)
+                                 ?? (Near(Point(a, "origin"), homePoint) ? CommuteDirection.ToWork
+                                     : Near(Point(a, "destination"), homePoint) ? CommuteDirection.ToHome : null);
+            if (routeDirection == direction) return entity.EntityId[..^"_route".Length];
         }
         return null;
     }
@@ -100,9 +138,8 @@ public class CommuteReport : BaseApp
     private static bool Near(GeoPoint a, GeoPoint b) => Math.Abs(a.Lat - b.Lat) < 0.01 && Math.Abs(a.Lon - b.Lon) < 0.01;
 
     /// <summary>The fastest route, or null while its sensors have no value.</summary>
-    private RouteSnapshot? ReadRoute(CommuteDirection direction)
+    private RouteSnapshot? ReadRoute(string prefix)
     {
-        if (FindRoutePrefix(direction) is not { } prefix) return null;
         var duration = HaContext.GetState($"{prefix}_reistijd");
         var route = HaContext.GetState($"{prefix}_route");
         if (!double.TryParse(duration?.State, NumberStyles.Float, CultureInfo.InvariantCulture, out var durationMin)

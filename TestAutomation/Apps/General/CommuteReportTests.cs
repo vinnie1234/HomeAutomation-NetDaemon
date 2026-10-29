@@ -13,6 +13,7 @@ namespace TestAutomation.Apps.General;
 public class CommuteReportTests
 {
     private const string VincentWhatsapp = "111@lid";
+    private const string CarleenWhatsapp = "222@lid";
 
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
 
@@ -25,7 +26,7 @@ public class CommuteReportTests
         });
 
     /// <summary>Starts the app on a Thursday (2026-10-29) at 00:00 Dutch time, with a normal route and the given work day setting.</summary>
-    private void Start(string thursday, bool vincentHome = true, string whatsapp = VincentWhatsapp)
+    private void Start(string thursday, bool vincentHome = true, string whatsapp = VincentWhatsapp, Action? configure = null)
     {
         SetState("input_select.werkdag_vincent_donderdag", thursday);
         SetState("input_boolean.vrij_vincent", "off");
@@ -33,8 +34,8 @@ public class CommuteReportTests
         SetState("input_boolean.awayvincent", vincentHome ? "off" : "on");
         SetState("zone.home", "0", new { latitude = 52.028, longitude = 5.528 });
         var entities = new List<Entity>();
-        foreach (var (prefix, from, to) in new[] { ("sensor.anwb_route_huis_werk", new[] { 52.028, 5.528 }, new[] { 52.063, 5.088 }),
-                     ("sensor.anwb_route_werk_huis", new[] { 52.063, 5.088 }, new[] { 52.028, 5.528 }) })
+        foreach (var (prefix, from, to) in new (string, double[], double[])[] { ("sensor.anwb_route_huis_werk", [52.028, 5.528], [52.063, 5.088]),
+                     ("sensor.anwb_route_werk_huis", [52.063, 5.088], [52.028, 5.528]) })
         {
             SetState($"{prefix}_reistijd", "31", new { normal_duration_min = 31 });
             SetState($"{prefix}_vertraging", "0");
@@ -42,12 +43,19 @@ public class CommuteReportTests
             SetState($"{prefix}_route", "A12", new { person = "person.vincent_maarschalkerweerd", via = new[] { "A12" }, origin = from, destination = to, alternatives = Array.Empty<object>() });
             entities.Add(new Entity(_ctx.HaContext, $"{prefix}_route"));
         }
-        // A route of somebody else is not Vincent's
-        SetState("sensor.anwb_route_carleen_route", "A27", new { person = "person.carleen", via = new[] { "A27" }, origin = new[] { 52.028, 5.528 }, destination = new[] { 52.2, 5.2 }, alternatives = Array.Empty<object>() });
-        entities.Add(new Entity(_ctx.HaContext, "sensor.anwb_route_carleen_route"));
+        // Carleen's routes: the name says which way they go, even when the places are the other way around
+        foreach (var (prefix, name) in new[] { ("sensor.anwb_route_carleen_heen", "ANWB Route Huis => Werk Carleen Route"), ("sensor.anwb_route_carleen_terug", "ANWB Route Werk => Huis Carleen Route") })
+        {
+            SetState($"{prefix}_reistijd", "25", new { normal_duration_min = 25 });
+            SetState($"{prefix}_vertraging", "0");
+            SetState($"{prefix}_aankomsttijd", "2026-10-29T06:21:00+00:00");
+            SetState($"{prefix}_route", "A27", new { friendly_name = name, person = "person.carleen", via = new[] { "A27" }, origin = new[] { 52.2, 5.2 }, destination = new[] { 52.2, 5.2 }, alternatives = Array.Empty<object>() });
+            entities.Add(new Entity(_ctx.HaContext, $"{prefix}_route"));
+        }
+        configure?.Invoke();
         _ctx.HaContext.GetAllEntities().Returns(entities);
         _ctx.SetCurrentTime(new DateTime(2026, 10, 28, 23, 0, 0, DateTimeKind.Utc));
-        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = whatsapp } }));
+        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = whatsapp, Carleen = CarleenWhatsapp } }));
     }
 
     private List<(string To, string Text)> Messages() =>
@@ -121,6 +129,45 @@ public class CommuteReportTests
         messages.Should().HaveCount(2);
         messages.Select(m => m.Text).Should().Contain(t => t.Contains("Naar kantoor")).And.Contain(t => t.Contains("Naar huis"));
         messages.Should().OnlyContain(m => m.Text.StartsWith("🧪 Test"));
+    }
+
+    [Fact]
+    public void ARouteOfCarleen_SendsHerTheMessage_AndNotVincent()
+    {
+        Start("Vrij", configure: () =>
+        {
+            SetState("input_select.werkdag_carleen_donderdag", "Kantoor");
+            SetState("input_boolean.vrij_carleen", "off");
+            SetState("input_boolean.awaycarleen", "off");
+        });
+
+        AdvanceTo(7, 51);
+
+        var messages = Messages();
+        messages.Should().ContainSingle().Which.To.Should().Be(CarleenWhatsapp);
+        messages[0].Text.Should().Contain("Naar kantoor").And.Contain("Reistijd: 25 min").And.Contain("Via A27");
+    }
+
+    [Fact]
+    public void MessageSwitchedOff_SendsNothing()
+    {
+        Start("Kantoor", configure: () => SetState("input_boolean.verkeer_bericht_vincent", "off"));
+
+        AdvanceTo(7, 51);
+
+        Messages().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TimeFromTheHelper_DecidesWhenTheMessageComes()
+    {
+        Start("Kantoor", configure: () => SetState("input_datetime.verkeer_heen_vincent", "08:05:00"));
+
+        AdvanceTo(7, 51);
+        Messages().Should().BeEmpty("the helper says 08:05");
+
+        AdvanceTo(8, 6);
+        Messages().Should().ContainSingle().Which.Text.Should().Contain("Naar kantoor");
     }
 
     [Fact]

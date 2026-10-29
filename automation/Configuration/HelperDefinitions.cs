@@ -51,6 +51,14 @@ public static class HelperDefinitions
         Time("werk_start_carleen", "Werk start Carleen", "08:30:00"),
         Time("werk_eind_carleen", "Werk eind Carleen", "17:00:00"),
 
+        // Verkeersbericht per persoon (CommuteReport): of het WhatsApp-bericht komt, en hoe laat voor de reis naar kantoor en de reis naar huis
+        Boolean("verkeer_bericht_vincent", "Verkeersbericht Vincent", icon: "mdi:car-clock", start: true),
+        Time("verkeer_heen_vincent", "Verkeersbericht naar kantoor Vincent", "07:50:00"),
+        Time("verkeer_terug_vincent", "Verkeersbericht naar huis Vincent", "17:15:00"),
+        Boolean("verkeer_bericht_carleen", "Verkeersbericht Carleen", icon: "mdi:car-clock", start: true),
+        Time("verkeer_heen_carleen", "Verkeersbericht naar kantoor Carleen", "07:50:00"),
+        Time("verkeer_terug_carleen", "Verkeersbericht naar huis Carleen", "17:15:00"),
+
         // input_boolean
         Boolean("away", "Away", icon: "mdi:shield-lock"),
         Boolean("awaycarleen", "AwayCarleen", icon: "mdi:shield-lock"),
@@ -195,8 +203,8 @@ public static class HelperDefinitions
         Counter("pixel_gekotst", "Pixel Gekotst", initial: 0, step: 1, minimum: 0, maximum: 9999999999999, restore: true, icon: "mdi:cat")
     ];
 
-    private static HelperDefinition Boolean(string id, string name, string? icon = null, string? copyFrom = null) =>
-        new("input_boolean", id, name, Settings(("icon", icon)), copyFrom);
+    private static HelperDefinition Boolean(string id, string name, string? icon = null, string? copyFrom = null, bool? start = null) =>
+        new("input_boolean", id, name, Settings(("icon", icon)), copyFrom, StartValue: start == null ? null : start.Value ? "on" : "off");
 
     private static HelperDefinition Button(string id, string name, string? icon = null) =>
         new("input_button", id, name, Settings(("icon", icon)));

@@ -3082,35 +3082,14 @@ summary:
       - white-space: normal
       - text-align: left
 
-# Verkeer op Vincents woon-werkroute (ANWB File): de reistijd, files op de route en flitsers. De routes worden gevonden op eigenaar
-# (attribute person van de routesensor) en op of ze thuis beginnen of eindigen.
-# - variables.mode: 'auto' = alleen op een kantoordag van Vincent: ben je thuis en is de werkdag nog niet halverwege
-#   (midden tussen werk_start en werk_eind), dan de heenreis naar kantoor; ben je niet thuis (op kantoor) en is de werkdag halverwege voorbij,
-#   dan de terugreis naar huis;  anders verborgen. 'work' of 'home' toont die route altijd.
+# Verkeer op de woon-werkroutes (ANWB File): de reistijd, files op de route en flitsers, per persoon met een route.
+# - variables.mode: 'auto' (Home) toont per persoon de route die nu telt, 'all' (Weer en verkeer) alle routes.
 # - Een file telt mee als hij op een weg van de route ligt, binnen het gebied tussen start en einde (+ ~3 km) en dezelfde kant op gaat
 #   (de lijn van de file wijst dezelfde kant op als de route). Flitsers hebben geen richting die we kunnen vergelijken: die tonen we
 #   met de richting van de ANWB.
 commute_card:
   template: glass
-  triggers_update:
-    - sensor.anwb_route_huis_werk_reistijd
-    - sensor.anwb_route_huis_werk_route
-    - sensor.anwb_route_werk_huis_reistijd
-    - sensor.anwb_route_werk_huis_route
-    - sensor.anwb_file_files
-    - sensor.anwb_file_flitsers
-    - input_boolean.vrij_vincent
-    - input_boolean.awayvincent
-    - input_boolean.onvacation
-    - input_datetime.werk_start_vincent
-    - input_datetime.werk_eind_vincent
-    - input_select.werkdag_vincent_maandag
-    - input_select.werkdag_vincent_dinsdag
-    - input_select.werkdag_vincent_woensdag
-    - input_select.werkdag_vincent_donderdag
-    - input_select.werkdag_vincent_vrijdag
-    - input_select.werkdag_vincent_zaterdag
-    - input_select.werkdag_vincent_zondag
+  triggers_update: all
   variables:
     mode: auto
   show_icon: false
@@ -3124,17 +3103,39 @@ commute_card:
       - padding: 14px 16px
       - display: |
           [[[
-            if (variables.mode !== 'auto') return 'block';
-            const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
-            // Halverwege de werkdag (tussen begin en eind van Vincents werktijd) gaat hij niet meer naar kantoor
-            const hours = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
-            const start = hours('input_datetime.werk_start_vincent') ?? 8.5, end = hours('input_datetime.werk_eind_vincent') ?? 17;
-            const middle = (start + end) / 2;
-            const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-            const office = states[`input_select.werkdag_vincent_${days[now.getDay()]}`]?.state === 'Kantoor'
-              && states['input_boolean.vrij_vincent']?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
-            const home = states['input_boolean.awayvincent']?.state !== 'on';
-            return office && ((home && h < middle) || (!home && h >= middle && h < 22)) ? 'block' : 'none';
+            // De routes die nu getoond worden. Elke route van de ANWB-koppeling heeft een eigenaar (attribute person) en een richting;
+            // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
+            // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
+            // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis zolang de persoon thuis is en
+            // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
+            // werkdag halverwege is, tot 22:00.
+            const homeZone = states['zone.home']?.attributes ?? {};
+            const nearHome = p => Array.isArray(p) && Math.abs(p[0] - homeZone.latitude) < 0.01 && Math.abs(p[1] - homeZone.longitude) < 0.01;
+            const directionOf = s => {
+              const name = String(s.attributes.friendly_name ?? s.entity_id);
+              const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
+              if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
+              return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
+            };
+            const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
+            const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
+            const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+            const wanted = s => {
+              const key = String(s.attributes.person).replace('person.', '').split('_')[0];
+              const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
+                && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
+              if (!office) return false;
+              const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
+              const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
+              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow < middle : hourNow >= middle && hourNow < 22);
+            };
+            const rows = Object.values(states)
+              .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
+              .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) }))
+              .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
+              .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1));
+
+            return rows.length ? 'block' : 'none';
           ]]]
     grid:
       - grid-template-areas: '"traffic"'
@@ -3145,54 +3146,51 @@ commute_card:
   custom_fields:
     traffic: |
       [[[
-        const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
-        const toWork = variables.mode === 'work' || (variables.mode === 'auto' && states['input_boolean.awayvincent']?.state !== 'on');
-        // Vincents route: de routes hebben een eigenaar (attribute person), en de heenreis begint thuis, de terugreis eindigt thuis
+        // De routes die nu getoond worden. Elke route van de ANWB-koppeling heeft een eigenaar (attribute person) en een richting;
+        // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
+        // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
+        // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis zolang de persoon thuis is en
+        // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
+        // werkdag halverwege is, tot 22:00.
         const homeZone = states['zone.home']?.attributes ?? {};
         const nearHome = p => Array.isArray(p) && Math.abs(p[0] - homeZone.latitude) < 0.01 && Math.abs(p[1] - homeZone.longitude) < 0.01;
-        const mine = Object.values(states).filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person === 'person.vincent_maarschalkerweerd');
-        const found = mine.find(s => toWork ? nearHome(s.attributes.origin) : nearHome(s.attributes.destination));
-        const prefix = found ? found.entity_id.replace(/_route$/, '') : 'sensor.anwb_route_onbekend';
-        const title = toWork ? 'Naar kantoor' : 'Naar huis';
-        const icon = toWork ? 'mdi:office-building-outline' : 'mdi:home-import-outline';
-        const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
-        const route = states[`${prefix}_route`]?.attributes;
-        if (isNaN(duration) || !route) {
-          return `<div style="display:flex;align-items:center;gap:12px;text-align:left"><ha-icon icon="${icon}" style="--mdc-icon-size:26px;opacity:.6"></ha-icon>
-            <div><div style="font-size:12px;opacity:.65">${title}</div><div style="font-size:14px;opacity:.8">Verkeersinformatie niet beschikbaar</div></div></div>`;
-        }
-        const normal = parseFloat(states[`${prefix}_reistijd`].attributes.normal_duration_min) || duration;
-        const delay = parseFloat(states[`${prefix}_vertraging`]?.state) || Math.max(0, duration - normal);
-        const arrival = new Date(states[`${prefix}_aankomsttijd`]?.state);
-        const via = route.via ?? [], o = route.origin ?? [0, 0], d = route.destination ?? [0, 0];
-        const margin = 0.03;
-        const inArea = (lat, lon) => lat >= Math.min(o[0], d[0]) - margin && lat <= Math.max(o[0], d[0]) + margin
-          && lon >= Math.min(o[1], d[1]) - margin && lon <= Math.max(o[1], d[1]) + margin;
-        const geo = Object.values(states).filter(s => s.entity_id.startsWith('geo_location.') && s.attributes.source === 'anwb_file' && via.includes(s.attributes.road));
-        const jams = geo.filter(s => s.attributes.category === 'jams').filter(s => {
-          const p = s.attributes.path ?? [];
-          if (!(p.length ? p.some(([la, lo]) => inArea(la, lo)) : inArea(s.attributes.latitude, s.attributes.longitude))) return false;
-          if (p.length < 2) return true;
-          return (p[p.length - 1][0] - p[0][0]) * (d[0] - o[0]) + (p[p.length - 1][1] - p[0][1]) * (d[1] - o[1]) > 0;
-        }).sort((a, b) => (b.attributes.delay_min ?? 0) - (a.attributes.delay_min ?? 0));
-        const radars = geo.filter(s => s.attributes.category === 'radars' && inArea(s.attributes.latitude, s.attributes.longitude));
+        const directionOf = s => {
+          const name = String(s.attributes.friendly_name ?? s.entity_id);
+          const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
+          if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
+          return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
+        };
+        const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
+        const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
+        const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+        const wanted = s => {
+          const key = String(s.attributes.person).replace('person.', '').split('_')[0];
+          const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
+            && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
+          if (!office) return false;
+          const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
+          const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
+          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow < middle : hourNow >= middle && hourNow < 22);
+        };
+        const rows = Object.values(states)
+          .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
+          .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) }))
+          .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
+          .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1));
 
-        // Voor wie: de eigenaar van de route, met zijn of haar foto
-        const owner = states[found?.attributes.person ?? 'person.vincent_maarschalkerweerd'];
-        const ownerName = (owner?.attributes.friendly_name ?? 'Vincent').split(' ')[0];
-        const picture = owner?.attributes.entity_picture;
         const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-        const color = delay >= 10 ? '#ff6b6b' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
-        const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op je route`
-          : delay >= 3 ? 'Drukker dan normaal' : 'Geen files op je route';
-        const jamLines = jams.slice(0, 3).map(j => {
-          const a = j.attributes, since = a.start ? ` · sinds ${clock(new Date(a.start))}` : '';
-          return `<div style="font-size:12px;opacity:.85">• ${a.road} ${a.from}–${a.to}${a.length_km ? ` · ${String(a.length_km).replace('.', ',')} km` : ''}${a.delay_min ? ` · +${a.delay_min} min` : ''}${since}</div>`;
-        }).join('');
-        const radarLine = radars.length
-          ? `<div style="font-size:12px;opacity:.85">📸 ${radars.length} ${radars.length === 1 ? 'flitser' : 'flitsers'}: ${radars.slice(0, 3).map(r => `${r.attributes.road} ${r.attributes.from}`).join(', ')}</div>` : '';
-        return `<div style="display:flex;align-items:center;gap:14px;text-align:left">
-                  <div style="position:relative;width:52px;height:52px;flex:0 0 52px">
+        const margin = 0.03;
+        const card = s => {
+          const toWork = s.dir === 'work';
+          const prefix = s.entity_id.replace(/_route$/, '');
+          const title = toWork ? 'Naar kantoor' : 'Naar huis';
+          const icon = toWork ? 'mdi:office-building-outline' : 'mdi:home-import-outline';
+          const owner = states[s.attributes.person];
+          const ownerName = (owner?.attributes.friendly_name ?? '').split(' ')[0];
+          const picture = owner?.attributes.entity_picture;
+          const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
+          const route = s.attributes;
+          const badge = color => `<div style="position:relative;width:52px;height:52px;flex:0 0 52px">
                     <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${color}33;
                       ${picture ? `background-image:url('${picture}');background-size:cover;background-position:center;` : ''}box-shadow:0 0 0 2px ${color}">
                       ${picture ? '' : `<ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>`}
@@ -3200,15 +3198,45 @@ commute_card:
                     <div style="position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#1b2130;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px ${color}">
                       <ha-icon icon="${icon}" style="--mdc-icon-size:14px;color:${color}"></ha-icon>
                     </div>
-                  </div>
-                  <div style="line-height:1.35;min-width:0">
-                    <div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
-                    <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
-                      <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
-                    <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
-                    ${jamLines}${radarLine}
-                  </div>
-                </div>`;
+                  </div>`;
+          if (isNaN(duration)) {
+            return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badge('#94a3b8')}
+              <div><div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}</div><div style="font-size:14px;opacity:.8">Verkeersinformatie niet beschikbaar</div></div></div>`;
+          }
+          const normal = parseFloat(states[`${prefix}_reistijd`].attributes.normal_duration_min) || duration;
+          const delay = parseFloat(states[`${prefix}_vertraging`]?.state) || Math.max(0, duration - normal);
+          const arrival = new Date(states[`${prefix}_aankomsttijd`]?.state);
+          const via = route.via ?? [], o = route.origin ?? [0, 0], d = route.destination ?? [0, 0];
+          const inArea = (lat, lon) => lat >= Math.min(o[0], d[0]) - margin && lat <= Math.max(o[0], d[0]) + margin
+            && lon >= Math.min(o[1], d[1]) - margin && lon <= Math.max(o[1], d[1]) + margin;
+          const geo = Object.values(states).filter(g => g.entity_id.startsWith('geo_location.') && g.attributes.source === 'anwb_file' && via.includes(g.attributes.road));
+          const jams = geo.filter(g => g.attributes.category === 'jams').filter(g => {
+            const p = g.attributes.path ?? [];
+            if (!(p.length ? p.some(([la, lo]) => inArea(la, lo)) : inArea(g.attributes.latitude, g.attributes.longitude))) return false;
+            if (p.length < 2) return true;
+            return (p[p.length - 1][0] - p[0][0]) * (d[0] - o[0]) + (p[p.length - 1][1] - p[0][1]) * (d[1] - o[1]) > 0;
+          }).sort((a, b) => (b.attributes.delay_min ?? 0) - (a.attributes.delay_min ?? 0));
+          const radars = geo.filter(g => g.attributes.category === 'radars' && inArea(g.attributes.latitude, g.attributes.longitude));
+          const color = delay >= 10 ? '#ff6b6b' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
+          const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op je route`
+            : delay >= 3 ? 'Drukker dan normaal' : 'Geen files op je route';
+          const jamLines = jams.slice(0, 3).map(j => {
+            const a = j.attributes, since = a.start ? ` · sinds ${clock(new Date(a.start))}` : '';
+            return `<div style="font-size:12px;opacity:.85">• ${a.road} ${a.from}–${a.to}${a.length_km ? ` · ${String(a.length_km).replace('.', ',')} km` : ''}${a.delay_min ? ` · +${a.delay_min} min` : ''}${since}</div>`;
+          }).join('');
+          const radarLine = radars.length
+            ? `<div style="font-size:12px;opacity:.85">📸 ${radars.length} ${radars.length === 1 ? 'flitser' : 'flitsers'}: ${radars.slice(0, 3).map(r => `${r.attributes.road} ${r.attributes.from}`).join(', ')}</div>` : '';
+          return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badge(color)}
+                    <div style="line-height:1.35;min-width:0">
+                      <div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
+                      <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
+                        <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
+                      <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
+                      ${jamLines}${radarLine}
+                    </div>
+                  </div>`;
+        };
+        return rows.map(card).join('<div style="height:1px;background:rgba(255,255,255,0.08);margin:12px 0"></div>');
       ]]]
 
 # Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.

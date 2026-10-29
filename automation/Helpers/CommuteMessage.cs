@@ -16,6 +16,20 @@ public static class CommuteMessage
 
     private static readonly CultureInfo Dutch = new("nl-NL");
 
+    /// <summary>
+    /// Which way a route goes, from its name: when "werk" (or "kantoor") comes before "thuis" (or "huis") it is the way home, when
+    /// "thuis" comes first the way to work, whatever else the name says ("Werk => Huis", "Huis -> Werk", "ANWB Route Thuis - Kantoor").
+    /// Null when the name does not tell.
+    /// </summary>
+    public static CommuteDirection? DirectionOfName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var work = System.Text.RegularExpressions.Regex.Match(name, "werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var home = System.Text.RegularExpressions.Regex.Match(name, "thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!work.Success || !home.Success) return null;
+        return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
+    }
+
     /// <summary>The jams on the route: on one of its roads, inside its area and going the same way.</summary>
     public static IReadOnlyList<TrafficIncident> JamsOnRoute(RouteSnapshot route, IEnumerable<TrafficIncident> jams) =>
         jams.Where(jam => OnRoad(route, jam) && (jam.Path.Count > 0 ? jam.Path.Any(p => InArea(route, p)) : InArea(route, jam.Position))

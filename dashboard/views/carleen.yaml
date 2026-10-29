@@ -141,6 +141,17 @@ sections:
           - entity: input_datetime.werk_eind_carleen
             name: Eind
             icon: mdi:briefcase-check-outline
+          - type: section
+            label: Verkeersbericht (WhatsApp, op kantoordagen)
+          - entity: input_boolean.verkeer_bericht_carleen
+            name: Verkeersbericht sturen
+            icon: mdi:car-clock
+          - entity: input_datetime.verkeer_heen_carleen
+            name: Hoe laat naar kantoor
+            icon: mdi:office-building-outline
+          - entity: input_datetime.verkeer_terug_carleen
+            name: Hoe laat naar huis
+            icon: mdi:home-import-outline
 
   # Bijzondere dagen: dan viert de weerkaart feest (de datums staan alleen in Home Assistant, niet in de code)
   - type: grid

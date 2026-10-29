@@ -118,4 +118,26 @@ public class CommuteMessageTests
         CommuteMessage.Build(CommuteDirection.ToWork, Route(delay: 2, alternatives: new RouteAlternative(["A27"], 50, 19)), [], [], Now)
             .Should().NotContain("Alternatief");
     }
+
+    [Theory]
+    [InlineData("ANWB Route Werk => Huis Route", CommuteDirection.ToHome)]
+    [InlineData("ANWB Route Huis => Werk Route", CommuteDirection.ToWork)]
+    [InlineData("Thuis -> Kantoor", CommuteDirection.ToWork)]
+    [InlineData("Route van kantoor naar thuis (A12) Carleen", CommuteDirection.ToHome)]
+    [InlineData("werk thuis", CommuteDirection.ToHome)]
+    [InlineData("THUIS WERK", CommuteDirection.ToWork)]
+    public void DirectionOfName_FollowsTheOrderOfWorkAndHome(string name, CommuteDirection expected)
+    {
+        CommuteMessage.DirectionOfName(name).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("ANWB Route Boodschappen")]
+    [InlineData("Route naar werk")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void DirectionOfName_IsNull_WhenTheNameDoesNotTell(string? name)
+    {
+        CommuteMessage.DirectionOfName(name).Should().BeNull();
+    }
 }

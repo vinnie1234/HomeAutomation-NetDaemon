@@ -327,11 +327,9 @@ sections:
       - type: custom:button-card
         template: commute_card
         variables:
-          mode: work
-      - type: custom:button-card
-        template: commute_card
-        variables:
-          mode: home
+          mode: all
+        grid_options:
+          columns: full
       - type: custom:anwb-file-map-card
         radius_km: 20
         height: 640
