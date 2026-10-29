@@ -54,7 +54,7 @@ routes:
         ]]]
       color: "#ffb060"
   - url: /dashboard-huis/weer
-    label: Weer
+    label: Weer en verkeer
     icon: mdi:weather-partly-cloudy
     icon_selected: mdi:weather-partly-cloudy
     badge:

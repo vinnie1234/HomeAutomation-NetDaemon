@@ -76,6 +76,12 @@ sections:
         grid_options:
           columns: full
 
+      # Verkeer op de woon-werkroute: alleen op een kantoordag, 's ochtends naar kantoor en 's middags naar huis
+      - type: custom:button-card
+        template: commute_card
+        grid_options:
+          columns: full
+
       # Meldingen: alleen zichtbaar als ze nu relevant zijn
       - type: custom:mushroom-chips-card
         alignment: start

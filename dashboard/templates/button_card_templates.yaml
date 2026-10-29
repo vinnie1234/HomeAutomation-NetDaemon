@@ -3082,6 +3082,103 @@ summary:
       - white-space: normal
       - text-align: left
 
+# Verkeer op de woon-werkroute (ANWB File): de reistijd, files op de route en flitsers.
+# - variables.mode: 'auto' = alleen op een kantoordag van Vincent, 's ochtends (05:00-10:00) de heenreis en 's middags
+#   (15:00-19:30) de terugreis; anders verborgen. 'work' of 'home' toont die route altijd.
+# - Een file telt mee als hij op een weg van de route ligt, binnen het gebied tussen start en einde (+ ~3 km) en dezelfde kant op gaat
+#   (de lijn van de file wijst dezelfde kant op als de route). Flitsers hebben geen richting die we kunnen vergelijken: die tonen we
+#   met de richting van de ANWB.
+commute_card:
+  template: glass
+  triggers_update:
+    - sensor.anwb_route_thuis_werk_reistijd
+    - sensor.anwb_route_thuis_werk_route
+    - sensor.anwb_route_werk_huis_reistijd
+    - sensor.anwb_route_werk_huis_route
+    - sensor.anwb_file_files
+    - sensor.anwb_file_flitsers
+    - input_boolean.vrij_vincent
+    - input_boolean.onvacation
+    - input_select.werkdag_vincent_maandag
+    - input_select.werkdag_vincent_dinsdag
+    - input_select.werkdag_vincent_woensdag
+    - input_select.werkdag_vincent_donderdag
+    - input_select.werkdag_vincent_vrijdag
+    - input_select.werkdag_vincent_zaterdag
+    - input_select.werkdag_vincent_zondag
+  variables:
+    mode: auto
+  show_icon: false
+  show_name: false
+  show_state: false
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/weer
+  styles:
+    card:
+      - display: |
+          [[[
+            if (variables.mode !== 'auto') return 'block';
+            const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
+            const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+            const office = states[`input_select.werkdag_vincent_${days[now.getDay()]}`]?.state === 'Kantoor'
+              && states['input_boolean.vrij_vincent']?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
+            return office && ((h >= 5 && h < 10) || (h >= 15 && h < 19.5)) ? 'block' : 'none';
+          ]]]
+  custom_fields:
+    traffic: |
+      [[[
+        const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
+        const toWork = variables.mode === 'work' || (variables.mode === 'auto' && h < 12);
+        const prefix = toWork ? 'sensor.anwb_route_thuis_werk' : 'sensor.anwb_route_werk_huis';
+        const title = toWork ? 'Naar kantoor' : 'Naar huis';
+        const icon = toWork ? 'mdi:office-building-outline' : 'mdi:home-import-outline';
+        const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
+        const route = states[`${prefix}_route`]?.attributes;
+        if (isNaN(duration) || !route) {
+          return `<div style="display:flex;align-items:center;gap:12px;text-align:left"><ha-icon icon="${icon}" style="--mdc-icon-size:26px;opacity:.6"></ha-icon>
+            <div><div style="font-size:12px;opacity:.65">${title}</div><div style="font-size:14px;opacity:.8">Verkeersinformatie niet beschikbaar</div></div></div>`;
+        }
+        const normal = parseFloat(states[`${prefix}_reistijd`].attributes.normal_duration_min) || duration;
+        const delay = parseFloat(states[`${prefix}_vertraging`]?.state) || Math.max(0, duration - normal);
+        const arrival = new Date(states[`${prefix}_aankomsttijd`]?.state);
+        const via = route.via ?? [], o = route.origin ?? [0, 0], d = route.destination ?? [0, 0];
+        const margin = 0.03;
+        const inArea = (lat, lon) => lat >= Math.min(o[0], d[0]) - margin && lat <= Math.max(o[0], d[0]) + margin
+          && lon >= Math.min(o[1], d[1]) - margin && lon <= Math.max(o[1], d[1]) + margin;
+        const geo = Object.values(states).filter(s => s.entity_id.startsWith('geo_location.') && s.attributes.source === 'anwb_file' && via.includes(s.attributes.road));
+        const jams = geo.filter(s => s.attributes.category === 'jams').filter(s => {
+          const p = s.attributes.path ?? [];
+          if (!(p.length ? p.some(([la, lo]) => inArea(la, lo)) : inArea(s.attributes.latitude, s.attributes.longitude))) return false;
+          if (p.length < 2) return true;
+          return (p[p.length - 1][0] - p[0][0]) * (d[0] - o[0]) + (p[p.length - 1][1] - p[0][1]) * (d[1] - o[1]) > 0;
+        }).sort((a, b) => (b.attributes.delay_min ?? 0) - (a.attributes.delay_min ?? 0));
+        const radars = geo.filter(s => s.attributes.category === 'radars' && inArea(s.attributes.latitude, s.attributes.longitude));
+
+        const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        const color = delay >= 10 ? '#ff6b6b' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
+        const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op je route`
+          : delay >= 3 ? 'Drukker dan normaal' : 'Geen files op je route';
+        const jamLines = jams.slice(0, 3).map(j => {
+          const a = j.attributes, since = a.start ? ` · sinds ${clock(new Date(a.start))}` : '';
+          return `<div style="font-size:12px;opacity:.85">• ${a.road} ${a.from}–${a.to}${a.length_km ? ` · ${String(a.length_km).replace('.', ',')} km` : ''}${a.delay_min ? ` · +${a.delay_min} min` : ''}${since}</div>`;
+        }).join('');
+        const radarLine = radars.length
+          ? `<div style="font-size:12px;opacity:.85">📸 ${radars.length} ${radars.length === 1 ? 'flitser' : 'flitsers'}: ${radars.slice(0, 3).map(r => `${r.attributes.road} ${r.attributes.from}`).join(', ')}</div>` : '';
+        return `<div style="display:flex;align-items:center;gap:14px;text-align:left">
+                  <div style="width:48px;height:48px;border-radius:50%;flex:0 0 48px;display:flex;align-items:center;justify-content:center;background:${color}33">
+                    <ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>
+                  </div>
+                  <div style="line-height:1.35;min-width:0">
+                    <div style="font-size:12px;opacity:.65">${title}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
+                    <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
+                      <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
+                    <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
+                    ${jamLines}${radarLine}
+                  </div>
+                </div>`;
+      ]]]
+
 # Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.
 # - Starten kan vanaf 08:00, het programma duurt 3 uur.
 # - Buiten drogen kan als de 3 uur na het einde droog zijn en vóór zonsondergang vallen;

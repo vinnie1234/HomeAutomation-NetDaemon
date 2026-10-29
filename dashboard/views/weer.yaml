@@ -1,5 +1,5 @@
-# Weer: verwachting, buienradar, details, UV en pollen.
-title: Weer
+# Weer en verkeer: verwachting, buienradar, details, UV en pollen, en daarna het verkeer (woon-werkroute en de ANWB-kaart).
+title: Weer en verkeer
 path: weer
 icon: mdi:weather-partly-cloudy
 theme: Glass Home
@@ -316,3 +316,24 @@ sections:
           numeric: true
           reverse: true
         show_empty: false
+
+  # Verkeer: de woon-werkroute en daarna de ANWB-kaart met alle files, werkzaamheden en flitsers
+  - type: grid
+    cards:
+      - type: heading
+        heading: Verkeer
+        heading_style: title
+        icon: mdi:car-multiple
+      - type: custom:button-card
+        template: commute_card
+        variables:
+          mode: work
+      - type: custom:button-card
+        template: commute_card
+        variables:
+          mode: home
+      - type: custom:anwb-file-map-card
+        radius_km: 20
+        height: 640
+        grid_options:
+          columns: full
