@@ -3170,6 +3170,10 @@ commute_card:
         }).sort((a, b) => (b.attributes.delay_min ?? 0) - (a.attributes.delay_min ?? 0));
         const radars = geo.filter(s => s.attributes.category === 'radars' && inArea(s.attributes.latitude, s.attributes.longitude));
 
+        // Voor wie: de eigenaar van de route, met zijn of haar foto
+        const owner = states[found?.attributes.person ?? 'person.vincent_maarschalkerweerd'];
+        const ownerName = (owner?.attributes.friendly_name ?? 'Vincent').split(' ')[0];
+        const picture = owner?.attributes.entity_picture;
         const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
         const color = delay >= 10 ? '#ff6b6b' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
         const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op je route`
@@ -3181,11 +3185,17 @@ commute_card:
         const radarLine = radars.length
           ? `<div style="font-size:12px;opacity:.85">📸 ${radars.length} ${radars.length === 1 ? 'flitser' : 'flitsers'}: ${radars.slice(0, 3).map(r => `${r.attributes.road} ${r.attributes.from}`).join(', ')}</div>` : '';
         return `<div style="display:flex;align-items:center;gap:14px;text-align:left">
-                  <div style="width:48px;height:48px;border-radius:50%;flex:0 0 48px;display:flex;align-items:center;justify-content:center;background:${color}33">
-                    <ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>
+                  <div style="position:relative;width:52px;height:52px;flex:0 0 52px">
+                    <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${color}33;
+                      ${picture ? `background-image:url('${picture}');background-size:cover;background-position:center;` : ''}box-shadow:0 0 0 2px ${color}">
+                      ${picture ? '' : `<ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>`}
+                    </div>
+                    <div style="position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#1b2130;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px ${color}">
+                      <ha-icon icon="${icon}" style="--mdc-icon-size:14px;color:${color}"></ha-icon>
+                    </div>
                   </div>
                   <div style="line-height:1.35;min-width:0">
-                    <div style="font-size:12px;opacity:.65">${title}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
+                    <div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
                     <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
                       <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
                     <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
