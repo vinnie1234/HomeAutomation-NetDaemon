@@ -3192,7 +3192,7 @@ commute_card:
             // De routes die nu getoond worden. Elke route van de ANWB-koppeling heeft een eigenaar (attribute person) en een richting;
             // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
             // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
-            // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis zolang de persoon thuis is en
+            // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
             // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
             // werkdag halverwege is, tot 22:00.
             const homeZone = states['zone.home']?.attributes ?? {};
@@ -3213,7 +3213,7 @@ commute_card:
               if (!office) return false;
               const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
               const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
-              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow < middle : hourNow >= middle && hourNow < 22);
+              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
             };
             const rows = Object.values(states)
               .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
@@ -3235,7 +3235,7 @@ commute_card:
         // De routes die nu getoond worden. Elke route van de ANWB-koppeling heeft een eigenaar (attribute person) en een richting;
         // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
         // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
-        // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis zolang de persoon thuis is en
+        // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
         // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
         // werkdag halverwege is, tot 22:00.
         const homeZone = states['zone.home']?.attributes ?? {};
@@ -3256,7 +3256,7 @@ commute_card:
           if (!office) return false;
           const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
           const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
-          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow < middle : hourNow >= middle && hourNow < 22);
+          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
         };
         const rows = Object.values(states)
           .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
