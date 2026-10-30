@@ -55,11 +55,11 @@ public class CatTests
     }
 
     [Fact]
-    public void PetSnowyExcretion_WhenCountGoesUp_IncrementsPixelInitCounter()
+    public void PetSnowyStatus_WhenPetInto_IncrementsPixelInitCounter()
     {
         CreateApp();
         
-        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_number_of_excretion").FromState("1").ToState("2");
+        _ctx.ChangeStateFor("sensor.snow_self_cleaning_litter_box_status").FromState("standby").ToState("pet_into");
         _ctx.HaContextMock.ProcessPendingOperations();
         
         _ctx.VerifyCallService("counter", "increment", "petsnowylitterboxpixelinit", times: 1);

@@ -51,6 +51,28 @@ public class TabletScreenTests
     }
 
     [Fact]
+    public void Motion_WhileTheScreenIsAlreadyOn_DoesNotReloadTheDashboard()
+    {
+        Start();
+        SetState("switch.tab_s6_van_vincent_scherm", "on");
+
+        Change("binary_sensor.motionwoonkamer", "off", "on");
+
+        Commands().Should().Equal("number.set_value", "switch.turn_on");
+    }
+
+    [Fact]
+    public void AnAlert_WhileTheScreenIsOn_OpensHomeAgain()
+    {
+        Start();
+        SetState("switch.tab_s6_van_vincent_scherm", "on");
+
+        Change("input_boolean.awaycarleen", "on", "off");
+
+        Commands().Should().Contain("button.press");
+    }
+
+    [Fact]
     public void Motion_WhileTheTvIsOn_DoesNothing()
     {
         Start(tv: "on");

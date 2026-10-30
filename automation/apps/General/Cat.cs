@@ -89,22 +89,19 @@ public class Cat : BaseApp
             {
                 switch (x.New?.State)
                 {
+                    // A visit: Pixel gets his zoomies for 10 minutes after (the dashboard header reads the time)
+                    case "pet_into":
+                        Entities.Counter.Petsnowylitterboxpixelinit.Increment();
+                        HaContext.CallService("input_datetime", "set_datetime", ServiceTarget.FromEntity("input_datetime.pixellastlitterboxvisit"),
+                            new { timestamp = Scheduler.Now.ToUnixTimeSeconds() });
+                        break;
                     case "cleaning":
                         Entities.Counter.Petsnowylittleboxcleaning.Increment();
                         break;
                 }
             });
 
-        // Xtend Tuya has no "pet in" and "emptying" status: a visit is the number of excretions going up, emptying is its own notification
-        Entities.Sensor.SnowSelfCleaningLitterBoxNumberOfExcretion
-            .StateChanges()
-            .Where(x => int.TryParse(x.New?.State, out var now) && int.TryParse(x.Old?.State, out var before) && now > before)
-            .Subscribe(_ =>
-            {
-                Entities.Counter.Petsnowylitterboxpixelinit.Increment();
-                HaContext.CallService("input_datetime", "set_datetime", ServiceTarget.FromEntity("input_datetime.pixellastlitterboxvisit"),
-                    new { timestamp = Scheduler.Now.ToUnixTimeSeconds() });
-            });
+        // Xtend Tuya reports emptying as a notification instead of a status
         Entities.BinarySensor.SnowSelfCleaningLitterBoxNotificationEmptyComplete
             .WhenTurnsOn(_ => Entities.Counter.Petsnowylitterboxemptying.Increment());
     }

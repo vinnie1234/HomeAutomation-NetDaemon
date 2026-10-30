@@ -543,6 +543,7 @@ weather_hero:
     - sensor.weer_thuis_temperatuur
     - sensor.weer_thuis_bewolking
     - sensor.weer_thuis_windsnelheid
+    - sensor.weer_thuis_zicht
     - sensor.moon_phase
     - sensor.thuis_pollentypen_52_035_53_gras
     - sensor.thuis_pollentypen_52_035_53_onkruid
@@ -653,6 +654,9 @@ weather_hero:
     @keyframes hero-hop-x { from { transform: translateX(0); } to { transform: translateX(130vw); } }
     @keyframes hero-hop-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
     @keyframes hero-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
+    @keyframes hero-gust { from { transform: translateX(-30%); opacity: 0; } 15%, 80% { opacity: 1; } to { transform: translateX(140%); opacity: 0; } }
+    @keyframes hero-hail { from { transform: translate(0, -30px); } to { transform: translate(-40px, 380px); } }
+    @keyframes hero-shimmer { 0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.5; } 50% { transform: translateY(-3px) scaleY(1.4); opacity: 0.9; } }
     @keyframes hero-zoom { from { left: 10%; } to { left: 92%; } }
     @keyframes hero-zoom-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
     @keyframes hero-zoom-hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -671,12 +675,19 @@ weather_hero:
           const fake = {};
           const set = (id, state, attributes = {}, ageS = null) => { fake[id] = { entity_id: id, state, attributes: { ...(states[id]?.attributes ?? {}), ...attributes },
             last_changed: ageS === null ? states[id]?.last_changed : new Date(Date.now() - ageS * 1000).toISOString() }; };
-          const weather = (condition, cover, temperature, wind) => {
-            set('weather.weer_thuis', condition); set('weather.weer_thuis_waarnemingen', condition);
+          const weather = (condition, cover, temperature, wind, visibility = 20, humidity = 70) => {
+            set('weather.weer_thuis', condition); set('weather.weer_thuis_waarnemingen', condition, { visibility, visibility_unit: 'km', humidity });
             set('sensor.weer_thuis_bewolking', String(cover)); set('sensor.weer_thuis_temperatuur', String(temperature));
             set('sensor.weer_thuis_windsnelheid', String(wind));
           };
           if (scenario === 'heerlijk weer') weather('sunny', 5, 28, 8);
+          if (scenario === 'lichte mist') weather('sunny', 5, 9, 5, 5.5, 94);
+          if (scenario === 'dichte mist') weather('fog', 100, 6, 3, 0.3, 100);
+          if (scenario === 'hagel') weather('hail', 100, 4, 25);
+          if (scenario === 'harde wind') weather('windy', 70, 10, 50);
+          if (scenario === 'vorst') weather('sunny', 5, -4, 3);
+          if (scenario === 'hitte') weather('sunny', 0, 33, 5);
+          if (scenario === 'regenboog') { weather('partlycloudy', 40, 15, 10); set('input_select.tijd_van_de_dag', 'Avond'); window.huisRainAt = window.huisRainAt ?? Date.now() - 300000; }
           if (scenario === 'regen') weather('rainy', 100, 12, 25);
           if (scenario === 'onweer') weather('lightning-rainy', 100, 19, 40);
           if (scenario === 'sneeuw') weather('snowy', 100, -1, 10);
@@ -764,6 +775,7 @@ weather_hero:
           (states['sensor.flightradar24_current_in_area']?.attributes?.flights ?? []).slice(0, 3).map(f => f.id ?? f.flight_number ?? f.callsign).join(),
           new Date().getHours() >= 18, new Date().getHours() * 60 + new Date().getMinutes() >= 20 * 60 + 3,
           states['sensor.thuis_3_voertuig_direction_of_travel']?.state === 'towards' ? Math.round(parseFloat(states['sensor.thuis_3_voertuig_afstand']?.state) / 1000) : 0,
+          Math.round(parseFloat(states['weather.weer_thuis_waarnemingen']?.attributes?.visibility) * 2), Math.round(parseFloat(states['weather.weer_thuis_waarnemingen']?.attributes?.humidity) / 4),
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
@@ -792,6 +804,20 @@ weather_hero:
         const snow = ['snowy', 'snowy-rainy'].includes(w);
         const storm = ['lightning', 'lightning-rainy'].includes(w);
         const fog = w === 'fog';
+        // Mist: de KNMI-waarneming geeft het zicht (km) en de luchtvochtigheid. Onder ~9 km zicht wordt het zacht wit, onder 1 km is het dichte mist;
+        // staat het weertype zelf op mist, dan is het minstens dik. Rond 5 km zicht is het een lichte mist.
+        const obsAttr = states['weather.weer_thuis_waarnemingen']?.attributes ?? states['weather.weer_thuis']?.attributes ?? {};
+        const visibilityKm = parseFloat(obsAttr.visibility) / (obsAttr.visibility_unit === 'm' ? 1000 : 1);
+        const humidityNow = parseFloat(obsAttr.humidity);
+        let mist = isNaN(visibilityKm) ? 0 : Math.pow(Math.max(0, Math.min(1, (9 - visibilityKm) / 8)), 0.8) * (humidityNow >= 80 || isNaN(humidityNow) ? 1 : 0.4);
+        if (fog) mist = Math.max(mist, 0.85);
+        // Een KNMI-waarschuwing voor dichte mist telt ook, zolang hij actief is
+        if (states['binary_sensor.weer_thuis_waarschuwing_actief']?.state === 'on' && /mist/i.test(String(states['sensor.weer_thuis_waarschuwingen']?.state ?? ''))) mist = Math.max(mist, 0.75);
+        const tempNow = parseFloat(states['sensor.weer_thuis_temperatuur']?.state);
+        const hail = w === 'hail';
+        const windyNow = ['windy', 'windy-variant'].includes(w) || parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) >= 35;
+        const frosty = tempNow <= 0 && !['rainy', 'pouring', 'lightning-rainy', 'snowy', 'snowy-rainy', 'hail'].includes(w);
+        const hotDay = tempNow >= 30 && !['rainy', 'pouring', 'lightning-rainy', 'snowy', 'snowy-rainy', 'hail'].includes(w);
         const windSpeed = Math.round((parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) || 3) / 5) * 5 || 3;
 
         // Bewolking in % (oktas 0-8 worden omgerekend); zonder sensor een schatting uit het weertype
@@ -818,6 +844,10 @@ weather_hero:
           const night = cover > 70 ? [[12, 16, 26], [30, 36, 50]] : [[4, 7, 22], [20, 30, 64]];
           top = mix(night[0], [36, 42, 92], twilight);
           bottom = mix(night[1], [214, 120, 112], twilight * (1 - t * 0.6));
+        }
+        if (mist > 0) {
+          top = mix(top, day ? [196, 204, 214] : [26, 30, 42], mist * 0.55);
+          bottom = mix(bottom, day ? [214, 220, 228] : [34, 40, 54], mist * 0.7);
         }
         let out = `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${rgb(top)} 0%, ${rgb(mix(top, bottom, 0.55))} 55%, ${rgb(bottom)} 100%)"></div>`;
         if (golden > 0) {
@@ -850,13 +880,24 @@ weather_hero:
           const x = Math.max(8, Math.min(92, (azimuth - 90) / 180 * 100));
           const y = Math.max(12, Math.min(80, 82 - elevation * 1.3));
           const warm = golden > 0.4;
-          const strength = 1 - t * 0.8;
+          const strength = (1 - t * 0.8) * (1 - mist * 0.65);
           out += `<div style="position:absolute;left:${x}%;top:${y}%;width:600px;height:600px;transform:translate(-50%,-50%);
               background:radial-gradient(circle, ${warm ? `rgba(255,180,110,${0.6 * strength})` : `rgba(255,248,220,${0.6 * strength})`} 0%, transparent 55%)"></div>
             <div style="position:absolute;left:${x}%;top:${y}%;width:56px;height:56px;border-radius:50%;transform:translate(-50%,-50%);
               opacity:${0.4 + strength * 0.6};
               background:radial-gradient(circle, #ffffff 0%, ${warm ? '#ffd6a0' : '#fff7dc'} 60%, ${warm ? '#ffab66' : '#ffeeb8'} 100%);
               box-shadow:0 0 36px 16px ${warm ? 'rgba(255,170,90,0.65)' : 'rgba(255,248,215,0.75)'}"></div>`;
+        }
+
+
+        // Regenboog: kort na een bui als de zon laag staat en weer doorkomt, tegenover de zon
+        if (rain) window.huisRainAt = Date.now();
+        if (!rain && !storm && day && elevation > 2 && elevation < 38 && cover < 85 && Date.now() - (window.huisRainAt ?? 0) < 45 * 60000) {
+          const sunX = Math.max(8, Math.min(92, (azimuth - 90) / 180 * 100));
+          const bowLeft = sunX > 50 ? 6 : 44;
+          const colors = ['#ff5a5a', '#ff9f43', '#ffd93d', '#6bd66b', '#4da3ff', '#6b5bff', '#b36bff'];
+          out += `<svg viewBox="0 0 200 110" preserveAspectRatio="none" style="position:absolute;left:${bowLeft}%;bottom:12%;width:50%;height:62%;opacity:${(0.5 * (1 - t * 0.5)).toFixed(2)};
+              filter:blur(0.6px);pointer-events:none">${colors.map((c, i) => `<path d="M${6 + i * 3.4} 110 A ${94 - i * 3.4} ${94 - i * 3.4} 0 0 1 ${194 - i * 3.4} 110" stroke="${c}" stroke-width="3.6" fill="none"/>`).join('')}</svg>`;
         }
 
         // Wolken: echte wolkenafbeeldingen (www/clouds, gemaakt met tools/generate_clouds.py), getint per weer.
@@ -956,10 +997,44 @@ weather_hero:
               animation:hero-snow ${5 + rnd() * 6}s linear ${-rnd() * 10}s infinite"></div>`;
           }
         }
-        if (fog) {
-          for (let i = 0; i < 4; i++) {
-            out += `<div style="position:absolute;left:-20%;width:140%;top:${25 + i * 16}%;height:80px;border-radius:40px;
-              background:rgba(230,234,240,0.25);filter:blur(20px);animation:hero-fog ${16 + i * 6}s ease-in-out infinite alternate"></div>`;
+        // Mistbanken die over het landschap drijven; dichter naarmate de mist dikker is
+        if (mist > 0.15) {
+          const banks = Math.round(2 + mist * 4);
+          for (let i = 0; i < banks; i++) {
+            out += `<div style="position:absolute;left:-20%;width:140%;top:${34 + i * (40 / banks)}%;height:${60 + mist * 50}px;border-radius:50px;
+              background:rgba(${day ? '232,236,242' : '120,130,150'},${(0.1 + mist * 0.28).toFixed(2)});filter:blur(${16 + mist * 8}px);animation:hero-fog ${16 + i * 5}s ease-in-out infinite alternate"></div>`;
+          }
+        }
+        // Hagel: witte ijskorrels die snel en schuin vallen
+        if (hail) {
+          for (let i = 0; i < 70; i++) {
+            const size = 2 + rnd() * 3;
+            out += `<div style="position:absolute;left:${rnd() * 110}%;top:-30px;width:${size}px;height:${size}px;border-radius:50%;background:#f4f9ff;
+              box-shadow:0 0 3px rgba(255,255,255,0.8);animation:hero-hail ${0.45 + rnd() * 0.3}s linear ${-rnd() * 2}s infinite"></div>`;
+          }
+        }
+        // Harde wind: lange strepen die er snel doorheen waaien
+        if (windyNow) {
+          for (let i = 0; i < 12; i++) {
+            out += `<div style="position:absolute;left:0;top:${8 + rnd() * 60}%;width:${60 + rnd() * 120}px;height:2px;border-radius:2px;
+              background:linear-gradient(90deg, transparent, rgba(255,255,255,${day ? 0.55 : 0.3}), transparent);
+              animation:hero-gust ${1.4 + rnd() * 1.6}s linear ${-rnd() * 3}s infinite"></div>`;
+          }
+        }
+        // Vorst: het gras glinstert
+        if (frosty && day !== undefined) {
+          for (let i = 0; i < 46; i++) {
+            const size = 1 + rnd() * 2.2;
+            out += `<div style="position:absolute;left:${rnd() * 100}%;top:${50 + rnd() * 30}%;width:${size}px;height:${size}px;border-radius:50%;background:#e8f4ff;
+              box-shadow:0 0 ${size * 2.5}px rgba(210,235,255,0.9);animation:hero-twinkle ${1.2 + rnd() * 2.5}s ease-in-out ${-rnd() * 4}s infinite"></div>`;
+          }
+        }
+        // Hitte: een warme gloed en trillende lucht boven de grond
+        if (hotDay && day) {
+          out += `<div style="position:absolute;inset:0;background:linear-gradient(0deg, rgba(255,160,70,0.28) 0%, rgba(255,190,110,0.1) 45%, transparent 70%);pointer-events:none"></div>`;
+          for (let i = 0; i < 3; i++) {
+            out += `<div style="position:absolute;left:0;right:0;bottom:${20 + i * 5}%;height:14px;background:linear-gradient(90deg, transparent, rgba(255,230,190,0.35), transparent);
+              filter:blur(5px);animation:hero-shimmer ${1.6 + i * 0.5}s ease-in-out ${-i * 0.4}s infinite"></div>`;
           }
         }
         if (storm) {
@@ -1020,6 +1095,12 @@ weather_hero:
         out += `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;bottom:${streetH}%;width:100%;height:38%">
             ${layers3.map(([b, a, f, p, m]) => hill(b, a, f, p, rgb(mix(bottom, ground, m)))).join('')}
           </svg>`;
+
+        // Mist over het verre landschap: de heuvels zakken weg in het wit; dichter bij (huis, auto) volgt hieronder een lichtere sluier
+        if (mist > 0.05) {
+          const veil = day ? [226, 231, 238] : [58, 66, 84];
+          out += `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${rgba(veil, 0.2 * mist)} 0%, ${rgba(veil, 0.8 * mist)} 45%, ${rgba(veil, 0.9 * mist)} 100%)"></div>`;
+        }
 
         // Bomen en huizen op de voorste heuvel (HTML, zodat ze niet mee uitrekken met de heuvel)
         const groundTop = x => 62 - streetH + hillY(x, 86, 4, 6, 2.2) * 0.38;  // in % van de kaarthoogte
@@ -1541,6 +1622,11 @@ weather_hero:
           festive += svgAt(homeX + 6.4, groundBottom(homeX + 6.4) - 2.2, 24, 24, '0 0 21 24', boxes, 'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
         }
         out += festive;
+        // Lichtere mist ook over huis en tuin (de straat en wat daar rijdt blijft duidelijk)
+        if (mist > 0.2) {
+          const veil = day ? [226, 231, 238] : [58, 66, 84];
+          out += `<div style="position:absolute;inset:0 0 18% 0;background:linear-gradient(180deg, ${rgba(veil, 0.1 * mist)} 0%, ${rgba(veil, 0.42 * mist)} 100%);pointer-events:none"></div>`;
+        }
 
         // ---------- De Peugeot 2008 GT (grijs, zwart dak) staat op de oprit naast het huis zolang hij thuis is ----------
         // Zijaanzicht naar rechts, getekend in de verhoudingen van een zijkantfoto van de facelift: zwart dak met een rechte dakrail

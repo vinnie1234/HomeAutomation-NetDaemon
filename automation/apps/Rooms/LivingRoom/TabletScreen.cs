@@ -115,10 +115,13 @@ public class TabletScreen : BaseApp
         if (!force && now - _lastWake < WakeAgainAfter) return;
         _lastWake = now;
 
+        // Only a screen that was off opens Home. Motion while someone is looking at the tablet just keeps it on for longer:
+        // loading the start URL every few minutes reloaded the whole dashboard under their fingers. An alert (force) still opens Home.
+        var wasOn = HaContext.GetState(Screen)?.State == "on";
         Logger.LogInformation("Tablet aan: {Reason}", reason);
         HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
         HaContext.CallService("switch", "turn_on", ServiceTarget.FromEntity(Screen));
-        HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
+        if (!wasOn || force) HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
     }
 
     private void ScreenOffIfAllAsleep()
