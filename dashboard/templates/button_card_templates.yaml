@@ -687,7 +687,7 @@ weather_hero:
           if (scenario === 'harde wind') weather('windy', 70, 10, 50);
           if (scenario === 'vorst') weather('sunny', 5, -4, 3);
           if (scenario === 'hitte') weather('sunny', 0, 33, 5);
-          if (scenario === 'regenboog') { weather('partlycloudy', 40, 15, 10); set('input_select.tijd_van_de_dag', 'Avond'); window.huisRainAt = window.huisRainAt ?? Date.now() - 300000; }
+          if (scenario === 'regenboog') { weather('partlycloudy', 40, 15, 10); set('input_select.tijd_van_de_dag', 'Avond'); }
           if (scenario === 'regen') weather('rainy', 100, 12, 25);
           if (scenario === 'onweer') weather('lightning-rainy', 100, 19, 40);
           if (scenario === 'sneeuw') weather('snowy', 100, -1, 10);
@@ -893,7 +893,7 @@ weather_hero:
 
         // Regenboog: kort na een bui als de zon laag staat en weer doorkomt, tegenover de zon
         if (rain) window.huisRainAt = Date.now();
-        if (!rain && !storm && day && elevation > 2 && elevation < 38 && cover < 85 && Date.now() - (window.huisRainAt ?? 0) < 45 * 60000) {
+        if (!rain && !storm && day && elevation > 2 && elevation < 38 && cover < 85 && Date.now() - (scenario === 'regenboog' ? Date.now() - 300000 : (window.huisRainAt ?? 0)) < 45 * 60000) {
           const sunX = Math.max(8, Math.min(92, (azimuth - 90) / 180 * 100));
           const bowLeft = sunX > 50 ? 6 : 44;
           const colors = ['#ff5a5a', '#ff9f43', '#ffd93d', '#6bd66b', '#4da3ff', '#6b5bff', '#b36bff'];
