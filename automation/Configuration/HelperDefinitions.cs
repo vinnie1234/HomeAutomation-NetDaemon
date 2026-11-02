@@ -220,6 +220,7 @@ public static class HelperDefinitions
         DateTime($"thuis_aankomst_{person}", $"Thuis aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:home-import-outline"),
         // Wat je zelf instelt: haal je het werk uit de agenda, dan komen de tijden daaruit; zo niet, dan stel je hier in hoe laat je 's ochtends
         // op kantoor wilt zijn (of van huis vertrekt) en hoe laat je 's avonds van kantoor vertrekt (of thuis wilt zijn)
+        Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
         Button($"sync_agenda_{person}", $"Sync agenda {name}", icon: "mdi:calendar-sync"),
         Boolean($"werk_uit_agenda_{person}", $"Werk uit agenda {name}", icon: "mdi:calendar-sync", start: person == "carleen"),
         Select($"reis_ochtend_soort_{person}", $"Reis ochtend soort {name}", [Models.Persons.OfficeTravel.MorningArrive, Models.Persons.OfficeTravel.MorningDepart], icon: "mdi:weather-sunset-up"),

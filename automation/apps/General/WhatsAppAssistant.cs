@@ -199,7 +199,9 @@ public class WhatsAppAssistant : BaseApp
     /// <returns><c>true</c> when the message was handled as a forward request.</returns>
     private async Task<bool> TryForwardLastReplyAsync(string sender, string userText, IReadOnlyList<WhatsAppConversationTurn> history)
     {
-        if (!await IsForwardRequestAsync(userText)) return false;
+        // "Stuur door" is clear on its own (and is what the travel messages say); other wordings are left to the conversation agent
+        var plainRequest = System.Text.RegularExpressions.Regex.IsMatch(userText.Trim(), @"^stuur\s*door[.!]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!plainRequest && !await IsForwardRequestAsync(userText)) return false;
 
         var lastReply = history.Count > 0 ? history[^1].AssistantReply : null;
         if (lastReply is null)

@@ -78,7 +78,8 @@ public record TransitTrip(
     double DelayMin,
     int Transfers,
     IReadOnlyList<TransitLeg> Legs,
-    bool Cancelled);
+    bool Cancelled,
+    string? Id = null);
 
 /// <summary>A part of a trip with a line.</summary>
 /// <param name="Mode">The kind of vehicle: Bus, Tram, Metro, SlowTrain, FastTrain, ...</param>
@@ -89,7 +90,8 @@ public record TransitLeg(string Mode, string Line);
 /// <param name="From">Where it starts.</param>
 /// <param name="To">Where it ends.</param>
 /// <param name="Trips">The coming trips, soonest first.</param>
-public record TransitRoute(string? From, string? To, IReadOnlyList<TransitTrip> Trips);
+/// <param name="RouteId">The id of the route in the 9292 OV integration, needed to ask for the details of a journey.</param>
+public record TransitRoute(string? From, string? To, IReadOnlyList<TransitTrip> Trips, string? RouteId = null);
 
 /// <summary>The time somebody wants to be at the office or home (an arrival), or leaves (a departure).</summary>
 /// <param name="Time">The time.</param>

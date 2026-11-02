@@ -3,8 +3,11 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Helpers;
 using Automation.Models.Persons;
+using Automation.Interfaces;
+using Automation.Models.WhatsApp;
 using Automation.Models.Traffic;
 using Microsoft.Extensions.Options;
+using NetDaemon.Client;
 
 namespace Automation.apps.General;
 
@@ -42,6 +45,8 @@ public class CommuteReport : BaseApp
     private sealed record Commuter(string Id, string PersonId, IPerson Person, WorkSchedule Schedule, string Whatsapp);
 
     private readonly Commuter[] _commuters;
+    private readonly IDataRepository _storage;
+    private readonly IHomeAssistantRunner _runner;
 
     /// <summary>The messages already sent (or tried) for a person, direction and date, so a message comes once per trip.</summary>
     private readonly HashSet<string> _sent = [];
@@ -57,9 +62,13 @@ public class CommuteReport : BaseApp
         ILogger<CommuteReport> logger,
         INotify notify,
         IScheduler scheduler,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        IDataRepository storage,
+        IHomeAssistantRunner runner)
         : base(ha, logger, notify, scheduler, config)
     {
+        _storage = storage;
+        _runner = runner;
         _commuters =
         [
             new("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
@@ -71,19 +80,28 @@ public class CommuteReport : BaseApp
             // The fixed times are for the days without a time to be somewhere or to leave; otherwise the message comes ten minutes
             // before leaving (see SendWhenItIsTime). The time is a helper, so a change in the dashboard applies without a restart.
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_heen_{commuter.Id}"), DefaultMorning,
-                () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) Send(commuter, CommuteDirection.ToWork); });
+                () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) _ = Send(commuter, CommuteDirection.ToWork); });
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_terug_{commuter.Id}"), DefaultEvening,
-                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null) Send(commuter, CommuteDirection.ToHome); });
+                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null) _ = Send(commuter, CommuteDirection.ToHome); });
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
 
         // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
-        new Entity(HaContext, TestButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(_ =>
+        new Entity(HaContext, TestButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(press =>
         {
-            Send(_commuters[0], CommuteDirection.ToWork, test: true);
-            Send(_commuters[0], CommuteDirection.ToHome, test: true);
+            _ = Send(_commuters[0], CommuteDirection.ToWork, test: true);
+            _ = Send(_commuters[0], CommuteDirection.ToHome, test: true);
         });
+
+        // "Stuur door" on the dashboard: sends the other person what is expected for this person's trip (the trip to the office while at home,
+        // otherwise the one back home)
+        foreach (var commuter in _commuters)
+        {
+            var sender = commuter;
+            new Entity(HaContext, $"input_button.reis_doorsturen_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
+                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true));
+        }
     }
 
     /// <summary>
@@ -107,7 +125,7 @@ public class CommuteReport : BaseApp
                     var sendAt = LeaveBy(commuter, direction, target) - SendBefore;
                     if (now < sendAt || now >= sendAt + TooLate) continue;
                     _sent.Add(key);
-                    Send(commuter, direction);
+                    _ = Send(commuter, direction);
                 }
         }
         catch (Exception ex)
@@ -142,11 +160,15 @@ public class CommuteReport : BaseApp
         return (car, transit);
     }
 
-    private void Send(Commuter commuter, CommuteDirection direction, bool test = false)
+    /// <param name="commuter">Whose trip it is.</param>
+    /// <param name="direction">To the office or home.</param>
+    /// <param name="test">A test message, whatever day it is.</param>
+    /// <param name="forward">The message goes to the other person, as the expected times of this person (the "Stuur door" button).</param>
+    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false)
     {
         try
         {
-            if (!test)
+            if (!test && !forward)
             {
                 // Switched off by the person, or not an office day
                 if (HaContext.GetState($"input_boolean.verkeer_bericht_{commuter.Id}")?.State == "off") return;
@@ -164,9 +186,10 @@ public class CommuteReport : BaseApp
                 Logger.LogInformation("{Person} has no {Direction} route, no commute message", commuter.Id, direction);
                 return;
             }
-            if (string.IsNullOrEmpty(commuter.Whatsapp))
+            var recipient = forward ? _commuters.First(c => c.Id != commuter.Id).Whatsapp : commuter.Whatsapp;
+            if (string.IsNullOrEmpty(recipient))
             {
-                Logger.LogWarning("No WhatsApp id for {Person}, the commute message is not sent", commuter.Id);
+                Logger.LogWarning("No WhatsApp id for {Person}, the commute message is not sent", forward ? "the other person" : commuter.Id);
                 return;
             }
 
@@ -175,12 +198,21 @@ public class CommuteReport : BaseApp
                 parts.Add(ReadRoute(carPrefix) is { } route
                     ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target)
                     : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
+            var otherName = commuter.Id == "vincent" ? "Carleen" : "Vincent";
             if (transitPrefix != null)
-                parts.Add(ReadTransit(transitPrefix) is { } transit
-                    ? CommuteMessage.BuildTransit(direction, transit, target)
-                    : "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar).");
-            var text = (test ? "🧪 Test\n" : "") + string.Join("\n\n", parts);
-            Services.Whatsapp.SendMessage(clientId: "default", to: commuter.Whatsapp, body: new { text });
+            {
+                var transit = ReadTransit(transitPrefix);
+                // With the id of the first trip the integration tells every step; without it (or when asking fails) the short version
+                var journey = transit is { Trips.Count: > 0 } ? await GetJourneyAsync(transit) : null;
+                parts.Add(transit == null ? "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar)."
+                    : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward ? null : otherName)
+                    : CommuteMessage.BuildTransit(direction, transit, target) + (forward ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
+            }
+            var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
+            var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
+            Services.Whatsapp.SendMessage(clientId: "default", to: recipient, body: new { text });
+            // The message is also the last reply in the WhatsApp conversation, so "Stuur door" forwards it to the other person
+            if (transitPrefix != null && !forward) RememberAsLastReply(commuter.Whatsapp, text);
             Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);
         }
         catch (Exception ex)
@@ -230,6 +262,34 @@ public class CommuteReport : BaseApp
         return null;
     }
 
+    /// <summary>The details of the first trip (every step with its stops and platforms), or null when the integration has no id for it or does not answer.</summary>
+    private async Task<JourneyDetail?> GetJourneyAsync(TransitRoute route)
+    {
+        if (route.Trips[0].Id is not { Length: > 0 } id || _runner.CurrentConnection is not { } connection) return null;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var detail = await connection.SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(new GetJourneyCommand(id, route.RouteId), timeout.Token);
+            return detail is { Legs.Count: > 0 } ? detail : null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not get the details of the 9292 journey");
+            return null;
+        }
+    }
+
+    /// <summary>Adds the message to the WhatsApp conversation as the last reply, which is what "Stuur door" forwards.</summary>
+    private void RememberAsLastReply(string whatsapp, string text)
+    {
+        var all = _storage.Get<Dictionary<string, List<WhatsAppConversationTurn>>>(WhatsAppAssistant.HistoryStorageKey) ?? [];
+        var history = all.GetValueOrDefault(whatsapp) ?? [];
+        history.Add(new WhatsAppConversationTurn { UserMessage = "(reisbericht)", AssistantReply = text });
+        if (history.Count > WhatsAppAssistant.MaxHistoryTurns) history.RemoveAt(0);
+        all[whatsapp] = history;
+        _storage.Save(WhatsAppAssistant.HistoryStorageKey, all);
+    }
+
     /// <summary>The coming trips of a public transport route, or null while its sensor has no value.</summary>
     private TransitRoute? ReadTransit(string prefix)
     {
@@ -246,11 +306,11 @@ public class CommuteReport : BaseApp
                     ? l.EnumerateArray().Where(x => Text(x, "line") is { Length: > 0 }).Select(x => new TransitLeg(Text(x, "mode") ?? "", Text(x, "line")!)).ToList()
                     : [];
                 trips.Add(new TransitTrip(departure, arrival, Number(trip, "duration_min") ?? 0, Number(trip, "delay_min") ?? 0,
-                    (int)(Number(trip, "transfers") ?? 0), legs, trip.TryGetProperty("cancelled", out var c) && c.ValueKind == JsonValueKind.True));
+                    (int)(Number(trip, "transfers") ?? 0), legs, trip.TryGetProperty("cancelled", out var c) && c.ValueKind == JsonValueKind.True, Text(trip, "id")));
             }
         // Trips that have left already are no use; the integration refreshes, but not at the second
         trips = trips.Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
-        return new TransitRoute(Text(a, "from"), Text(a, "to"), trips);
+        return new TransitRoute(Text(a, "from"), Text(a, "to"), trips, Text(a, "route_id"));
     }
 
     /// <summary>

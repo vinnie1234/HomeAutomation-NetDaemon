@@ -1,8 +1,12 @@
 using System.Text.Json;
 using Automation.apps.General;
 using Automation.Configuration;
+using Automation.Interfaces;
+using Automation.Models.Traffic;
+using Automation.Models.WhatsApp;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
+using NetDaemon.Client;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -17,6 +21,9 @@ public class CommuteReportTests
 
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
     private readonly List<Entity> _entities = [];
+    private readonly IDataRepository _storage = Substitute.For<IDataRepository>();
+    private readonly IHomeAssistantRunner _runner = Substitute.For<IHomeAssistantRunner>();
+    private readonly IHomeAssistantConnection _connection = Substitute.For<IHomeAssistantConnection>();
 
     private void SetState(string entityId, string state, object? attributes = null) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState
@@ -57,7 +64,8 @@ public class CommuteReportTests
         configure?.Invoke();
         _ctx.HaContext.GetAllEntities().Returns(entities);
         _ctx.SetCurrentTime(new DateTime(2026, 10, 28, 23, 0, 0, DateTimeKind.Utc));
-        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = whatsapp, Carleen = CarleenWhatsapp } }));
+        _runner.CurrentConnection.Returns(_connection);
+        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = whatsapp, Carleen = CarleenWhatsapp } }), _storage, _runner);
     }
 
     private List<(string To, string Text)> Messages() =>
@@ -311,5 +319,125 @@ public class CommuteReportTests
         AdvanceTo(7, 51);
 
         Messages().Should().BeEmpty();
+    }
+
+    /// <summary>Carleen's OV route with the id of the first trip, the way she goes to the office on Thursday.</summary>
+    private void CarleenGoesByTrain()
+    {
+        SetState("input_select.werkdag_carleen_donderdag", "Kantoor");
+        SetState("input_boolean.vrij_carleen", "off");
+        SetState("input_boolean.awaycarleen", "off");
+        SetState("input_select.vervoer_carleen_donderdag", "OV");
+        SetState("sensor.9292_thuis_nijmegen_carleen_lijnen", "505 · 3255", new
+        {
+            friendly_name = "9292 Thuis -> Nijmegen (Carleen) Lijnen",
+            person = "person.carleen",
+            route_id = "route-1",
+            upcoming = new[]
+            {
+                new
+                {
+                    id = "journey-1", departure_actual = "2026-10-29T07:10:00+00:00", arrival = "2026-10-29T08:19:00+00:00", duration_min = 69, delay_min = 0,
+                    transfers = 1, legs = Array.Empty<object>(), cancelled = false
+                }
+            }
+        });
+        _entities.Add(new Entity(_ctx.HaContext, "sensor.9292_thuis_nijmegen_carleen_lijnen"));
+        _connection.SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(Arg.Is<GetJourneyCommand>(c => c.JourneyId == "journey-1" && c.RouteId == "route-1"), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<JourneyDetail?>(new JourneyDetail
+            {
+                Legs =
+                [
+                    new JourneyLeg { Mode = "Walking", DistanceM = 450, From = new JourneyStop { Name = "Thuis", Time = "2026-10-29T07:05:00+00:00" }, To = new JourneyStop { Name = "Veenendaal Centrum", Time = "2026-10-29T07:10:00+00:00" } },
+                    new JourneyLeg
+                    {
+                        Mode = "Bus", Line = "505", Destination = "Ede",
+                        From = new JourneyStop { Name = "Veenendaal Centrum", Time = "2026-10-29T07:10:00+00:00", Platform = "B" },
+                        Stops = [new JourneyStop { Name = "Veenendaal Centrum", Time = "2026-10-29T07:10:00+00:00" }, new JourneyStop { Name = "Veenendaal-De Klomp", Time = "2026-10-29T07:20:00+00:00" }],
+                        To = new JourneyStop { Name = "Ede-Wageningen", Time = "2026-10-29T07:30:00+00:00", Real = "2026-10-29T07:32:00+00:00" }
+                    },
+                    new JourneyLeg
+                    {
+                        Mode = "FastTrain", Line = "3255", Destination = "Nijmegen",
+                        From = new JourneyStop { Name = "Ede-Wageningen", Time = "2026-10-29T07:40:00+00:00", Platform = "4" },
+                        To = new JourneyStop { Name = "Nijmegen", Time = "2026-10-29T08:19:00+00:00", Platform = "2" }
+                    }
+                ]
+            }));
+    }
+
+    [Fact]
+    public void ByTrain_TheMessageHasEveryStep_AndTellsThatItCanBeForwarded()
+    {
+        Start("Vrij", configure: CarleenGoesByTrain);
+
+        AdvanceTo(7, 51);
+
+        var text = Messages().Single(m => m.To == CarleenWhatsapp).Text;
+        text.Should().Contain("🚶 08:05 Loop naar Veenendaal Centrum (450 m)")
+            .And.Contain("*Bus 505* richting Ede").And.Contain("vanaf Veenendaal Centrum, perron B")
+            .And.Contain("• 08:20 Veenendaal-De Klomp")
+            .And.Contain("➜ 08:32 (+2) Ede-Wageningen")
+            .And.Contain("🔁 Overstappen op Ede-Wageningen: 8 min")
+            .And.Contain("*Intercity 3255* richting Nijmegen").And.Contain("vanaf Ede-Wageningen, spoor 4")
+            .And.Contain("🏁 Aankomst 09:19 Nijmegen")
+            .And.Contain("Antwoord *Stuur door* om dit naar Vincent te sturen");
+    }
+
+    [Fact]
+    public void ByTrain_WithoutTheJourneyDetails_StillHasTheShortMessageAndTheHint()
+    {
+        Start("Vrij", configure: () =>
+        {
+            CarleenGoesByTrain();
+            _connection.SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(Arg.Any<GetJourneyCommand>(), Arg.Any<CancellationToken>())
+                .Returns<Task<JourneyDetail?>>(_ => throw new InvalidOperationException("no answer"));
+        });
+
+        AdvanceTo(7, 51);
+
+        var text = Messages().Single(m => m.To == CarleenWhatsapp).Text;
+        text.Should().Contain("Naar kantoor met het OV").And.Contain("Stuur door");
+    }
+
+    [Fact]
+    public void TheTravelMessage_IsTheLastReplyOfTheConversation_SoStuurDoorForwardsIt()
+    {
+        Start("Vrij", configure: CarleenGoesByTrain);
+
+        AdvanceTo(7, 51);
+
+        _storage.Received().Save(WhatsAppAssistant.HistoryStorageKey, Arg.Is<Dictionary<string, List<WhatsAppConversationTurn>>>(h =>
+            h.ContainsKey(CarleenWhatsapp) && h[CarleenWhatsapp].Last().AssistantReply.Contains("Naar kantoor met het OV")));
+    }
+
+    [Fact]
+    public void TheForwardButton_SendsTheOtherPersonTheExpectedTimes()
+    {
+        Start("Kantoor", configure: () => SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00"));
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.reis_doorsturen_vincent").FromState("unknown").ToState("2026-10-29T06:30:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        var message = Messages().Should().ContainSingle().Which;
+        message.To.Should().Be(CarleenWhatsapp);
+        message.Text.Should().Contain("Doorgestuurd door Vincent: dit zijn de tijden die verwacht worden voor Vincent").And.Contain("Op kantoor om 08:20");
+    }
+
+    [Fact]
+    public void TheForwardButton_OfCarleen_GoesToVincent()
+    {
+        Start("Vrij", configure: CarleenGoesByTrain);
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.reis_doorsturen_carleen").FromState("unknown").ToState("2026-10-29T06:30:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        var message = Messages().Should().ContainSingle().Which;
+        message.To.Should().Be(VincentWhatsapp);
+        message.Text.Should().Contain("Doorgestuurd door Carleen").And.NotContain("Antwoord *Stuur door*");
     }
 }

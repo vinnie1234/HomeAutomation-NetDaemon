@@ -140,6 +140,90 @@ public static class CommuteMessage
         return string.Join("\n", lines);
     }
 
+
+    /// <summary>
+    /// The WhatsApp message for a public transport commute with every step: when to leave, where to walk, which bus or train from which stop
+    /// or platform, the stops on the way with their times, where to change (and how long you have), and when you arrive.
+    /// </summary>
+    /// <param name="direction">Whether he goes to the office or home.</param>
+    /// <param name="route">The next trips.</param>
+    /// <param name="journey">The details of the first trip.</param>
+    /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
+    /// <param name="forwardTo">The name of the person the message can be forwarded to ("Stuur door"), if any.</param>
+    public static string BuildJourney(CommuteDirection direction, TransitRoute route, JourneyDetail journey, CommuteTarget? target = null, string? forwardTo = null)
+    {
+        var lines = new List<string> { direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*" };
+        if (target is { } wanted)
+            lines.Add(wanted.IsArrival ? $"🎯 {(direction == CommuteDirection.ToWork ? "Op kantoor" : "Thuis")} om {Clock(wanted.Time)}" : $"🎯 Vertrek om {Clock(wanted.Time)}");
+        if (route.Trips.Count > 0 && route.Trips[0].Cancelled) lines.Add("❌ Let op: een deel van deze reis vervalt");
+        lines.Add("");
+
+        JourneyLeg? previousRide = null;
+        foreach (var leg in journey.Legs)
+        {
+            var departure = TimeOf(leg.From);
+            var arrival = TimeOf(leg.To);
+            if (leg.Mode == "Walking")
+            {
+                var metres = leg.DistanceM is > 0 ? $" ({Math.Round(leg.DistanceM.Value / 10) * 10:0} m)" : "";
+                lines.Add($"🚶 {Clock(departure)} Loop naar {leg.To?.Name}{Platform(leg.To, leg.Mode)}{metres}");
+                continue;
+            }
+
+            if (previousRide is { To: not null })
+            {
+                var wait = departure - TimeOf(previousRide.To);
+                var change = previousRide.To.Platform != null && leg.From?.Platform != null && previousRide.To.Platform != leg.From.Platform
+                    ? $", van {PlatformName(previousRide.Mode)} {previousRide.To.Platform} naar {PlatformName(leg.Mode)} {leg.From.Platform}" : "";
+                lines.Add($"🔁 Overstappen op {leg.From?.Name}: {Math.Max(0, (int)Math.Round(wait.TotalMinutes))} min{change}");
+            }
+
+            lines.Add($"{ModeIcon(leg.Mode ?? "")} {Clock(departure)}{Delay(leg.From)} *{ModeName(leg.Mode)} {leg.Line}*{(leg.Destination is { Length: > 0 } ? $" richting {leg.Destination}" : "")}");
+            lines.Add($"   vanaf {leg.From?.Name}{Platform(leg.From, leg.Mode)}");
+            foreach (var stop in leg.Stops.Where(s => s.Name != leg.From?.Name && s.Name != leg.To?.Name))
+                lines.Add($"   • {Clock(TimeOf(stop))}{Delay(stop)} {stop.Name}");
+            lines.Add($"   ➜ {Clock(arrival)}{Delay(leg.To)} {leg.To?.Name}{Platform(leg.To, leg.Mode)}");
+            if (leg.Cancelled) lines.Add("   ❌ Deze rit vervalt");
+            foreach (var message in leg.Disruptions.Take(2)) lines.Add($"   ⚠️ {message}");
+            previousRide = leg;
+        }
+
+        var last = journey.Legs.LastOrDefault();
+        if (last?.To != null) lines.Add($"🏁 Aankomst {Clock(TimeOf(last.To))} {last.To.Name}");
+
+        var later = route.Trips.Skip(1).Take(3).ToList();
+        if (later.Count > 0)
+            lines.Add("Daarna: " + string.Join(" · ", later.Select(t => $"{Clock(t.Departure)}{(t.Cancelled ? " ❌" : t.DelayMin >= 1 ? $" (+{Math.Round(t.DelayMin)})" : "")} → {Clock(t.Arrival)}")));
+        if (forwardTo != null) lines.Add($"↪️ Antwoord *Stuur door* om dit naar {forwardTo} te sturen");
+        return string.Join("\n", lines);
+    }
+
+    private static DateTimeOffset TimeOf(JourneyStop? stop) =>
+        DateTimeOffset.TryParse(stop?.Real ?? stop?.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : default;
+
+    /// <summary>" (+3)" when the real-time time is later than planned.</summary>
+    private static string Delay(JourneyStop? stop)
+    {
+        if (!DateTimeOffset.TryParse(stop?.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var planned)
+            || !DateTimeOffset.TryParse(stop?.Real, CultureInfo.InvariantCulture, DateTimeStyles.None, out var real)) return "";
+        var minutes = (int)Math.Round((real - planned).TotalMinutes);
+        return minutes >= 1 ? $" (+{minutes})" : "";
+    }
+
+    private static string PlatformName(string? mode) => mode is "Bus" or "Tram" or "Metro" or "Ferry" ? "perron" : "spoor";
+
+    private static string Platform(JourneyStop? stop, string? mode) =>
+        stop?.Platform is { Length: > 0 } platform && mode != "Walking" ? $", {PlatformName(mode)} {platform}" : "";
+
+    private static string ModeName(string? mode) => mode switch
+    {
+        "FastTrain" => "Intercity",
+        "SlowTrain" => "Sprinter",
+        "Train" => "Trein",
+        null => "Reis",
+        _ => mode
+    };
+
     private static string ModeIcon(string mode) => mode switch
     {
         "Bus" => "🚌",
