@@ -15,6 +15,13 @@ Glass Home:
   app-header-text-color: "#f2f4f8"
   lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.22), transparent 60%), #0b0f19"
   mdc-theme-surface: "#121828"
+  # Uitklapmenu's (keuzelijsten): een dichte achtergrond. Ze namen de doorzichtige kaartkleur en de tekst eronder scheen erdoorheen.
+  mdc-menu-surface-fill-color: "#161d2e"
+  mdc-select-fill-color: "#161d2e"
+  md-menu-container-color: "#161d2e"
+  md-sys-color-surface-container: "#161d2e"
+  md-sys-color-surface-container-high: "#1c2538"
+  md-sys-color-surface: "#161d2e"
   rgb-primary-color: "122, 162, 255"
 
   # Kaarten (glas)

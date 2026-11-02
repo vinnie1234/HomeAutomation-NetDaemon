@@ -83,92 +83,60 @@ sections:
         name: Werkrooster
         icon: mdi:calendar-week-outline
         cards:
-          # Per dag (ook het weekend) Vrij, Thuis of Kantoor: tik wisselt. Onder een kantoordag kies je met wat je gaat.
+          # Per dag (ook het weekend) Vrij, Thuis of Kantoor: tik wisselt. Op een kantoordag staat in de hoek een auto of trein: tik daarop wisselt het vervoer.
           - type: grid
             columns: 7
             square: false
             cards:
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_maandag
-            variables:
-              day: ma
-              weekday: 1
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_dinsdag
-            variables:
-              day: di
-              weekday: 2
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_woensdag
-            variables:
-              day: wo
-              weekday: 3
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_donderdag
-            variables:
-              day: do
-              weekday: 4
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_vrijdag
-            variables:
-              day: vr
-              weekday: 5
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_zaterdag
-            variables:
-              day: za
-              weekday: 6
-          - type: custom:button-card
-            template: workday_button
-            entity: input_select.werkdag_carleen_zondag
-            variables:
-              day: zo
-              weekday: 0
-          - type: grid
-            columns: 7
-            square: false
-            cards:
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_maandag
-            variables:
-              workday: input_select.werkdag_carleen_maandag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_dinsdag
-            variables:
-              workday: input_select.werkdag_carleen_dinsdag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_woensdag
-            variables:
-              workday: input_select.werkdag_carleen_woensdag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_donderdag
-            variables:
-              workday: input_select.werkdag_carleen_donderdag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_vrijdag
-            variables:
-              workday: input_select.werkdag_carleen_vrijdag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_zaterdag
-            variables:
-              workday: input_select.werkdag_carleen_zaterdag
-          - type: custom:button-card
-            template: transport_day
-            entity: input_select.vervoer_carleen_zondag
-            variables:
-              workday: input_select.werkdag_carleen_zondag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_maandag
+                variables:
+                  day: ma
+                  weekday: 1
+                  transport: input_select.vervoer_carleen_maandag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_dinsdag
+                variables:
+                  day: di
+                  weekday: 2
+                  transport: input_select.vervoer_carleen_dinsdag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_woensdag
+                variables:
+                  day: wo
+                  weekday: 3
+                  transport: input_select.vervoer_carleen_woensdag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_donderdag
+                variables:
+                  day: do
+                  weekday: 4
+                  transport: input_select.vervoer_carleen_donderdag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_vrijdag
+                variables:
+                  day: vr
+                  weekday: 5
+                  transport: input_select.vervoer_carleen_vrijdag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_zaterdag
+                variables:
+                  day: za
+                  weekday: 6
+                  transport: input_select.vervoer_carleen_zaterdag
+              - type: custom:button-card
+                template: workday_button
+                entity: input_select.werkdag_carleen_zondag
+                variables:
+                  day: zo
+                  weekday: 0
+                  transport: input_select.vervoer_carleen_zondag
           - type: custom:bubble-card
             card_type: button
             button_type: switch

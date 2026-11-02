@@ -3248,6 +3248,15 @@ commute_card:
           .filter((s, i, all) => variables.mode === 'all' || s.kind === chosenKind(s)
             || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
               .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
+            // Wie nu een route zou moeten hebben maar er geen heeft in die richting krijgt een melding hoe je er een maakt
+            if (variables.mode !== 'all') {
+              const owners = new Set(Object.values(states).filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person).map(s => s.attributes.person));
+              for (const person of owners) {
+                const dir = states[`input_boolean.away${personKey({ attributes: { person } })}`]?.state !== 'on' ? 'work' : 'home';
+                if (wanted({ attributes: { person }, dir }) && !rows.some(r => r.attributes.person === person && r.dir === dir))
+                  rows.push({ entity_id: '', attributes: { person }, dir, kind: 'missing' });
+              }
+            }
 
             return rows.length ? 'block' : 'none';
           ]]]
@@ -3307,6 +3316,15 @@ commute_card:
           .filter((s, i, all) => variables.mode === 'all' || s.kind === chosenKind(s)
             || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
           .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
+        // Wie nu een route zou moeten hebben maar er geen heeft in die richting krijgt een melding hoe je er een maakt
+        if (variables.mode !== 'all') {
+          const owners = new Set(Object.values(states).filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person).map(s => s.attributes.person));
+          for (const person of owners) {
+            const dir = states[`input_boolean.away${personKey({ attributes: { person } })}`]?.state !== 'on' ? 'work' : 'home';
+            if (wanted({ attributes: { person }, dir }) && !rows.some(r => r.attributes.person === person && r.dir === dir))
+              rows.push({ entity_id: '', attributes: { person }, dir, kind: 'missing' });
+          }
+        }
 
         const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
         const margin = 0.03;
@@ -3354,7 +3372,18 @@ commute_card:
                     </div>
                   </div>`;
         };
+        const missingCard = s => {
+          const name = (states[s.attributes.person]?.attributes.friendly_name ?? '').split(' ')[0];
+          const toWork = s.dir === 'work';
+          return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, '#94a3b8')}
+            <div style="line-height:1.35;min-width:0">
+              <div style="font-size:12px;opacity:.65">${name} · ${toWork ? 'naar kantoor' : 'naar huis'}</div>
+              <div style="font-size:14px;font-weight:600">Nog geen route ${toWork ? 'naar kantoor' : 'naar huis'}</div>
+              <div style="font-size:12px;opacity:.75">Maak een route (ANWB of 9292 OV) met ${name} als eigenaar en in de naam ${toWork ? '"Thuis" vóór "Werk"' : '"Werk" vóór "Thuis"'}, bijvoorbeeld "${toWork ? 'Thuis -> Werk' : 'Werk -> Thuis'}".</div>
+            </div></div>`;
+        };
         const card = s => {
+          if (s.kind === 'missing') return missingCard(s);
           if (s.kind === 'ov') return ovCard(s);
           const toWork = s.dir === 'work';
           const prefix = s.entity_id.replace(/_route$/, '');
@@ -3416,11 +3445,15 @@ commute_card:
         };
         // "Stuur door": de verwachte tijden gaan per WhatsApp naar de ander (NetDaemon, input_button.reis_doorsturen_{persoon})
         const forwardButton = s => {
+          if (s.kind === 'missing') return '';
           const key = personKey(s);
           const otherName = key === 'vincent' ? 'Carleen' : 'Vincent';
-          return `<div style="margin-top:8px"><span style="display:inline-block;padding:4px 12px;border-radius:12px;background:rgba(255,255,255,0.1);font-size:12px;cursor:pointer"
+          return `<div style="display:flex;justify-content:flex-end;margin-top:10px"><span style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 12px;border-radius:14px;cursor:pointer;
+              font-size:13px;font-weight:600;color:#dbe7ff;background:linear-gradient(135deg, rgba(122,162,255,0.30), rgba(167,139,250,0.22));
+              border:1px solid rgba(147,178,255,0.45);box-shadow:0 2px 10px rgba(80,110,200,0.25)"
             onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()"
-            onpointerup="event.stopPropagation();document.querySelector('home-assistant').hass.callService('input_button','press',{entity_id:'input_button.reis_doorsturen_${key}'});this.textContent='✓ Doorgestuurd'">↪ Stuur door naar ${otherName}</span></div>`;
+            onpointerup="event.stopPropagation();document.querySelector('home-assistant').hass.callService('input_button','press',{entity_id:'input_button.reis_doorsturen_${key}'});this.querySelector('span').textContent='Doorgestuurd naar ${otherName}';this.querySelector('ha-icon').setAttribute('icon','mdi:check-circle')">
+            <ha-icon icon="mdi:share-variant" style="--mdc-icon-size:18px"></ha-icon><span>Stuur door naar ${otherName}</span></span></div>`;
         };
         // Naast elkaar, even breed (bij twee of meer routes); op een smal scherm onder elkaar
         return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">`
@@ -4729,6 +4762,7 @@ workday_button:
   variables:
     day: ma
     weekday: 1
+    transport: null
   tap_action:
     action: javascript
     haptic: light
@@ -4736,7 +4770,17 @@ workday_button:
   hold_action:
     action: more-info
   name: '[[[ return variables.day; ]]]'
-  label: '[[[ return entity?.state ?? "?"; ]]]'
+  # Op een kantoordag staat er een auto of trein onder (variables.transport: de keuze van die dag); tik daarop wisselt het vervoer, tik elders de dag
+  label: |
+    [[[
+      const state = entity?.state ?? '?';
+      const t = variables.transport ? states[variables.transport] : null;
+      if (state !== 'Kantoor' || !t) return state;
+      const ov = t.state === 'OV';
+      return `${state}<br><span style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:10px;background:${ov ? 'rgba(250,204,21,0.25)' : 'rgba(96,165,250,0.25)'};color:${ov ? '#facc15' : '#93c5fd'}"
+        onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()"
+        onpointerup="event.stopPropagation();document.querySelector('home-assistant').hass.callService('input_select','select_next',{entity_id:'${variables.transport}',cycle:true})"><ha-icon icon="${ov ? 'mdi:train' : 'mdi:car'}" style="--mdc-icon-size:14px"></ha-icon>${ov ? 'OV' : 'Auto'}</span>`;
+    ]]]
   icon: |
     [[[ return { Vrij: 'mdi:beach', Thuis: 'mdi:home-account', Kantoor: 'mdi:office-building-outline' }[entity?.state] ?? 'mdi:help-circle-outline'; ]]]
   styles:
@@ -4745,7 +4789,7 @@ workday_button:
       - row-gap: 4px
     card:
       - padding: 8px 2px
-      - height: 84px
+      - height: 96px
       - background: |
           [[[
             const rgb = { Vrij: '255, 255, 255', Thuis: '74, 222, 128', Kantoor: '96, 165, 250' }[entity?.state] ?? '255, 255, 255';
@@ -4822,41 +4866,6 @@ schedule_tile:
     custom_fields:
       arrow:
         - justify-self: end
-
-# Auto of OV voor één dag, onder de dagknop van het werkrooster. Tik wisselt. Alleen te zien op een kantoordag (variables.workday: de werkdag-keuze
-# van dezelfde dag); op andere dagen blijft de plek leeg, zodat de zeven kolommen netjes onder elkaar blijven staan.
-transport_day:
-  template: glass
-  show_icon: true
-  show_name: false
-  show_label: true
-  variables:
-    workday: input_select.werkdag_vincent_maandag
-  tap_action:
-    action: javascript
-    haptic: light
-    javascript: "[[[ hass.callService('input_select', 'select_next', { entity_id: entity.entity_id, cycle: true }); ]]]"
-  hold_action:
-    action: more-info
-  icon: '[[[ return entity?.state === "OV" ? "mdi:train" : "mdi:car"; ]]]'
-  label: '[[[ return entity?.state === "OV" ? "OV" : "Auto"; ]]]'
-  triggers_update: all
-  styles:
-    grid:
-      - grid-template-areas: '"i" "l"'
-      - row-gap: 2px
-    card:
-      - padding: 6px 2px
-      - height: 56px
-      - visibility: '[[[ return states[variables.workday]?.state === "Kantoor" ? "visible" : "hidden"; ]]]'
-      - background: '[[[ return entity?.state === "OV" ? "rgba(250, 204, 21, 0.14)" : "rgba(96, 165, 250, 0.14)"; ]]]'
-    icon:
-      - width: 20px
-      - color: '[[[ return entity?.state === "OV" ? "#facc15" : "#60a5fa"; ]]]'
-    label:
-      - justify-self: center
-      - font-size: 10px
-      - opacity: 0.85
 
 # Pixel moet zijn prednison (oranje, vanaf de herinneringstijd) of is hem vergeten (rood, pulserend, de dag erna).
 # De melding is meteen de knop: tik, bevestig, en er gaat een kwart pil van de voorraad af (NetDaemon PixelMedication).
