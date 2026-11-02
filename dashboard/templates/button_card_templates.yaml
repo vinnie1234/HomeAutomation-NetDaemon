@@ -3177,6 +3177,8 @@ summary:
       - white-space: normal
       - text-align: left
 
+# De kaart toont per persoon de route van de keuze van vandaag (Auto of OV, input_select.vervoer_{persoon}_{dag}), tussen 07:00 (of 4 uur voor
+# aankomst) en het midden van de werkdag voor de heenreis als de persoon thuis is, en daarna de terugreis als hij of zij niet thuis is.
 # Verkeer op de woon-werkroutes: met de auto (ANWB File: reistijd, files op de route en flitsers) en met het openbaar vervoer (9292 OV:
 # de eerstvolgende reis en de reizen daarna), per persoon met een route.
 # - variables.mode: 'auto' (Home) toont per persoon de route die nu telt, 'all' (Weer en verkeer) alle routes.
@@ -3218,19 +3220,33 @@ commute_card:
             const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
             const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
             const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+            // De tijden van vandaag uit de entities van OfficeTimes (kantoor_aankomst = 10 min voor de start, kantoor_vertrek = 10 min na het einde),
+            // als die over vandaag gaan; anders de werkuren van de persoon
+            const todayText = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`;
+            const targetOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d{4}-\d{2}-\d{2}) (\d+):(\d+)/); return m && m[1] === todayText ? +m[2] + m[3] / 60 : null; };
+            const personKey = s => String(s.attributes.person).replace('person.', '').split('_')[0];
+            // Auto of OV: de keuze van vandaag (per weekdag in te stellen)
+            const chosenKind = s => states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car';
             const wanted = s => {
-              const key = String(s.attributes.person).replace('person.', '').split('_')[0];
+              const key = personKey(s);
               const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
                 && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
               if (!office) return false;
+              // De heenreis alleen als de persoon thuis is; de terugreis als de persoon niet thuis is
               const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
-              const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
-              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
+              const arrival = targetOf(`input_datetime.kantoor_aankomst_${key}`), leave = targetOf(`input_datetime.kantoor_vertrek_${key}`);
+              const start = arrival != null ? arrival + 10 / 60 : (hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5);
+              const end = leave != null ? leave - 10 / 60 : (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17);
+              const middle = (start + end) / 2;
+              const from = Math.max(7, (arrival ?? start) - 4);
+              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= middle && hourNow < 22);
             };
             const rows = Object.values(states)
               .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
               .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
               .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
+          .filter((s, i, all) => variables.mode === 'all' || s.kind === chosenKind(s)
+            || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
               .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
 
             return rows.length ? 'block' : 'none';
@@ -3263,19 +3279,33 @@ commute_card:
         const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
         const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
         const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+        // De tijden van vandaag uit de entities van OfficeTimes (kantoor_aankomst = 10 min voor de start, kantoor_vertrek = 10 min na het einde),
+        // als die over vandaag gaan; anders de werkuren van de persoon
+        const todayText = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`;
+        const targetOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d{4}-\d{2}-\d{2}) (\d+):(\d+)/); return m && m[1] === todayText ? +m[2] + m[3] / 60 : null; };
+        const personKey = s => String(s.attributes.person).replace('person.', '').split('_')[0];
+        // Auto of OV: de keuze van vandaag (per weekdag in te stellen)
+        const chosenKind = s => states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car';
         const wanted = s => {
-          const key = String(s.attributes.person).replace('person.', '').split('_')[0];
+          const key = personKey(s);
           const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
             && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
           if (!office) return false;
+          // De heenreis alleen als de persoon thuis is; de terugreis als de persoon niet thuis is
           const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
-          const middle = ((hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5) + (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17)) / 2;
-          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
+          const arrival = targetOf(`input_datetime.kantoor_aankomst_${key}`), leave = targetOf(`input_datetime.kantoor_vertrek_${key}`);
+          const start = arrival != null ? arrival + 10 / 60 : (hoursOf(`input_datetime.werk_start_${key}`) ?? 8.5);
+          const end = leave != null ? leave - 10 / 60 : (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17);
+          const middle = (start + end) / 2;
+          const from = Math.max(7, (arrival ?? start) - 4);
+          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= middle && hourNow < 22);
         };
         const rows = Object.values(states)
           .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
           .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
           .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
+          .filter((s, i, all) => variables.mode === 'all' || s.kind === chosenKind(s)
+            || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
           .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
 
         const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
@@ -3309,6 +3339,8 @@ commute_card:
           const lines = (next.legs ?? []).filter(l => l.line).map(l => `${modeIcon(l.mode)} ${l.line}`).join(' → ');
           const departure = new Date(next.departure_actual);
           const minutes = Math.max(0, Math.round((departure - Date.now()) / 60000));
+          const wantedTime = targetOf(`input_datetime.${s.dir === 'work' ? 'kantoor_aankomst' : 'kantoor_vertrek'}_${personKey(s)}`);
+          const hm = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`;
           const later = trips.slice(1, 4).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
           return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, color)}
                     <div style="line-height:1.35;min-width:0">
@@ -3316,6 +3348,7 @@ commute_card:
                       <div style="font-size:18px;font-weight:700">${Math.round(next.duration_min)} min
                         <span style="font-size:13px;font-weight:500;color:${color}">${next.cancelled ? 'vervalt' : delay >= 1 ? `+${Math.round(delay)} min` : 'op tijd'}</span></div>
                       <div style="font-size:13px;opacity:.85">Vertrek ${clock(departure)} (over ${minutes} min) · aankomst ${clock(new Date(next.arrival))}${next.transfers ? ` · ${next.transfers} overstap${next.transfers === 1 ? '' : 'pen'}` : ''}</div>
+                      ${wantedTime == null ? '' : `<div style="font-size:13px;font-weight:600;color:#7aa2ff">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`}
                       ${lines ? `<div style="font-size:12px;opacity:.85">${lines}</div>` : ''}
                       ${later ? `<div style="font-size:12px;opacity:.7">Daarna: ${later}</div>` : ''}
                     </div>
@@ -3354,6 +3387,13 @@ commute_card:
           // De route is de snelste die de ANWB vindt: heeft hij geen vertraging terwijl de files op zijn wegen die wel hebben, dan rijdt hij eromheen
           const jamDelay = jams.reduce((n, j) => n + (j.attributes.delay_min ?? 0), 0);
           const goesAround = jamDelay >= 5 && delay < Math.max(3, jamDelay * 0.25);
+          // Advies: wanneer vertrekken om op tijd te zijn (heenreis), of wanneer je van kantoor weg kunt (terugreis)
+          const wantedTime = targetOf(`input_datetime.${toWork ? 'kantoor_aankomst' : 'kantoor_vertrek'}_${personKey(s)}`);
+          const hm = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`;
+          const leaveBy = wantedTime == null ? null : wantedTime - duration / 60;
+          const advice = wantedTime == null || (toWork && hourNow > wantedTime) ? ''
+            : toWork ? `<div style="font-size:13px;font-weight:600;color:#7aa2ff">Advies: ${leaveBy < hourNow ? 'nu vertrekken' : 'vertrek om ' + hm(leaveBy)} (op kantoor om ${hm(wantedTime)})</div>`
+            : `<div style="font-size:13px;font-weight:600;color:#7aa2ff">Weg van kantoor om ${hm(wantedTime)}</div>`;
           const color = delay >= 10 ? '#ff6b6b' : goesAround ? '#a3e635' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
           const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op ${goesAround ? 'de wegen van je route, de route rijdt eromheen' : 'je route'}`
             : delay >= 3 ? 'Drukker dan normaal' : 'Geen files op je route';
@@ -3369,6 +3409,7 @@ commute_card:
                       <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
                         <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
                       <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
+                      ${advice}
                       ${jamLines}${radarLine}
                     </div>
                   </div>`;

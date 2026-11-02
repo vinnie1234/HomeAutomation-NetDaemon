@@ -202,6 +202,29 @@ sections:
           - entity: input_datetime.verkeer_terug_vincent
             name: Hoe laat naar huis
             icon: mdi:home-import-outline
+          - type: section
+            label: Vervoer naar kantoor (per dag)
+          - entity: input_select.vervoer_vincent_maandag
+            name: Maandag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_dinsdag
+            name: Dinsdag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_woensdag
+            name: Woensdag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_donderdag
+            name: Donderdag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_vrijdag
+            name: Vrijdag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_zaterdag
+            name: Zaterdag
+            icon: mdi:car-clock
+          - entity: input_select.vervoer_vincent_zondag
+            name: Zondag
+            icon: mdi:car-clock
 
   # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
   - type: grid
