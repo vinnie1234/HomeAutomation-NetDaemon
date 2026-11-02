@@ -41,6 +41,17 @@ public class CommuteReport : BaseApp
     /// <param name="Whatsapp">Their WhatsApp id.</param>
     private sealed record Commuter(string Id, string PersonId, IPerson Person, WorkSchedule Schedule, string Whatsapp);
 
+    private readonly Commuter[] _commuters;
+
+    /// <summary>The messages already sent (or tried) for a person, direction and date, so a message comes once per trip.</summary>
+    private readonly HashSet<string> _sent = [];
+
+    /// <summary>How long before leaving the message comes.</summary>
+    private static readonly TimeSpan SendBefore = TimeSpan.FromMinutes(10);
+
+    /// <summary>How long after its moment a message can still come (a restart or a late update), after that it is too late to be of use.</summary>
+    private static readonly TimeSpan TooLate = TimeSpan.FromMinutes(30);
+
     public CommuteReport(
         IHaContext ha,
         ILogger<CommuteReport> logger,
@@ -49,28 +60,86 @@ public class CommuteReport : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        Commuter[] commuters =
+        _commuters =
         [
             new("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
             new("carleen", Entities.Person.Carleen.EntityId, Carleen, CarleenSchedule, Carleen.Whatsapp)
         ];
 
-        foreach (var commuter in commuters)
+        foreach (var commuter in _commuters)
         {
-            // The time is a helper, so a change in the dashboard applies without a restart
+            // The fixed times are for the days without a time to be somewhere or to leave; otherwise the message comes ten minutes
+            // before leaving (see SendWhenItIsTime). The time is a helper, so a change in the dashboard applies without a restart.
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_heen_{commuter.Id}"), DefaultMorning,
-                () => Send(commuter, CommuteDirection.ToWork));
+                () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) Send(commuter, CommuteDirection.ToWork); });
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_terug_{commuter.Id}"), DefaultEvening,
-                () => Send(commuter, CommuteDirection.ToHome));
+                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null) Send(commuter, CommuteDirection.ToHome); });
         }
+        Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
 
         // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
         new Entity(HaContext, TestButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(_ =>
         {
-            Send(commuters[0], CommuteDirection.ToWork, test: true);
-            Send(commuters[0], CommuteDirection.ToHome, test: true);
+            Send(_commuters[0], CommuteDirection.ToWork, test: true);
+            Send(_commuters[0], CommuteDirection.ToHome, test: true);
         });
+    }
+
+    /// <summary>
+    /// Every minute: with a time to leave the message comes ten minutes before it; with a time to be somewhere ten minutes before the
+    /// departure that gets one there on time (the route of now: the travel time of the car, or the departure of the trip public transport finds).
+    /// </summary>
+    private void SendWhenItIsTime()
+    {
+        try
+        {
+            var now = Scheduler.Now;
+            var today = Scheduler.NowNl().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            _sent.RemoveWhere(key => !key.EndsWith(today, StringComparison.Ordinal));
+            foreach (var commuter in _commuters)
+                foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
+                {
+                    if (TargetTime(commuter, direction) is not { } target) continue;
+                    var key = $"{commuter.Id}|{direction}|{today}";
+                    if (_sent.Contains(key)) continue;
+
+                    var sendAt = LeaveBy(commuter, direction, target) - SendBefore;
+                    if (now < sendAt || now >= sendAt + TooLate) continue;
+                    _sent.Add(key);
+                    Send(commuter, direction);
+                }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not check whether a commute message is due");
+        }
+    }
+
+    /// <summary>When to leave: the time to leave itself, or the time to be somewhere minus the travel time of now (45 minutes when it is not known).</summary>
+    private DateTimeOffset LeaveBy(Commuter commuter, CommuteDirection direction, CommuteTarget target)
+    {
+        if (!target.IsArrival) return target.Time;
+        var (car, transit) = ChooseRoutes(commuter, direction);
+        if (transit != null && ReadTransit(transit) is { Trips.Count: > 0 } trips) return trips.Trips[0].Departure;
+        if (car != null && ReadRoute(car) is { } route) return target.Time - TimeSpan.FromMinutes(route.DurationMin);
+        return target.Time - TimeSpan.FromMinutes(45);
+    }
+
+    /// <summary>
+    /// The route of the day in this direction: the car route or the public transport route, the way of the day (set per weekday)
+    /// decides; the other one only when that route does not exist.
+    /// </summary>
+    private (string? Car, string? Transit) ChooseRoutes(Commuter commuter, CommuteDirection direction)
+    {
+        var car = FindRoutePrefix(commuter.PersonId, direction);
+        var transit = FindTransitPrefix(commuter.PersonId, direction);
+        if (commuter.Schedule.Transport(Scheduler.NowNl().DayOfWeek) == WorkSchedule.PublicTransport)
+        {
+            if (transit != null) car = null;
+        }
+        else if (car != null) transit = null;
+        return (car, transit);
     }
 
     private void Send(Commuter commuter, CommuteDirection direction, bool test = false)
@@ -82,18 +151,12 @@ public class CommuteReport : BaseApp
                 // Switched off by the person, or not an office day
                 if (HaContext.GetState($"input_boolean.verkeer_bericht_{commuter.Id}")?.State == "off") return;
                 if (!commuter.Schedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek)) return;
-                // Already home on the way back: nothing to warn about
+                // Already home on the way back, or already gone on the way there: nothing to warn about
                 if (direction == CommuteDirection.ToHome && commuter.Person.IsHome) return;
+                if (direction == CommuteDirection.ToWork && !commuter.Person.IsHome) return;
             }
 
-            var carPrefix = FindRoutePrefix(commuter.PersonId, direction);
-            var transitPrefix = FindTransitPrefix(commuter.PersonId, direction);
-            // The way of the day (car or public transport, set per weekday) decides which route it is; the other one only when that route does not exist
-            if (commuter.Schedule.Transport(Scheduler.NowNl().DayOfWeek) == WorkSchedule.PublicTransport)
-            {
-                if (transitPrefix != null) carPrefix = null;
-            }
-            else if (carPrefix != null) transitPrefix = null;
+            var (carPrefix, transitPrefix) = ChooseRoutes(commuter, direction);
             var target = TargetTime(commuter, direction);
             if (carPrefix == null && transitPrefix == null)
             {

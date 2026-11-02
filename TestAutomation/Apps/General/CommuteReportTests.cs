@@ -198,6 +198,46 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void WithATimeToBeAtTheOffice_TheMessageComesTenMinutesBeforeTheDepartureThatGetsYouThere()
+    {
+        Start("Kantoor", configure: () => SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00"));
+
+        // Be there at 08:20 with 31 minutes of driving: leave at 07:49, so the message comes at 07:39 and not at the fixed 07:50
+        AdvanceTo(7, 38);
+        Messages().Should().BeEmpty();
+        AdvanceTo(7, 40);
+        Messages().Should().ContainSingle();
+        AdvanceTo(8, 5);
+        Messages().Should().ContainSingle("it comes once");
+    }
+
+    [Fact]
+    public void WithATimeToLeave_TheMessageComesTenMinutesBeforeIt()
+    {
+        Start("Kantoor", configure: () =>
+        {
+            SetState("input_boolean.werk_uit_agenda_vincent", "off");
+            SetState("input_select.reis_ochtend_soort_vincent", "Van huis vertrekken");
+            SetState("input_datetime.thuis_vertrek_vincent", "2026-10-29 08:30:00");
+        });
+
+        AdvanceTo(8, 19);
+        Messages().Should().BeEmpty();
+        AdvanceTo(8, 21);
+        Messages().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void AMessageForSomebodyWhoHasLeftAlready_IsNotSent()
+    {
+        Start("Kantoor", vincentHome: false, configure: () => SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00"));
+
+        AdvanceTo(7, 45);
+
+        Messages().Where(m => m.Text.Contains("Naar kantoor")).Should().BeEmpty();
+    }
+
+    [Fact]
     public void ATimeToLeaveHome_GetsNoAdvice()
     {
         Start("Kantoor", configure: () =>
@@ -209,6 +249,7 @@ public class CommuteReportTests
 
         AdvanceTo(7, 51);
 
+        // The message came at 07:50, ten minutes before the time to leave
         var text = Messages().Should().ContainSingle().Which.Text;
         text.Should().Contain("🎯 Vertrek om 08:00").And.NotContain("uiterlijk vertrekken");
     }
@@ -223,9 +264,9 @@ public class CommuteReportTests
             SetState("input_datetime.thuis_aankomst_vincent", "2026-10-29 18:00:00");
         });
 
-        AdvanceTo(17, 16);
+        AdvanceTo(17, 20);
 
-        // 31 minutes of driving to be home at 18:00: leave the office by 17:29
+        // 31 minutes of driving to be home at 18:00: leave the office by 17:29 (the message came at 17:19)
         Messages().Single(m => m.Text.Contains("Naar huis")).Text.Should().Contain("Thuis om 18:00: uiterlijk vertrekken om 17:29");
     }
 
