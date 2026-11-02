@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Automation.Configuration;
 using Automation.Models.Persons;

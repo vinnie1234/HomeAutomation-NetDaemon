@@ -3,7 +3,6 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Helpers;
 using Automation.Models.Persons;
-using Automation.Interfaces;
 using Automation.Models.WhatsApp;
 using Automation.Models.Traffic;
 using Microsoft.Extensions.Options;

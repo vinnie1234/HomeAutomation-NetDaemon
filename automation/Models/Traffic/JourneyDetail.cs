@@ -55,7 +55,7 @@ public record JourneyLeg
     public double? DistanceM { get; init; }
 
     [JsonPropertyName("disruptions")]
-    public List<string> Disruptions { get; init; } = [];
+    public IReadOnlyList<string> Disruptions { get; init; } = [];
 
     [JsonPropertyName("cancelled")]
     public bool Cancelled { get; init; }

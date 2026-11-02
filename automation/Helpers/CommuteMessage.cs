@@ -204,8 +204,8 @@ public static class CommuteMessage
     /// <summary>" (+3)" when the real-time time is later than planned.</summary>
     private static string Delay(JourneyStop? stop)
     {
-        if (!DateTimeOffset.TryParse(stop?.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var planned)
-            || !DateTimeOffset.TryParse(stop?.Real, CultureInfo.InvariantCulture, DateTimeStyles.None, out var real)) return "";
+        if (stop == null || !DateTimeOffset.TryParse(stop.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var planned)
+            || !DateTimeOffset.TryParse(stop.Real, CultureInfo.InvariantCulture, DateTimeStyles.None, out var real)) return "";
         var minutes = (int)Math.Round((real - planned).TotalMinutes);
         return minutes >= 1 ? $" (+{minutes})" : "";
     }
