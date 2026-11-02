@@ -3393,6 +3393,35 @@ commute_card:
           const last = (detail?.legs ?? []).slice(-1)[0];
           return out + (last?.to ? `<div style="margin-top:12px;font-weight:700">🏁 Aankomst ${at(last.to)} ${last.to.name ?? ''}</div>` : '');
         };
+        // Stappen van één reis uitklappen (ophalen bij 9292), met de knop om die reis te nemen
+        window.huisReisTrip = async (key, i) => {
+          const d = window.huisReisDetail[key], x = d.journey.trips[i], box = document.getElementById(`huis-reis-rit-${i}`);
+          if (!box) return;
+          if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+          box.style.display = 'block';
+          if (box.dataset.loaded) return;
+          box.dataset.loaded = '1';
+          box.innerHTML = '<div style="opacity:.7">Stappen ophalen…</div>';
+          let steps = '<div style="opacity:.7">De stappen en het spoor zijn nu niet op te halen.</div>';
+          try {
+            if (x.id) steps = window.huisReisLegs(await document.querySelector('home-assistant').hass.callWS({ type: 'ov_9292/journey', journey_id: x.id, route_id: d.journey.routeId }));
+          } catch (e) { /* de korte weergave blijft */ }
+          const chosenNow = x.planned === d.journey.chosen;
+          box.innerHTML = `${steps}<div style="margin-top:10px"><span style="display:inline-block;padding:8px 18px;border-radius:14px;cursor:pointer;font-weight:600;background:rgba(122,162,255,0.25);border:1px solid rgba(147,178,255,0.45)" onclick="window.huisReisChoose('${key}',${i})">${chosenNow ? 'Gekozen: tik om weer automatisch te kiezen' : 'Deze reis nemen'}</span></div>`;
+        };
+        window.huisReisChoose = (key, i) => {
+          const d = window.huisReisDetail[key], x = d.journey.trips[i];
+          const value = x.planned === d.journey.chosen ? '' : x.planned;
+          document.querySelector('home-assistant').hass.callService('input_text', 'set_value', { entity_id: d.journey.choiceId, value });
+          d.journey.chosen = value;
+          d.journey.trips.forEach((y, j) => {
+            const mark = document.getElementById(`huis-reis-vink-${j}`);
+            if (mark) mark.textContent = y.planned === value ? '✓ Gekozen' : '';
+            const box = document.getElementById(`huis-reis-rit-${j}`);
+            if (box) delete box.dataset.loaded;
+            if (box && box.style.display !== 'none') window.huisReisTrip(key, j), window.huisReisTrip(key, j);
+          });
+        };
         window.huisReisOpen = async key => {
           const d = window.huisReisDetail?.[key];
           if (!d || Date.now() - (window.huisReisOpenedAt ?? 0) < 600) return;
@@ -3408,14 +3437,13 @@ commute_card:
               <div id="huis-reis-inhoud">${d.html}</div></div>`;
           document.body.appendChild(el);
           el.addEventListener('click', e => { if (e.target === el || e.target.id === 'huis-reis-sluit') el.remove(); });
-          if (d.journey?.id) {
-            const target = () => document.getElementById('huis-reis-inhoud');
-            try {
-              const detail = await document.querySelector('home-assistant').hass.callWS({ type: 'ov_9292/journey', journey_id: d.journey.id, route_id: d.journey.routeId });
-              if (target()) target().innerHTML = `<div style="font-weight:600;margin-bottom:6px">Stappen van de eerstvolgende reis</div>${window.huisReisLegs(detail)}<div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">${d.html}</div>`;
-            } catch (e) {
-              if (target()) target().innerHTML = d.html + '<div style="margin-top:12px;opacity:.7">De stappen en het spoor zijn nu niet op te halen.</div>';
-            }
+          if (d.journey?.trips) {
+            // Een OV-reis: alle reizen onder elkaar; een tik op een reis klapt de stappen uit, daar kies je "Deze reis nemen"
+            const rows = d.journey.trips.map((x, i) => `<div style="border-top:1px solid rgba(255,255,255,0.08)">
+                <div style="padding:8px 0;cursor:pointer" onclick="window.huisReisTrip('${key}',${i})">
+                  <span id="huis-reis-vink-${i}" style="float:right;color:#4ade80;font-weight:600">${x.planned === d.journey.chosen ? '✓ Gekozen' : ''}</span>${x.html}</div>
+                <div id="huis-reis-rit-${i}" style="display:none;padding:0 0 10px 0"></div></div>`).join('');
+            el.querySelector('#huis-reis-inhoud').innerHTML = `${d.html}<div style="font-weight:600;margin-bottom:2px">Reizen (tik voor de stappen)</div>${rows}`;
           }
         };
         // Een blok opent het venster bij een tik (niet bij vegen)
@@ -3435,7 +3463,12 @@ commute_card:
           const trips = (s.attributes.upcoming ?? []).filter(t => new Date(t.departure_actual).getTime() >= Date.now() - 60000);
           // De reizen die net voor de gewenste tijd vertrekken (uit de integratie), voor wie eerder weg wil of moet
           const earlier = (s.attributes.earlier ?? []).filter(t => new Date(t.departure_actual).getTime() >= Date.now() - 60000);
-          const next = trips[0];
+          // De gekozen reis (venster van de reis, "Deze reis nemen"): het vertrek volgens de dienstregeling van vandaag, dus ook bij vertraging dezelfde
+          const stamp = x => { const d = new Date(new Date(x.departure_actual).getTime() - (x.delay_min ?? 0) * 60000), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+          const choiceId = `input_text.reis_keuze_${personKey(s)}_${s.dir}`;
+          const choice = String(states[choiceId]?.state ?? '');
+          const chosen = choice.startsWith(todayText) ? [...earlier, ...trips].find(x => stamp(x) === choice) : null;
+          const next = chosen ?? trips[0];
           if (!next) {
             return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, '#94a3b8')}
               <div><div style="font-size:12px;opacity:.65">${ownerName} · ${title} · OV</div><div style="font-size:14px;opacity:.8">Geen reis gevonden</div></div></div>`;
@@ -3446,11 +3479,14 @@ commute_card:
           const departure = new Date(next.departure_actual);
           const minutes = Math.max(0, Math.round((departure - Date.now()) / 60000));
           const wantedTime = targetOf(`input_datetime.${s.dir === 'work' ? 'kantoor_aankomst' : 'kantoor_vertrek'}_${personKey(s)}`);
-          const later = trips.slice(1).filter((t, i, all) => all.findIndex(o => o.departure_actual === t.departure_actual) === i).slice(0, 3).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
-          const tripLine = tr => `<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08)"><b>${clock(new Date(tr.departure_actual))}</b> → ${clock(new Date(tr.arrival))} · ${Math.round(tr.duration_min)} min${tr.transfers ? ` · ${tr.transfers} overstap${tr.transfers === 1 ? '' : 'pen'}` : ''}${tr.delay_min >= 1 ? ` <span style="color:#ffb060">+${Math.round(tr.delay_min)}</span>` : ''}${tr.cancelled ? ' ❌' : ''}<div style="opacity:.8;font-size:13px">${(tr.legs ?? []).filter(l => l.line).map(legLabel).join(' → ')}</div></div>`;
-          const earlierLine = earlier.map(t => `<b>${clock(new Date(t.departure_actual))}</b> → ${clock(new Date(t.arrival))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
-          const modalHtml = `${earlier.length ? `<div style="font-weight:600;margin-bottom:2px">Eerder vertrek</div>${earlier.map(tripLine).join('')}<div style="height:10px"></div>` : ''}${wantedTime == null ? '' : `<div style="font-weight:600;color:#7aa2ff;margin-bottom:6px">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`}<div style="font-weight:600;margin-bottom:2px">Eerstvolgende reizen</div>${trips.slice(0, 8).map(tripLine).join('')}`;
-          const key = register(s, `${ownerName} · ${title} · OV`, modalHtml, next.id ? { id: next.id, routeId: s.attributes.route_id } : null);
+          const later = trips.filter(t => t !== next).filter((t, i, all) => all.findIndex(o => o.departure_actual === t.departure_actual) === i).slice(0, 3).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
+          const tripLine = tr => `<b>${clock(new Date(tr.departure_actual))}</b> → ${clock(new Date(tr.arrival))} · ${Math.round(tr.duration_min)} min${tr.transfers ? ` · ${tr.transfers} overstap${tr.transfers === 1 ? '' : 'pen'}` : ''}${tr.delay_min >= 1 ? ` <span style="color:#ffb060">+${Math.round(tr.delay_min)}</span>` : ''}${tr.cancelled ? ' ❌' : ''}<div style="opacity:.8;font-size:13px">${(tr.legs ?? []).filter(l => l.line).map(legLabel).join(' → ')}</div>`;
+          const earlierLine = earlier.filter(t => t !== next).map(t => `<b>${clock(new Date(t.departure_actual))}</b> → ${clock(new Date(t.arrival))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
+          const modalHtml = wantedTime == null ? '' : `<div style="font-weight:600;color:#7aa2ff;margin-bottom:6px">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`;
+          const key = register(s, `${ownerName} · ${title} · OV`, modalHtml, {
+            routeId: s.attributes.route_id, choiceId, chosen: chosen ? choice : '',
+            trips: [...earlier, ...trips].map(x => ({ id: x.id, planned: stamp(x), html: tripLine(x) }))
+          });
           return `<div ${blockAttrs(key)} style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, color)}
                     <div style="line-height:1.35;min-width:0">
                       <div style="font-size:12px;opacity:.65">${ownerName} · ${title} · OV</div>
@@ -3459,6 +3495,7 @@ commute_card:
                       <div style="font-size:13px;opacity:.85">Vertrek ${clock(departure)} (over ${minutes} min) · aankomst ${clock(new Date(next.arrival))}${next.transfers ? ` · ${next.transfers} overstap${next.transfers === 1 ? '' : 'pen'}` : ''}</div>
                       ${wantedTime == null ? '' : `<div style="font-size:13px;font-weight:600;color:#7aa2ff">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`}
                       ${lines ? `<div style="font-size:12px;opacity:.85">${lines}</div>` : ''}
+                      ${chosen ? `<div style="font-size:12px;color:#7aa2ff">✓ Jouw gekozen reis</div>` : ''}
                       ${earlierLine ? `<div style="font-size:13px;color:#ffd479">Eerder: ${earlierLine}</div>` : ''}
                       ${later ? `<div style="font-size:12px;opacity:.7">Daarna: ${later}</div>` : ''}
                     </div>
