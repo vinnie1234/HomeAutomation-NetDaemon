@@ -1,0 +1,30 @@
+diff --git a/custom_components/ov_9292/sensor.py b/custom_components/ov_9292/sensor.py
+index 29c734c..4972f2e 100644
+--- a/custom_components/ov_9292/sensor.py
++++ b/custom_components/ov_9292/sensor.py
+@@ -32,7 +32,7 @@ def _person_suffix(hass: HomeAssistant, person: str | None) -> str:
+ 
+ 
+ def _journey_attributes(journey: dict) -> dict:
+-    return {key: journey[key] for key in ("legs", "lines", "operators", "modes", "price", "occupancy", "detour")}
++    return {key: journey[key] for key in ("id", "legs", "lines", "operators", "modes", "price", "occupancy", "detour")}
+ 
+ 
+ def _summary_attributes(result: dict) -> dict:
+@@ -43,7 +43,7 @@ def _summary_attributes(result: dict) -> dict:
+         "from": result["from_place"],
+         "to": result["to_place"],
+         "upcoming": [
+-            {key: journey[key] for key in ("departure_actual", "arrival", "duration_min", "delay_min", "transfers", "legs", "lines", "cancelled")}
++            {key: journey[key] for key in ("id", "departure_actual", "arrival", "duration_min", "delay_min", "transfers", "legs", "lines", "cancelled")}
+             for journey in result["upcoming"]
+         ],
+     }
+@@ -164,4 +164,7 @@ class NineTwoNineTwoRouteSensor(CoordinatorEntity[NineTwoNineTwoCoordinator], Se
+         attributes = self.entity_description.attributes_fn(result) if self.entity_description.attributes_fn else {}
+         if self._person:
+             attributes["person"] = self._person
++        if attributes:
++            # With the id of a journey a program can ask for its details (stops, platforms) through the ov_9292/journey websocket command
++            attributes["route_id"] = self._route_id
+         return attributes or None

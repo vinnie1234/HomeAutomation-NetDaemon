@@ -4771,6 +4771,93 @@ workday_button:
       - overflow: hidden
       - text-overflow: ellipsis
 
+# Tegel op een persoonlijke pagina die het werkrooster in een pop-up opent (#werkrooster). variables.person: vincent of carleen.
+schedule_tile:
+  template: glass
+  triggers_update: all
+  variables:
+    person: vincent
+  icon: mdi:calendar-week-outline
+  name: Werkrooster
+  show_label: true
+  tap_action:
+    action: navigate
+    navigation_path: "#werkrooster"
+  label: |
+    [[[
+      const days = [['maandag', 'ma'], ['dinsdag', 'di'], ['woensdag', 'wo'], ['donderdag', 'do'], ['vrijdag', 'vr'], ['zaterdag', 'za'], ['zondag', 'zo']];
+      const of = kind => days.filter(([d]) => states[`input_select.werkdag_${variables.person}_${d}`]?.state === kind).map(([, s]) => s).join(', ');
+      const parts = [];
+      if (of('Kantoor')) parts.push(`Kantoor: ${of('Kantoor')}`);
+      if (of('Thuis')) parts.push(`Thuis: ${of('Thuis')}`);
+      const arrival = String(states[`input_datetime.kantoor_aankomst_${variables.person}`]?.state ?? '').match(/ (\d+:\d+)/);
+      if (arrival && of('Kantoor')) parts.push(`op kantoor om ${arrival[1]}`);
+      return parts.join(' · ') || 'Alle dagen vrij';
+    ]]]
+  custom_fields:
+    arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+  styles:
+    grid:
+      - grid-template-areas: '"i n arrow" "i l arrow"'
+      - grid-template-columns: auto 1fr auto
+      - column-gap: 14px
+    card:
+      - min-height: 76px
+    img_cell:
+      - width: 44px
+      - height: 44px
+      - border-radius: 12px
+      - background: rgba(96, 165, 250, 0.2)
+    icon:
+      - width: 24px
+      - color: '#60a5fa'
+    name:
+      - justify-self: start
+      - font-size: 16px
+      - font-weight: 600
+    label:
+      - justify-self: start
+      - font-size: 12px
+      - opacity: 0.8
+    custom_fields:
+      arrow:
+        - justify-self: end
+
+# Auto of OV voor één dag, onder de dagknop van het werkrooster. Tik wisselt. Alleen te zien op een kantoordag (variables.workday: de werkdag-keuze
+# van dezelfde dag); op andere dagen blijft de plek leeg, zodat de zeven kolommen netjes onder elkaar blijven staan.
+transport_day:
+  template: glass
+  show_icon: true
+  show_name: false
+  show_label: true
+  variables:
+    workday: input_select.werkdag_vincent_maandag
+  tap_action:
+    action: javascript
+    haptic: light
+    javascript: "[[[ hass.callService('input_select', 'select_next', { entity_id: entity.entity_id, cycle: true }); ]]]"
+  hold_action:
+    action: more-info
+  icon: '[[[ return entity?.state === "OV" ? "mdi:train" : "mdi:car"; ]]]'
+  label: '[[[ return entity?.state === "OV" ? "OV" : "Auto"; ]]]'
+  triggers_update: all
+  styles:
+    grid:
+      - grid-template-areas: '"i" "l"'
+      - row-gap: 2px
+    card:
+      - padding: 6px 2px
+      - height: 56px
+      - visibility: '[[[ return states[variables.workday]?.state === "Kantoor" ? "visible" : "hidden"; ]]]'
+      - background: '[[[ return entity?.state === "OV" ? "rgba(250, 204, 21, 0.14)" : "rgba(96, 165, 250, 0.14)"; ]]]'
+    icon:
+      - width: 20px
+      - color: '[[[ return entity?.state === "OV" ? "#facc15" : "#60a5fa"; ]]]'
+    label:
+      - justify-self: center
+      - font-size: 10px
+      - opacity: 0.85
+
 # Pixel moet zijn prednison (oranje, vanaf de herinneringstijd) of is hem vergeten (rood, pulserend, de dag erna).
 # De melding is meteen de knop: tik, bevestig, en er gaat een kwart pil van de voorraad af (NetDaemon PixelMedication).
 pixel_med_alert:

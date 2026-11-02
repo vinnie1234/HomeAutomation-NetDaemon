@@ -112,17 +112,32 @@ sections:
       - type: custom:button-card
         template: homework_tile
 
-  # Werkrooster: per dag (ook het weekend) Vrij, Thuis of Kantoor (tik wisselt), een vrije dag en de tijden (HouseStateManager)
+  # Werkrooster: een tegel die het werkrooster in een pop-up opent (dagen, vervoer, tijden, agenda en het verkeersbericht)
   - type: grid
     cards:
       - type: heading
         heading: Werkrooster
         heading_style: title
         icon: mdi:calendar-week-outline
-      - type: grid
-        columns: 7
-        square: false
+      - type: custom:button-card
+        template: schedule_tile
+        variables:
+          person: vincent
+
+  # Pop-up: het werkrooster van Vincent
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#werkrooster"
+        name: Werkrooster
+        icon: mdi:calendar-week-outline
         cards:
+          # Per dag (ook het weekend) Vrij, Thuis of Kantoor: tik wisselt. Onder een kantoordag kies je met wat je gaat.
+          - type: grid
+            columns: 7
+            square: false
+            cards:
           - type: custom:button-card
             template: workday_button
             entity: input_select.werkdag_vincent_maandag
@@ -165,66 +180,141 @@ sections:
             variables:
               day: zo
               weekday: 0
-      - type: custom:bubble-card
-        card_type: button
-        button_type: switch
-        entity: input_boolean.vrij_vincent
-        name: Vrij (vandaag of tot ik hem uitzet)
-        icon: mdi:beach
-        show_state: true
-      - type: entities
-        state_color: true
-        entities:
-          - type: section
-            label: Opstaan (het huis wordt wakker)
-          - entity: input_datetime.opstaan_kantoor_vincent
-            name: Op een kantoordag
-            icon: mdi:office-building-outline
-          - entity: input_datetime.opstaan_thuiswerk_vincent
-            name: Op een thuiswerkdag
-            icon: mdi:home-account
-          - type: section
-            label: Werkuren (Vincent aan het werk)
-          - entity: input_datetime.werk_start_vincent
-            name: Begin
-            icon: mdi:briefcase-clock-outline
-          - entity: input_datetime.werk_eind_vincent
-            name: Eind
-            icon: mdi:briefcase-check-outline
-          - type: section
-            label: Verkeersbericht (WhatsApp, op kantoordagen)
-          - entity: input_boolean.verkeer_bericht_vincent
-            name: Verkeersbericht sturen
-            icon: mdi:car-clock
-          - entity: input_datetime.verkeer_heen_vincent
-            name: Hoe laat naar kantoor
-            icon: mdi:office-building-outline
-          - entity: input_datetime.verkeer_terug_vincent
-            name: Hoe laat naar huis
-            icon: mdi:home-import-outline
-          - type: section
-            label: Vervoer naar kantoor (per dag)
-          - entity: input_select.vervoer_vincent_maandag
-            name: Maandag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_dinsdag
-            name: Dinsdag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_woensdag
-            name: Woensdag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_donderdag
-            name: Donderdag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_vrijdag
-            name: Vrijdag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_zaterdag
-            name: Zaterdag
-            icon: mdi:car-clock
-          - entity: input_select.vervoer_vincent_zondag
-            name: Zondag
-            icon: mdi:car-clock
+          - type: grid
+            columns: 7
+            square: false
+            cards:
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_maandag
+            variables:
+              workday: input_select.werkdag_vincent_maandag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_dinsdag
+            variables:
+              workday: input_select.werkdag_vincent_dinsdag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_woensdag
+            variables:
+              workday: input_select.werkdag_vincent_woensdag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_donderdag
+            variables:
+              workday: input_select.werkdag_vincent_donderdag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_vrijdag
+            variables:
+              workday: input_select.werkdag_vincent_vrijdag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_zaterdag
+            variables:
+              workday: input_select.werkdag_vincent_zaterdag
+          - type: custom:button-card
+            template: transport_day
+            entity: input_select.vervoer_vincent_zondag
+            variables:
+              workday: input_select.werkdag_vincent_zondag
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: input_boolean.vrij_vincent
+            name: Vrij (vandaag of tot ik hem uitzet)
+            icon: mdi:beach
+            show_state: true
+          - type: entities
+            state_color: true
+            entities:
+              - type: section
+                label: Opstaan (het huis wordt wakker)
+              - entity: input_datetime.opstaan_kantoor_vincent
+                name: Op een kantoordag
+                icon: mdi:office-building-outline
+              - entity: input_datetime.opstaan_thuiswerk_vincent
+                name: Op een thuiswerkdag
+                icon: mdi:home-account
+              - type: section
+                label: Werkuren
+              - entity: input_datetime.werk_start_vincent
+                name: Begin
+                icon: mdi:briefcase-clock-outline
+              - entity: input_datetime.werk_eind_vincent
+                name: Eind
+                icon: mdi:briefcase-check-outline
+          # Wanneer op kantoor: uit de agenda ("C: werk" of "V: werk"), of zelf ingesteld
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: input_boolean.werk_uit_agenda_vincent
+            name: Werk uit de agenda halen
+            icon: mdi:calendar-sync
+            show_state: true
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.werk_uit_agenda_vincent
+                state: "on"
+            card:
+              type: custom:button-card
+              template: glass
+              entity: input_button.sync_agenda_vincent
+              name: Agenda nu synchroniseren
+              label: De tijden komen uit de afspraken; vanavond om 23:50 gebeurt dit ook vanzelf
+              icon: mdi:calendar-sync
+              show_label: true
+              tap_action:
+                action: call-service
+                service: input_button.press
+                target:
+                  entity_id: input_button.sync_agenda_vincent
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.werk_uit_agenda_vincent
+                state: "off"
+            card:
+              type: vertical-stack
+              cards:
+                - type: heading
+                  heading: Hoe laat naar kantoor en weer naar huis
+                  heading_style: subtitle
+                  icon: mdi:clock-outline
+                - type: tile
+                  entity: input_select.reis_ochtend_soort_vincent
+                  name: "'s Ochtends"
+                  features_position: bottom
+                  features:
+                    - type: select-options
+                - type: tile
+                  entity: input_datetime.reis_ochtend_tijd_vincent
+                  name: Hoe laat
+                - type: tile
+                  entity: input_select.reis_avond_soort_vincent
+                  name: "'s Avonds"
+                  features_position: bottom
+                  features:
+                    - type: select-options
+                - type: tile
+                  entity: input_datetime.reis_avond_tijd_vincent
+                  name: Hoe laat
+          - type: entities
+            state_color: true
+            entities:
+              - type: section
+                label: Verkeersbericht (WhatsApp, op kantoordagen)
+              - entity: input_boolean.verkeer_bericht_vincent
+                name: Verkeersbericht sturen
+                icon: mdi:car-clock
+              - entity: input_datetime.verkeer_heen_vincent
+                name: Naar kantoor (zonder vaste tijd)
+                icon: mdi:office-building-outline
+              - entity: input_datetime.verkeer_terug_vincent
+                name: Naar huis (zonder vaste tijd)
+                icon: mdi:home-import-outline
 
   # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
   - type: grid
