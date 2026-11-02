@@ -3177,7 +3177,8 @@ summary:
       - white-space: normal
       - text-align: left
 
-# Verkeer op de woon-werkroutes (ANWB File): de reistijd, files op de route en flitsers, per persoon met een route.
+# Verkeer op de woon-werkroutes: met de auto (ANWB File: reistijd, files op de route en flitsers) en met het openbaar vervoer (9292 OV:
+# de eerstvolgende reis en de reizen daarna), per persoon met een route.
 # - variables.mode: 'auto' (Home) toont per persoon de route die nu telt, 'all' (Weer en verkeer) alle routes.
 # - Een file telt mee als hij op een weg van de route ligt, binnen het gebied tussen start en einde (+ ~3 km) en dezelfde kant op gaat
 #   (de lijn van de file wijst dezelfde kant op als de route). Flitsers hebben geen richting die we kunnen vergelijken: die tonen we
@@ -3210,6 +3211,8 @@ commute_card:
               const name = String(s.attributes.friendly_name ?? s.entity_id);
               const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
               if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
+              if (home >= 0) return home < name.length / 2 ? 'work' : 'home';
+              if (work >= 0) return work < name.length / 2 ? 'home' : 'work';
               return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
             };
             const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
@@ -3225,10 +3228,10 @@ commute_card:
               return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
             };
             const rows = Object.values(states)
-              .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
-              .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) }))
+              .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
+              .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
               .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
-              .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1));
+              .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
 
             return rows.length ? 'block' : 'none';
           ]]]
@@ -3253,6 +3256,8 @@ commute_card:
           const name = String(s.attributes.friendly_name ?? s.entity_id);
           const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
           if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
+          if (home >= 0) return home < name.length / 2 ? 'work' : 'home';
+          if (work >= 0) return work < name.length / 2 ? 'home' : 'work';
           return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
         };
         const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
@@ -3268,14 +3273,56 @@ commute_card:
           return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= 7 && hourNow < middle : hourNow >= middle && hourNow < 22);
         };
         const rows = Object.values(states)
-          .filter(s => /^sensor\.anwb_route_.*_route$/.test(s.entity_id) && s.attributes.person)
-          .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) }))
+          .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
+          .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
           .filter(s => s.dir && (variables.mode === 'all' || wanted(s)))
-          .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1));
+          .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || (a.dir === 'work' ? -1 : 1) || (a.kind === 'car' ? -1 : 1));
 
         const clock = t => t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
         const margin = 0.03;
+        const badgeOf = (s, color) => {
+          const icon = s.dir === 'work' ? 'mdi:office-building-outline' : 'mdi:home-import-outline';
+          const picture = states[s.attributes.person]?.attributes.entity_picture;
+          return `<div style="position:relative;width:52px;height:52px;flex:0 0 52px">
+                    <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${color}33;
+                      ${picture ? `background-image:url('${picture}');background-size:cover;background-position:center;` : ''}box-shadow:0 0 0 2px ${color}">
+                      ${picture ? '' : `<ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>`}
+                    </div>
+                    <div style="position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#1b2130;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px ${color}">
+                      <ha-icon icon="${icon}" style="--mdc-icon-size:14px;color:${color}"></ha-icon>
+                    </div>
+                  </div>`;
+        };
+        // Openbaar vervoer (9292 OV): de eerstvolgende reis met de lijnen, vertraging of een vervallen reis, en de reizen daarna
+        const ovCard = s => {
+          const title = s.dir === 'work' ? 'naar kantoor' : 'naar huis';
+          const ownerName = (states[s.attributes.person]?.attributes.friendly_name ?? '').split(' ')[0];
+          const trips = (s.attributes.upcoming ?? []).filter(t => new Date(t.departure_actual).getTime() >= Date.now() - 60000);
+          const next = trips[0];
+          if (!next) {
+            return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, '#94a3b8')}
+              <div><div style="font-size:12px;opacity:.65">${ownerName} · ${title} · OV</div><div style="font-size:14px;opacity:.8">Geen reis gevonden</div></div></div>`;
+          }
+          const delay = next.delay_min ?? 0;
+          const color = next.cancelled || delay >= 5 ? '#ff6b6b' : delay >= 1 ? '#ffb060' : '#4ade80';
+          const modeIcon = mode => ({ Bus: '🚌', Tram: '🚋', Metro: '🚇', Ferry: '⛴️' })[mode] ?? '🚆';
+          const lines = (next.legs ?? []).filter(l => l.line).map(l => `${modeIcon(l.mode)} ${l.line}`).join(' → ');
+          const departure = new Date(next.departure_actual);
+          const minutes = Math.max(0, Math.round((departure - Date.now()) / 60000));
+          const later = trips.slice(1, 4).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
+          return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, color)}
+                    <div style="line-height:1.35;min-width:0">
+                      <div style="font-size:12px;opacity:.65">${ownerName} · ${title} · OV</div>
+                      <div style="font-size:18px;font-weight:700">${Math.round(next.duration_min)} min
+                        <span style="font-size:13px;font-weight:500;color:${color}">${next.cancelled ? 'vervalt' : delay >= 1 ? `+${Math.round(delay)} min` : 'op tijd'}</span></div>
+                      <div style="font-size:13px;opacity:.85">Vertrek ${clock(departure)} (over ${minutes} min) · aankomst ${clock(new Date(next.arrival))}${next.transfers ? ` · ${next.transfers} overstap${next.transfers === 1 ? '' : 'pen'}` : ''}</div>
+                      ${lines ? `<div style="font-size:12px;opacity:.85">${lines}</div>` : ''}
+                      ${later ? `<div style="font-size:12px;opacity:.7">Daarna: ${later}</div>` : ''}
+                    </div>
+                  </div>`;
+        };
         const card = s => {
+          if (s.kind === 'ov') return ovCard(s);
           const toWork = s.dir === 'work';
           const prefix = s.entity_id.replace(/_route$/, '');
           const title = toWork ? 'Naar kantoor' : 'Naar huis';
@@ -3285,15 +3332,7 @@ commute_card:
           const picture = owner?.attributes.entity_picture;
           const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
           const route = s.attributes;
-          const badge = color => `<div style="position:relative;width:52px;height:52px;flex:0 0 52px">
-                    <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${color}33;
-                      ${picture ? `background-image:url('${picture}');background-size:cover;background-position:center;` : ''}box-shadow:0 0 0 2px ${color}">
-                      ${picture ? '' : `<ha-icon icon="${icon}" style="--mdc-icon-size:26px;color:${color}"></ha-icon>`}
-                    </div>
-                    <div style="position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#1b2130;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px ${color}">
-                      <ha-icon icon="${icon}" style="--mdc-icon-size:14px;color:${color}"></ha-icon>
-                    </div>
-                  </div>`;
+          const badge = color => badgeOf(s, color);
           if (isNaN(duration)) {
             return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badge('#94a3b8')}
               <div><div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}</div><div style="font-size:14px;opacity:.8">Verkeersinformatie niet beschikbaar</div></div></div>`;
@@ -3312,8 +3351,11 @@ commute_card:
             return (p[p.length - 1][0] - p[0][0]) * (d[0] - o[0]) + (p[p.length - 1][1] - p[0][1]) * (d[1] - o[1]) > 0;
           }).sort((a, b) => (b.attributes.delay_min ?? 0) - (a.attributes.delay_min ?? 0));
           const radars = geo.filter(g => g.attributes.category === 'radars' && inArea(g.attributes.latitude, g.attributes.longitude));
-          const color = delay >= 10 ? '#ff6b6b' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
-          const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op je route`
+          // De route is de snelste die de ANWB vindt: heeft hij geen vertraging terwijl de files op zijn wegen die wel hebben, dan rijdt hij eromheen
+          const jamDelay = jams.reduce((n, j) => n + (j.attributes.delay_min ?? 0), 0);
+          const goesAround = jamDelay >= 5 && delay < Math.max(3, jamDelay * 0.25);
+          const color = delay >= 10 ? '#ff6b6b' : goesAround ? '#a3e635' : delay >= 3 || jams.length ? '#ffb060' : '#4ade80';
+          const status = jams.length ? `${jams.length} ${jams.length === 1 ? 'file' : 'files'} op ${goesAround ? 'de wegen van je route, de route rijdt eromheen' : 'je route'}`
             : delay >= 3 ? 'Drukker dan normaal' : 'Geen files op je route';
           const jamLines = jams.slice(0, 3).map(j => {
             const a = j.attributes, since = a.start ? ` · sinds ${clock(new Date(a.start))}` : '';

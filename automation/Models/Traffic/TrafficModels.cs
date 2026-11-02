@@ -62,3 +62,31 @@ public record TrafficIncident(
     DateTimeOffset? Start,
     GeoPoint Position,
     IReadOnlyList<GeoPoint> Path);
+
+/// <summary>One public transport trip of the 9292 OV integration.</summary>
+/// <param name="Departure">When it leaves (actual).</param>
+/// <param name="Arrival">When it arrives.</param>
+/// <param name="DurationMin">Its travel time in minutes.</param>
+/// <param name="DelayMin">Its delay in minutes.</param>
+/// <param name="Transfers">How many times you change.</param>
+/// <param name="Legs">The parts of the trip with a line: the mode (Bus, FastTrain, ...) and the line number.</param>
+/// <param name="Cancelled">Whether a part of the trip is cancelled.</param>
+public record TransitTrip(
+    DateTimeOffset Departure,
+    DateTimeOffset Arrival,
+    double DurationMin,
+    double DelayMin,
+    int Transfers,
+    IReadOnlyList<TransitLeg> Legs,
+    bool Cancelled);
+
+/// <summary>A part of a trip with a line.</summary>
+/// <param name="Mode">The kind of vehicle: Bus, Tram, Metro, SlowTrain, FastTrain, ...</param>
+/// <param name="Line">The line number.</param>
+public record TransitLeg(string Mode, string Line);
+
+/// <summary>The next trips of a public transport route of the 9292 OV integration, the first being the next one.</summary>
+/// <param name="From">Where it starts.</param>
+/// <param name="To">Where it ends.</param>
+/// <param name="Trips">The coming trips, soonest first.</param>
+public record TransitRoute(string? From, string? To, IReadOnlyList<TransitTrip> Trips);

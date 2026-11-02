@@ -126,6 +126,10 @@ public class CommuteMessageTests
     [InlineData("Route van kantoor naar thuis (A12) Carleen", CommuteDirection.ToHome)]
     [InlineData("werk thuis", CommuteDirection.ToHome)]
     [InlineData("THUIS WERK", CommuteDirection.ToWork)]
+    [InlineData("9292 Thuis -> Nijmegen (Carleen)", CommuteDirection.ToWork)]
+    [InlineData("9292 Nijmegen -> Thuis (Carleen)", CommuteDirection.ToHome)]
+    [InlineData("Route naar werk", CommuteDirection.ToWork)]
+    [InlineData("Werk naar Utrecht", CommuteDirection.ToHome)]
     public void DirectionOfName_FollowsTheOrderOfWorkAndHome(string name, CommuteDirection expected)
     {
         CommuteMessage.DirectionOfName(name).Should().Be(expected);
@@ -133,11 +137,63 @@ public class CommuteMessageTests
 
     [Theory]
     [InlineData("ANWB Route Boodschappen")]
-    [InlineData("Route naar werk")]
     [InlineData("")]
     [InlineData(null)]
     public void DirectionOfName_IsNull_WhenTheNameDoesNotTell(string? name)
     {
         CommuteMessage.DirectionOfName(name).Should().BeNull();
     }
+
+    [Fact]
+    public void JamOnTheRoadsOfTheRoute_WithoutDelayOnTheRoute_SaysTheRouteGoesAround()
+    {
+        // 2 November: a 24 minute jam on the A12, while the fastest route (via the N226) had no delay at all
+        var jam = Jam(delay: 24);
+
+        var text = CommuteMessage.Build(CommuteDirection.ToHome, Route(delay: 0), [jam], [], Now);
+
+        text.Should().Contain("maar de route rijdt eromheen").And.Contain("+24 min");
+    }
+
+    [Fact]
+    public void JamOnTheRoute_WithAMatchingDelay_IsAWarning()
+    {
+        var text = CommuteMessage.Build(CommuteDirection.ToWork, Route(delay: 20), [Jam(delay: 24)], [], Now);
+
+        text.Should().Contain("⚠️ Files op je route").And.NotContain("rijdt eromheen");
+    }
+
+    private static TransitTrip Trip(int departMinutes, int duration, double delay = 0, bool cancelled = false, params (string Mode, string Line)[] legs) =>
+        new(Now.AddMinutes(departMinutes), Now.AddMinutes(departMinutes + duration), duration, delay, 2,
+            legs.Select(l => new TransitLeg(l.Mode, l.Line)).ToList(), cancelled);
+
+    [Fact]
+    public void Transit_ShowsTheNextTripWithLinesAndTheOnesAfterIt()
+    {
+        var route = new TransitRoute("Veenendaal", "Nijmegen", [
+            Trip(63, 69, 0, false, ("Bus", "505"), ("FastTrain", "3255"), ("FastTrain", "3157")),
+            Trip(65, 84, 2), Trip(74, 83, 0, true), Trip(86, 76)]);
+
+        var text = CommuteMessage.BuildTransit(CommuteDirection.ToWork, route);
+
+        text.Should().Contain("Naar kantoor met het OV").And.Contain("vertrek 07:53").And.Contain("(69 min, 2 overstappen)")
+            .And.Contain("🚌 505 → 🚆 3255 → 🚆 3157").And.Contain("✅ Op tijd")
+            .And.Contain("Daarna: 07:55 (+2) → 09:19 · 08:04 ❌ → 09:27 · 08:16 → 09:32");
+    }
+
+    [Fact]
+    public void Transit_NextTripDelayedOrCancelled_SaysSo()
+    {
+        BuildTransitText(Trip(10, 60, 4)).Should().Contain("⚠️ 4 min vertraging");
+        BuildTransitText(Trip(10, 60, 0, true)).Should().Contain("❌ Deze reis vervalt");
+    }
+
+    [Fact]
+    public void Transit_WithoutTrips_SaysSo()
+    {
+        CommuteMessage.BuildTransit(CommuteDirection.ToHome, new TransitRoute(null, null, [])).Should().Contain("Naar huis met het OV").And.Contain("Geen reis gevonden");
+    }
+
+    private static string BuildTransitText(TransitTrip trip) =>
+        CommuteMessage.BuildTransit(CommuteDirection.ToWork, new TransitRoute("A", "B", [trip]));
 }

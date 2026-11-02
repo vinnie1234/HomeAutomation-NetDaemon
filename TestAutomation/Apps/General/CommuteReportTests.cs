@@ -16,6 +16,7 @@ public class CommuteReportTests
     private const string CarleenWhatsapp = "222@lid";
 
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
+    private readonly List<Entity> _entities = [];
 
     private void SetState(string entityId, string state, object? attributes = null) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState
@@ -33,7 +34,8 @@ public class CommuteReportTests
         SetState("input_boolean.onvacation", "off");
         SetState("input_boolean.awayvincent", vincentHome ? "off" : "on");
         SetState("zone.home", "0", new { latitude = 52.028, longitude = 5.528 });
-        var entities = new List<Entity>();
+        _entities.Clear();
+        var entities = _entities;
         foreach (var (prefix, from, to) in new (string, double[], double[])[] { ("sensor.anwb_route_huis_werk", [52.028, 5.528], [52.063, 5.088]),
                      ("sensor.anwb_route_werk_huis", [52.063, 5.088], [52.028, 5.528]) })
         {
@@ -146,6 +148,40 @@ public class CommuteReportTests
         var messages = Messages();
         messages.Should().ContainSingle().Which.To.Should().Be(CarleenWhatsapp);
         messages[0].Text.Should().Contain("Naar kantoor").And.Contain("Reistijd: 25 min").And.Contain("Via A27");
+    }
+
+    [Fact]
+    public void ANinesTwoNineTwoRouteOfCarleen_SendsHerTheTrips()
+    {
+        Start("Vrij", configure: () =>
+        {
+            SetState("input_select.werkdag_carleen_donderdag", "Kantoor");
+            SetState("input_boolean.vrij_carleen", "off");
+            SetState("input_boolean.awaycarleen", "off");
+            SetState("sensor.9292_thuis_nijmegen_carleen_lijnen", "505 · 3255", new
+            {
+                friendly_name = "9292 Thuis -> Nijmegen (Carleen) Lijnen",
+                person = "person.carleen",
+                from = "Veenendaal",
+                to = "Nijmegen",
+                upcoming = new[]
+                {
+                    new
+                    {
+                        departure_actual = "2026-10-29T07:10:00+00:00", arrival = "2026-10-29T08:19:00+00:00", duration_min = 69, delay_min = 0, transfers = 2,
+                        legs = new[] { new { mode = "Bus", line = "505", cancelled = false }, new { mode = "FastTrain", line = "3255", cancelled = false } },
+                        cancelled = false
+                    }
+                }
+            });
+            _entities.Add(new Entity(_ctx.HaContext, "sensor.9292_thuis_nijmegen_carleen_lijnen"));
+        });
+
+        AdvanceTo(7, 51);
+
+        var messages = Messages();
+        messages.Should().Contain(m => m.To == CarleenWhatsapp && m.Text.Contains("Naar kantoor met het OV") && m.Text.Contains("vertrek 08:10") && m.Text.Contains("🚌 505"));
+        messages.Where(m => m.To == CarleenWhatsapp).Should().ContainSingle("the car route and the trips of one person go in one message");
     }
 
     [Fact]

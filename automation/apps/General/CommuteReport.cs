@@ -86,7 +86,9 @@ public class CommuteReport : BaseApp
                 if (direction == CommuteDirection.ToHome && commuter.Person.IsHome) return;
             }
 
-            if (FindRoutePrefix(commuter.PersonId, direction) is not { } prefix)
+            var carPrefix = FindRoutePrefix(commuter.PersonId, direction);
+            var transitPrefix = FindTransitPrefix(commuter.PersonId, direction);
+            if (carPrefix == null && transitPrefix == null)
             {
                 // Somebody without a route in this direction gets nothing, just like somebody without a WhatsApp id
                 Logger.LogInformation("{Person} has no {Direction} route, no commute message", commuter.Id, direction);
@@ -98,9 +100,16 @@ public class CommuteReport : BaseApp
                 return;
             }
 
-            var text = ReadRoute(prefix) is { } route
-                ? (test ? "🧪 Test\n" : "") + CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now)
-                : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).";
+            var parts = new List<string>();
+            if (carPrefix != null)
+                parts.Add(ReadRoute(carPrefix) is { } route
+                    ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now)
+                    : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
+            if (transitPrefix != null)
+                parts.Add(ReadTransit(transitPrefix) is { } transit
+                    ? CommuteMessage.BuildTransit(direction, transit)
+                    : "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar).");
+            var text = (test ? "🧪 Test\n" : "") + string.Join("\n\n", parts);
             Services.Whatsapp.SendMessage(clientId: "default", to: commuter.Whatsapp, body: new { text });
             Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);
         }
@@ -133,6 +142,45 @@ public class CommuteReport : BaseApp
             if (routeDirection == direction) return entity.EntityId[..^"_route".Length];
         }
         return null;
+    }
+
+    /// <summary>
+    /// The entity id prefix of the public transport route (9292 OV) of this person in this direction: the sensors named
+    /// <c>sensor.9292_..._lijnen</c> with this person as owner, going the way their name says.
+    /// </summary>
+    private string? FindTransitPrefix(string personId, CommuteDirection direction)
+    {
+        foreach (var entity in HaContext.GetAllEntities().Where(e => e.EntityId.StartsWith("sensor.9292_", StringComparison.Ordinal)
+                                                                   && e.EntityId.EndsWith("_lijnen", StringComparison.Ordinal)))
+        {
+            if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != personId) continue;
+            if (CommuteMessage.DirectionOfName(Text(a, "friendly_name") ?? entity.EntityId) == direction)
+                return entity.EntityId[..^"_lijnen".Length];
+        }
+        return null;
+    }
+
+    /// <summary>The coming trips of a public transport route, or null while its sensor has no value.</summary>
+    private TransitRoute? ReadTransit(string prefix)
+    {
+        var lines = HaContext.GetState($"{prefix}_lijnen");
+        if (lines?.State is null or "unavailable" or "unknown" || lines.AttributesJson is not { ValueKind: JsonValueKind.Object } a) return null;
+
+        var trips = new List<TransitTrip>();
+        if (a.TryGetProperty("upcoming", out var upcoming) && upcoming.ValueKind == JsonValueKind.Array)
+            foreach (var trip in upcoming.EnumerateArray())
+            {
+                if (!DateTimeOffset.TryParse(Text(trip, "departure_actual"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var departure)
+                    || !DateTimeOffset.TryParse(Text(trip, "arrival"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var arrival)) continue;
+                var legs = trip.TryGetProperty("legs", out var l) && l.ValueKind == JsonValueKind.Array
+                    ? l.EnumerateArray().Where(x => Text(x, "line") is { Length: > 0 }).Select(x => new TransitLeg(Text(x, "mode") ?? "", Text(x, "line")!)).ToList()
+                    : [];
+                trips.Add(new TransitTrip(departure, arrival, Number(trip, "duration_min") ?? 0, Number(trip, "delay_min") ?? 0,
+                    (int)(Number(trip, "transfers") ?? 0), legs, trip.TryGetProperty("cancelled", out var c) && c.ValueKind == JsonValueKind.True));
+            }
+        // Trips that have left already are no use; the integration refreshes, but not at the second
+        trips = trips.Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
+        return new TransitRoute(Text(a, "from"), Text(a, "to"), trips);
     }
 
     private static bool Near(GeoPoint a, GeoPoint b) => Math.Abs(a.Lat - b.Lat) < 0.01 && Math.Abs(a.Lon - b.Lon) < 0.01;

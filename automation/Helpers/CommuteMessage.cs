@@ -19,6 +19,8 @@ public static class CommuteMessage
     /// <summary>
     /// Which way a route goes, from its name: when "werk" (or "kantoor") comes before "thuis" (or "huis") it is the way home, when
     /// "thuis" comes first the way to work, whatever else the name says ("Werk => Huis", "Huis -> Werk", "ANWB Route Thuis - Kantoor").
+    /// When the name has only one of them ("9292 Thuis -> Nijmegen", "Nijmegen -> Thuis"), the place named first in the name is where the
+    /// route starts: "thuis" in the first half means the way to work, in the second half the way home, and the other way around for "werk".
     /// Null when the name does not tell.
     /// </summary>
     public static CommuteDirection? DirectionOfName(string? name)
@@ -26,8 +28,10 @@ public static class CommuteMessage
         if (string.IsNullOrWhiteSpace(name)) return null;
         var work = System.Text.RegularExpressions.Regex.Match(name, "werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         var home = System.Text.RegularExpressions.Regex.Match(name, "thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if (!work.Success || !home.Success) return null;
-        return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
+        if (work.Success && home.Success) return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
+        if (home.Success) return home.Index < name.Length / 2 ? CommuteDirection.ToWork : CommuteDirection.ToHome;
+        if (work.Success) return work.Index < name.Length / 2 ? CommuteDirection.ToHome : CommuteDirection.ToWork;
+        return null;
     }
 
     /// <summary>The jams on the route: on one of its roads, inside its area and going the same way.</summary>
@@ -72,7 +76,12 @@ public static class CommuteMessage
         }
         else
         {
-            lines.Add($"⚠️ Files op je route ({jamsOnRoute.Count}):");
+            // The route is the fastest the ANWB found: when it has no delay while the jams on its roads have, it goes around them
+            var jamDelay = jamsOnRoute.Sum(j => j.DelayMin ?? 0);
+            var goesAround = jamDelay >= 5 && route.DelayMin < Math.Max(3, jamDelay * 0.25);
+            lines.Add(goesAround
+                ? $"ℹ️ Files op de wegen van je route ({jamsOnRoute.Count}), maar de route rijdt eromheen:"
+                : $"⚠️ Files op je route ({jamsOnRoute.Count}):");
             lines.AddRange(jamsOnRoute.Take(4).Select(jam => $"• {Describe(jam, now)}"));
         }
 
@@ -91,6 +100,42 @@ public static class CommuteMessage
 
         return string.Join("\n", lines);
     }
+
+
+    /// <summary>The WhatsApp message for a public transport commute: the next trip with its lines, delay and cancellations, and the ones after it.</summary>
+    /// <param name="direction">Whether he goes to the office or home.</param>
+    /// <param name="route">The next trips.</param>
+    public static string BuildTransit(CommuteDirection direction, TransitRoute route)
+    {
+        var lines = new List<string> { direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*" };
+        if (route.Trips.Count == 0)
+        {
+            lines.Add("Geen reis gevonden.");
+            return string.Join("\n", lines);
+        }
+
+        var next = route.Trips[0];
+        lines.Add($"🕐 Eerstvolgende: vertrek {Clock(next.Departure)}, aankomst {Clock(next.Arrival)} ({Minutes(next.DurationMin)}" +
+                  $"{(next.Transfers > 0 ? $", {next.Transfers} overstap{(next.Transfers == 1 ? "" : "pen")}" : ", zonder overstap")})");
+        if (next.Legs.Count > 0) lines.Add($"{string.Join(" → ", next.Legs.Select(l => $"{ModeIcon(l.Mode)} {l.Line}"))}");
+        lines.Add(next.Cancelled ? "❌ Deze reis vervalt (een deel is geschrapt)"
+            : next.DelayMin >= 1 ? $"⚠️ {Minutes(next.DelayMin)} vertraging" : "✅ Op tijd");
+
+        var later = route.Trips.Skip(1).Take(3).ToList();
+        if (later.Count > 0)
+            lines.Add("Daarna: " + string.Join(" · ", later.Select(t =>
+                $"{Clock(t.Departure)}{(t.Cancelled ? " ❌" : t.DelayMin >= 1 ? $" (+{Math.Round(t.DelayMin)})" : "")} → {Clock(t.Arrival)}")));
+        return string.Join("\n", lines);
+    }
+
+    private static string ModeIcon(string mode) => mode switch
+    {
+        "Bus" => "🚌",
+        "Tram" => "🚋",
+        "Metro" => "🚇",
+        "Ferry" => "⛴️",
+        _ => "🚆"
+    };
 
     private static string Describe(TrafficIncident jam, DateTimeOffset now)
     {
