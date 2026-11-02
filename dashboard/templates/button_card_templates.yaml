@@ -3549,42 +3549,10 @@ commute_card:
             onpointerup="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this)" onclick="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this)">
             <ha-icon icon="mdi:share-variant" style="--mdc-icon-size:18px"></ha-icon><span>Stuur door naar ${otherName}</span></span></div>`;
         };
-        // De routes in blokken; bij "Weer en verkeer" per persoon uit- en inklapbaar (of een groep openstaat blijft onthouden, ook als de kaart opnieuw tekent)
-        const chipOf = s => {
-          if (s.kind === 'missing') return '';
-          const direction = s.dir === 'work' ? 'kantoor' : 'huis';
-          let minutes = null, color = '#4ade80';
-          if (s.kind === 'ov') {
-            const next = (s.attributes.upcoming ?? []).find(t => new Date(t.departure_actual).getTime() >= Date.now() - 60000);
-            if (next) { minutes = Math.round(next.duration_min); color = next.cancelled ? '#ff6b6b' : next.delay_min >= 1 ? '#ffb060' : '#4ade80'; }
-          } else {
-            const prefix = s.entity_id.replace(/_route$/, '');
-            const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
-            if (!isNaN(duration)) {
-              minutes = Math.round(duration);
-              const delay = parseFloat(states[`${prefix}_vertraging`]?.state) || 0;
-              color = delay >= 10 ? '#ff6b6b' : delay >= 3 ? '#ffb060' : '#4ade80';
-            }
-          }
-          return `<span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:10px;background:${color}22;color:${color}">${s.kind === 'ov' ? '🚆' : '🚗'} ${direction}${minutes == null ? '' : ` ${minutes} min`}</span>`;
-        };
+        // De routes als blokken naast elkaar (op een smal scherm onder elkaar); een blok opent bij een tik zijn venster
         const blocks = list => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">`
           + list.map(s => `<div style="min-width:0;display:flex"><div style="flex:1;min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.18);${s.kind === 'missing' ? '' : 'cursor:pointer'}">${card(s)}${forwardButton(s)}</div></div>`).join('') + `</div>`;
-        const overview = (() => {
-          if (variables.mode !== 'all') return blocks(rows);
-          window.huisReisSections = window.huisReisSections ?? {};
-          return [...new Set(rows.map(r => r.attributes.person))].map((person, i) => {
-            const mine = rows.filter(r => r.attributes.person === person);
-            const owner = states[person];
-            const picture = owner?.attributes.entity_picture;
-            const open = window.huisReisSections[person] ?? i === 0;
-            return `<details ${open ? 'open' : ''} ontoggle="window.huisReisSections['${person}']=this.open" style="margin-bottom:14px">
-              <summary style="cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 2px;font-weight:600;font-size:15px">
-                <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.12);${picture ? `background-image:url('${picture}');background-size:cover;background-position:center` : ''}"></span>
-                ${(owner?.attributes.friendly_name ?? '').split(' ')[0]} ${mine.map(chipOf).join(' ')}</summary>
-              <div style="margin-top:8px">${blocks(mine)}</div></details>`;
-          }).join('');
-        })();
+        const overview = blocks(rows);
         // Een link uit een WhatsApp-bericht (?reis=carleen-work-ov) opent meteen het venster van die reis, één keer
         if (asked && window.huisReisDetail[asked] && window.huisReisLastOpened !== asked) {
           window.huisReisLastOpened = asked;
