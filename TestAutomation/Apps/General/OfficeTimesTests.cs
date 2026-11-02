@@ -143,4 +143,18 @@ public class OfficeTimesTests
 
         SetTo("input_datetime.kantoor_aankomst_vincent").Should().BeEmpty();
     }
+
+    [Fact]
+    public void TheMargins_AreSettings()
+    {
+        Start(7, 0, configure: () =>
+        {
+            SetState("input_number.reis_marge_voor_vincent", "20");
+            SetState("input_number.reis_marge_na_vincent", "5");
+        });
+
+        // 08:30 start minus 20 minutes, 17:00 end plus 5 minutes
+        SetTo("input_datetime.kantoor_aankomst_vincent").Should().Equal("2026-10-29 08:10:00");
+        SetTo("input_datetime.kantoor_vertrek_vincent").Should().Equal("2026-10-29 17:05:00");
+    }
 }

@@ -16,10 +16,10 @@ namespace Automation.apps.General;
 [NetDaemonApp(Id = nameof(OfficeTimes))]
 public class OfficeTimes : BaseApp
 {
-    /// <summary>They are at the office this much before their start.</summary>
+    /// <summary>They are at the office this much before their start, while <c>reis_marge_voor_{person}</c> has no value.</summary>
     public static readonly TimeSpan ArriveEarlier = TimeSpan.FromMinutes(10);
 
-    /// <summary>They leave the office this much after their end.</summary>
+    /// <summary>They leave the office this much after their end, while <c>reis_marge_na_{person}</c> has no value.</summary>
     public static readonly TimeSpan LeaveLater = TimeSpan.FromMinutes(10);
 
     private static readonly TimeSpan DefaultStart = new(8, 30, 0);
@@ -48,7 +48,7 @@ public class OfficeTimes : BaseApp
             schedule.WorkStart.StateChanges().Subscribe(_ => Update());
             schedule.WorkEnd.StateChanges().Subscribe(_ => Update());
             schedule.DayOff.StateChanges().Subscribe(_ => Update());
-            foreach (var id in new[] { $"input_boolean.werk_uit_agenda_{person}", $"input_datetime.reis_ochtend_tijd_{person}", $"input_select.reis_ochtend_soort_{person}",
+            foreach (var id in new[] { $"input_number.reis_marge_voor_{person}", $"input_number.reis_marge_na_{person}", $"input_boolean.werk_uit_agenda_{person}", $"input_datetime.reis_ochtend_tijd_{person}", $"input_select.reis_ochtend_soort_{person}",
                          $"input_datetime.reis_avond_tijd_{person}", $"input_select.reis_avond_soort_{person}" })
                 new Entity(HaContext, id).StateChanges().Subscribe(_ => Update());
         }
@@ -83,8 +83,8 @@ public class OfficeTimes : BaseApp
             var end = Extensions.SchedulerExtensions.ParseTimeOfDay(entry?.End) ?? Extensions.SchedulerExtensions.ParseTimeOfDay(schedule.WorkEnd.State) ?? DefaultEnd;
 
             // Taken from the calendar: ten minutes before the start and ten minutes after the end. Otherwise the times he or she set.
-            var arriveAtOffice = date + start - ArriveEarlier;
-            var leaveOffice = date + end + LeaveLater;
+            var arriveAtOffice = date + start - Margin(person, "voor", ArriveEarlier);
+            var leaveOffice = date + end + Margin(person, "na", LeaveLater);
             DateTime? leaveHome = null, arriveHome = null;
             if (!fromCalendar)
             {
@@ -113,6 +113,12 @@ public class OfficeTimes : BaseApp
             return;
         }
     }
+
+    /// <summary>The margin the person set (in minutes), or the default.</summary>
+    private TimeSpan Margin(string person, string which, TimeSpan fallback) =>
+        double.TryParse(HaContext.GetState($"input_number.reis_marge_{which}_{person}")?.State, NumberStyles.Float, CultureInfo.InvariantCulture, out var minutes) && minutes >= 0
+            ? TimeSpan.FromMinutes(minutes)
+            : fallback;
 
     private void Set(string entityId, DateTime time)
     {

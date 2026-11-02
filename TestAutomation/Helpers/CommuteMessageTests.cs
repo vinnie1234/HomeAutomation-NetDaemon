@@ -177,7 +177,7 @@ public class CommuteMessageTests
         var text = CommuteMessage.BuildTransit(CommuteDirection.ToWork, route);
 
         text.Should().Contain("Naar kantoor met het OV").And.Contain("vertrek 07:53").And.Contain("(69 min, 2 overstappen)")
-            .And.Contain("🚌 505 → 🚆 3255 → 🚆 3157").And.Contain("✅ Op tijd")
+            .And.Contain("🚌 505 → 🚆 Intercity → 🚆 Intercity").And.Contain("✅ Op tijd")
             .And.Contain("Daarna: 07:55 (+2) → 09:19 · 08:04 ❌ → 09:27 · 08:16 → 09:32");
     }
 

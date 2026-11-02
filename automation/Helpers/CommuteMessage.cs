@@ -129,7 +129,7 @@ public static class CommuteMessage
         var next = route.Trips[0];
         lines.Add($"🕐 Eerstvolgende: vertrek {Clock(next.Departure)}, aankomst {Clock(next.Arrival)} ({Minutes(next.DurationMin)}" +
                   $"{(next.Transfers > 0 ? $", {next.Transfers} overstap{(next.Transfers == 1 ? "" : "pen")}" : ", zonder overstap")})");
-        if (next.Legs.Count > 0) lines.Add($"{string.Join(" → ", next.Legs.Select(l => $"{ModeIcon(l.Mode)} {l.Line}"))}");
+        if (next.Legs.Count > 0) lines.Add($"{string.Join(" → ", next.Legs.Select(l => $"{ModeIcon(l.Mode)} {(l.Mode is "Bus" or "Tram" or "Metro" or "Ferry" ? l.Line : ModeName(l.Mode))}"))}");
         lines.Add(next.Cancelled ? "❌ Deze reis vervalt (een deel is geschrapt)"
             : next.DelayMin >= 1 ? $"⚠️ {Minutes(next.DelayMin)} vertraging" : "✅ Op tijd");
 
@@ -178,7 +178,7 @@ public static class CommuteMessage
                 lines.Add($"🔁 Overstappen op {leg.From?.Name}: {Math.Max(0, (int)Math.Round(wait.TotalMinutes))} min{change}");
             }
 
-            lines.Add($"{ModeIcon(leg.Mode ?? "")} {Clock(departure)}{Delay(leg.From)} *{ModeName(leg.Mode)} {leg.Line}*{(leg.Destination is { Length: > 0 } ? $" richting {leg.Destination}" : "")}");
+            lines.Add($"{ModeIcon(leg.Mode ?? "")} {Clock(departure)}{Delay(leg.From)} *{LegName(leg.Mode, leg.Line)}*{(leg.Destination is { Length: > 0 } ? $" richting {leg.Destination}" : "")}");
             lines.Add($"   vanaf {leg.From?.Name}{Platform(leg.From, leg.Mode)}");
             foreach (var stop in leg.Stops.Where(s => s.Name != leg.From?.Name && s.Name != leg.To?.Name))
                 lines.Add($"   • {Clock(TimeOf(stop))}{Delay(stop)} {stop.Name}");
@@ -214,6 +214,10 @@ public static class CommuteMessage
 
     private static string Platform(JourneyStop? stop, string? mode) =>
         stop?.Platform is { Length: > 0 } platform && mode != "Walking" ? $", {PlatformName(mode)} {platform}" : "";
+
+    /// <summary>"Bus 505" for a bus, tram or metro; for a train the kind only ("Intercity"): its number is of the train set and means nothing to a traveller.</summary>
+    public static string LegName(string? mode, string? line) =>
+        mode is "Bus" or "Tram" or "Metro" or "Ferry" ? $"{ModeName(mode)} {line}".Trim() : ModeName(mode);
 
     private static string ModeName(string? mode) => mode switch
     {

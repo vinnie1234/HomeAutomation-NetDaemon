@@ -379,7 +379,7 @@ public class CommuteReportTests
             .And.Contain("• 08:20 Veenendaal-De Klomp")
             .And.Contain("➜ 08:32 (+2) Ede-Wageningen")
             .And.Contain("🔁 Overstappen op Ede-Wageningen: 8 min")
-            .And.Contain("*Intercity 3255* richting Nijmegen").And.Contain("vanaf Ede-Wageningen, spoor 4")
+            .And.Contain("*Intercity* richting Nijmegen").And.Contain("vanaf Ede-Wageningen, spoor 4")
             .And.Contain("🏁 Aankomst 09:19 Nijmegen")
             .And.Contain("Antwoord *Stuur door* om dit naar Vincent te sturen");
     }

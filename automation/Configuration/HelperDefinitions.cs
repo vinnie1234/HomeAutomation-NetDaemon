@@ -220,6 +220,9 @@ public static class HelperDefinitions
         DateTime($"thuis_aankomst_{person}", $"Thuis aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:home-import-outline"),
         // Wat je zelf instelt: haal je het werk uit de agenda, dan komen de tijden daaruit; zo niet, dan stel je hier in hoe laat je 's ochtends
         // op kantoor wilt zijn (of van huis vertrekt) en hoe laat je 's avonds van kantoor vertrekt (of thuis wilt zijn)
+        // Marge als het werk uit de agenda komt: zo veel minuten eerder op kantoor, en zo veel minuten na het einde van kantoor weg
+        Number($"reis_marge_voor_{person}", $"Reis marge voor {name}", min: 0, max: 120, step: 5, mode: "box", unit: "min", icon: "mdi:timer-sand", start: 10),
+        Number($"reis_marge_na_{person}", $"Reis marge na {name}", min: 0, max: 120, step: 5, mode: "box", unit: "min", icon: "mdi:timer-sand-complete", start: 10),
         Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
         Button($"sync_agenda_{person}", $"Sync agenda {name}", icon: "mdi:calendar-sync"),
         Boolean($"werk_uit_agenda_{person}", $"Werk uit agenda {name}", icon: "mdi:calendar-sync", start: person == "carleen"),
