@@ -164,6 +164,21 @@ public class KitchenMusicOnMotionTests
     }
 
     [Fact]
+    public void Music_DoesNotStart_WhenCarleenSleepsAtHome_EvenIfHerAwayFlagIsStuckOn()
+    {
+        // The morning of 2 November: awaycarleen was on (her phone had flapped) while she was home and asleep
+        using var ctx = ArrangeAllGreen();
+        ctx.WithEntityState(AwayCarleen, "on");
+        ctx.WithEntityState(SleepingCarleen, "on");
+        ctx.WithEntityState("person.carleen", "home");
+        ctx.InitApp<KitchenMusicOnMotion>();
+
+        TriggerMotion(ctx);
+
+        ctx.Spotcast.DidNotReceive().PlaySpotify(Arg.Any<MediaPlayerEntity>(), Arg.Any<string>());
+    }
+
+    [Fact]
     public void Music_Starts_WhenCarleenAwaySleeping()
     {
         // Carleen is away — her sleep state must not block the music

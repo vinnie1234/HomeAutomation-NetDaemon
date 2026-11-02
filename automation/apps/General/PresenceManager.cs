@@ -70,6 +70,9 @@ public class PresenceManager : BaseApp
             .Subscribe(_ => Entities.InputBoolean.Awaycarleen.TurnOn());
     }
 
+    /// <summary>Home, or on the way to the shop: not away.</summary>
+    private static bool IsHomeState(string? state) => state?.ToLower() is "home" or "boodschappen";
+
     /// <summary>
     /// Automatically marks Vincent as away based on his phone distance and direction of travel.
     /// </summary>
@@ -82,6 +85,8 @@ public class PresenceManager : BaseApp
                 && Entities.InputBoolean.Awayvincent.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
             .Subscribe(_ =>
             {
+                // Back home within those minutes (the phone flaps between home and not_home): still home
+                if (IsHomeState(Entities.Person.VincentMaarschalkerweerd.State)) return;
                 Entities.InputBoolean.Awayvincent.TurnOn();
             });
         
@@ -92,6 +97,7 @@ public class PresenceManager : BaseApp
                 && Entities.InputBoolean.Awaycarleen.IsOff(), TimeSpan.FromMinutes(5), Scheduler)
             .Subscribe(_ =>
             {
+                if (IsHomeState(Entities.Person.Carleen.State)) return;
                 Entities.InputBoolean.Awaycarleen.TurnOn();
             });
     }

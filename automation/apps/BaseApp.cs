@@ -53,7 +53,7 @@ public class BaseApp
     /// This is when Vincent is sleeping, OR when Carleen is home and sleeping.
     /// Use this for rooms near the bedroom (hall, bathroom) where Carleen's sleep matters.
     /// </summary>
-    protected bool IsSleepMode => Vincent.IsSleeping || Carleen is { IsHome: true, IsSleeping: true };
+    protected bool IsSleepMode => Vincent.IsSleeping || (Carleen.IsSleeping && (Carleen.IsHome || Carleen.State == "home"));
 
     /// <summary>
     /// True only when Vincent himself is sleeping, regardless of Carleen.

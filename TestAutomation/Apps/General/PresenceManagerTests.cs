@@ -115,5 +115,39 @@ public class PresenceManagerTests
         ctx.VerifyNotCallService("media_player.turn_off");
         ctx.VerifyNotCallService("media_player.media_stop");
     }
-}
 
+    [Fact]
+    public void CarleenPhoneFlaps_BackHomeWithinFiveMinutes_DoesNotMarkHerAway()
+    {
+        // The phone went not_home and home again within a second (what happened on 1 November); five minutes later she was marked away
+        var ctx = Arrange(awayVincent: "off", awayCarleen: "off", away: "off");
+        ctx.ChangeStateFor("person.carleen").FromState("home").ToState("not_home");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.HaContext.GetState("person.carleen").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "person.carleen", State = "home" });
+        ctx.ChangeStateFor("person.carleen").FromState("not_home").ToState("home");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.HaContext.ClearReceivedCalls();
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(6).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyNotCallService("input_boolean.turn_on");
+    }
+
+    [Fact]
+    public void CarleenStaysAway_ForFiveMinutes_MarksHerAway()
+    {
+        var ctx = Arrange(awayVincent: "off", awayCarleen: "off", away: "off");
+        ctx.HaContext.GetState("person.carleen").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "person.carleen", State = "not_home" });
+        ctx.ChangeStateFor("person.carleen").FromState("home").ToState("not_home");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.HaContext.ClearReceivedCalls();
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(6).Ticks);
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyCallService("input_boolean", "turn_on", "awaycarleen");
+    }
+}
