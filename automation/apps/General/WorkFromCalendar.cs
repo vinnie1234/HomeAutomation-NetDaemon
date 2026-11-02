@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Text.RegularExpressions;
 using Automation.Configuration;
-using Automation.Interfaces;
 using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 
@@ -90,7 +89,7 @@ public partial class WorkFromCalendar : BaseApp
     }
 
     /// <summary>The time of day of the start or end of an event, in Dutch time; null for an all-day event (a date without a time).</summary>
-    private static TimeSpan? TimeOf(System.Text.Json.JsonElement item, string name)
+    private static TimeSpan? TimeOf(JsonElement item, string name)
     {
         if (!item.TryGetProperty(name, out var value) || value.GetString() is not { } text || !text.Contains('T')) return null;
         return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
