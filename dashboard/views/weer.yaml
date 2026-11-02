@@ -330,8 +330,28 @@ sections:
           mode: all
         grid_options:
           columns: full
-      - type: custom:anwb-file-map-card
-        radius_km: 20
-        height: 640
+      # De kaart met alle files staat in een pop-up (hash #fileskaart), niet standaard open
+      - type: tile
+        name: Kaart met alle files
+        icon: mdi:map-search-outline
+        icon_tap_action:
+          action: navigate
+          navigation_path: "#fileskaart"
+        tap_action:
+          action: navigate
+          navigation_path: "#fileskaart"
         grid_options:
           columns: full
+
+  # Pop-up: de ANWB-kaart met alle files, werkzaamheden en flitsers
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#fileskaart"
+        name: Files, werkzaamheden en flitsers
+        icon: mdi:map-search-outline
+        cards:
+          - type: custom:anwb-file-map-card
+            radius_km: 20
+            height: 640
