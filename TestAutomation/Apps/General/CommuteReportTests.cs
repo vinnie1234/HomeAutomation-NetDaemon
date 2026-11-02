@@ -198,6 +198,38 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void ATimeToLeaveHome_GetsNoAdvice()
+    {
+        Start("Kantoor", configure: () =>
+        {
+            SetState("input_boolean.werk_uit_agenda_vincent", "off");
+            SetState("input_select.reis_ochtend_soort_vincent", "Van huis vertrekken");
+            SetState("input_datetime.thuis_vertrek_vincent", "2026-10-29 08:00:00");
+        });
+
+        AdvanceTo(7, 51);
+
+        var text = Messages().Should().ContainSingle().Which.Text;
+        text.Should().Contain("🎯 Vertrek om 08:00").And.NotContain("uiterlijk vertrekken");
+    }
+
+    [Fact]
+    public void ATimeToBeHome_GetsTheAdviceWhenToLeaveTheOffice()
+    {
+        Start("Kantoor", vincentHome: false, configure: () =>
+        {
+            SetState("input_boolean.werk_uit_agenda_vincent", "off");
+            SetState("input_select.reis_avond_soort_vincent", "Thuis zijn");
+            SetState("input_datetime.thuis_aankomst_vincent", "2026-10-29 18:00:00");
+        });
+
+        AdvanceTo(17, 16);
+
+        // 31 minutes of driving to be home at 18:00: leave the office by 17:29
+        Messages().Single(m => m.Text.Contains("Naar huis")).Text.Should().Contain("Thuis om 18:00: uiterlijk vertrekken om 17:29");
+    }
+
+    [Fact]
     public void MessageSwitchedOff_SendsNothing()
     {
         Start("Kantoor", configure: () => SetState("input_boolean.verkeer_bericht_vincent", "off"));

@@ -90,3 +90,8 @@ public record TransitLeg(string Mode, string Line);
 /// <param name="To">Where it ends.</param>
 /// <param name="Trips">The coming trips, soonest first.</param>
 public record TransitRoute(string? From, string? To, IReadOnlyList<TransitTrip> Trips);
+
+/// <summary>The time somebody wants to be at the office or home (an arrival), or leaves (a departure).</summary>
+/// <param name="Time">The time.</param>
+/// <param name="IsArrival">True for a time to be somewhere (the advice is when to leave for it), false for a time to leave (no advice needed).</param>
+public record CommuteTarget(DateTimeOffset Time, bool IsArrival);

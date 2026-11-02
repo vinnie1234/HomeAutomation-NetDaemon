@@ -48,6 +48,9 @@ public class OfficeTimes : BaseApp
             schedule.WorkStart.StateChanges().Subscribe(_ => Update());
             schedule.WorkEnd.StateChanges().Subscribe(_ => Update());
             schedule.DayOff.StateChanges().Subscribe(_ => Update());
+            foreach (var id in new[] { $"input_boolean.werk_uit_agenda_{person}", $"input_datetime.reis_ochtend_tijd_{person}", $"input_select.reis_ochtend_soort_{person}",
+                         $"input_datetime.reis_avond_tijd_{person}", $"input_select.reis_avond_soort_{person}" })
+                new Entity(HaContext, id).StateChanges().Subscribe(_ => Update());
         }
     }
 
@@ -68,19 +71,45 @@ public class OfficeTimes : BaseApp
     {
         var now = Scheduler.NowNl();
         var store = _storage.Get<WorkCalendarStore>(WorkFromCalendar.StoreKey);
+        var fromCalendar = HaContext.GetState($"input_boolean.werk_uit_agenda_{person}")?.State == "on";
         for (var offset = 0; offset < 8; offset++)
         {
             var date = now.Date.AddDays(offset);
             if (!schedule.IsOfficeDay(date.DayOfWeek)) continue;
 
-            var entry = store?.Entries.FirstOrDefault(e => e.Person == person && e.Date == date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            // The work hours: of the calendar event of that day, or else the person's own (also the basis when the times are not set yet)
+            var entry = fromCalendar ? store?.Entries.FirstOrDefault(e => e.Person == person && e.Date == date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)) : null;
             var start = Extensions.SchedulerExtensions.ParseTimeOfDay(entry?.Start) ?? Extensions.SchedulerExtensions.ParseTimeOfDay(schedule.WorkStart.State) ?? DefaultStart;
             var end = Extensions.SchedulerExtensions.ParseTimeOfDay(entry?.End) ?? Extensions.SchedulerExtensions.ParseTimeOfDay(schedule.WorkEnd.State) ?? DefaultEnd;
-            var leave = date + end + LeaveLater;
-            if (offset == 0 && now.DateTime >= leave) continue;
 
-            Set($"input_datetime.kantoor_aankomst_{person}", date + start - ArriveEarlier);
-            Set($"input_datetime.kantoor_vertrek_{person}", leave);
+            // Taken from the calendar: ten minutes before the start and ten minutes after the end. Otherwise the times he or she set.
+            var arriveAtOffice = date + start - ArriveEarlier;
+            var leaveOffice = date + end + LeaveLater;
+            DateTime? leaveHome = null, arriveHome = null;
+            if (!fromCalendar)
+            {
+                var morning = Extensions.SchedulerExtensions.ParseTimeOfDay(HaContext.GetState($"input_datetime.reis_ochtend_tijd_{person}")?.State);
+                var evening = Extensions.SchedulerExtensions.ParseTimeOfDay(HaContext.GetState($"input_datetime.reis_avond_tijd_{person}")?.State);
+                if (morning != null)
+                {
+                    if (HaContext.GetState($"input_select.reis_ochtend_soort_{person}")?.State == OfficeTravel.MorningDepart) leaveHome = date + morning;
+                    else arriveAtOffice = date + morning.Value;
+                }
+                if (evening != null)
+                {
+                    if (HaContext.GetState($"input_select.reis_avond_soort_{person}")?.State == OfficeTravel.EveningArrive) arriveHome = date + evening;
+                    else leaveOffice = date + evening.Value;
+                }
+            }
+
+            // Once the evening time has passed, the next office day is the one to show
+            var done = arriveHome ?? leaveOffice;
+            if (offset == 0 && now.DateTime >= done) continue;
+
+            Set($"input_datetime.kantoor_aankomst_{person}", arriveAtOffice);
+            Set($"input_datetime.kantoor_vertrek_{person}", leaveOffice);
+            if (leaveHome != null) Set($"input_datetime.thuis_vertrek_{person}", leaveHome.Value);
+            if (arriveHome != null) Set($"input_datetime.thuis_aankomst_{person}", arriveHome.Value);
             return;
         }
     }

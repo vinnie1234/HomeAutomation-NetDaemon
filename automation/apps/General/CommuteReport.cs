@@ -191,14 +191,22 @@ public class CommuteReport : BaseApp
     }
 
     /// <summary>
-    /// When the person has to be at the office or leaves it today, from <see cref="OfficeTimes"/>; null when that is not today.
+    /// The time the person wants to be somewhere or leaves, for today (from <see cref="OfficeTimes"/>): from the calendar always the time to
+    /// be at the office and the time to leave it; set by hand it can also be the time to leave home and the time to be home.
+    /// Null when that is not for today.
     /// </summary>
-    private DateTimeOffset? TargetTime(Commuter commuter, CommuteDirection direction)
+    private CommuteTarget? TargetTime(Commuter commuter, CommuteDirection direction)
     {
-        var id = $"input_datetime.{(direction == CommuteDirection.ToWork ? "kantoor_aankomst" : "kantoor_vertrek")}_{commuter.Id}";
-        if (!DateTime.TryParse(HaContext.GetState(id)?.State, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
+        var fromCalendar = HaContext.GetState($"input_boolean.werk_uit_agenda_{commuter.Id}")?.State == "on";
+        var kind = HaContext.GetState($"input_select.{(direction == CommuteDirection.ToWork ? "reis_ochtend_soort" : "reis_avond_soort")}_{commuter.Id}")?.State;
+        var departure = !fromCalendar && direction == CommuteDirection.ToWork && kind == OfficeTravel.MorningDepart;
+        var arrivalHome = !fromCalendar && direction == CommuteDirection.ToHome && kind == OfficeTravel.EveningArrive;
+        var entity = direction == CommuteDirection.ToWork ? (departure ? "thuis_vertrek" : "kantoor_aankomst") : (arrivalHome ? "thuis_aankomst" : "kantoor_vertrek");
+        if (!DateTime.TryParse(HaContext.GetState($"input_datetime.{entity}_{commuter.Id}")?.State, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
             || local.Date != Scheduler.NowNl().Date) return null;
-        return new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
+        var time = new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
+        // To work, a time at the office is an arrival and a time to leave home is a departure; back home it is the other way around
+        return new CommuteTarget(time, IsArrival: direction == CommuteDirection.ToWork ? !departure : arrivalHome);
     }
 
     private static bool Near(GeoPoint a, GeoPoint b) => Math.Abs(a.Lat - b.Lat) < 0.01 && Math.Abs(a.Lon - b.Lon) < 0.01;

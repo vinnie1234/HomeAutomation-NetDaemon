@@ -128,4 +128,48 @@ public class WorkFromCalendarTests
 
         _ctx.VerifyNotCallService("input_select.select_option");
     }
+
+    [Fact]
+    public void Carleen_SwitchedOff_IsNotSetFromTheCalendar()
+    {
+        Events(("C: werk", "2026-10-29T14:00:00+01:00", "2026-10-29T22:00:00+01:00"));
+        SetState("input_boolean.werk_uit_agenda_carleen", "off");
+        Start();
+        _ctx.HaContext.ClearReceivedCalls();
+
+        AdvanceTo(new DateTime(2026, 10, 28, 22, 51, 0, DateTimeKind.Utc));
+
+        _ctx.VerifyNotCallService("input_select.select_option");
+    }
+
+    [Fact]
+    public void Vincent_SwitchedOn_GetsHisV_WerkEvents_AndNotCarleensEvents()
+    {
+        Events(("V: werk", "2026-10-29T09:00:00+01:00", "2026-10-29T17:00:00+01:00"));
+        SetState("input_boolean.werk_uit_agenda_vincent", "on");
+        SetState("input_select.werkdag_vincent_donderdag", "Vrij");
+        Start();
+        _ctx.HaContext.ClearReceivedCalls();
+
+        AdvanceTo(new DateTime(2026, 10, 28, 22, 51, 0, DateTimeKind.Utc));
+
+        _ctx.VerifyCallService("input_select", "select_option", "werkdag_vincent_donderdag", times: 1);
+        _ctx.VerifyCallService("input_select", "select_option", "werkdag_carleen_donderdag", times: 0);
+    }
+
+    [Fact]
+    public void TheSyncButton_ReadsTheNextSixDays()
+    {
+        Events(("C: werk", "2026-11-02T14:00:00+01:00", "2026-11-02T22:00:00+01:00"), ("C: werk", "2026-10-29", "2026-10-30"));
+        SetState("input_select.werkdag_carleen_maandag", "Vrij");
+        Start();
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.sync_agenda_carleen").FromState("2026-10-01T10:00:00+00:00").ToState("2026-10-28T22:10:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        _ctx.VerifyCallService("input_select", "select_option", "werkdag_carleen_donderdag", times: 1);
+        _ctx.VerifyCallService("input_select", "select_option", "werkdag_carleen_maandag", times: 1);
+    }
 }

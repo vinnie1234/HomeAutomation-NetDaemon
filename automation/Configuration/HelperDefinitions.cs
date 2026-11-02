@@ -216,6 +216,16 @@ public static class HelperDefinitions
     [
         DateTime($"kantoor_aankomst_{person}", $"Kantoor aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:office-building-marker"),
         DateTime($"kantoor_vertrek_{person}", $"Kantoor vertrek {name}", hasDate: true, hasTime: true, icon: "mdi:office-building-marker-outline"),
+        DateTime($"thuis_vertrek_{person}", $"Thuis vertrek {name}", hasDate: true, hasTime: true, icon: "mdi:home-export-outline"),
+        DateTime($"thuis_aankomst_{person}", $"Thuis aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:home-import-outline"),
+        // Wat je zelf instelt: haal je het werk uit de agenda, dan komen de tijden daaruit; zo niet, dan stel je hier in hoe laat je 's ochtends
+        // op kantoor wilt zijn (of van huis vertrekt) en hoe laat je 's avonds van kantoor vertrekt (of thuis wilt zijn)
+        Button($"sync_agenda_{person}", $"Sync agenda {name}", icon: "mdi:calendar-sync"),
+        Boolean($"werk_uit_agenda_{person}", $"Werk uit agenda {name}", icon: "mdi:calendar-sync", start: person == "carleen"),
+        Select($"reis_ochtend_soort_{person}", $"Reis ochtend soort {name}", [Models.Persons.OfficeTravel.MorningArrive, Models.Persons.OfficeTravel.MorningDepart], icon: "mdi:weather-sunset-up"),
+        Time($"reis_ochtend_tijd_{person}", $"Reis ochtend tijd {name}", "08:20:00"),
+        Select($"reis_avond_soort_{person}", $"Reis avond soort {name}", [Models.Persons.OfficeTravel.EveningLeave, Models.Persons.OfficeTravel.EveningArrive], icon: "mdi:weather-sunset-down"),
+        Time($"reis_avond_tijd_{person}", $"Reis avond tijd {name}", "17:10:00"),
         .. Models.Persons.WorkSchedule.DayNames.Values.Select(day =>
             Select($"vervoer_{person}_{day}", $"Vervoer {name} {day}", [Models.Persons.WorkSchedule.Car, Models.Persons.WorkSchedule.PublicTransport], icon: "mdi:car-clock"))
     ];
