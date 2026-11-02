@@ -3414,7 +3414,17 @@ commute_card:
                     </div>
                   </div>`;
         };
-        return rows.map(card).join('<div style="height:1px;background:rgba(255,255,255,0.08);margin:12px 0"></div>');
+        // "Stuur door": de verwachte tijden gaan per WhatsApp naar de ander (NetDaemon, input_button.reis_doorsturen_{persoon})
+        const forwardButton = s => {
+          const key = personKey(s);
+          const otherName = key === 'vincent' ? 'Carleen' : 'Vincent';
+          return `<div style="margin-top:8px"><span style="display:inline-block;padding:4px 12px;border-radius:12px;background:rgba(255,255,255,0.1);font-size:12px;cursor:pointer"
+            onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()"
+            onpointerup="event.stopPropagation();document.querySelector('home-assistant').hass.callService('input_button','press',{entity_id:'input_button.reis_doorsturen_${key}'});this.textContent='✓ Doorgestuurd'">↪ Stuur door naar ${otherName}</span></div>`;
+        };
+        // Naast elkaar, even breed (bij twee of meer routes); op een smal scherm onder elkaar
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">`
+          + rows.map(s => `<div style="min-width:0">${card(s)}${forwardButton(s)}</div>`).join('') + `</div>`;
       ]]]
 
 # Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.
