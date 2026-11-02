@@ -339,6 +339,11 @@ public class CommuteReportTests
                 {
                     id = "journey-1", departure_actual = "2026-10-29T07:10:00+00:00", arrival = "2026-10-29T08:19:00+00:00", duration_min = 69, delay_min = 0,
                     transfers = 1, legs = Array.Empty<object>(), cancelled = false
+                },
+                new
+                {
+                    id = "journey-2", departure_actual = "2026-10-29T07:40:00+00:00", arrival = "2026-10-29T08:49:00+00:00", duration_min = 69, delay_min = 0,
+                    transfers = 1, legs = Array.Empty<object>(), cancelled = false
                 }
             }
         });
@@ -383,6 +388,22 @@ public class CommuteReportTests
             .And.Contain("🏁 Aankomst 09:19 Nijmegen")
             .And.Contain("Antwoord *Stuur door* om dit naar Vincent te sturen")
             .And.Contain("https://ha.example/dashboard-huis/home?reis=carleen-work-ov");
+    }
+
+    [Fact]
+    public void ByTrain_TheTripThePersonChose_ComesFirst_InTheMessage()
+    {
+        Start("Vrij", configure: () =>
+        {
+            CarleenGoesByTrain();
+            SetState("input_text.reis_keuze_carleen_work", "2026-10-29 08:40");
+        });
+
+        AdvanceTo(7, 51);
+
+        Messages().Should().ContainSingle(m => m.To == CarleenWhatsapp);
+        _connection.Received().SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(
+            Arg.Is<GetJourneyCommand>(c => c.JourneyId == "journey-2"), Arg.Any<CancellationToken>());
     }
 
     [Fact]

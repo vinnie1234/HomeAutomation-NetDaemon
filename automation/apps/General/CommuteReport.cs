@@ -140,7 +140,7 @@ public class CommuteReport : BaseApp
     {
         if (!target.IsArrival) return target.Time;
         var (car, transit) = ChooseRoutes(commuter, direction);
-        if (transit != null && ReadTransit(transit) is { Trips.Count: > 0 } trips) return trips.Trips[0].Departure;
+        if (transit != null && ReadTransit(transit, commuter, direction) is { Trips.Count: > 0 } trips) return trips.Trips[0].Departure;
         if (car != null && ReadRoute(car) is { } route) return target.Time - TimeSpan.FromMinutes(route.DurationMin);
         return target.Time - TimeSpan.FromMinutes(45);
     }
@@ -203,7 +203,7 @@ public class CommuteReport : BaseApp
             var otherName = commuter.Id == "vincent" ? "Carleen" : "Vincent";
             if (transitPrefix != null)
             {
-                var transit = ReadTransit(transitPrefix);
+                var transit = ReadTransit(transitPrefix, commuter, direction);
                 // With the id of the first trip the integration tells every step; without it (or when asking fails) the short version
                 var journey = transit is { Trips.Count: > 0 } ? await GetJourneyAsync(transit) : null;
                 parts.Add(transit == null ? "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar)."
@@ -302,28 +302,51 @@ public class CommuteReport : BaseApp
         _storage.Save(WhatsAppAssistant.HistoryStorageKey, all);
     }
 
-    /// <summary>The coming trips of a public transport route, or null while its sensor has no value.</summary>
-    private TransitRoute? ReadTransit(string prefix)
+    /// <summary>
+    /// The coming trips of a public transport route, or null while its sensor has no value. The trip the person chose in the dashboard
+    /// (<c>input_text.reis_keuze_{person}_{work|home}</c>, the departure by the timetable of today) comes first, whether it is one of the
+    /// earlier trips or a later one.
+    /// </summary>
+    private TransitRoute? ReadTransit(string prefix, Commuter commuter, CommuteDirection direction)
     {
         var lines = HaContext.GetState($"{prefix}_lijnen");
         if (lines?.State is null or "unavailable" or "unknown" || lines.AttributesJson is not { ValueKind: JsonValueKind.Object } a) return null;
 
-        var trips = new List<TransitTrip>();
-        if (a.TryGetProperty("upcoming", out var upcoming) && upcoming.ValueKind == JsonValueKind.Array)
-            foreach (var trip in upcoming.EnumerateArray())
-            {
-                if (!DateTimeOffset.TryParse(Text(trip, "departure_actual"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var departure)
-                    || !DateTimeOffset.TryParse(Text(trip, "arrival"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var arrival)) continue;
-                var legs = trip.TryGetProperty("legs", out var l) && l.ValueKind == JsonValueKind.Array
-                    ? l.EnumerateArray().Where(x => Text(x, "line") is { Length: > 0 }).Select(x => new TransitLeg(Text(x, "mode") ?? "", Text(x, "line")!)).ToList()
-                    : [];
-                trips.Add(new TransitTrip(departure, arrival, Number(trip, "duration_min") ?? 0, Number(trip, "delay_min") ?? 0,
-                    (int)(Number(trip, "transfers") ?? 0), legs, trip.TryGetProperty("cancelled", out var c) && c.ValueKind == JsonValueKind.True, Text(trip, "id")));
-            }
         // Trips that have left already are no use; the integration refreshes, but not at the second
-        trips = trips.Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
+        List<TransitTrip> Read(string name) => TransitTrips(a, name).Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
+        var trips = Read("upcoming");
+        var chosen = ChosenDeparture(commuter, direction) is { } stamp
+            ? Read("earlier").Concat(trips).FirstOrDefault(t => PlannedStamp(t) == stamp)
+            : null;
+        if (chosen != null) trips = trips.Where(t => t != chosen).Prepend(chosen).ToList();
         return new TransitRoute(Text(a, "from"), Text(a, "to"), trips, Text(a, "route_id"));
     }
+
+    private static IEnumerable<TransitTrip> TransitTrips(JsonElement attributes, string name)
+    {
+        if (!attributes.TryGetProperty(name, out var list) || list.ValueKind != JsonValueKind.Array) yield break;
+        foreach (var trip in list.EnumerateArray())
+        {
+            if (!DateTimeOffset.TryParse(Text(trip, "departure_actual"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var departure)
+                || !DateTimeOffset.TryParse(Text(trip, "arrival"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var arrival)) continue;
+            var legs = trip.TryGetProperty("legs", out var l) && l.ValueKind == JsonValueKind.Array
+                ? l.EnumerateArray().Where(x => Text(x, "line") is { Length: > 0 }).Select(x => new TransitLeg(Text(x, "mode") ?? "", Text(x, "line")!)).ToList()
+                : [];
+            yield return new TransitTrip(departure, arrival, Number(trip, "duration_min") ?? 0, Number(trip, "delay_min") ?? 0,
+                (int)(Number(trip, "transfers") ?? 0), legs, trip.TryGetProperty("cancelled", out var c) && c.ValueKind == JsonValueKind.True, Text(trip, "id"));
+        }
+    }
+
+    /// <summary>The departure by the timetable ("yyyy-MM-dd HH:mm", Dutch time) of the trip chosen for today, or null.</summary>
+    private string? ChosenDeparture(Commuter commuter, CommuteDirection direction)
+    {
+        var value = HaContext.GetState($"input_text.reis_keuze_{commuter.Id}_{(direction == CommuteDirection.ToWork ? "work" : "home")}")?.State;
+        return value is { Length: > 0 } && value.StartsWith(Scheduler.NowNl().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), StringComparison.Ordinal) ? value : null;
+    }
+
+    private static string PlannedStamp(TransitTrip trip) =>
+        TimeZoneInfo.ConvertTime(trip.Departure - TimeSpan.FromMinutes(trip.DelayMin), Extensions.SchedulerExtensions.DutchTimeZone)
+            .ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
 
     /// <summary>
     /// The time the person wants to be somewhere or leaves, for today (from <see cref="OfficeTimes"/>): from the calendar always the time to
