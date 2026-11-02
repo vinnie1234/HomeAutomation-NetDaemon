@@ -3395,7 +3395,8 @@ commute_card:
         };
         window.huisReisOpen = async key => {
           const d = window.huisReisDetail?.[key];
-          if (!d) return;
+          if (!d || Date.now() - (window.huisReisOpenedAt ?? 0) < 600) return;
+          window.huisReisOpenedAt = Date.now();
           document.getElementById('huis-reis')?.remove();
           const el = document.createElement('div');
           el.id = 'huis-reis';
@@ -3418,7 +3419,15 @@ commute_card:
           }
         };
         // Een blok opent het venster bij een tik (niet bij vegen)
-        const blockAttrs = key => `onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisReisOpen('${key}')"`;
+        // (pointerup voor een scherm met aanraking, click voor de muis: één van de twee komt altijd aan, een tweede binnen 0,6 s telt niet)
+        const blockAttrs = key => `onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisReisOpen('${key}')" onclick="window.huisReisOpen('${key}')"`;
+        window.huisReisForward = (key, name, el) => {
+          if (Date.now() - (window.huisReisForwardedAt ?? 0) < 600) return;
+          window.huisReisForwardedAt = Date.now();
+          document.querySelector('home-assistant').hass.callService('input_button', 'press', { entity_id: `input_button.reis_doorsturen_${key}` });
+          el.querySelector('span').textContent = `Doorgestuurd naar ${name}`;
+          el.querySelector('ha-icon').setAttribute('icon', 'mdi:check-circle');
+        };
         // Openbaar vervoer (9292 OV): de eerstvolgende reis met de lijnen, vertraging of een vervallen reis, en de reizen daarna
         const ovCard = s => {
           const title = s.dir === 'work' ? 'naar kantoor' : 'naar huis';
@@ -3435,7 +3444,7 @@ commute_card:
           const departure = new Date(next.departure_actual);
           const minutes = Math.max(0, Math.round((departure - Date.now()) / 60000));
           const wantedTime = targetOf(`input_datetime.${s.dir === 'work' ? 'kantoor_aankomst' : 'kantoor_vertrek'}_${personKey(s)}`);
-          const later = trips.slice(1, 4).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
+          const later = trips.slice(1).filter((t, i, all) => all.findIndex(o => o.departure_actual === t.departure_actual) === i).slice(0, 3).map(t => `${clock(new Date(t.departure_actual))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
           const tripLine = tr => `<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08)"><b>${clock(new Date(tr.departure_actual))}</b> → ${clock(new Date(tr.arrival))} · ${Math.round(tr.duration_min)} min${tr.transfers ? ` · ${tr.transfers} overstap${tr.transfers === 1 ? '' : 'pen'}` : ''}${tr.delay_min >= 1 ? ` <span style="color:#ffb060">+${Math.round(tr.delay_min)}</span>` : ''}${tr.cancelled ? ' ❌' : ''}<div style="opacity:.8;font-size:13px">${(tr.legs ?? []).filter(l => l.line).map(legLabel).join(' → ')}</div></div>`;
           const modalHtml = `${wantedTime == null ? '' : `<div style="font-weight:600;color:#7aa2ff;margin-bottom:6px">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`}<div style="font-weight:600;margin-bottom:2px">Eerstvolgende reizen</div>${trips.slice(0, 8).map(tripLine).join('')}`;
           const key = register(s, `${ownerName} · ${title} · OV`, modalHtml, next.id ? { id: next.id, routeId: s.attributes.route_id } : null);
@@ -3536,8 +3545,8 @@ commute_card:
           return `<div style="display:flex;justify-content:flex-end;margin-top:10px"><span style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 12px;border-radius:14px;cursor:pointer;
               font-size:13px;font-weight:600;color:#dbe7ff;background:linear-gradient(135deg, rgba(122,162,255,0.30), rgba(167,139,250,0.22));
               border:1px solid rgba(147,178,255,0.45);box-shadow:0 2px 10px rgba(80,110,200,0.25)"
-            onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()"
-            onpointerup="event.stopPropagation();document.querySelector('home-assistant').hass.callService('input_button','press',{entity_id:'input_button.reis_doorsturen_${key}'});this.querySelector('span').textContent='Doorgestuurd naar ${otherName}';this.querySelector('ha-icon').setAttribute('icon','mdi:check-circle')">
+            onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()"
+            onpointerup="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this)" onclick="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this)">
             <ha-icon icon="mdi:share-variant" style="--mdc-icon-size:18px"></ha-icon><span>Stuur door naar ${otherName}</span></span></div>`;
         };
         // De routes in blokken; bij "Weer en verkeer" per persoon uit- en inklapbaar (of een groep openstaat blijft onthouden, ook als de kaart opnieuw tekent)
