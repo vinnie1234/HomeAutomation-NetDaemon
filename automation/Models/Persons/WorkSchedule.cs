@@ -31,6 +31,14 @@ public class WorkSchedule
     public const string Home = "Thuis";
     public const string Office = "Kantoor";
 
+    /// <summary>The ways to get to the office, as options of <c>input_select.vervoer_{person}_{dag}</c>.</summary>
+    public const string Car = "Auto";
+    public const string PublicTransport = "OV";
+
+    /// <summary>How the person goes to the office on a day of the week; the car while nothing is set.</summary>
+    public string Transport(DayOfWeek day) =>
+        new InputSelectEntity(_haContext, $"input_select.vervoer_{_person}_{DayNames[day]}").State == PublicTransport ? PublicTransport : Car;
+
     /// <summary>The wake-up time on an office day while <see cref="WakeUpOffice"/> has no value.</summary>
     public static readonly TimeSpan DefaultWakeUpOffice = new(7, 15, 0);
 

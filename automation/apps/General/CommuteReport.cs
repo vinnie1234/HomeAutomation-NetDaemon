@@ -88,6 +88,13 @@ public class CommuteReport : BaseApp
 
             var carPrefix = FindRoutePrefix(commuter.PersonId, direction);
             var transitPrefix = FindTransitPrefix(commuter.PersonId, direction);
+            // The way of the day (car or public transport, set per weekday) decides which route it is; the other one only when that route does not exist
+            if (commuter.Schedule.Transport(Scheduler.NowNl().DayOfWeek) == WorkSchedule.PublicTransport)
+            {
+                if (transitPrefix != null) carPrefix = null;
+            }
+            else if (carPrefix != null) transitPrefix = null;
+            var target = TargetTime(commuter, direction);
             if (carPrefix == null && transitPrefix == null)
             {
                 // Somebody without a route in this direction gets nothing, just like somebody without a WhatsApp id
@@ -103,11 +110,11 @@ public class CommuteReport : BaseApp
             var parts = new List<string>();
             if (carPrefix != null)
                 parts.Add(ReadRoute(carPrefix) is { } route
-                    ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now)
+                    ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target)
                     : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
             if (transitPrefix != null)
                 parts.Add(ReadTransit(transitPrefix) is { } transit
-                    ? CommuteMessage.BuildTransit(direction, transit)
+                    ? CommuteMessage.BuildTransit(direction, transit, target)
                     : "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar).");
             var text = (test ? "🧪 Test\n" : "") + string.Join("\n\n", parts);
             Services.Whatsapp.SendMessage(clientId: "default", to: commuter.Whatsapp, body: new { text });
@@ -181,6 +188,17 @@ public class CommuteReport : BaseApp
         // Trips that have left already are no use; the integration refreshes, but not at the second
         trips = trips.Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
         return new TransitRoute(Text(a, "from"), Text(a, "to"), trips);
+    }
+
+    /// <summary>
+    /// When the person has to be at the office or leaves it today, from <see cref="OfficeTimes"/>; null when that is not today.
+    /// </summary>
+    private DateTimeOffset? TargetTime(Commuter commuter, CommuteDirection direction)
+    {
+        var id = $"input_datetime.{(direction == CommuteDirection.ToWork ? "kantoor_aankomst" : "kantoor_vertrek")}_{commuter.Id}";
+        if (!DateTime.TryParse(HaContext.GetState(id)?.State, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
+            || local.Date != Scheduler.NowNl().Date) return null;
+        return new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
     }
 
     private static bool Near(GeoPoint a, GeoPoint b) => Math.Abs(a.Lat - b.Lat) < 0.01 && Math.Abs(a.Lon - b.Lon) < 0.01;

@@ -158,6 +158,7 @@ public class CommuteReportTests
             SetState("input_select.werkdag_carleen_donderdag", "Kantoor");
             SetState("input_boolean.vrij_carleen", "off");
             SetState("input_boolean.awaycarleen", "off");
+            SetState("input_select.vervoer_carleen_donderdag", "OV");
             SetState("sensor.9292_thuis_nijmegen_carleen_lijnen", "505 · 3255", new
             {
                 friendly_name = "9292 Thuis -> Nijmegen (Carleen) Lijnen",
@@ -181,7 +182,19 @@ public class CommuteReportTests
 
         var messages = Messages();
         messages.Should().Contain(m => m.To == CarleenWhatsapp && m.Text.Contains("Naar kantoor met het OV") && m.Text.Contains("vertrek 08:10") && m.Text.Contains("🚌 505"));
-        messages.Where(m => m.To == CarleenWhatsapp).Should().ContainSingle("the car route and the trips of one person go in one message");
+        messages.Where(m => m.To == CarleenWhatsapp).Should().ContainSingle("only the way of the day (OV) is sent, not the car route as well");
+        messages.Single(m => m.To == CarleenWhatsapp).Text.Should().NotContain("Reistijd");
+    }
+
+    [Fact]
+    public void TheCarIsTheDefault_AndTheMessageHasTheOfficeTime()
+    {
+        Start("Kantoor", configure: () => SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00"));
+
+        AdvanceTo(7, 51);
+
+        // 31 minutes of driving to be there at 08:20: leave by 07:49
+        Messages().Should().ContainSingle().Which.Text.Should().Contain("Op kantoor om 08:20: uiterlijk vertrekken om 07:49");
     }
 
     [Fact]

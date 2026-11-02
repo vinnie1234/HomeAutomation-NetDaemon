@@ -8,7 +8,7 @@ $solutionPath = "C:\Project\me\HomeAutomation-NetDaemon\automation"
 $solutionFilename = "Automation.csproj"
 
 # ND folder served up by a samba addon in HA
-$buildPath = "\\192.168.50.189\config\netdaemon6"
+$buildPath = "C:\Project\me\HomeAutomation-NetDaemon\RELEASE"
 
 # Local folder the project is built to first, so a failed build never leaves a half deployed share behind
 $localOutputPath = Join-Path $solutionPath "bin\deploy"

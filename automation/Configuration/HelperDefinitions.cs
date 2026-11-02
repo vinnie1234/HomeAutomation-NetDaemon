@@ -59,6 +59,10 @@ public static class HelperDefinitions
         Time("verkeer_heen_carleen", "Verkeer heen Carleen", "07:50:00"),
         Time("verkeer_terug_carleen", "Verkeer terug Carleen", "17:15:00"),
 
+        // Kantoortijden en vervoer per persoon (OfficeTimes, CommuteReport)
+        .. OfficeHelpers("vincent", "Vincent"),
+        .. OfficeHelpers("carleen", "Carleen"),
+
         // input_boolean
         Boolean("away", "Away", icon: "mdi:shield-lock"),
         Boolean("awaycarleen", "AwayCarleen", icon: "mdi:shield-lock"),
@@ -201,6 +205,19 @@ public static class HelperDefinitions
         Counter("petsnowylitterboxpixelinit", "PetSnowyLitterBoxPixelInIt", initial: 0, step: 1, minimum: 0, restore: true),
         Counter("petsnowylittleboxcleaning", "PetSnowyLittleBoxCleaning", initial: 0, step: 1, restore: true),
         Counter("pixel_gekotst", "Pixel Gekotst", initial: 0, step: 1, minimum: 0, maximum: 9999999999999, restore: true, icon: "mdi:cat")
+    ];
+
+    /// <summary>
+    /// What <see cref="apps.General.OfficeTimes"/> keeps up to date for a person: the time to be at the office (ten minutes before the
+    /// start) and the time to leave the office (ten minutes after the end), for the next office day. A 9292 route can use them as
+    /// its arrival or departure time. Besides these, a choice of car or public transport for every day of the week.
+    /// </summary>
+    private static IEnumerable<HelperDefinition> OfficeHelpers(string person, string name) =>
+    [
+        DateTime($"kantoor_aankomst_{person}", $"Kantoor aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:office-building-marker"),
+        DateTime($"kantoor_vertrek_{person}", $"Kantoor vertrek {name}", hasDate: true, hasTime: true, icon: "mdi:office-building-marker-outline"),
+        .. Models.Persons.WorkSchedule.DayNames.Values.Select(day =>
+            Select($"vervoer_{person}_{day}", $"Vervoer {name} {day}", [Models.Persons.WorkSchedule.Car, Models.Persons.WorkSchedule.PublicTransport], icon: "mdi:car-clock"))
     ];
 
     private static HelperDefinition Boolean(string id, string name, string? icon = null, string? copyFrom = null, bool? start = null) =>

@@ -51,8 +51,9 @@ public static class CommuteMessage
     /// <param name="jams">All jams, any road.</param>
     /// <param name="radars">All speed cameras, any road.</param>
     /// <param name="now">The current time.</param>
+    /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
     public static string Build(CommuteDirection direction, RouteSnapshot route, IEnumerable<TrafficIncident> jams,
-        IEnumerable<TrafficIncident> radars, DateTimeOffset now)
+        IEnumerable<TrafficIncident> radars, DateTimeOffset now, DateTimeOffset? target = null)
     {
         var lines = new List<string>
         {
@@ -64,6 +65,10 @@ public static class CommuteMessage
             ? $" (normaal {Minutes(route.NormalMin)}, +{Minutes(route.DelayMin)} door het verkeer)"
             : " (geen vertraging)";
         lines.Add(travel);
+        if (target is { } wanted)
+            lines.Add(direction == CommuteDirection.ToWork
+                ? $"🎯 Op kantoor om {Clock(wanted)}: uiterlijk vertrekken om {Clock(wanted - TimeSpan.FromMinutes(route.DurationMin))}"
+                : $"🎯 Weg van kantoor om {Clock(wanted)}");
         if (route.Arrival is { } arrival) lines.Add($"🕐 Aankomst rond {Clock(arrival)} als je nu vertrekt");
         if (route.Via.Count > 0) lines.Add($"🛣️ Via {string.Join(" · ", route.Via)}");
 
@@ -105,9 +110,12 @@ public static class CommuteMessage
     /// <summary>The WhatsApp message for a public transport commute: the next trip with its lines, delay and cancellations, and the ones after it.</summary>
     /// <param name="direction">Whether he goes to the office or home.</param>
     /// <param name="route">The next trips.</param>
-    public static string BuildTransit(CommuteDirection direction, TransitRoute route)
+    /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
+    public static string BuildTransit(CommuteDirection direction, TransitRoute route, DateTimeOffset? target = null)
     {
         var lines = new List<string> { direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*" };
+        if (target is { } wanted)
+            lines.Add(direction == CommuteDirection.ToWork ? $"🎯 Op kantoor om {Clock(wanted)}" : $"🎯 Weg van kantoor om {Clock(wanted)}");
         if (route.Trips.Count == 0)
         {
             lines.Add("Geen reis gevonden.");
