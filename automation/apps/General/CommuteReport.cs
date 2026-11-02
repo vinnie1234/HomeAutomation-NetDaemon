@@ -46,6 +46,7 @@ public class CommuteReport : BaseApp
     private readonly Commuter[] _commuters;
     private readonly IDataRepository _storage;
     private readonly IHomeAssistantRunner _runner;
+    private readonly AppConfig _config;
 
     /// <summary>The messages already sent (or tried) for a person, direction and date, so a message comes once per trip.</summary>
     private readonly HashSet<string> _sent = [];
@@ -68,6 +69,7 @@ public class CommuteReport : BaseApp
     {
         _storage = storage;
         _runner = runner;
+        _config = config.Value;
         _commuters =
         [
             new("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
@@ -197,6 +199,7 @@ public class CommuteReport : BaseApp
                 parts.Add(ReadRoute(carPrefix) is { } route
                     ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target)
                     : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
+            if (carPrefix != null) parts[^1] += DashboardLink(commuter, direction, "car");
             var otherName = commuter.Id == "vincent" ? "Carleen" : "Vincent";
             if (transitPrefix != null)
             {
@@ -206,6 +209,7 @@ public class CommuteReport : BaseApp
                 parts.Add(transit == null ? "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar)."
                     : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward ? null : otherName)
                     : CommuteMessage.BuildTransit(direction, transit, target) + (forward ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
+                parts[^1] += DashboardLink(commuter, direction, "ov");
             }
             var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
             var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
@@ -219,6 +223,15 @@ public class CommuteReport : BaseApp
             Logger.LogError(ex, "Could not send the {Direction} commute message to {Person}", direction, commuter.Id);
         }
     }
+
+    /// <summary>
+    /// A link that opens the dashboard with the details of this trip (the card reads <c>reis=person-direction-kind</c> and opens its window).
+    /// Nothing when the address of Home Assistant is not known.
+    /// </summary>
+    private string DashboardLink(Commuter commuter, CommuteDirection direction, string kind) =>
+        string.IsNullOrEmpty(_config.BaseUrlHomeAssistant)
+            ? ""
+            : $"\n🔗 Alle details: {_config.BaseUrlHomeAssistant.TrimEnd('/')}/dashboard-huis/home?reis={commuter.Id}-{(direction == CommuteDirection.ToWork ? "work" : "home")}-{kind}";
 
     /// <summary>
     /// The entity id prefix of the route of this person in this direction. The ANWB File integration gives every route an owner

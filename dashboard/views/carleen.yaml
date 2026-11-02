@@ -193,6 +193,20 @@ sections:
             conditions:
               - condition: state
                 entity: input_boolean.werk_uit_agenda_carleen
+                state: "on"
+            card:
+              type: entities
+              entities:
+                - entity: input_number.reis_marge_voor_carleen
+                  name: Minuten eerder op kantoor dan de afspraak begint
+                  icon: mdi:timer-sand
+                - entity: input_number.reis_marge_na_carleen
+                  name: Minuten na het einde van de afspraak weg
+                  icon: mdi:timer-sand-complete
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.werk_uit_agenda_carleen
                 state: "off"
             card:
               type: vertical-stack

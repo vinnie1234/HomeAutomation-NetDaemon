@@ -65,7 +65,7 @@ public class CommuteReportTests
         _ctx.HaContext.GetAllEntities().Returns(entities);
         _ctx.SetCurrentTime(new DateTime(2026, 10, 28, 23, 0, 0, DateTimeKind.Utc));
         _runner.CurrentConnection.Returns(_connection);
-        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { Whatsapp = new WhatsAppConfig { Vincent = whatsapp, Carleen = CarleenWhatsapp } }), _storage, _runner);
+        _ctx.InitApp<CommuteReport>(Options.Create(new AppConfig { BaseUrlHomeAssistant = "https://ha.example", Whatsapp = new WhatsAppConfig { Vincent = whatsapp, Carleen = CarleenWhatsapp } }), _storage, _runner);
     }
 
     private List<(string To, string Text)> Messages() =>
@@ -381,7 +381,8 @@ public class CommuteReportTests
             .And.Contain("🔁 Overstappen op Ede-Wageningen: 8 min")
             .And.Contain("*Intercity* richting Nijmegen").And.Contain("vanaf Ede-Wageningen, spoor 4")
             .And.Contain("🏁 Aankomst 09:19 Nijmegen")
-            .And.Contain("Antwoord *Stuur door* om dit naar Vincent te sturen");
+            .And.Contain("Antwoord *Stuur door* om dit naar Vincent te sturen")
+            .And.Contain("https://ha.example/dashboard-huis/home?reis=carleen-work-ov");
     }
 
     [Fact]
