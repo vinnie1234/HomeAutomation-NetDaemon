@@ -3244,10 +3244,11 @@ commute_card:
             const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
             // Een afspraak ("C: Tandarts") begint binnen vier uur (of net begonnen): dan komen de overige routes van de persoon in beeld als hij thuis is
             const appointmentSoon = key => {
-              const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
-              if (!m) return false;
-              const hours = (new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - nowDate) / 3600000;
-              return hours >= -0.25 && hours <= 4;
+              // "begin|eind|titel": zes uur van tevoren tot de afspraak voorbij is, of tot de persoon op het station van Nijmegen aankwam
+              const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
+              if (!m || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
+              const start = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]), end = new Date(+m[6], +m[7] - 1, +m[8], +m[9], +m[10]);
+              return (start - nowDate) / 3600000 <= 6 && nowDate < end;
             };
             // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
             const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
@@ -3256,7 +3257,7 @@ commute_card:
               .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
               .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) ?? 'other', kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
               .filter(s => variables.mode === 'all' || isAsked(s)
-                || (s.dir === 'other' ? appointmentSoon(personKey(s)) && states[`input_boolean.away${personKey(s)}`]?.state !== 'on' : wanted(s)))
+                || (s.dir === 'other' ? appointmentSoon(personKey(s)) : wanted(s)))
               .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.dir === 'other' || s.kind === chosenKind(s)
                 || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
               .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || dirOrder[a.dir] - dirOrder[b.dir] || (a.kind === 'car' ? -1 : 1));
@@ -3323,10 +3324,11 @@ commute_card:
         const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
         // Een afspraak ("C: Tandarts") begint binnen vier uur (of net begonnen): dan komen de overige routes van de persoon in beeld als hij thuis is
         const appointmentSoon = key => {
-          const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
-          if (!m) return false;
-          const hours = (new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - nowDate) / 3600000;
-          return hours >= -0.25 && hours <= 4;
+          // "begin|eind|titel": zes uur van tevoren tot de afspraak voorbij is, of tot de persoon op het station van Nijmegen aankwam
+          const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
+          if (!m || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
+          const start = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]), end = new Date(+m[6], +m[7] - 1, +m[8], +m[9], +m[10]);
+          return (start - nowDate) / 3600000 <= 6 && nowDate < end;
         };
         // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
         const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
@@ -3335,7 +3337,7 @@ commute_card:
           .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
           .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) ?? 'other', kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
           .filter(s => variables.mode === 'all' || isAsked(s)
-            || (s.dir === 'other' ? appointmentSoon(personKey(s)) && states[`input_boolean.away${personKey(s)}`]?.state !== 'on' : wanted(s)))
+            || (s.dir === 'other' ? appointmentSoon(personKey(s)) : wanted(s)))
           .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.dir === 'other' || s.kind === chosenKind(s)
             || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
           .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || dirOrder[a.dir] - dirOrder[b.dir] || (a.kind === 'car' ? -1 : 1));

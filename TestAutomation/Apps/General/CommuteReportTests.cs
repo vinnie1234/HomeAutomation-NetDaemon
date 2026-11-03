@@ -463,6 +463,30 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void ArrivingAtTheStationInNijmegen_ForAnAppointment_ClearsTheOtherRoutes()
+    {
+        Start("Vrij", configure: () => SetState("input_text.afspraak_carleen", "2026-10-29 17:30|2026-10-29 18:30|Uiteten"));
+        AdvanceTo(12, 0);
+
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(12, 3);
+
+        CallsOf("input_boolean", "turn_on").Should().NotBeEmpty("the mocked state never turns on, so it repeats each minute");
+    }
+
+    [Fact]
+    public void BeingAtTheStation_LongBeforeTheAppointment_DoesNotCount()
+    {
+        Start("Vrij", configure: () => SetState("input_text.afspraak_carleen", "2026-10-29 22:30|2026-10-29 23:30|Uiteten"));
+        AdvanceTo(12, 0);
+
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(12, 3);
+
+        CallsOf("input_boolean", "turn_on").Should().BeEmpty();
+    }
+
+    [Fact]
     public void LeavingTheStationInTheMorning_IsArriving_NotTheTrainHome()
     {
         Start("Vrij", configure: CarleenTrainHome);

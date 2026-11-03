@@ -16,7 +16,7 @@ namespace Automation.apps.General;
 /// <para>
 /// An event "V: vrij" or "V: vakantie" ("C: ..." for Carleen) makes the days it covers Vrij, whether the work comes from the calendar or not;
 /// after the day the weekday gets its old setting back. Every other event starting with the letter ("C: Tandarts") is an appointment: the
-/// next one of today is kept in <c>input_text.afspraak_{person}</c> ("yyyy-MM-dd HH:mm|title"), which the dashboard uses to show the
+/// next one of today that is not over yet is kept in <c>input_text.afspraak_{person}</c> ("start|end|title", both "yyyy-MM-dd HH:mm"), which the dashboard uses to show the
 /// other routes of that person in time.
 /// </para>
 /// </summary>
@@ -164,20 +164,26 @@ public class WorkFromCalendar : BaseApp
     private void PublishAppointment(string person, char letter, List<JsonElement> items)
     {
         var now = Scheduler.Now;
+        // The first appointment that is not over yet (one that has started stays until it ends, the person may still be on the way)
         var next = items
-            .Where(item => IsAppointment(SummaryOf(item), letter) && item.TryGetProperty("start", out var s) && s.GetString() is { } text && text.Contains('T'))
-            .Select(item => (Start: DateTimeOffset.Parse(item.GetProperty("start").GetString()!, CultureInfo.InvariantCulture), Title: SummaryOf(item)!))
-            .Where(x => x.Start >= now)
+            .Where(item => IsAppointment(SummaryOf(item), letter) && TimeText(item, "start") != null && TimeText(item, "end") != null)
+            .Select(item => (Start: DateTimeOffset.Parse(TimeText(item, "start")!, CultureInfo.InvariantCulture),
+                End: DateTimeOffset.Parse(TimeText(item, "end")!, CultureInfo.InvariantCulture), Title: SummaryOf(item)!))
+            .Where(x => x.End >= now)
             .OrderBy(x => x.Start)
-            .Cast<(DateTimeOffset Start, string Title)?>()
+            .Cast<(DateTimeOffset Start, DateTimeOffset End, string Title)?>()
             .FirstOrDefault();
         var value = next is { } n
-            ? $"{Extensions.SchedulerExtensions.ToDutchTime(n.Start):yyyy-MM-dd HH:mm}|{Regex.Replace(n.Title, @"^\s*\w\s*:\s*", "").Trim()}"
+            ? $"{Extensions.SchedulerExtensions.ToDutchTime(n.Start):yyyy-MM-dd HH:mm}|{Extensions.SchedulerExtensions.ToDutchTime(n.End):yyyy-MM-dd HH:mm}|{Regex.Replace(n.Title, @"^\s*\w\s*:\s*", "").Trim()}"
             : "";
         var entityId = $"input_text.afspraak_{person}";
         if ((HaContext.GetState(entityId)?.State ?? "") == value) return;
         HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(entityId), new { value = value.Length > 100 ? value[..100] : value });
     }
+
+    /// <summary>The start or end of an event with a time; null for an all-day event.</summary>
+    private static string? TimeText(JsonElement item, string name) =>
+        item.TryGetProperty(name, out var value) && value.GetString() is { } text && text.Contains('T') ? text : null;
 
     /// <summary>Whether an event covers this date: an all-day event from its first date up to (not including) its end, an event with a time by its start.</summary>
     private static bool Covers(JsonElement item, DateTime date)

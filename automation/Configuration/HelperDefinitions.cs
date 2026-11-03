@@ -227,7 +227,9 @@ public static class HelperDefinitions
         // Aan als de persoon niet in de trein stapte die hij moest nemen (zie CommuteReport): de route is dan niet meer nodig
         Boolean($"reis_niet_{person}_work", $"Reis niet {name} work", icon: "mdi:train-variant"),
         Boolean($"reis_niet_{person}_home", $"Reis niet {name} home", icon: "mdi:train-variant"),
-        // De eerstvolgende afspraak van vandaag uit de agenda ("jjjj-mm-dd uu:mm|titel"), voor de overige routes op Home
+        // De eerstvolgende afspraak van vandaag die nog niet voorbij is ("begin|eind|titel", begin en eind als "jjjj-mm-dd uu:mm"), voor de overige routes op Home
+        // Aan zodra de persoon voor die afspraak op het station van Nijmegen aankwam: de overige routes verdwijnen dan van Home
+        Boolean($"afspraak_aangekomen_{person}", $"Afspraak aangekomen {name}", icon: "mdi:map-marker-check"),
         Text($"afspraak_{person}", $"Afspraak {name}", min: 0, max: 100, mode: "text", icon: "mdi:calendar-clock"),
         // Welke overige route "Stuur door" doorstuurt (de sensor); leeg is de route van de dag
         Text($"reis_doorsturen_route_{person}", $"Reis doorsturen route {name}", min: 0, max: 100, mode: "text", icon: "mdi:share-variant"),

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Models.Traffic;
 
@@ -21,6 +22,9 @@ public partial class CommuteReport
         new("zone.de_klomp", "zone.trein_de_klomp_arnhem", CommuteDirection.ToWork)
     ];
 
+    /// <summary>Who arrives at this station for an appointment is there: the other routes of the person are no longer needed on the dashboard.</summary>
+    private const string AppointmentStation = "zone.station_nijmegen";
+
     /// <summary>How long after leaving the station the person has to be in the zone on the track.</summary>
     public static readonly TimeSpan InTrainWithin = TimeSpan.FromMinutes(5);
 
@@ -33,6 +37,7 @@ public partial class CommuteReport
     private readonly Dictionary<string, Departure> _departures = [];
     private readonly Dictionary<string, IReadOnlyList<TransitTrip>> _tripsAtStation = [];
     private readonly HashSet<string> _atStation = [];
+    private readonly Dictionary<string, string> _appointments = [];
 
     private void SetUpTrainTracking()
     {
@@ -48,6 +53,9 @@ public partial class CommuteReport
             foreach (var commuter in _commuters)
                 foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
                     SetRouteNotNeeded(commuter, direction, false);
+            foreach (var commuter in _commuters)
+                if (HaContext.GetState($"input_boolean.afspraak_aangekomen_{commuter.Id}")?.State == "on")
+                    HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity($"input_boolean.afspraak_aangekomen_{commuter.Id}"));
         });
     }
 
@@ -56,6 +64,7 @@ public partial class CommuteReport
         try
         {
             var now = Scheduler.Now;
+            foreach (var commuter in _commuters) FollowAppointment(commuter);
             foreach (var commuter in _commuters)
                 foreach (var link in StationLinks)
                 {
@@ -93,6 +102,36 @@ public partial class CommuteReport
         {
             Logger.LogError(ex, "Could not follow the trains");
         }
+    }
+
+    /// <summary>
+    /// With an appointment (<c>input_text.afspraak_{person}</c>) the other routes of the person are on Home until they arrive at the station
+    /// in Nijmegen: <c>input_boolean.afspraak_aangekomen_{person}</c> goes on then, and off again for the next appointment.
+    /// </summary>
+    private void FollowAppointment(Commuter commuter)
+    {
+        var appointment = HaContext.GetState($"input_text.afspraak_{commuter.Id}")?.State ?? "";
+        var arrivedId = $"input_boolean.afspraak_aangekomen_{commuter.Id}";
+        var arrived = HaContext.GetState(arrivedId)?.State == "on";
+        if (_appointments.GetValueOrDefault(commuter.Id) != appointment)
+        {
+            _appointments[commuter.Id] = appointment;
+            if (arrived) HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(arrivedId));
+            return;
+        }
+        if (!arrived && AppointmentIsNear(appointment) && InZone(AppointmentStation, commuter.PersonId))
+            HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(arrivedId));
+    }
+
+    /// <summary>Whether the appointment ("start|end|title") begins within six hours (the dashboard shows the other routes from then) and is not over.</summary>
+    private bool AppointmentIsNear(string appointment)
+    {
+        var parts = appointment.Split('|');
+        if (parts.Length < 2
+            || !DateTime.TryParse(parts[0], CultureInfo.InvariantCulture, DateTimeStyles.None, out var start)
+            || !DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out var end)) return false;
+        var now = Scheduler.NowNl();
+        return start - now <= TimeSpan.FromHours(6) && now < end;
     }
 
     /// <summary>The trip to the office starts in the morning, the trip home in the afternoon: leaving a station at the other time of day (arriving) is no departure.</summary>
