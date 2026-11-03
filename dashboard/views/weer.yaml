@@ -133,6 +133,9 @@ sections:
         camera_view: auto
         show_name: false
         show_state: false
+        card_mod:
+          style: |
+            :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       - type: custom:button-card
         template: stat
         entity: binary_sensor.weer_thuis_neerslag_verwacht
