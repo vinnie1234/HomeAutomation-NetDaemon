@@ -12,14 +12,6 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
-      # Op deze pagina geen blur op de kaarten: hij flikkert op de tablet bij scrollen (zie het thema, --glass-blur)
-      - type: custom:button-card
-        template: no_blur_page
-        variables:
-          paths: [weer]
-        grid_options:
-          columns: full
-          rows: 1
       - type: custom:button-card
         template: summary
         icon: |
