@@ -4984,10 +4984,75 @@ workday_button:
     day: ma
     weekday: 1
     transport: null
+  # Een tik opent de dag: Vrij, Thuis of Kantoor kiezen, Auto of OV, en de tijden van die dag
   tap_action:
     action: javascript
     haptic: light
-    javascript: "[[[ hass.callService('input_select', 'select_next', { entity_id: entity.entity_id, cycle: true }); ]]]"
+    javascript: |
+      [[[
+        const hassNow = () => document.querySelector('home-assistant').hass;
+        const [, person, dayName] = entity.entity_id.match(/^input_select\.werkdag_([a-z]+)_([a-z]+)$/);
+        const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+        const weekday = dayNames.indexOf(dayName);
+        const name = person === 'vincent' ? 'Vincent' : 'Carleen';
+        const p2 = n => String(n).padStart(2, '0');
+        // De eerstvolgende dag met deze weekdag (vandaag telt mee)
+        const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + ((weekday - date.getDay() + 7) % 7));
+        const dateText = `${date.getFullYear()}-${p2(date.getMonth() + 1)}-${p2(date.getDate())}`;
+        const nice = date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+        const hm = text => { const m = String(text ?? '').match(/(\d{1,2}):(\d{2})/); return m ? `${p2(m[1])}:${m[2]}` : null; };
+        const minus = (text, min) => { const m = String(text ?? '').match(/(\d{1,2}):(\d{2})/); if (!m) return null; const n = (+m[1] * 60 + +m[2] + min + 1440) % 1440; return `${p2(Math.floor(n / 60))}:${p2(n % 60)}`; };
+        const seg = (options, current, onclick) => `<div style="display:flex;gap:8px;flex-wrap:wrap">${options.map(([value, label, icon, rgb]) => `<span style="flex:1;min-width:84px;text-align:center;cursor:pointer;padding:10px 8px;border-radius:14px;font-weight:600;
+            background:rgba(${rgb},${current === value ? 0.3 : 0.08});border:${current === value ? `2px solid rgb(${rgb})` : '1px solid rgba(255,255,255,0.12)'}" onclick="${onclick}('${value}')">
+            <ha-icon icon="${icon}" style="--mdc-icon-size:20px;display:block;margin:0 auto 2px"></ha-icon>${label}</span>`).join('')}</div>`;
+        const draw = () => {
+          const st = hassNow().states;
+          const state = st[entity.entity_id]?.state, transport = st[`input_select.vervoer_${person}_${dayName}`]?.state;
+          const fromCalendar = st[`input_boolean.werk_uit_agenda_${person}`]?.state === 'on';
+          const get = id => st[id]?.state;
+          const start = hm(get(`input_datetime.werk_start_${person}`)) ?? '08:30', end = hm(get(`input_datetime.werk_eind_${person}`)) ?? '17:00';
+          const before = parseFloat(get(`input_number.reis_marge_voor_${person}`)) || 10, after = parseFloat(get(`input_number.reis_marge_na_${person}`)) || 10;
+          const forDate = id => { const s = String(get(id) ?? ''); return s.startsWith(dateText) ? hm(s.slice(11)) : null; };
+          let source = '', firstRow = ['Op kantoor', null], lastRow = ['Weg van kantoor', null];
+          if (fromCalendar) {
+            const arrive = forDate(`input_datetime.kantoor_aankomst_${person}`), leave = forDate(`input_datetime.kantoor_vertrek_${person}`);
+            source = arrive ? 'Uit de agenda (C: werk)' : 'Nog niet uit de agenda gelezen: dit zijn je gewone werkuren met de marges';
+            firstRow[1] = arrive ?? minus(start, -before); lastRow[1] = leave ?? minus(end, after);
+          } else {
+            const mKind = get(`input_select.reis_ochtend_soort_${person}`), mTime = hm(get(`input_datetime.reis_ochtend_tijd_${person}`));
+            const eKind = get(`input_select.reis_avond_soort_${person}`), eTime = hm(get(`input_datetime.reis_avond_tijd_${person}`));
+            source = 'Vaste tijden (door jou ingesteld)';
+            firstRow = [mKind === 'Van huis vertrekken' ? 'Van huis vertrekken' : 'Op kantoor', mTime];
+            lastRow = [eKind === 'Thuis zijn' ? 'Thuis zijn' : 'Weg van kantoor', eTime];
+          }
+          const row = (label, value) => value ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${label}</span><b>${value}</b></div>` : '';
+          const office = state === 'Kantoor';
+          el.querySelector('#huis-dag-inhoud').innerHTML = `
+            <div style="opacity:.7;margin-bottom:10px;text-transform:capitalize">${nice}</div>
+            <div style="font-weight:600;margin-bottom:6px">Hoe is deze dag?</div>
+            ${seg([['Vrij', 'Vrij', 'mdi:beach', '255,255,255'], ['Thuis', 'Thuis werken', 'mdi:home-account', '74,222,128'], ['Kantoor', 'Kantoor', 'mdi:office-building-outline', '96,165,250']], state, 'window.huisDagSet')}
+            ${office ? `<div style="font-weight:600;margin:16px 0 6px">Hoe ga je?</div>${seg([['Auto', 'Auto', 'mdi:car', '96,165,250'], ['OV', 'Openbaar vervoer', 'mdi:train', '250,204,21']], transport, 'window.huisDagVervoer')}` : ''}
+            <div style="font-weight:600;margin:16px 0 2px">Tijden</div>
+            ${state === 'Vrij' ? '<div style="opacity:.7;padding:6px 0">Een vrije dag: geen tijden en geen verkeersbericht.</div>' : `
+              ${row('Werkuren', `${start} – ${end}`)}
+              ${office ? row(firstRow[0], firstRow[1]) + row(lastRow[0], lastRow[1]) : ''}
+              <div style="opacity:.6;font-size:12px;margin-top:6px">${office ? source : 'Je werkt thuis: de werkuren gelden.'}</div>`}`;
+        };
+        window.huisDagSet = value => { hassNow().callService('input_select', 'select_option', { entity_id: entity.entity_id, option: value }); setTimeout(draw, 500); };
+        window.huisDagVervoer = value => { hassNow().callService('input_select', 'select_option', { entity_id: `input_select.vervoer_${person}_${dayName}`, option: value }); setTimeout(draw, 500); };
+        document.getElementById('huis-dag')?.remove();
+        const el = document.createElement('div');
+        el.id = 'huis-dag';
+        el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+        el.innerHTML = `<div style="width:min(520px,100%);max-height:86vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 24px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-size:18px;font-weight:700;text-transform:capitalize">${name} · ${dayName}</div>
+            <span id="huis-dag-sluit" style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+          <div id="huis-dag-inhoud"></div></div>`;
+        document.body.appendChild(el);
+        el.addEventListener('click', e => { if (e.target === el || e.target.id === 'huis-dag-sluit') el.remove(); });
+        draw();
+      ]]]
   hold_action:
     action: more-info
   name: '[[[ return variables.day; ]]]'
