@@ -3653,9 +3653,9 @@ commute_card:
           return `<div style="min-width:0;display:flex"><div style="flex:1;min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:24px;background:rgba(${k.rgb},0.08);
             border:1px ${s.dir === 'other' ? 'dashed' : 'solid'} rgba(${k.rgb},0.35);box-shadow:0 8px 32px rgba(0,0,0,0.18);pointer-events:auto;${s.kind === 'missing' ? '' : 'cursor:pointer'}">${rowOf(s)}</div></div>`;
         };
-        const blocks = list => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">${list.map(blockOf).join('')}</div>`;
+        const blocks = list => `<div style="white-space:normal;overflow-wrap:anywhere;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">${list.map(blockOf).join('')}</div>`;
         // Op Weer en verkeer één blok per persoon, naast elkaar (op een smal scherm onder elkaar), met de routes van die persoon erin
-        const perPerson = () => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:start">`
+        const perPerson = () => `<div style="white-space:normal;overflow-wrap:anywhere;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:start">`
           + [...new Set(rows.map(r => r.attributes.person))].map(person => {
             const owner = states[person], picture = owner?.attributes.entity_picture;
             const mine = rows.filter(r => r.attributes.person === person);

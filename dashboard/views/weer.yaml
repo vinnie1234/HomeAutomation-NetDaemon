@@ -337,6 +337,7 @@ sections:
 
   # Verkeer: de woon-werkroute en daarna de ANWB-kaart met alle files, werkzaamheden en flitsers
   - type: grid
+    column_span: 3
     cards:
       - type: heading
         heading: Verkeer
