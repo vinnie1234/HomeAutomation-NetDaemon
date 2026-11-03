@@ -17,6 +17,15 @@ public class WorkCalendarEntry
 
     /// <summary>When the person is done, <c>HH:mm</c>, or null when the event has no time.</summary>
     public string? End { get; set; }
+
+    /// <summary><see cref="WorkKind"/> for a work day, <see cref="DayOffKind"/> for a day the calendar made Vrij.</summary>
+    public string Kind { get; set; } = WorkKind;
+
+    /// <summary>For a day off: what the weekday was set to before, which it goes back to when the day is over.</summary>
+    public string? Previous { get; set; }
+
+    public const string WorkKind = "werk";
+    public const string DayOffKind = "vrij";
 }
 
 /// <summary>The work days taken from the calendar that are not over yet.</summary>

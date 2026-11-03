@@ -13,6 +13,12 @@ namespace Automation.apps.General;
 /// capitals and spaces do not matter. At 23:50 the events of tomorrow are read; the button <c>sync_agenda_{person}</c> reads today and the
 /// next six days right away. At 00:05 a day that was set this way and is over goes back to Vrij. A weekday that was not set from the
 /// calendar is left alone.
+/// <para>
+/// An event "V: vrij" or "V: vakantie" ("C: ..." for Carleen) makes the days it covers Vrij, whether the work comes from the calendar or not;
+/// after the day the weekday gets its old setting back. Every other event starting with the letter ("C: Tandarts") is an appointment: the
+/// next one of today is kept in <c>input_text.afspraak_{person}</c> ("yyyy-MM-dd HH:mm|title"), which the dashboard uses to show the
+/// other routes of that person in time.
+/// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(WorkFromCalendar))]
 public class WorkFromCalendar : BaseApp
@@ -39,6 +45,8 @@ public class WorkFromCalendar : BaseApp
 
         Scheduler.ScheduleCronNl("50 23 * * *", () => _ = SyncAsync(1, 1));
         Scheduler.ScheduleCronNl("05 0 * * *", ResetDaysThatAreOver);
+        // The appointments of today come and go during the day; the days themselves are only set at night, on the button or at a restart
+        Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(30), () => _ = SyncAsync(0, 0, applyDays: false));
         foreach (var (person, _, _) in _people)
         {
             var name = person;
@@ -55,6 +63,15 @@ public class WorkFromCalendar : BaseApp
     public static bool IsWorkEvent(string? summary, char letter = 'c') =>
         summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*werk\b", RegexOptions.IgnoreCase);
 
+    /// <summary>Whether the title of an event says "V: vrij" or "V: vakantie" (or the letter of somebody else).</summary>
+    public static bool IsDayOffEvent(string? summary, char letter = 'c') =>
+        summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*(vrij|vakantie)\b", RegexOptions.IgnoreCase);
+
+    /// <summary>Whether the title is an appointment of the person: "C: something" that is neither work nor a day off.</summary>
+    public static bool IsAppointment(string? summary, char letter = 'c') =>
+        summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*\S", RegexOptions.IgnoreCase)
+        && !IsWorkEvent(summary, letter) && !IsDayOffEvent(summary, letter);
+
     /// <summary>Whether the person's work comes from the calendar: switched on, or (for Carleen) not switched off.</summary>
     private bool FromCalendar(string person)
     {
@@ -63,7 +80,7 @@ public class WorkFromCalendar : BaseApp
     }
 
     /// <summary>Reads the events of the days <paramref name="fromDay"/> to <paramref name="toDay"/> from today and sets those days to Kantoor.</summary>
-    private async Task SyncAsync(int fromDay, int toDay, string? onlyPerson = null)
+    private async Task SyncAsync(int fromDay, int toDay, string? onlyPerson = null, bool applyDays = true)
     {
         try
         {
@@ -79,9 +96,11 @@ public class WorkFromCalendar : BaseApp
 
             foreach (var (person, letter, schedule) in _people)
             {
-                if ((onlyPerson != null && onlyPerson != person) || !FromCalendar(person)) continue;
-                for (var day = fromDay; day <= toDay; day++)
-                    ApplyDay(person, letter, schedule, today.AddDays(day), items);
+                if (onlyPerson != null && onlyPerson != person) continue;
+                if (applyDays)
+                    for (var day = fromDay; day <= toDay; day++)
+                        ApplyDay(person, letter, schedule, today.AddDays(day), items, FromCalendar(person));
+                if (fromDay == 0) PublishAppointment(person, letter, items);
             }
         }
         catch (Exception ex)
@@ -90,8 +109,15 @@ public class WorkFromCalendar : BaseApp
         }
     }
 
-    private void ApplyDay(string person, char letter, WorkSchedule schedule, DateTime date, List<JsonElement> items)
+    private void ApplyDay(string person, char letter, WorkSchedule schedule, DateTime date, List<JsonElement> items, bool fromCalendar)
     {
+        if (items.Any(item => IsDayOffEvent(SummaryOf(item), letter) && Covers(item, date)))
+        {
+            SetDayOff(person, schedule, date);
+            return;
+        }
+        if (!fromCalendar) return;
+
         TimeSpan? start = null, end = null;
         var found = false;
         foreach (var item in items)
@@ -115,6 +141,55 @@ public class WorkFromCalendar : BaseApp
             HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Office });
             Logger.LogInformation("{Person} works on {Date} according to the calendar: {Day} is Kantoor", person, dateText, WorkSchedule.DayNames[date.DayOfWeek]);
         }
+    }
+
+    private static string? SummaryOf(JsonElement item) => item.TryGetProperty("summary", out var s) ? s.GetString() : null;
+
+    /// <summary>Makes the weekday of this date Vrij and remembers what it was, to give it back when the day is over.</summary>
+    private void SetDayOff(string person, WorkSchedule schedule, DateTime date)
+    {
+        var setting = schedule.WorkDaySetting(date.DayOfWeek);
+        if (setting.State == WorkSchedule.Off) return;
+
+        var store = _storage.Get<WorkCalendarStore>(StoreKey) ?? new WorkCalendarStore();
+        var dateText = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        store.Entries.RemoveAll(e => e.Person == person && e.Date == dateText);
+        store.Entries.Add(new WorkCalendarEntry { Person = person, Date = dateText, Kind = WorkCalendarEntry.DayOffKind, Previous = setting.State });
+        _storage.Save(StoreKey, store);
+        HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Off });
+        Logger.LogInformation("{Person} is off on {Date} according to the calendar: {Day} is Vrij", person, dateText, WorkSchedule.DayNames[date.DayOfWeek]);
+    }
+
+    /// <summary>Keeps the next appointment of today that has not started yet in the helper of the person, or empties it.</summary>
+    private void PublishAppointment(string person, char letter, List<JsonElement> items)
+    {
+        var now = Scheduler.Now;
+        var next = items
+            .Where(item => IsAppointment(SummaryOf(item), letter) && item.TryGetProperty("start", out var s) && s.GetString() is { } text && text.Contains('T'))
+            .Select(item => (Start: DateTimeOffset.Parse(item.GetProperty("start").GetString()!, CultureInfo.InvariantCulture), Title: SummaryOf(item)!))
+            .Where(x => x.Start >= now)
+            .OrderBy(x => x.Start)
+            .Cast<(DateTimeOffset Start, string Title)?>()
+            .FirstOrDefault();
+        var value = next is { } n
+            ? $"{Extensions.SchedulerExtensions.ToDutchTime(n.Start):yyyy-MM-dd HH:mm}|{Regex.Replace(n.Title, @"^\s*\w\s*:\s*", "").Trim()}"
+            : "";
+        var entityId = $"input_text.afspraak_{person}";
+        if ((HaContext.GetState(entityId)?.State ?? "") == value) return;
+        HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(entityId), new { value = value.Length > 100 ? value[..100] : value });
+    }
+
+    /// <summary>Whether an event covers this date: an all-day event from its first date up to (not including) its end, an event with a time by its start.</summary>
+    private static bool Covers(JsonElement item, DateTime date)
+    {
+        if (!item.TryGetProperty("start", out var value) || value.GetString() is not { } text) return false;
+        if (text.Contains('T')) return StartsOn(item, date);
+        if (!DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var first)) return false;
+        var last = item.TryGetProperty("end", out var e) && e.GetString() is { } endText && !endText.Contains('T')
+                   && DateTime.TryParse(endText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var exclusive)
+            ? exclusive.AddDays(-1)
+            : first;
+        return date >= first && date <= last;
     }
 
     /// <summary>Whether an event starts on this date: an all-day event by its date, an event with a time by its date in Dutch time.</summary>
@@ -150,7 +225,12 @@ public class WorkFromCalendar : BaseApp
                 var day = DateTime.Parse(entry.Date, CultureInfo.InvariantCulture).DayOfWeek;
                 var schedule = entry.Person == "carleen" ? CarleenSchedule : VincentSchedule;
                 var setting = schedule.WorkDaySetting(day);
-                if (setting.State == WorkSchedule.Office)
+                if (entry.Kind == WorkCalendarEntry.DayOffKind)
+                {
+                    if (setting.State == WorkSchedule.Off && entry.Previous is { Length: > 0 } previous)
+                        HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = previous });
+                }
+                else if (setting.State == WorkSchedule.Office)
                     HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Off });
                 store.Entries.Remove(entry);
             }
