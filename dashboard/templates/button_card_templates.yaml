@@ -1268,7 +1268,9 @@ weather_hero:
         // Op een telefoon is de kaart maar ~360 px breed: alles bij het huis (brievenbus, vlag, pompoen, pakketjes, ...) zou over elkaar heen
         // en over het huis staan. Daar staat het ruimer uit elkaar (nearHouse) en is het huis wat kleiner.
         const mobile = window.innerWidth > 0 && window.innerWidth < 640;
-        const spread = mobile ? 2.4 : 1;
+        // Op een groot scherm is de kaart breder dan het ontwerp en staan de procenten ver uit elkaar, terwijl het huis even groot blijft: daar
+        // schuift alles bij het huis (oprit, auto, pakketjes, busjes) naar het huis toe
+        const spread = mobile ? 2.4 : Math.min(1, 1400 / Math.max(window.innerWidth - 60, 1));
         const nearHouse = dx => homeX + dx * spread;
         {
           const pathTop = 100 - groundTop(homeX + 0.6) - 0.5;  // % boven de onderrand, bij de voordeur
@@ -1640,7 +1642,8 @@ weather_hero:
         // spatbordranden, zwarte onderbumpers, een zilveren strip op de dorpel en tweekleurige velgen met vijf spaken.
         // De coordinaten zijn beeldpunten van die foto (viewBox 86 230 1316 548).
         // De oprit zelf ligt er altijd: een stuk asfalt voor de auto en een helling (verlaagde stoeprand) naar de stoep.
-        const driveway = homeX - (mobile ? 24 : 18);
+        // De oprit ligt een vaste afstand (ongeveer 170 px) links van het huis, hoe breed het scherm ook is
+        const driveway = homeX - (mobile ? 24 : Math.min(18, Math.max(7, 17000 / Math.max(window.innerWidth - 60, 1))));
         {
           const asphalt = dim('rgb(128,124,120)');
           const rampH = groundBottom(driveway) - 1.7 - streetH + 0.6;
@@ -1771,7 +1774,7 @@ weather_hero:
           const nowMs = Date.now();
           const timeOf = v => { const t = new Date(v).getTime(); return isNaN(t) ? null : t; };
           const clock = ms => new Date(ms).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-          const slots = [homeX + 8, homeX - 6, homeX + 22, homeX - 20];   // waar het busje stopt, per busje een eigen plek
+          const slots = [homeX + 8 * spread, homeX - 6 * spread, homeX + 22 * spread, homeX - 20 * spread];   // waar het busje stopt, per busje een eigen plek
           const vans = [];
           for (const [key] of carriers) {
             const incoming = (states[`sensor.buiten_${key}_inkomende_pakketten`]?.attributes?.parcels ?? [])
