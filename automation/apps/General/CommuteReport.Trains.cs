@@ -54,8 +54,9 @@ public partial class CommuteReport
                 foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
                     SetRouteNotNeeded(commuter, direction, false);
             foreach (var commuter in _commuters)
-                if (HaContext.GetState($"input_boolean.afspraak_aangekomen_{commuter.Id}")?.State == "on")
-                    HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity($"input_boolean.afspraak_aangekomen_{commuter.Id}"));
+                foreach (var helper in new[] { "afspraak_route", "afspraak_aangekomen" })
+                    if (HaContext.GetState($"input_boolean.{helper}_{commuter.Id}")?.State == "on")
+                        HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity($"input_boolean.{helper}_{commuter.Id}"));
         });
     }
 
@@ -105,21 +106,31 @@ public partial class CommuteReport
     }
 
     /// <summary>
-    /// With an appointment (<c>input_text.afspraak_{person}</c>) the other routes of the person are on Home until they arrive at the station
-    /// in Nijmegen: <c>input_boolean.afspraak_aangekomen_{person}</c> goes on then, and off again for the next appointment.
+    /// With an appointment (<c>input_text.afspraak_{person}</c>) the other routes of the person come on Home six hours before it, but only
+    /// when the person is at home then (<c>input_boolean.afspraak_route_{person}</c> goes on). Once on they stay, also when the person has left
+    /// home, until the person arrives at the station in Nijmegen (<c>input_boolean.afspraak_aangekomen_{person}</c>) or the appointment is over.
+    /// Both go off again for the next appointment.
     /// </summary>
     private void FollowAppointment(Commuter commuter)
     {
         var appointment = HaContext.GetState($"input_text.afspraak_{commuter.Id}")?.State ?? "";
+        var shownId = $"input_boolean.afspraak_route_{commuter.Id}";
         var arrivedId = $"input_boolean.afspraak_aangekomen_{commuter.Id}";
+        var shown = HaContext.GetState(shownId)?.State == "on";
         var arrived = HaContext.GetState(arrivedId)?.State == "on";
-        if (_appointments.GetValueOrDefault(commuter.Id) != appointment)
+        // A new appointment starts afresh; after a restart the one that was there is still the same, so what was on stays on
+        if (_appointments.TryGetValue(commuter.Id, out var known) && known != appointment)
         {
-            _appointments[commuter.Id] = appointment;
+            if (shown) HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(shownId));
             if (arrived) HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(arrivedId));
+            _appointments[commuter.Id] = appointment;
             return;
         }
-        if (!arrived && AppointmentIsNear(appointment) && InZone(AppointmentStation, commuter.PersonId))
+        _appointments[commuter.Id] = appointment;
+        if (!AppointmentIsNear(appointment)) return;
+        if (!shown && commuter.Person.IsHome)
+            HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(shownId));
+        if (!arrived && InZone(AppointmentStation, commuter.PersonId))
             HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(arrivedId));
     }
 

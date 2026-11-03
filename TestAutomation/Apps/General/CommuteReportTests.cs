@@ -463,6 +463,37 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void TheOtherRoutes_ComeSixHoursBeforeAnAppointment_WhenThePersonIsHome()
+    {
+        Start("Vrij", configure: () =>
+        {
+            SetState("input_text.afspraak_carleen", "2026-10-29 17:30|2026-10-29 18:30|Uiteten");
+            SetState("input_boolean.awaycarleen", "off");
+        });
+        AdvanceTo(11, 0);
+        CallsOf("input_boolean", "turn_on").Should().BeEmpty("it is more than six hours before the appointment");
+
+        AdvanceTo(11, 40);
+
+        CallsOf("input_boolean", "turn_on").Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void TheOtherRoutes_DoNotComeWhenThePersonIsNotHome()
+    {
+        Start("Vrij", configure: () =>
+        {
+            SetState("input_text.afspraak_carleen", "2026-10-29 17:30|2026-10-29 18:30|Uiteten");
+            SetState("input_boolean.awaycarleen", "on");
+        });
+
+        AdvanceTo(12, 0);
+        AdvanceTo(12, 5);
+
+        CallsOf("input_boolean", "turn_on").Should().BeEmpty();
+    }
+
+    [Fact]
     public void ArrivingAtTheStationInNijmegen_ForAnAppointment_ClearsTheOtherRoutes()
     {
         Start("Vrij", configure: () => SetState("input_text.afspraak_carleen", "2026-10-29 17:30|2026-10-29 18:30|Uiteten"));

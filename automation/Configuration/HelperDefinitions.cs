@@ -229,6 +229,8 @@ public static class HelperDefinitions
         Boolean($"reis_niet_{person}_home", $"Reis niet {name} home", icon: "mdi:train-variant"),
         // De eerstvolgende afspraak van vandaag die nog niet voorbij is ("begin|eind|titel", begin en eind als "jjjj-mm-dd uu:mm"), voor de overige routes op Home
         // Aan zodra de persoon voor die afspraak op het station van Nijmegen aankwam: de overige routes verdwijnen dan van Home
+        // Aan zodra de overige routes van de persoon op Home komen: zes uur voor de afspraak, en alleen als de persoon dan thuis is. Ze blijven daarna staan.
+        Boolean($"afspraak_route_{person}", $"Afspraak route {name}", icon: "mdi:map-marker-path"),
         Boolean($"afspraak_aangekomen_{person}", $"Afspraak aangekomen {name}", icon: "mdi:map-marker-check"),
         Text($"afspraak_{person}", $"Afspraak {name}", min: 0, max: 100, mode: "text", icon: "mdi:calendar-clock"),
         // Welke overige route "Stuur door" doorstuurt (de sensor); leeg is de route van de dag

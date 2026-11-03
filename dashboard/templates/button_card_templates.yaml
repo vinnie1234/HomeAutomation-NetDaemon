@@ -3244,11 +3244,11 @@ commute_card:
             const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
             // Een afspraak ("C: Tandarts") begint binnen vier uur (of net begonnen): dan komen de overige routes van de persoon in beeld als hij thuis is
             const appointmentSoon = key => {
-              // "begin|eind|titel": zes uur van tevoren tot de afspraak voorbij is, of tot de persoon op het station van Nijmegen aankwam
-              const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
-              if (!m || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
-              const start = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]), end = new Date(+m[6], +m[7] - 1, +m[8], +m[9], +m[10]);
-              return (start - nowDate) / 3600000 <= 6 && nowDate < end;
+              // NetDaemon zet afspraak_route aan zes uur voor de afspraak als de persoon dan thuis is; daarna blijft het blok tot de afspraak voorbij is
+              // of de persoon op het station van Nijmegen aankwam
+              const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
+              if (!m || states[`input_boolean.afspraak_route_${key}`]?.state !== 'on' || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
+              return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
             };
             // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
             const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
@@ -3324,11 +3324,11 @@ commute_card:
         const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
         // Een afspraak ("C: Tandarts") begint binnen vier uur (of net begonnen): dan komen de overige routes van de persoon in beeld als hij thuis is
         const appointmentSoon = key => {
-          // "begin|eind|titel": zes uur van tevoren tot de afspraak voorbij is, of tot de persoon op het station van Nijmegen aankwam
-          const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
-          if (!m || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
-          const start = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]), end = new Date(+m[6], +m[7] - 1, +m[8], +m[9], +m[10]);
-          return (start - nowDate) / 3600000 <= 6 && nowDate < end;
+          // NetDaemon zet afspraak_route aan zes uur voor de afspraak als de persoon dan thuis is; daarna blijft het blok tot de afspraak voorbij is
+          // of de persoon op het station van Nijmegen aankwam
+          const m = String(states[`input_text.afspraak_${key}`]?.state ?? '').match(/\|(\d{4})-(\d{2})-(\d{2}) (\d+):(\d+)/);
+          if (!m || states[`input_boolean.afspraak_route_${key}`]?.state !== 'on' || states[`input_boolean.afspraak_aangekomen_${key}`]?.state === 'on') return false;
+          return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
         };
         // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
         const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
