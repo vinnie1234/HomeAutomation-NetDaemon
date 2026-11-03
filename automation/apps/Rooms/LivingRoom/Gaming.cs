@@ -43,8 +43,9 @@ public class Gaming : BaseApp
 
         if (!DisableLightAutomations)
         {
-            // The Samsung cannot be turned on through HA (no turn_on); the PS5 wakes it over HDMI-CEC
-            Entities.MediaPlayer.Tv.SelectSource("HDMI2");
+            // The Samsung cannot be turned on through HA (no turn_on); the PS5 wakes it over HDMI-CEC. Its sources are only "TV" and "HDMI"
+            // (not a particular HDMI input), the soundbar has no sources to select
+            Entities.MediaPlayer.Tv.SelectSource("HDMI");
             Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();
             Entities.Light.Plafondslaapkamer.TurnOff();

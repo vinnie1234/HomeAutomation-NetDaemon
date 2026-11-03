@@ -168,7 +168,7 @@ public class PresenceManager : BaseApp
         if (!stayingHome.IsHome || !stayingHome.IsSleeping) return;
 
         Logger.LogInformation("Presence: left while the other one still sleeps — turning the lights off");
-        Entities.Light.TurnAllOff();
+        Entities.Light.TurnAllOff(null, LightsThatStayOn());
     }
 
     /// <summary>
@@ -192,12 +192,15 @@ public class PresenceManager : BaseApp
         TurnEverythingOff();
     }
 
+    /// <summary>Vincent works at home today: his desk stays on, also when everybody leaves for a while.</summary>
+    private string[] LightsThatStayOn() => VincentSchedule.IsHomeWorkDay(Scheduler.NowNl().DayOfWeek) ? ["light.bureau"] : [];
+
     /// <summary>
-    /// Turns off all lights, the TV and soundbar, and stops music on the speakers.
+    /// Turns off all lights (the desk of Vincent stays on on a day he works at home), the TV and soundbar, and stops music on the speakers.
     /// </summary>
     private void TurnEverythingOff()
     {
-        Entities.Light.TurnAllOff();
+        Entities.Light.TurnAllOff(null, LightsThatStayOn());
         Entities.MediaPlayer.Tv.TurnOff();
         Entities.MediaPlayer.AvSoundbar.TurnOff();
         Entities.MediaPlayer.HeleHuis.StopIfPlaying();

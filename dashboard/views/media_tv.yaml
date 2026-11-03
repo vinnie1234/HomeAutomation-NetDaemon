@@ -27,12 +27,22 @@ sections:
       - !include ../cards/bron_ps5.yaml
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
-      - type: custom:bubble-card
-        card_type: media-player
-        entity: media_player.tv
-        name: Samsung TV
-        icon: mdi:television
-        cover_background: true
+      # Alleen als de tv aan staat: de aan-knop van deze kaart werkt niet (de Samsung kan niet aan via Home Assistant)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: media_player.tv
+            state_not:
+              - "off"
+              - unavailable
+              - unknown
+        card:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.tv
+          name: Samsung TV
+          icon: mdi:television
+          cover_background: true
       - type: custom:tabbed-card
         tabs:
           - attributes:

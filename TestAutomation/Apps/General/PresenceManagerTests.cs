@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using FluentAssertions;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
@@ -149,5 +150,34 @@ public class PresenceManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         ctx.VerifyCallService("input_boolean", "turn_on", "awaycarleen");
+    }
+
+    private static List<string> LightsTurnedOff(AppTestContext ctx) =>
+        ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "light" && (string)c.GetArguments()[1]! == "turn_off")
+            .SelectMany(c => ((NetDaemon.HassModel.Entities.ServiceTarget?)c.GetArguments()[2])?.EntityIds ?? [])
+            .ToList();
+
+    [Theory]
+    [InlineData("Thuis", false)]
+    [InlineData("Kantoor", true)]
+    public void BothAway_TurnsTheLightsOff_ButNotTheDeskOnADayVincentWorksAtHome(string saturday, bool deskGoesOff)
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        ctx.HaContext.GetState("input_select.werkdag_vincent_zaterdag").Returns(
+            new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_select.werkdag_vincent_zaterdag", State = saturday });
+        var lights = new[] { "light.bureau", "light.plafond_woonkamer" }
+            .Select(id => new NetDaemon.HassModel.Entities.Entity(ctx.HaContext, id)).ToList();
+        ctx.HaContext.GetAllEntities().Returns(lights);
+        foreach (var (id, state) in new[] { ("input_boolean.awayvincent", "off"), ("input_boolean.awaycarleen", "on"), ("input_boolean.away", "off"), ("input_boolean.sleepingcarleen", "off"), ("input_boolean.vrij_vincent", "off") })
+            ctx.HaContext.GetState(id).Returns(new NetDaemon.HassModel.Entities.EntityState { EntityId = id, State = state });
+        ctx.InitApp<PresenceManager>();
+
+        ctx.ChangeStateFor("input_boolean.away").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        var off = LightsTurnedOff(ctx);
+        off.Should().Contain("light.plafond_woonkamer");
+        (off.Contains("light.bureau")).Should().Be(deskGoesOff);
     }
 }
