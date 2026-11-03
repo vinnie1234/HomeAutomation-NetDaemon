@@ -78,18 +78,15 @@ sections:
                 background: rgba(255, 107, 107, 0.18) !important;
                 border: 1px solid rgba(255, 107, 107, 0.4) !important;
               }
-      - type: custom:clock-weather-card
+      # Huidig weer en de vooruitzichten per dag. De clock-weather-card flikkerde op de tablet; deze standaardkaart niet.
+      - type: weather-forecast
         entity: weather.weer_thuis
-        locale: nl
-        time_format: 24
-        forecast_rows: 5
-        hide_today_section: false
-        animated_icon: false
-        # Geen blur: de blur van het thema flikkert op de tablet zodra er iets in beweegt (de weericonen)
+        show_current: true
+        show_forecast: true
+        forecast_type: daily
         card_mod:
           style: |
             :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-            ha-card { transform: translateZ(0); backface-visibility: hidden; }
       # Verwachting per uur (48 uur), horizontaal door te schuiven
       - type: custom:button-card
         template: forecast_strip
