@@ -84,16 +84,19 @@ sections:
         time_format: 24
         forecast_rows: 5
         hide_today_section: false
+        animated_icon: false
         # Geen blur: de blur van het thema flikkert op de tablet zodra er iets in beweegt (de weericonen)
         card_mod:
           style: |
             :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+            ha-card { transform: translateZ(0); backface-visibility: hidden; }
       # Verwachting per uur (48 uur), horizontaal door te schuiven
       - type: custom:button-card
         template: forecast_strip
         card_mod:
           style: |
             :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+            ha-card { transform: translateZ(0); backface-visibility: hidden; }
       - type: custom:mini-graph-card
         name: Temperatuur
         icon: mdi:thermometer
@@ -120,6 +123,7 @@ sections:
         card_mod:
           style: |
             :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+            ha-card { transform: translateZ(0); backface-visibility: hidden; }
 
   # Buienradar
   - type: grid
@@ -136,6 +140,7 @@ sections:
         card_mod:
           style: |
             :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+            ha-card { transform: translateZ(0); backface-visibility: hidden; }
       - type: custom:button-card
         template: stat
         entity: binary_sensor.weer_thuis_neerslag_verwacht
