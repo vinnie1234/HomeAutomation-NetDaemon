@@ -3355,6 +3355,19 @@ commute_card:
         const margin = 0.03;
         // De naam van een overige route zoals de eigenaar hem gaf (zonder 9292/ANWB, de eigenaar en Lijnen/Route)
         const routeName = s => String(s.attributes.friendly_name ?? s.entity_id).replace(/^(9292|ANWB Route)\s+/i, '').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+(Lijnen|Route)\s*$/i, '').trim();
+        // Begin en eind van een route: een OV-route kent zijn plaatsen (from/to), een autoroute alleen coördinaten: die krijgen de naam van de zone waar ze in of vlak bij liggen
+        const placeAt = point => {
+          if (!Array.isArray(point) || point.length < 2) return null;
+          const near = Object.values(states).filter(z => z.entity_id.startsWith('zone.') && z.attributes.latitude != null).map(z => {
+            const dLat = (z.attributes.latitude - point[0]) * 111320, dLon = (z.attributes.longitude - point[1]) * 111320 * Math.cos(point[0] * Math.PI / 180);
+            return { name: z.attributes.friendly_name, gap: Math.hypot(dLat, dLon) - (z.attributes.radius ?? 100) };
+          }).sort((a, b) => a.gap - b.gap)[0];
+          return near && near.gap < 500 ? near.name : null;
+        };
+        const endpointsOf = s => {
+          const from = s.kind === 'ov' ? s.attributes.from : placeAt(s.attributes.origin), to = s.kind === 'ov' ? s.attributes.to : placeAt(s.attributes.destination);
+          return from && to ? `<div style="font-size:12px;opacity:.8;margin:1px 0">📍 ${from} → ${to}</div>` : '';
+        };
         const badgeOf = (s, color) => {
           const icon = s.dir === 'work' ? 'mdi:office-building-outline' : s.dir === 'home' ? 'mdi:home-import-outline' : 'mdi:map-marker-path';
           const picture = states[s.attributes.person]?.attributes.entity_picture;
@@ -3543,7 +3556,7 @@ commute_card:
           const earlierLine = earlier.filter(t => t !== next).map(t => `<b>${clock(new Date(t.departure_actual))}</b> → ${clock(new Date(t.arrival))}${t.cancelled ? ' ❌' : t.delay_min >= 1 ? ` (+${Math.round(t.delay_min)})` : ''}`).join(' · ');
           const slug = routeName(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
           const mapButton = `<div style="margin:4px 0 12px"><span style="display:inline-block;padding:7px 16px;border-radius:14px;cursor:pointer;background:rgba(122,162,255,0.25);border:1px solid rgba(147,178,255,0.45);font-weight:600" onclick="document.getElementById('huis-reis')?.remove();window.huisKaartOpen('ov',{slug:'${slug}',person:'${s.attributes.person}'})">🗺️ Kaart van deze reis</span></div>`;
-          const modalHtml = mapButton + (wantedTime == null ? '' : `<div style="font-weight:600;color:#7aa2ff;margin-bottom:6px">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`);
+          const modalHtml = endpointsOf(s) + mapButton + (wantedTime == null ? '' : `<div style="font-weight:600;color:#7aa2ff;margin-bottom:6px">${s.dir === 'work' ? 'Op kantoor om' : 'Weg van kantoor om'} ${hm(wantedTime)}</div>`);
           const key = register(s, `${ownerName} · ${title} · OV`, modalHtml, {
             routeId: s.attributes.route_id, choiceId, chosen: chosen ? choice : '',
             trips: [...earlier, ...trips].map(x => ({ id: x.id, planned: stamp(x), html: tripLine(x) }))
@@ -3551,6 +3564,7 @@ commute_card:
           return `<div ${blockAttrs(key)} style="display:flex;align-items:center;gap:14px;text-align:left">${badgeOf(s, color)}
                     <div style="line-height:1.35;min-width:0">
                       <div style="font-size:12px;opacity:.65">${ownerName} · ${title} · OV</div>
+                      ${endpointsOf(s)}
                       <div style="font-size:18px;font-weight:700">${Math.round(next.duration_min)} min
                         <span style="font-size:13px;font-weight:500;color:${color}">${next.cancelled ? 'vervalt' : delay >= 1 ? `+${Math.round(delay)} min` : 'op tijd'}</span></div>
                       <div style="font-size:13px;opacity:.85">Vertrek ${clock(departure)} (over ${minutes} min) · aankomst ${clock(new Date(next.arrival))}${next.transfers ? ` · ${next.transfers} overstap${next.transfers === 1 ? '' : 'pen'}` : ''}</div>
@@ -3625,11 +3639,12 @@ commute_card:
           const jamDetail = jams.map(j => { const a = j.attributes; return `<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08)"><b>${a.road}</b> ${a.from} → ${a.to}<div style="opacity:.85;font-size:13px">${a.direction ? a.direction.replace(/ - /g, ' → ') + ' · ' : ''}${a.length_km ? km(a.length_km) + ' km · ' : ''}${a.delay_min ? '+' + a.delay_min + ' min · ' : ''}${a.start ? 'sinds ' + clock(new Date(a.start)) : ''}</div>${a.reason ? `<div style="opacity:.7;font-size:13px">${a.reason}</div>` : ''}</div>`; }).join('') || '<div style="opacity:.7">Geen files op de wegen van je route.</div>';
           const radarDetail = radars.map(r => { const a = r.attributes; return `<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08)">📸 <b>${a.road}</b> ${a.from}<div style="opacity:.85;font-size:13px">${a.direction ? 'richting ' + String(a.direction).split(' - ').slice(-1)[0] : ''}${a.reason ? ' · ' + a.reason : ''}</div></div>`; }).join('') || '<div style="opacity:.7">Geen flitsers gemeld op je route.</div>';
           const altDetail = (route.alternatives ?? []).map(a => `<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08)">via ${(a.via ?? []).join(' · ')} · <b>${Math.round(a.duration_min)} min</b><span style="opacity:.8"> (${a.difference_min <= 0 ? '' : '+'}${Math.round(a.difference_min)} min, ${km(a.distance_km)} km)</span></div>`).join('');
-          const modalHtml = `<div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:10px"><div><div style="opacity:.65;font-size:12px">Reistijd</div><b style="font-size:20px">${Math.round(duration)} min</b>${delay >= 1 ? ` <span style="color:${color}">+${Math.round(delay)}</span>` : ''}</div><div><div style="opacity:.65;font-size:12px">Normaal</div><b style="font-size:20px">${Math.round(normal)} min</b></div>${isNaN(arrival) ? '' : `<div><div style="opacity:.65;font-size:12px">Aankomst</div><b style="font-size:20px">${clock(arrival)}</b></div>`}${isNaN(distance) ? '' : `<div><div style="opacity:.65;font-size:12px">Afstand</div><b style="font-size:20px">${km(distance)} km</b></div>`}</div>${via.length ? `<div style="opacity:.85">Via ${via.join(' · ')}</div>` : ''}${advice}<div style="font-weight:600;margin:14px 0 2px">Files op de wegen van je route</div>${jamDetail}<div style="font-weight:600;margin:14px 0 2px">Flitsers</div>${radarDetail}${altDetail ? `<div style="font-weight:600;margin:14px 0 2px">Andere routes</div>${altDetail}` : ''}<div style="margin-top:16px"><span style="display:inline-block;padding:7px 16px;border-radius:14px;cursor:pointer;background:rgba(122,162,255,0.25);border:1px solid rgba(147,178,255,0.45);font-weight:600" onpointerup="window.huisReisMap('${s.entity_id}','${s.attributes.person}')" onclick="window.huisReisMap('${s.entity_id}','${s.attributes.person}')">🗺️ Open de kaart met alle files</span></div>`;
+          const modalHtml = endpointsOf(s) + `<div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:10px"><div><div style="opacity:.65;font-size:12px">Reistijd</div><b style="font-size:20px">${Math.round(duration)} min</b>${delay >= 1 ? ` <span style="color:${color}">+${Math.round(delay)}</span>` : ''}</div><div><div style="opacity:.65;font-size:12px">Normaal</div><b style="font-size:20px">${Math.round(normal)} min</b></div>${isNaN(arrival) ? '' : `<div><div style="opacity:.65;font-size:12px">Aankomst</div><b style="font-size:20px">${clock(arrival)}</b></div>`}${isNaN(distance) ? '' : `<div><div style="opacity:.65;font-size:12px">Afstand</div><b style="font-size:20px">${km(distance)} km</b></div>`}</div>${via.length ? `<div style="opacity:.85">Via ${via.join(' · ')}</div>` : ''}${advice}<div style="font-weight:600;margin:14px 0 2px">Files op de wegen van je route</div>${jamDetail}<div style="font-weight:600;margin:14px 0 2px">Flitsers</div>${radarDetail}${altDetail ? `<div style="font-weight:600;margin:14px 0 2px">Andere routes</div>${altDetail}` : ''}<div style="margin-top:16px"><span style="display:inline-block;padding:7px 16px;border-radius:14px;cursor:pointer;background:rgba(122,162,255,0.25);border:1px solid rgba(147,178,255,0.45);font-weight:600" onpointerup="window.huisReisMap('${s.entity_id}','${s.attributes.person}')" onclick="window.huisReisMap('${s.entity_id}','${s.attributes.person}')">🗺️ Open de kaart met alle files</span></div>`;
           const key = register(s, `${ownerName} · ${title.toLowerCase()}`, modalHtml);
           return `<div ${blockAttrs(key)} style="display:flex;align-items:center;gap:14px;text-align:left">${badge(color)}
                     <div style="line-height:1.35;min-width:0">
                       <div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}${via.length ? ' · via ' + via.join(' · ') : ''}</div>
+                      ${endpointsOf(s)}
                       <div style="font-size:18px;font-weight:700">${Math.round(duration)} min
                         <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
                       <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
