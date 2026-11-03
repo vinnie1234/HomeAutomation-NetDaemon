@@ -349,26 +349,22 @@ sections:
           mode: all
         grid_options:
           columns: full
-      # De kaart met alle files staat in een pop-up (hash #fileskaart), niet standaard open
+      # De kaarten openen in een venster in het midden van het scherm (zie window.huisKaartOpen in commute_card)
       - type: custom:button-card
         template: action
         name: Kaart met alle files
         icon: mdi:map-search-outline
         tap_action:
-          action: navigate
-          navigation_path: "#fileskaart"
+          action: javascript
+          javascript: "[[[ window.huisKaartOpen?.('anwb'); ]]]"
         grid_options:
-          columns: full
-
-  # Pop-up: de ANWB-kaart met alle files, werkzaamheden en flitsers
-  - type: grid
-    cards:
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: "#fileskaart"
-        name: Files, werkzaamheden en flitsers
-        icon: mdi:map-search-outline
-        cards:
-          - type: custom:anwb-file-map-card
-            radius_km: 20
-            height: 640
+          columns: 6
+      - type: custom:button-card
+        template: action
+        name: Kaart van de OV-reizen
+        icon: mdi:train-variant
+        tap_action:
+          action: javascript
+          javascript: "[[[ window.huisKaartOpen?.('ov'); ]]]"
+        grid_options:
+          columns: 6
