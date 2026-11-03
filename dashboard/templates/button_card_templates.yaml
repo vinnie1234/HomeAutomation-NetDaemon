@@ -3655,7 +3655,7 @@ commute_card:
         };
         const blocks = list => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">${list.map(blockOf).join('')}</div>`;
         // Op Weer en verkeer één blok per persoon, naast elkaar (op een smal scherm onder elkaar), met de routes van die persoon erin
-        const perPerson = () => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px 20px;align-items:start">`
+        const perPerson = () => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:start">`
           + [...new Set(rows.map(r => r.attributes.person))].map(person => {
             const owner = states[person], picture = owner?.attributes.entity_picture;
             const mine = rows.filter(r => r.attributes.person === person);
