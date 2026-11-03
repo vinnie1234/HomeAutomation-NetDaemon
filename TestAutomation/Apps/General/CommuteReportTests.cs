@@ -169,7 +169,7 @@ public class CommuteReportTests
             SetState("input_select.vervoer_carleen_donderdag", "OV");
             SetState("sensor.9292_thuis_nijmegen_carleen_lijnen", "505 · 3255", new
             {
-                friendly_name = "9292 Thuis -> Nijmegen (Carleen) Lijnen",
+                friendly_name = "9292 Thuis -> Werk (Carleen) Lijnen",
                 person = "person.carleen",
                 from = "Veenendaal",
                 to = "Nijmegen",
@@ -330,7 +330,7 @@ public class CommuteReportTests
         SetState("input_select.vervoer_carleen_donderdag", "OV");
         SetState("sensor.9292_thuis_nijmegen_carleen_lijnen", "505 · 3255", new
         {
-            friendly_name = "9292 Thuis -> Nijmegen (Carleen) Lijnen",
+            friendly_name = "9292 Thuis -> Werk (Carleen) Lijnen",
             person = "person.carleen",
             route_id = "route-1",
             upcoming = new[]
@@ -381,7 +381,7 @@ public class CommuteReportTests
         var text = Messages().Single(m => m.To == CarleenWhatsapp).Text;
         text.Should().Contain("🚶 08:05 Loop naar Veenendaal Centrum (450 m)")
             .And.Contain("*Bus 505* richting Ede").And.Contain("vanaf Veenendaal Centrum, perron B")
-            .And.Contain("• 08:20 Veenendaal-De Klomp")
+            .And.Contain("… 1 halte")
             .And.Contain("➜ 08:32 (+2) Ede-Wageningen")
             .And.Contain("🔁 Overstappen op Ede-Wageningen: 8 min")
             .And.Contain("*Intercity* richting Nijmegen").And.Contain("vanaf Ede-Wageningen, spoor 4")
@@ -404,6 +404,75 @@ public class CommuteReportTests
         Messages().Should().ContainSingle(m => m.To == CarleenWhatsapp);
         _connection.Received().SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(
             Arg.Is<GetJourneyCommand>(c => c.JourneyId == "journey-2"), Arg.Any<CancellationToken>());
+    }
+
+    private void CarleenTrainHome()
+    {
+        SetState("input_select.werkdag_carleen_donderdag", "Kantoor");
+        SetState("input_select.vervoer_carleen_donderdag", "OV");
+        SetState("sensor.9292_werk_huis_carleen_lijnen", "3064", new
+        {
+            friendly_name = "9292 Werk -> Huis (Carleen) Lijnen",
+            person = "person.carleen",
+            upcoming = new[]
+            {
+                new { id = "t1", departure_actual = "2026-10-29T16:01:00+00:00", arrival = "2026-10-29T17:10:00+00:00", duration_min = 69, delay_min = 0, transfers = 0, legs = Array.Empty<object>(), cancelled = false },
+                new { id = "t2", departure_actual = "2026-10-29T16:31:00+00:00", arrival = "2026-10-29T17:40:00+00:00", duration_min = 69, delay_min = 0, transfers = 0, legs = Array.Empty<object>(), cancelled = false }
+            }
+        });
+        _entities.Add(new Entity(_ctx.HaContext, "sensor.9292_werk_huis_carleen_lijnen"));
+    }
+
+    private void SetZone(string zone, params string[] persons) => SetState(zone, persons.Length.ToString(), new { persons });
+
+    private List<JsonElement> CallsOf(string domain, string service) =>
+        _ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == domain && (string)c.GetArguments()[1]! == service)
+            .Select(c => c.GetArguments()[3] == null ? default : JsonSerializer.SerializeToElement(c.GetArguments()[3]))
+            .ToList();
+
+    [Fact]
+    public void LeavingTheStation_AndBeingOnTheTrackWithinFiveMinutes_ChoosesThatTrain()
+    {
+        Start("Vrij", configure: CarleenTrainHome);
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(16, 55);
+
+        SetZone("zone.station_nijmegen");
+        AdvanceTo(17, 1);
+        SetZone("zone.trein_nijmegen_arnhem", "person.carleen");
+        AdvanceTo(17, 3);
+
+        CallsOf("input_text", "set_value").Should().ContainSingle().Which.GetProperty("value").GetString().Should().Be("2026-10-29 17:01");
+        CallsOf("input_boolean", "turn_on").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LeavingTheStation_WithoutBeingOnTheTrackWithinFiveMinutes_MeansTheRouteIsNotNeeded()
+    {
+        Start("Vrij", configure: CarleenTrainHome);
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(16, 55);
+
+        SetZone("zone.station_nijmegen");
+        AdvanceTo(17, 1);
+        AdvanceTo(17, 8);
+
+        CallsOf("input_boolean", "turn_on").Should().ContainSingle();
+        CallsOf("input_text", "set_value").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LeavingTheStationInTheMorning_IsArriving_NotTheTrainHome()
+    {
+        Start("Vrij", configure: CarleenTrainHome);
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(9, 0);
+
+        SetZone("zone.station_nijmegen");
+        AdvanceTo(9, 15);
+
+        CallsOf("input_boolean", "turn_on").Should().BeEmpty();
     }
 
     [Fact]

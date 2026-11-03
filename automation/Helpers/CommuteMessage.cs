@@ -17,21 +17,17 @@ public static class CommuteMessage
     private static readonly CultureInfo Dutch = new("nl-NL");
 
     /// <summary>
-    /// Which way a route goes, from its name: when "werk" (or "kantoor") comes before "thuis" (or "huis") it is the way home, when
-    /// "thuis" comes first the way to work, whatever else the name says ("Werk => Huis", "Huis -> Werk", "ANWB Route Thuis - Kantoor").
-    /// When the name has only one of them ("9292 Thuis -> Nijmegen", "Nijmegen -> Thuis"), the place named first in the name is where the
-    /// route starts: "thuis" in the first half means the way to work, in the second half the way home, and the other way around for "werk".
-    /// Null when the name does not tell.
+    /// Which way a route goes, from its name. Only a name with both a place of work ("werk", "kantoor") and home ("thuis", "huis") is a
+    /// route between them: when the work comes before home it is the way home, when home comes first the way to work ("Werk => Huis",
+    /// "Huis -> Werk", "ANWB Route Thuis - Kantoor"). Null for any other name, such as "Thuis -> Nijmegen".
     /// </summary>
     public static CommuteDirection? DirectionOfName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
         var work = System.Text.RegularExpressions.Regex.Match(name, "werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         var home = System.Text.RegularExpressions.Regex.Match(name, "thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if (work.Success && home.Success) return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
-        if (home.Success) return home.Index < name.Length / 2 ? CommuteDirection.ToWork : CommuteDirection.ToHome;
-        if (work.Success) return work.Index < name.Length / 2 ? CommuteDirection.ToHome : CommuteDirection.ToWork;
-        return null;
+        if (!work.Success || !home.Success) return null;
+        return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
     }
 
     /// <summary>The jams on the route: on one of its roads, inside its area and going the same way.</summary>
@@ -143,7 +139,7 @@ public static class CommuteMessage
 
     /// <summary>
     /// The WhatsApp message for a public transport commute with every step: when to leave, where to walk, which bus or train from which stop
-    /// or platform, the stops on the way with their times, where to change (and how long you have), and when you arrive.
+    /// or platform, the number of stops on the way, where to change (and how long you have), and when you arrive.
     /// </summary>
     /// <param name="direction">Whether he goes to the office or home.</param>
     /// <param name="route">The next trips.</param>
@@ -180,8 +176,9 @@ public static class CommuteMessage
 
             lines.Add($"{ModeIcon(leg.Mode ?? "")} {Clock(departure)}{Delay(leg.From)} *{LegName(leg.Mode, leg.Line)}*{(leg.Destination is { Length: > 0 } ? $" richting {leg.Destination}" : "")}");
             lines.Add($"   vanaf {leg.From?.Name}{Platform(leg.From, leg.Mode)}");
-            foreach (var stop in leg.Stops.Where(s => s.Name != leg.From?.Name && s.Name != leg.To?.Name))
-                lines.Add($"   • {Clock(TimeOf(stop))}{Delay(stop)} {stop.Name}");
+            // Not every stop on the way: one line saying how many there are
+            var between = leg.Stops.Count(s => s.Name != leg.From?.Name && s.Name != leg.To?.Name);
+            if (between > 0) lines.Add($"   … {between} {(between == 1 ? "halte" : "haltes")}");
             lines.Add($"   ➜ {Clock(arrival)}{Delay(leg.To)} {leg.To?.Name}{Platform(leg.To, leg.Mode)}");
             if (leg.Cancelled) lines.Add("   ❌ Deze rit vervalt");
             foreach (var message in leg.Disruptions.Take(2)) lines.Add($"   ⚠️ {message}");

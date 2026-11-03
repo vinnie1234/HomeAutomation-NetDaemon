@@ -22,7 +22,7 @@ namespace Automation.apps.General;
 /// </para>
 /// </summary>
 [NetDaemonApp(Id = nameof(CommuteReport))]
-public class CommuteReport : BaseApp
+public partial class CommuteReport : BaseApp
 {
     /// <summary>When the message about the trip to the office is sent while the helper has no time.</summary>
     public static readonly TimeSpan DefaultMorning = new(7, 50, 0);
@@ -86,6 +86,7 @@ public class CommuteReport : BaseApp
                 () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null) _ = Send(commuter, CommuteDirection.ToHome); });
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
+        SetUpTrainTracking();
 
         // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
@@ -121,7 +122,7 @@ public class CommuteReport : BaseApp
                 {
                     if (TargetTime(commuter, direction) is not { } target) continue;
                     var key = $"{commuter.Id}|{direction}|{today}";
-                    if (_sent.Contains(key)) continue;
+                    if (_sent.Contains(key) || HaContext.GetState($"input_boolean.reis_niet_{commuter.Id}_{Side(direction)}")?.State == "on") continue;
 
                     var sendAt = LeaveBy(commuter, direction, target) - SendBefore;
                     if (now < sendAt || now >= sendAt + TooLate) continue;
@@ -173,6 +174,8 @@ public class CommuteReport : BaseApp
             {
                 // Switched off by the person, or not an office day
                 if (HaContext.GetState($"input_boolean.verkeer_bericht_{commuter.Id}")?.State == "off") return;
+                // The route is not needed today (they did not get into the train)
+                if (HaContext.GetState($"input_boolean.reis_niet_{commuter.Id}_{Side(direction)}")?.State == "on") return;
                 if (!commuter.Schedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek)) return;
                 // Already home on the way back, or already gone on the way there: nothing to warn about
                 if (direction == CommuteDirection.ToHome && commuter.Person.IsHome) return;
@@ -235,24 +238,16 @@ public class CommuteReport : BaseApp
 
     /// <summary>
     /// The entity id prefix of the route of this person in this direction. The ANWB File integration gives every route an owner
-    /// (the <c>person</c> attribute of its sensors); which way it goes follows from its name (<see cref="CommuteMessage.DirectionOfName"/>),
-    /// or else from whether it starts or ends at home.
+    /// (the <c>person</c> attribute of its sensors); which way it goes follows from its name (<see cref="CommuteMessage.DirectionOfName"/>).
     /// </summary>
     private string? FindRoutePrefix(string personId, CommuteDirection direction)
     {
-        var homeAttributes = HaContext.GetState("zone.home")?.AttributesJson;
-        var homePoint = homeAttributes is { ValueKind: JsonValueKind.Object } home
-            ? new GeoPoint(Number(home, "latitude") ?? 0, Number(home, "longitude") ?? 0)
-            : default;
-
         foreach (var entity in HaContext.GetAllEntities().Where(e => e.EntityId.StartsWith("sensor.anwb_route_", StringComparison.Ordinal)
                                                                    && e.EntityId.EndsWith("_route", StringComparison.Ordinal)))
         {
             if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != personId) continue;
             var name = Text(a, "friendly_name") ?? entity.EntityId;
-            var routeDirection = CommuteMessage.DirectionOfName(name)
-                                 ?? (Near(Point(a, "origin"), homePoint) ? CommuteDirection.ToWork
-                                     : Near(Point(a, "destination"), homePoint) ? CommuteDirection.ToHome : null);
+            var routeDirection = CommuteMessage.DirectionOfName(name);
             if (routeDirection == direction) return entity.EntityId[..^"_route".Length];
         }
         return null;
@@ -366,8 +361,6 @@ public class CommuteReport : BaseApp
         // To work, a time at the office is an arrival and a time to leave home is a departure; back home it is the other way around
         return new CommuteTarget(time, IsArrival: direction == CommuteDirection.ToWork ? !departure : arrivalHome);
     }
-
-    private static bool Near(GeoPoint a, GeoPoint b) => Math.Abs(a.Lat - b.Lat) < 0.01 && Math.Abs(a.Lon - b.Lon) < 0.01;
 
     /// <summary>The fastest route, or null while its sensors have no value.</summary>
     private RouteSnapshot? ReadRoute(string prefix)

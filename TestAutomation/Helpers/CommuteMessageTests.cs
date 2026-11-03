@@ -126,10 +126,6 @@ public class CommuteMessageTests
     [InlineData("Route van kantoor naar thuis (A12) Carleen", CommuteDirection.ToHome)]
     [InlineData("werk thuis", CommuteDirection.ToHome)]
     [InlineData("THUIS WERK", CommuteDirection.ToWork)]
-    [InlineData("9292 Thuis -> Nijmegen (Carleen)", CommuteDirection.ToWork)]
-    [InlineData("9292 Nijmegen -> Thuis (Carleen)", CommuteDirection.ToHome)]
-    [InlineData("Route naar werk", CommuteDirection.ToWork)]
-    [InlineData("Werk naar Utrecht", CommuteDirection.ToHome)]
     public void DirectionOfName_FollowsTheOrderOfWorkAndHome(string name, CommuteDirection expected)
     {
         CommuteMessage.DirectionOfName(name).Should().Be(expected);
@@ -137,6 +133,10 @@ public class CommuteMessageTests
 
     [Theory]
     [InlineData("ANWB Route Boodschappen")]
+    [InlineData("9292 Thuis -> Nijmegen (Carleen)")]
+    [InlineData("9292 Nijmegen -> Thuis (Carleen)")]
+    [InlineData("Route naar werk")]
+    [InlineData("Werk naar Utrecht")]
     [InlineData("")]
     [InlineData(null)]
     public void DirectionOfName_IsNull_WhenTheNameDoesNotTell(string? name)

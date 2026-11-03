@@ -349,12 +349,10 @@ sections:
         grid_options:
           columns: full
       # De kaart met alle files staat in een pop-up (hash #fileskaart), niet standaard open
-      - type: tile
+      - type: custom:button-card
+        template: action
         name: Kaart met alle files
         icon: mdi:map-search-outline
-        icon_tap_action:
-          action: navigate
-          navigation_path: "#fileskaart"
         tap_action:
           action: navigate
           navigation_path: "#fileskaart"

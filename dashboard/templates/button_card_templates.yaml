@@ -3210,15 +3210,11 @@ commute_card:
             // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
             // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
             // werkdag halverwege is, tot 22:00.
-            const homeZone = states['zone.home']?.attributes ?? {};
-            const nearHome = p => Array.isArray(p) && Math.abs(p[0] - homeZone.latitude) < 0.01 && Math.abs(p[1] - homeZone.longitude) < 0.01;
             const directionOf = s => {
               const name = String(s.attributes.friendly_name ?? s.entity_id);
+              // Alleen een naam met werk (kantoor) én thuis (huis) is een route tussen die twee
               const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
-              if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
-              if (home >= 0) return home < name.length / 2 ? 'work' : 'home';
-              if (work >= 0) return work < name.length / 2 ? 'home' : 'work';
-              return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
+              return work >= 0 && home >= 0 ? (work < home ? 'home' : 'work') : null;
             };
             const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
             const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
@@ -3249,6 +3245,7 @@ commute_card:
             const rows = Object.values(states)
               .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
               .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
+              .filter(s => s.dir && states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state !== 'on')
               .filter(s => s.dir && (variables.mode === 'all' || isAsked(s) || wanted(s)))
               .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.kind === chosenKind(s)
                 || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
@@ -3280,15 +3277,11 @@ commute_card:
         // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
         // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
         // werkdag halverwege is, tot 22:00.
-        const homeZone = states['zone.home']?.attributes ?? {};
-        const nearHome = p => Array.isArray(p) && Math.abs(p[0] - homeZone.latitude) < 0.01 && Math.abs(p[1] - homeZone.longitude) < 0.01;
         const directionOf = s => {
           const name = String(s.attributes.friendly_name ?? s.entity_id);
+          // Alleen een naam met werk (kantoor) én thuis (huis) is een route tussen die twee
           const work = name.search(/werk|kantoor/i), home = name.search(/thuis|huis/i);
-          if (work >= 0 && home >= 0) return work < home ? 'home' : 'work';
-          if (home >= 0) return home < name.length / 2 ? 'work' : 'home';
-          if (work >= 0) return work < name.length / 2 ? 'home' : 'work';
-          return nearHome(s.attributes.origin) ? 'work' : nearHome(s.attributes.destination) ? 'home' : null;
+          return work >= 0 && home >= 0 ? (work < home ? 'home' : 'work') : null;
         };
         const hoursOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d+):(\d+)/); return m ? +m[1] + m[2] / 60 : null; };
         const nowDate = new Date(), hourNow = nowDate.getHours() + nowDate.getMinutes() / 60;
@@ -3319,6 +3312,7 @@ commute_card:
         const rows = Object.values(states)
           .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
           .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s), kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
+          .filter(s => s.dir && states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state !== 'on')
           .filter(s => s.dir && (variables.mode === 'all' || isAsked(s) || wanted(s)))
           .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.kind === chosenKind(s)
             || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
@@ -3378,8 +3372,9 @@ commute_card:
               const wait = Math.round((new Date(leg.from?.real ?? leg.from?.time) - new Date(previous.to?.real ?? previous.to?.time)) / 60000);
               out += `<div style="margin:10px 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.07)">🔁 Overstappen op <b>${leg.from?.name ?? ''}</b>: ${Math.max(0, wait)} min${previous.to?.platform && leg.from?.platform && previous.to.platform !== leg.from.platform ? ` · van spoor ${previous.to.platform} naar ${leg.from.platform}` : ''}</div>`;
             }
-            const stops = (leg.stops ?? []).filter(x => x.name !== leg.from?.name && x.name !== leg.to?.name)
-              .map(x => `<div style="opacity:.75;font-size:13px;padding-left:2px">${at(x)}${late(x)} &nbsp;${x.name}</div>`).join('');
+            // Niet elke halte, wel hoeveel er tussen zitten
+            const between = (leg.stops ?? []).filter(x => x.name !== leg.from?.name && x.name !== leg.to?.name).length;
+            const stops = between ? `<div style="opacity:.75;font-size:13px;padding-left:2px">… ${between} ${between === 1 ? 'halte' : 'haltes'}</div>` : '';
             out += `<div style="margin:10px 0;border-left:3px solid ${leg.cancelled ? '#ff6b6b' : '#7aa2ff'};padding:2px 0 2px 12px">
               <div>${legLabel({ mode: leg.mode, line: leg.line })} <b>${at(leg.from)}</b>${late(leg.from)}${leg.destination ? ` richting ${leg.destination}` : ''}</div>
               <div style="opacity:.8;font-size:13px">vanaf ${leg.from?.name ?? ''}${platformOf(leg.from, leg.mode)}</div>
@@ -3439,8 +3434,8 @@ commute_card:
           document.getElementById('huis-reis')?.remove();
           const el = document.createElement('div');
           el.id = 'huis-reis';
-          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center';
-          el.innerHTML = `<div style="width:min(640px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px 24px 0 0;padding:18px 20px 30px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          el.innerHTML = `<div style="width:min(640px,100%);max-height:86vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 24px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                 <div style="font-size:18px;font-weight:700">${d.title}</div>
                 <span id="huis-reis-sluit" style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
@@ -3601,9 +3596,12 @@ commute_card:
             <ha-icon icon="mdi:share-variant" style="--mdc-icon-size:18px"></ha-icon><span>Stuur door naar ${otherName}</span></span></div>`;
         };
         // De routes als blokken naast elkaar (op een smal scherm onder elkaar); een blok opent bij een tik zijn venster
-        const blocks = list => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">`
-          + list.map(s => `<div style="min-width:0;display:flex"><div style="flex:1;min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.18);pointer-events:auto;${s.kind === 'missing' ? '' : 'cursor:pointer'}">${card(s)}${forwardButton(s)}</div></div>`).join('') + `</div>`;
-        const overview = blocks(rows);
+        const blockOf = s => `<div style="min-width:0;display:flex"><div style="flex:1;min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.18);pointer-events:auto;${s.kind === 'missing' ? '' : 'cursor:pointer'}">${card(s)}${forwardButton(s)}</div></div>`;
+        const blocks = list => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">${list.map(blockOf).join('')}</div>`;
+        // Op Weer en verkeer elke persoon een eigen kolom, naast elkaar (op een smal scherm onder elkaar)
+        const perPerson = () => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px 20px;align-items:start">`
+          + [...new Set(rows.map(r => r.attributes.person))].map(person => `<div style="display:flex;flex-direction:column;gap:16px;min-width:0">${rows.filter(r => r.attributes.person === person).map(blockOf).join('')}</div>`).join('') + `</div>`;
+        const overview = variables.mode === 'all' ? perPerson() : blocks(rows);
         // Een link uit een WhatsApp-bericht (?reis=carleen-work-ov) opent meteen het venster van die reis, één keer
         if (asked && window.huisReisDetail[asked] && window.huisReisLastOpened !== asked) {
           window.huisReisLastOpened = asked;

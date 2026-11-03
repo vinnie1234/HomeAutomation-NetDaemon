@@ -224,6 +224,9 @@ public static class HelperDefinitions
         Number($"reis_marge_voor_{person}", $"Reis marge voor {name}", min: 0, max: 120, step: 5, mode: "box", unit: "min", icon: "mdi:timer-sand", start: 10),
         Number($"reis_marge_na_{person}", $"Reis marge na {name}", min: 0, max: 120, step: 5, mode: "box", unit: "min", icon: "mdi:timer-sand-complete", start: 10),
         // De trein of bus die je kiest in het venster van een OV-reis (het vertrek volgens de dienstregeling, "jjjj-mm-dd uu:mm"); leeg is de eerste reis
+        // Aan als de persoon niet in de trein stapte die hij moest nemen (zie CommuteReport): de route is dan niet meer nodig
+        Boolean($"reis_niet_{person}_work", $"Reis niet {name} work", icon: "mdi:train-variant"),
+        Boolean($"reis_niet_{person}_home", $"Reis niet {name} home", icon: "mdi:train-variant"),
         Text($"reis_keuze_{person}_work", $"Reis keuze {name} work", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Text($"reis_keuze_{person}_home", $"Reis keuze {name} home", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
