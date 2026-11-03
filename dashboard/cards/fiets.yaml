@@ -1,0 +1,3 @@
+# Fietskaart voor Home: de Bosch eBike (accu, bereik, laden, waar hij staat en de laatste rit). NetDaemon (BikeMonitor) stuurt de meldingen.
+type: custom:button-card
+template: bike_status

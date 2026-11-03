@@ -801,6 +801,7 @@ sections:
   - type: grid
     cards:
       - !include ../cards/auto.yaml
+      - !include ../cards/fiets.yaml
 
   # Wat er nu speelt, en de camera als er niemand thuis is (verborgen zolang er niets te zien is)
   - type: grid

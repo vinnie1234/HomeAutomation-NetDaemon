@@ -780,7 +780,7 @@ weather_hero:
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel', 'binary_sensor.buiten_peugeot_2008_motor',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel', 'binary_sensor.buiten_peugeot_2008_motor', 'device_tracker.bfe_ah1336572_location', 'binary_sensor.bfe_ah1336572_battery_charging',
             ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
@@ -1616,6 +1616,19 @@ weather_hero:
               <rect x="4" y="5.6" width="10" height="1.4" rx="0.7" fill="${dim('rgb(14,54,36)')}"/>
               ${letters ? `<path d="M17 9 L17 1 L22 1 L22 4 L17 4" fill="#dc2626" stroke="#991b1b" stroke-width="0.4"/>`
                 : `<path d="M17 10 L23 10 L23 12.6 L17 12.6" fill="${dim('rgb(150,40,40)')}"/>`}`,
+            'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
+        }
+        // ---------- De fiets (Bosch eBike, Sparta): staat bij het huis zolang hij thuis is, met een groen lampje als hij laadt ----------
+        if (states['device_tracker.bfe_ah1336572_location']?.state === 'home') {
+          const bx = nearHouse(-9.2), charging = states['binary_sensor.bfe_ah1336572_battery_charging']?.state === 'on';
+          const frame = dim('rgb(40,44,56)'), metal = dim('rgb(150,156,168)');
+          festive += svgAt(bx, groundBottom(bx) - 1.5, 38, 24, '0 0 38 24', `
+              <circle cx="8" cy="16" r="6.4" fill="none" stroke="${frame}" stroke-width="1.5"/>
+              <circle cx="30" cy="16" r="6.4" fill="none" stroke="${frame}" stroke-width="1.5"/>
+              <path d="M8 16 L15 6 L26 6 L30 16 M15 6 L19 16 L26 6 M19 16 L8 16" fill="none" stroke="${frame}" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M24 6 L28 2.4 L32 2.4" fill="none" stroke="${metal}" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M13 3.4 L18.6 3.4" stroke="${frame}" stroke-width="2" stroke-linecap="round"/><path d="M15.6 3.4 L15 6" stroke="${metal}" stroke-width="1"/>
+              <rect x="17" y="10.4" width="5.6" height="3.2" rx="1" fill="${charging ? '#4ade80' : dim('rgb(70,110,170)')}"/>`,
             'filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
         }
         // Pakketjes op de stoep van de voordeur, opgestapeld, met een sticker in de kleur van de vervoerder
@@ -4790,6 +4803,62 @@ car_status:
             </div>
           </div>
           ${service ? `<div style="margin-top:10px;font-size:12px;opacity:${soon ? 1 : 0.7};color:${soon ? '#ffb060' : 'inherit'}">🔧 Beurt over ${service}</div>` : ''}
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
+# Status van de Bosch eBike (Sparta, entiteiten bfe_ah1336572_*): de accu en het bereik, of hij laadt, waar hij staat en de laatste rit.
+# Tik opent de kaart met de locatie. NetDaemon (BikeMonitor) stuurt de meldingen (accu laag of vol, fiets weg).
+bike_status:
+  template: glass
+  entity: device_tracker.bfe_ah1336572_location
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const p = 'bfe_ah1336572_';
+        const st = id => states[id]?.state;
+        const num = id => { const v = parseFloat(st(id)); return isNaN(v) ? null : v; };
+        const nl = n => Math.round(n).toLocaleString('nl-NL');
+        const level = num(`sensor.${p}battery_level`), range = num(`sensor.${p}battery_reachable_max_range`);
+        const charging = st(`binary_sensor.${p}battery_charging`) === 'on';
+        const tracker = st(`device_tracker.${p}location`);
+        const place = tracker === 'home' ? 'Thuis' : tracker === 'not_home' ? 'Niet thuis' : tracker && !['unknown', 'unavailable'].includes(tracker) ? tracker : 'Locatie onbekend';
+        const low = level !== null && level < 20;
+        const color = charging ? '#4ade80' : low ? '#ff6b6b' : '#7aa2ff';
+        const status = charging ? 'Aan de lader' : tracker === 'home' ? 'Staat thuis' : 'Onderweg';
+        const total = num(`sensor.${p}total_distance`), last = num(`sensor.${p}last_ride_distance`);
+        const info = [last !== null ? `laatste rit ${String(last).replace('.', ',')} km` : null, total !== null ? `totaal ${nl(total)} km` : null].filter(Boolean).join(' · ');
+        return `<div style="text-align:left">
+          <div style="display:flex;align-items:center;gap:10px">
+            <ha-icon icon="mdi:bicycle-electric" style="--mdc-icon-size:28px;color:${color}"></ha-icon>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:16px;font-weight:700">Fiets</div>
+              <div style="font-size:13px;font-weight:600;color:${color}">${status}${charging ? ' ⚡' : ''}</div>
+            </div>
+            <div style="font-size:12px;opacity:0.8;white-space:nowrap;text-align:right;line-height:1.5">📍 ${place}</div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:4px">
+              <span>🔋 Accu${low ? ' bijna leeg' : ''}</span>
+              <span>${level !== null ? `${Math.round(level)}%` : '–'}${range !== null ? ` · bereik ${nl(range)} km` : ''}</span>
+            </div>
+            <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.12);overflow:hidden">
+              <div style="width:${level !== null ? Math.max(2, Math.min(100, level)) : 0}%;height:100%;background:${color}"></div>
+            </div>
+          </div>
+          ${info ? `<div style="margin-top:10px;font-size:12px;opacity:0.7">${info}</div>` : ''}
         </div>`;
       ]]]
   styles:
