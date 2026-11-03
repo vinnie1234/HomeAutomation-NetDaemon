@@ -84,9 +84,16 @@ sections:
         time_format: 24
         forecast_rows: 5
         hide_today_section: false
+        # Geen blur: de blur van het thema flikkert op de tablet zodra er iets in beweegt (de weericonen)
+        card_mod:
+          style: |
+            :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       # Verwachting per uur (48 uur), horizontaal door te schuiven
       - type: custom:button-card
         template: forecast_strip
+        card_mod:
+          style: |
+            :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       - type: custom:mini-graph-card
         name: Temperatuur
         icon: mdi:thermometer
@@ -110,6 +117,9 @@ sections:
         entities:
           - entity: sensor.weer_thuis_temperatuur
             name: Buiten
+        card_mod:
+          style: |
+            :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
   # Buienradar
   - type: grid
