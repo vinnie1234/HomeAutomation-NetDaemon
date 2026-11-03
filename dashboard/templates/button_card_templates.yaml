@@ -1620,7 +1620,7 @@ weather_hero:
         }
         // ---------- De fiets (Bosch eBike, Sparta): staat bij het huis zolang hij thuis is, met een groen lampje als hij laadt ----------
         if (states['device_tracker.bfe_ah1336572_location']?.state === 'home') {
-          const bx = nearHouse(-9.2), charging = states['binary_sensor.bfe_ah1336572_battery_charging']?.state === 'on';
+          const bx = nearHouse(4.4), charging = states['binary_sensor.bfe_ah1336572_battery_charging']?.state === 'on';
           const frame = dim('rgb(40,44,56)'), metal = dim('rgb(150,156,168)');
           festive += svgAt(bx, groundBottom(bx) - 1.5, 38, 24, '0 0 38 24', `
               <circle cx="8" cy="16" r="6.4" fill="none" stroke="${frame}" stroke-width="1.5"/>
