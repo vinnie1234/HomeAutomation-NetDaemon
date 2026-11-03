@@ -5031,32 +5031,60 @@ workday_button:
         const dateText = `${date.getFullYear()}-${p2(date.getMonth() + 1)}-${p2(date.getDate())}`;
         const nice = date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
         const hm = text => { const m = String(text ?? '').match(/(\d{1,2}):(\d{2})/); return m ? `${p2(m[1])}:${m[2]}` : null; };
-        const minus = (text, min) => { const m = String(text ?? '').match(/(\d{1,2}):(\d{2})/); if (!m) return null; const n = (+m[1] * 60 + +m[2] + min + 1440) % 1440; return `${p2(Math.floor(n / 60))}:${p2(n % 60)}`; };
         const seg = (options, current, onclick) => `<div style="display:flex;gap:8px;flex-wrap:wrap">${options.map(([value, label, icon, rgb]) => `<span style="flex:1;min-width:84px;text-align:center;cursor:pointer;padding:10px 8px;border-radius:14px;font-weight:600;
             background:rgba(${rgb},${current === value ? 0.3 : 0.08});border:${current === value ? `2px solid rgb(${rgb})` : '1px solid rgba(255,255,255,0.12)'}" onclick="${onclick}('${value}')">
             <ha-icon icon="${icon}" style="--mdc-icon-size:20px;display:block;margin:0 auto 2px"></ha-icon>${label}</span>`).join('')}</div>`;
+        // De reistijd van de route van deze persoon in die richting, met de manier van reizen van die dag (de ANWB-route of de eerste OV-reis van nu)
+        const travelMinutes = (st, dir, byTrain) => {
+          const mine = Object.values(st).filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id)
+            && String(s.attributes.person ?? '').startsWith(`person.${person}`)
+            && (name => { const w = name.search(/werk|kantoor/i), h = name.search(/thuis|huis/i); return w >= 0 && h >= 0 && (w < h ? 'home' : 'work') === dir; })(String(s.attributes.friendly_name ?? s.entity_id)));
+          const route = mine.find(s => s.entity_id.startsWith('sensor.9292_') === byTrain) ?? mine[0];
+          if (!route) return null;
+          if (route.entity_id.startsWith('sensor.9292_')) return parseFloat(route.attributes.upcoming?.[0]?.duration_min) || null;
+          return parseFloat(st[route.entity_id.replace(/_route$/, '_reistijd')]?.state) || null;
+        };
         const draw = () => {
           const st = hassNow().states;
           const state = st[entity.entity_id]?.state, transport = st[`input_select.vervoer_${person}_${dayName}`]?.state;
           const fromCalendar = st[`input_boolean.werk_uit_agenda_${person}`]?.state === 'on';
           const get = id => st[id]?.state;
-          const start = hm(get(`input_datetime.werk_start_${person}`)) ?? '08:30', end = hm(get(`input_datetime.werk_eind_${person}`)) ?? '17:00';
-          const before = parseFloat(get(`input_number.reis_marge_voor_${person}`)) || 10, after = parseFloat(get(`input_number.reis_marge_na_${person}`)) || 10;
+          const before = parseFloat(get(`input_number.reis_marge_voor_${person}`)) || 0, after = parseFloat(get(`input_number.reis_marge_na_${person}`)) || 0;
           const forDate = id => { const s = String(get(id) ?? ''); return s.startsWith(dateText) ? hm(s.slice(11)) : null; };
-          let source = '', firstRow = ['Op kantoor', null], lastRow = ['Weg van kantoor', null];
+          const toMin = text => { const m = String(text ?? '').match(/(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+          const fromMin = n => n == null ? null : `${p2(Math.floor(((n % 1440) + 1440) % 1440 / 60))}:${p2(Math.round(((n % 1440) + 1440) % 1440) % 60)}`;
+          const dur = n => n == null ? null : Math.round(n);
+          const byTrain = transport === 'OV';
+          let source = '', workHours = null, arriveAt = null, leaveAt = null, departAt = null, homeAt = null;
+          const toOffice = dur(travelMinutes(st, 'work', byTrain)), toHome = dur(travelMinutes(st, 'home', byTrain));
           if (fromCalendar) {
-            const arrive = forDate(`input_datetime.kantoor_aankomst_${person}`), leave = forDate(`input_datetime.kantoor_vertrek_${person}`);
-            source = arrive ? 'Uit de agenda (C: werk)' : 'Nog niet uit de agenda gelezen: dit zijn je gewone werkuren met de marges';
-            firstRow[1] = arrive ?? minus(start, -before); lastRow[1] = leave ?? minus(end, after);
+            const a = toMin(forDate(`input_datetime.kantoor_aankomst_${person}`)), l = toMin(forDate(`input_datetime.kantoor_vertrek_${person}`));
+            if (a != null && l != null) {
+              // Uit de agenda: de tijden van de afspraak zijn de aankomst plus de marge ervoor, en het vertrek min de marge erna
+              workHours = [a + before, l - after]; arriveAt = a; leaveAt = l;
+              source = 'Uit de agenda (C: werk)';
+            } else {
+              const s = toMin(hm(get(`input_datetime.werk_start_${person}`))), e = toMin(hm(get(`input_datetime.werk_eind_${person}`)));
+              if (s != null && e != null) { workHours = [s, e]; arriveAt = s - before; leaveAt = e + after; }
+              source = 'Deze dag is nog niet uit de agenda gelezen (dat gebeurt \'s nachts, of met de sync-knop): dit zijn je gewone werkuren';
+            }
           } else {
-            const mKind = get(`input_select.reis_ochtend_soort_${person}`), mTime = hm(get(`input_datetime.reis_ochtend_tijd_${person}`));
-            const eKind = get(`input_select.reis_avond_soort_${person}`), eTime = hm(get(`input_datetime.reis_avond_tijd_${person}`));
+            const s = toMin(hm(get(`input_datetime.werk_start_${person}`))), e = toMin(hm(get(`input_datetime.werk_eind_${person}`)));
+            if (s != null && e != null) workHours = [s, e];
+            const mKind = get(`input_select.reis_ochtend_soort_${person}`), mTime = toMin(hm(get(`input_datetime.reis_ochtend_tijd_${person}`)));
+            const eKind = get(`input_select.reis_avond_soort_${person}`), eTime = toMin(hm(get(`input_datetime.reis_avond_tijd_${person}`)));
+            if (mTime != null) { if (mKind === 'Van huis vertrekken') departAt = mTime; else arriveAt = mTime; }
+            if (eTime != null) { if (eKind === 'Thuis zijn') homeAt = eTime; else leaveAt = eTime; }
             source = 'Vaste tijden (door jou ingesteld)';
-            firstRow = [mKind === 'Van huis vertrekken' ? 'Van huis vertrekken' : 'Op kantoor', mTime];
-            lastRow = [eKind === 'Thuis zijn' ? 'Thuis zijn' : 'Weg van kantoor', eTime];
           }
-          const row = (label, value) => value ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${label}</span><b>${value}</b></div>` : '';
+          // De ontbrekende tijden uit de reistijd
+          if (departAt == null && arriveAt != null && toOffice != null) departAt = arriveAt - toOffice;
+          if (arriveAt == null && departAt != null && toOffice != null) arriveAt = departAt + toOffice;
+          if (homeAt == null && leaveAt != null && toHome != null) homeAt = leaveAt + toHome;
+          if (leaveAt == null && homeAt != null && toHome != null) leaveAt = homeAt - toHome;
+          const row = (label, value, note = '') => value ? `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${label}</span><b>${value}${note ? ` <span style="font-weight:400;opacity:.6">${note}</span>` : ''}</b></div>` : '';
           const office = state === 'Kantoor';
+          const way = byTrain ? 'OV' : 'auto';
           el.querySelector('#huis-dag-inhoud').innerHTML = `
             <div style="opacity:.7;margin-bottom:10px;text-transform:capitalize">${nice}</div>
             <div style="font-weight:600;margin-bottom:6px">Hoe is deze dag?</div>
@@ -5064,9 +5092,11 @@ workday_button:
             ${office ? `<div style="font-weight:600;margin:16px 0 6px">Hoe ga je?</div>${seg([['Auto', 'Auto', 'mdi:car', '96,165,250'], ['OV', 'Openbaar vervoer', 'mdi:train', '250,204,21']], transport, 'window.huisDagVervoer')}` : ''}
             <div style="font-weight:600;margin:16px 0 2px">Tijden</div>
             ${state === 'Vrij' ? '<div style="opacity:.7;padding:6px 0">Een vrije dag: geen tijden en geen verkeersbericht.</div>' : `
-              ${row('Werkuren', `${start} – ${end}`)}
-              ${office ? row(firstRow[0], firstRow[1]) + row(lastRow[0], lastRow[1]) : ''}
-              <div style="opacity:.6;font-size:12px;margin-top:6px">${office ? source : 'Je werkt thuis: de werkuren gelden.'}</div>`}`;
+              ${workHours ? row('Werkuren', `${fromMin(workHours[0])} – ${fromMin(workHours[1])}`) : ''}
+              ${office ? row('Van huis vertrekken', fromMin(departAt), toOffice != null ? `(${toOffice} min ${way} reizen)` : '')
+                + row('Op kantoor', fromMin(arriveAt)) + row('Weg van kantoor', fromMin(leaveAt))
+                + row('Thuis', fromMin(homeAt), toHome != null ? `(${toHome} min ${way} reizen)` : '') : ''}
+              <div style="opacity:.6;font-size:12px;margin-top:6px">${office ? source : ''}${office && (toOffice == null || toHome == null) ? ' · De reistijd van een route in die richting ontbreekt, dus niet alle tijden zijn te berekenen.' : ''}</div>`}`;
         };
         window.huisDagSet = value => { hassNow().callService('input_select', 'select_option', { entity_id: entity.entity_id, option: value }); setTimeout(draw, 500); };
         window.huisDagVervoer = value => { hassNow().callService('input_select', 'select_option', { entity_id: `input_select.vervoer_${person}_${dayName}`, option: value }); setTimeout(draw, 500); };
