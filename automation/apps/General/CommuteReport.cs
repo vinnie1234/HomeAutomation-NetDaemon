@@ -291,13 +291,17 @@ public partial class CommuteReport : BaseApp
     }
 
     /// <summary>The details of the first trip (every step with its stops and platforms), or null when the integration has no id for it or does not answer.</summary>
-    private async Task<JourneyDetail?> GetJourneyAsync(TransitRoute route)
+    private Task<JourneyDetail?> GetJourneyAsync(TransitRoute route) =>
+        route.Trips[0].Id is { Length: > 0 } id ? GetJourneyAsync(id, route.RouteId) : Task.FromResult<JourneyDetail?>(null);
+
+    /// <summary>The details of one journey (every step with its stops and platforms), or null when the integration does not answer.</summary>
+    private async Task<JourneyDetail?> GetJourneyAsync(string id, string? routeId)
     {
-        if (route.Trips[0].Id is not { Length: > 0 } id || _runner.CurrentConnection is not { } connection) return null;
+        if (_runner.CurrentConnection is not { } connection) return null;
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            var detail = await connection.SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(new GetJourneyCommand(id, route.RouteId), timeout.Token);
+            var detail = await connection.SendCommandAndReturnResponseAsync<GetJourneyCommand, JourneyDetail>(new GetJourneyCommand(id, routeId), timeout.Token);
             return detail is { Legs.Count: > 0 } ? detail : null;
         }
         catch (Exception ex)

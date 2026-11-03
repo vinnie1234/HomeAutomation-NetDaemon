@@ -25,6 +25,15 @@ public partial class CommuteReport
     /// <summary>Who arrives at this station for an appointment is there: the other routes of the person are no longer needed on the dashboard.</summary>
     private const string AppointmentStation = "zone.station_nijmegen";
 
+    /// <summary>
+    /// The zone on the track at Ede: whoever takes the bus to Ede and the train from there is in it when that train passes. The train is
+    /// found by its stop at Ede (the passenger never was in a station zone).
+    /// </summary>
+    private const string EdeTrack = "zone.trein_ede_arnhem";
+
+    /// <summary>How far back the trips of the person are remembered: a trip has gone from the sensor by the time the train is at Ede.</summary>
+    private static readonly TimeSpan RememberTrips = TimeSpan.FromHours(3);
+
     /// <summary>How long after leaving the station the person has to be in the zone on the track.</summary>
     public static readonly TimeSpan InTrainWithin = TimeSpan.FromMinutes(5);
 
@@ -34,6 +43,8 @@ public partial class CommuteReport
     /// <summary>A person who left a station and has to show up in the zone on the track, with the trip they most likely took.</summary>
     private sealed record Departure(DateTimeOffset Left, TransitTrip? Trip);
 
+    private readonly Dictionary<string, Dictionary<string, TransitTrip>> _knownTrips = [];
+    private readonly HashSet<string> _onEdeTrack = [];
     private readonly Dictionary<string, Departure> _departures = [];
     private readonly Dictionary<string, IReadOnlyList<TransitTrip>> _tripsAtStation = [];
     private readonly HashSet<string> _atStation = [];
@@ -65,7 +76,11 @@ public partial class CommuteReport
         try
         {
             var now = Scheduler.Now;
-            foreach (var commuter in _commuters) FollowAppointment(commuter);
+            foreach (var commuter in _commuters)
+            {
+                FollowAppointment(commuter);
+                FollowEde(commuter, now);
+            }
             foreach (var commuter in _commuters)
                 foreach (var link in StationLinks)
                 {
@@ -102,6 +117,60 @@ public partial class CommuteReport
         catch (Exception ex)
         {
             Logger.LogError(ex, "Could not follow the trains");
+        }
+    }
+
+    /// <summary>
+    /// Remembers the trips to the office, and when the person comes into the zone on the track at Ede in the morning without a train chosen yet
+    /// (<c>input_text.reis_keuze_{person}_work</c>), chooses the trip whose train was at Ede about now.
+    /// </summary>
+    private void FollowEde(Commuter commuter, DateTimeOffset now)
+    {
+        var known = _knownTrips.TryGetValue(commuter.Id, out var existing) ? existing : _knownTrips[commuter.Id] = [];
+        foreach (var trip in AllTrips(commuter, CommuteDirection.ToWork).Where(t => t.Id != null)) known[trip.Id!] = trip;
+        foreach (var old in known.Where(k => k.Value.Departure < now - RememberTrips).Select(k => k.Key).ToList()) known.Remove(old);
+
+        if (!InZone(EdeTrack, commuter.PersonId))
+        {
+            _onEdeTrack.Remove(commuter.Id);
+            return;
+        }
+        if (!_onEdeTrack.Add(commuter.Id) || !IsTimeForTrip(CommuteDirection.ToWork) || ChosenDeparture(commuter, CommuteDirection.ToWork) != null) return;
+        var candidates = known.Values.Where(t => t.Departure <= now && !t.Cancelled).ToList();
+        if (candidates.Count > 0) _ = ChooseTripAtEdeAsync(commuter, candidates, now);
+    }
+
+    /// <summary>Asks for the details of the trips that have left and chooses the one with a train that was at Ede within a few minutes of now.</summary>
+    private async Task ChooseTripAtEdeAsync(Commuter commuter, List<TransitTrip> candidates, DateTimeOffset now)
+    {
+        try
+        {
+            var routeId = FindTransitPrefix(commuter.PersonId, CommuteDirection.ToWork) is { } prefix
+                && HaContext.GetState($"{prefix}_lijnen")?.AttributesJson is { ValueKind: JsonValueKind.Object } a ? Text(a, "route_id") : null;
+            TransitTrip? best = null;
+            var bestGap = TimeSpan.MaxValue;
+            foreach (var trip in candidates)
+            {
+                var detail = await GetJourneyAsync(trip.Id!, routeId);
+                foreach (var leg in detail?.Legs ?? [])
+                {
+                    if (leg.Mode is null or "Walking" or "Bus" or "Tram" or "Metro" or "Ferry") continue;
+                    foreach (var stop in new[] { leg.From }.Concat(leg.Stops).Concat([leg.To]))
+                    {
+                        if (stop?.Name?.Contains("Ede", StringComparison.OrdinalIgnoreCase) != true
+                            || !DateTimeOffset.TryParse(stop.Real ?? stop.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var at)) continue;
+                        var gap = (at - now).Duration();
+                        if (gap <= SameTrain && gap < bestGap) (best, bestGap) = (trip, gap);
+                    }
+                }
+            }
+            if (best == null) return;
+            ChooseTrip(commuter, CommuteDirection.ToWork, best);
+            Logger.LogInformation("{Person} sits in the train from Ede of {Departure}", commuter.Id, best.Departure);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not find the train of {Person} at Ede", commuter.Id);
         }
     }
 

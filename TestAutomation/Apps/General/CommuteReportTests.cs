@@ -518,6 +518,37 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void BeingOnTheTrackAtEde_ChoosesTheTripWhoseTrainWasAtEde()
+    {
+        Start("Vrij", configure: CarleenGoesByTrain);
+        AdvanceTo(8, 30);
+
+        SetZone("zone.trein_ede_arnhem", "person.carleen");
+        AdvanceTo(8, 42);
+        Thread.Sleep(200);
+
+        // journey-1 has its train from Ede-Wageningen at 08:40 Dutch time, journey-2 has no details
+        CallsOf("input_text", "set_value").Should().ContainSingle().Which.GetProperty("value").GetString().Should().Be("2026-10-29 08:10");
+    }
+
+    [Fact]
+    public void BeingOnTheTrackAtEde_WithATrainChosenAlready_ChangesNothing()
+    {
+        Start("Vrij", configure: () =>
+        {
+            CarleenGoesByTrain();
+            SetState("input_text.reis_keuze_carleen_work", "2026-10-29 08:10");
+        });
+        AdvanceTo(8, 30);
+
+        SetZone("zone.trein_ede_arnhem", "person.carleen");
+        AdvanceTo(8, 42);
+        Thread.Sleep(200);
+
+        CallsOf("input_text", "set_value").Should().BeEmpty();
+    }
+
+    [Fact]
     public void LeavingTheStationInTheMorning_IsArriving_NotTheTrainHome()
     {
         Start("Vrij", configure: CarleenTrainHome);
