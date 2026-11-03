@@ -34,6 +34,10 @@ sections:
           green: 0
           yellow: 1500
           red: 2500
+        # Geen blur op deze kaart: de blur van het thema flikkert op de tablet zodra er iets in beweegt
+        card_mod:
+          style: |
+            :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       - type: custom:mini-graph-card
         name: Laatste 24 uur
         icon: mdi:chart-areaspline

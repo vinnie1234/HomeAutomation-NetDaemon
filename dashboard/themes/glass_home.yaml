@@ -13,7 +13,7 @@ Glass Home:
   state-icon-color: "rgba(242, 244, 248, 0.7)"
   app-header-background-color: "transparent"
   app-header-text-color: "#f2f4f8"
-  lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.22), transparent 60%), #0b0f19"
+  lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.22), transparent 60%), #0b0f19 fixed"
   mdc-theme-surface: "#121828"
   # Uitklapmenu's (keuzelijsten): een dichte achtergrond. Ze namen de doorzichtige kaartkleur en de tekst eronder scheen erdoorheen.
   mdc-menu-surface-fill-color: "#161d2e"
@@ -52,11 +52,10 @@ Glass Home:
 
   # card-mod
   card-mod-theme: Glass Home
-  # Geen backdrop-filter (blur) op de kaarten: ze liggen op een egaal donker verloop, dus de blur zag je nauwelijks, maar hij zorgde op
-  # een telefoon en tablet voor flikkeren zodra er iets onder of in beweegt (grafieken, animaties, scrollen onder de menubalk).
-  # Het verloop hierboven staat ook niet meer "fixed", dat flikkert in mobiele browsers tijdens het scrollen.
   card-mod-card: |
     ha-card {
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
       transition: background 0.4s ease, box-shadow 0.4s ease;
     }
   # Kolommen van een sections-pagina smaller en dichter op elkaar (standaard 320 en 32 pixels), zodat er op de tablet
