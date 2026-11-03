@@ -48,12 +48,13 @@ public static class CommuteMessage
     /// <param name="radars">All speed cameras, any road.</param>
     /// <param name="now">The current time.</param>
     /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
+    /// <param name="title">The name of the route when it is neither to the office nor home; it replaces the heading.</param>
     public static string Build(CommuteDirection direction, RouteSnapshot route, IEnumerable<TrafficIncident> jams,
-        IEnumerable<TrafficIncident> radars, DateTimeOffset now, CommuteTarget? target = null)
+        IEnumerable<TrafficIncident> radars, DateTimeOffset now, CommuteTarget? target = null, string? title = null)
     {
         var lines = new List<string>
         {
-            direction == CommuteDirection.ToWork ? "🚗 *Naar kantoor*" : "🏠 *Naar huis*"
+            title != null ? $"🚗 *{title}*" : direction == CommuteDirection.ToWork ? "🚗 *Naar kantoor*" : "🏠 *Naar huis*"
         };
 
         var travel = $"⏱️ Reistijd: {Minutes(route.DurationMin)}";
@@ -107,13 +108,17 @@ public static class CommuteMessage
     }
 
 
+    private static string Heading(CommuteDirection direction, string? title) =>
+        title != null ? $"🚆 *{title} met het OV*" : direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*";
+
     /// <summary>The WhatsApp message for a public transport commute: the next trip with its lines, delay and cancellations, and the ones after it.</summary>
     /// <param name="direction">Whether he goes to the office or home.</param>
     /// <param name="route">The next trips.</param>
     /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
-    public static string BuildTransit(CommuteDirection direction, TransitRoute route, CommuteTarget? target = null)
+    /// <param name="title">The name of the route when it is neither to the office nor home; it replaces the heading.</param>
+    public static string BuildTransit(CommuteDirection direction, TransitRoute route, CommuteTarget? target = null, string? title = null)
     {
-        var lines = new List<string> { direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*" };
+        var lines = new List<string> { Heading(direction, title) };
         if (target is { } wanted)
             lines.Add(wanted.IsArrival ? $"🎯 {(direction == CommuteDirection.ToWork ? "Op kantoor" : "Thuis")} om {Clock(wanted.Time)}" : $"🎯 Vertrek om {Clock(wanted.Time)}");
         if (route.Trips.Count == 0)
@@ -146,9 +151,10 @@ public static class CommuteMessage
     /// <param name="journey">The details of the first trip.</param>
     /// <param name="target">When he has to be at the office (to work) or leaves it (home), if known.</param>
     /// <param name="forwardTo">The name of the person the message can be forwarded to ("Stuur door"), if any.</param>
-    public static string BuildJourney(CommuteDirection direction, TransitRoute route, JourneyDetail journey, CommuteTarget? target = null, string? forwardTo = null)
+    /// <param name="title">The name of the route when it is neither to the office nor home; it replaces the heading.</param>
+    public static string BuildJourney(CommuteDirection direction, TransitRoute route, JourneyDetail journey, CommuteTarget? target = null, string? forwardTo = null, string? title = null)
     {
-        var lines = new List<string> { direction == CommuteDirection.ToWork ? "🚆 *Naar kantoor met het OV*" : "🚆 *Naar huis met het OV*" };
+        var lines = new List<string> { Heading(direction, title) };
         if (target is { } wanted)
             lines.Add(wanted.IsArrival ? $"🎯 {(direction == CommuteDirection.ToWork ? "Op kantoor" : "Thuis")} om {Clock(wanted.Time)}" : $"🎯 Vertrek om {Clock(wanted.Time)}");
         if (route.Trips.Count > 0 && route.Trips[0].Cancelled) lines.Add("❌ Let op: een deel van deze reis vervalt");

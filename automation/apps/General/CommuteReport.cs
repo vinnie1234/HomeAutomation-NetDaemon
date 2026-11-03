@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Helpers;
@@ -102,7 +103,8 @@ public partial class CommuteReport : BaseApp
         {
             var sender = commuter;
             new Entity(HaContext, $"input_button.reis_doorsturen_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
-                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true));
+                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true,
+                    otherRoute: HaContext.GetState($"input_text.reis_doorsturen_route_{sender.Id}")?.State));
         }
     }
 
@@ -166,7 +168,8 @@ public partial class CommuteReport : BaseApp
     /// <param name="direction">To the office or home.</param>
     /// <param name="test">A test message, whatever day it is.</param>
     /// <param name="forward">The message goes to the other person, as the expected times of this person (the "Stuur door" button).</param>
-    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false)
+    /// <param name="otherRoute">The sensor of a route that is neither to the office nor home, which is forwarded instead of the trip of the day.</param>
+    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false, string? otherRoute = null)
     {
         try
         {
@@ -182,8 +185,10 @@ public partial class CommuteReport : BaseApp
                 if (direction == CommuteDirection.ToWork && !commuter.Person.IsHome) return;
             }
 
-            var (carPrefix, transitPrefix) = ChooseRoutes(commuter, direction);
-            var target = TargetTime(commuter, direction);
+            string? title = null;
+            var (carPrefix, transitPrefix) = otherRoute is { Length: > 0 } ? OtherRoute(commuter, otherRoute, out title) : ChooseRoutes(commuter, direction);
+            var target = title != null ? null : TargetTime(commuter, direction);
+            var side = title != null ? "other" : Side(direction);
             if (carPrefix == null && transitPrefix == null)
             {
                 // Somebody without a route in this direction gets nothing, just like somebody without a WhatsApp id
@@ -200,9 +205,9 @@ public partial class CommuteReport : BaseApp
             var parts = new List<string>();
             if (carPrefix != null)
                 parts.Add(ReadRoute(carPrefix) is { } route
-                    ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target)
+                    ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target, title)
                     : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
-            if (carPrefix != null) parts[^1] += DashboardLink(commuter, direction, "car");
+            if (carPrefix != null) parts[^1] += DashboardLink(commuter, side, "car");
             var otherName = commuter.Id == "vincent" ? "Carleen" : "Vincent";
             if (transitPrefix != null)
             {
@@ -210,9 +215,9 @@ public partial class CommuteReport : BaseApp
                 // With the id of the first trip the integration tells every step; without it (or when asking fails) the short version
                 var journey = transit is { Trips.Count: > 0 } ? await GetJourneyAsync(transit) : null;
                 parts.Add(transit == null ? "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar)."
-                    : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward ? null : otherName)
-                    : CommuteMessage.BuildTransit(direction, transit, target) + (forward ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
-                parts[^1] += DashboardLink(commuter, direction, "ov");
+                    : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward ? null : otherName, title)
+                    : CommuteMessage.BuildTransit(direction, transit, target, title) + (forward ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
+                parts[^1] += DashboardLink(commuter, side, "ov");
             }
             var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
             var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
@@ -231,10 +236,26 @@ public partial class CommuteReport : BaseApp
     /// A link that opens the dashboard with the details of this trip (the card reads <c>reis=person-direction-kind</c> and opens its window).
     /// Nothing when the address of Home Assistant is not known.
     /// </summary>
-    private string DashboardLink(Commuter commuter, CommuteDirection direction, string kind) =>
+    private string DashboardLink(Commuter commuter, string side, string kind) =>
         string.IsNullOrEmpty(_config.BaseUrlHomeAssistant)
             ? ""
-            : $"\n🔗 Alle details: {_config.BaseUrlHomeAssistant.TrimEnd('/')}/dashboard-huis/home?reis={commuter.Id}-{(direction == CommuteDirection.ToWork ? "work" : "home")}-{kind}";
+            : $"\n🔗 Alle details: {_config.BaseUrlHomeAssistant.TrimEnd('/')}/dashboard-huis/home?reis={commuter.Id}-{side}-{kind}";
+
+    /// <summary>
+    /// The route that was asked for by its sensor (a route that is neither to the office nor home), as the prefix of a car or a public
+    /// transport route of this person, with its name as the title of the message. Nothing when it is not a route of this person.
+    /// </summary>
+    private (string? Car, string? Transit) OtherRoute(Commuter commuter, string entityId, out string? title)
+    {
+        title = null;
+        var state = HaContext.GetState(entityId);
+        if (state?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != commuter.PersonId) return (null, null);
+        var name = Text(a, "friendly_name") ?? entityId;
+        title = Regex.Replace(Regex.Replace(Regex.Replace(name, @"^(9292|ANWB Route)\s+", "", RegexOptions.IgnoreCase), @"\s*\([^)]*\)\s*", " "), @"\s+(Lijnen|Route)\s*$", "", RegexOptions.IgnoreCase).Trim();
+        if (entityId.StartsWith("sensor.9292_", StringComparison.Ordinal) && entityId.EndsWith("_lijnen", StringComparison.Ordinal)) return (null, entityId[..^"_lijnen".Length]);
+        if (entityId.StartsWith("sensor.anwb_route_", StringComparison.Ordinal) && entityId.EndsWith("_route", StringComparison.Ordinal)) return (entityId[..^"_route".Length], null);
+        return (null, null);
+    }
 
     /// <summary>
     /// The entity id prefix of the route of this person in this direction. The ANWB File integration gives every route an owner

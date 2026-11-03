@@ -518,6 +518,35 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void TheForwardButton_WithAnotherRoute_SendsThatRoute_UnderItsOwnName()
+    {
+        Start("Vrij", configure: () =>
+        {
+            CarleenGoesByTrain();
+            SetState("sensor.9292_thuis_carleen_carleen_lijnen", "3064", new
+            {
+                friendly_name = "9292 Thuis -> Carleen (Carleen) Lijnen",
+                person = "person.carleen",
+                upcoming = new[]
+                {
+                    new { id = "o1", departure_actual = "2026-10-29T07:10:00+00:00", arrival = "2026-10-29T08:19:00+00:00", duration_min = 69, delay_min = 0, transfers = 0, legs = Array.Empty<object>(), cancelled = false }
+                }
+            });
+            _entities.Add(new Entity(_ctx.HaContext, "sensor.9292_thuis_carleen_carleen_lijnen"));
+            SetState("input_text.reis_doorsturen_route_carleen", "sensor.9292_thuis_carleen_carleen_lijnen");
+        });
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.reis_doorsturen_carleen").FromState("unknown").ToState("2026-10-29T06:30:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        var message = Messages().Should().ContainSingle().Which;
+        message.To.Should().Be(VincentWhatsapp);
+        message.Text.Should().Contain("Thuis -> Carleen met het OV").And.Contain("?reis=carleen-other-ov").And.NotContain("Naar kantoor");
+    }
+
+    [Fact]
     public void TheForwardButton_OfCarleen_GoesToVincent()
     {
         Start("Vrij", configure: CarleenGoesByTrain);

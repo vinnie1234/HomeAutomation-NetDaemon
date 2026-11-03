@@ -229,6 +229,8 @@ public static class HelperDefinitions
         Boolean($"reis_niet_{person}_home", $"Reis niet {name} home", icon: "mdi:train-variant"),
         // De eerstvolgende afspraak van vandaag uit de agenda ("jjjj-mm-dd uu:mm|titel"), voor de overige routes op Home
         Text($"afspraak_{person}", $"Afspraak {name}", min: 0, max: 100, mode: "text", icon: "mdi:calendar-clock"),
+        // Welke overige route "Stuur door" doorstuurt (de sensor); leeg is de route van de dag
+        Text($"reis_doorsturen_route_{person}", $"Reis doorsturen route {name}", min: 0, max: 100, mode: "text", icon: "mdi:share-variant"),
         Text($"reis_keuze_{person}_work", $"Reis keuze {name} work", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Text($"reis_keuze_{person}_home", $"Reis keuze {name} home", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
