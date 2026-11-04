@@ -1816,7 +1816,8 @@ weather_hero:
               total = crawlS + driveS + holdS + leaveS;
               delay = (van.from - nowMs) / 1000 - crawlS - driveS;
               const p = v => (v / total * 100).toFixed(3);
-              keyframes = `0% { left: -30%; } ${p(crawlS)}% { left: ${stop - 12}%; animation-timing-function: ease-out; }
+              // Begint buiten beeld en staat na een paar seconden net binnen de linkerrand: vanaf dan zie je het busje over vier uur naar het huis kruipen
+              keyframes = `0% { left: -30%; } 0.02% { left: -4%; } ${p(crawlS)}% { left: ${stop - 12}%; animation-timing-function: ease-out; }
                 ${p(crawlS + driveS)}% { left: ${stop}%; } ${p(crawlS + driveS + holdS)}% { left: ${stop}%; animation-timing-function: ease-in; } 100% { left: 130%; }`;
               spin = `0%, ${p(crawlS)}% { transform: rotate(0deg); } ${p(crawlS + driveS)}% { transform: rotate(${driveS * 2 * 360}deg); }
                 ${p(crawlS + driveS + holdS)}% { transform: rotate(${driveS * 2 * 360}deg); } 100% { transform: rotate(${(driveS + leaveS) * 2 * 360}deg); }`;
