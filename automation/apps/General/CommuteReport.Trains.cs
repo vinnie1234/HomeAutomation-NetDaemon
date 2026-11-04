@@ -210,8 +210,10 @@ public partial class CommuteReport
         if (parts.Length < 2
             || !DateTime.TryParse(parts[0], CultureInfo.InvariantCulture, DateTimeStyles.None, out var start)
             || !DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out var end)) return false;
+        // The times are Dutch clock times: not the clock of the machine this runs on
+        DateTimeOffset InDutchTime(DateTime clock) => new(clock, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(clock));
         var now = Scheduler.NowNl();
-        return start - now <= TimeSpan.FromHours(6) && now < end;
+        return InDutchTime(start) - now <= TimeSpan.FromHours(6) && now < InDutchTime(end);
     }
 
     /// <summary>The trip to the office starts in the morning, the trip home in the afternoon: leaving a station at the other time of day (arriving) is no departure.</summary>
