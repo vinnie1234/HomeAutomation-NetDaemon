@@ -780,7 +780,7 @@ weather_hero:
           Math.round(parseFloat(states['sensor.weer_thuis_windsnelheid']?.state) / 5), Math.round(parseFloat(states['sensor.weer_thuis_bewolking']?.state) / 10),
           ...['weather.weer_thuis', 'weather.weer_thuis_waarnemingen', 'input_select.weerkaart_thema', 'input_select.tijd_van_de_dag', 'input_select.weerkaart_scenario',
             'input_datetime.verjaardag_vincent', 'input_datetime.verjaardag_carleen', 'input_datetime.verjaardag_pixel', 'input_datetime.jubileum',
-            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel', 'binary_sensor.buiten_peugeot_2008_motor', 'device_tracker.bfe_ah1336572_location', 'binary_sensor.bfe_ah1336572_battery_charging',
+            'input_boolean.onvacation', 'person.timo', 'sensor.buiten_postnl_brieven', 'input_text.brieven_ontvangen', 'device_tracker.buiten_peugeot_2008_voertuig', 'vacuum.jaap', 'input_datetime.pixellastlitterboxvisit', 'sensor.thuis_3_voertuig_direction_of_travel', 'binary_sensor.buiten_peugeot_2008_motor', 'device_tracker.bfe_ah1336572_location', 'binary_sensor.bfe_ah1336572_battery_charging',
             ...['postnl', 'dhl', 'dpd', 'gls'].flatMap(c => [`sensor.buiten_${c}_inkomende_pakketten`, `sensor.buiten_${c}_bezorgde_pakketten`, `sensor.buiten_${c}_volgende_bezorging`]),
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
@@ -1598,8 +1598,9 @@ weather_hero:
         // (sensor.buiten_postnl_brieven, per brief een datum), en pakketjes bij de deur zodra ze vandaag bezorgd zijn
         const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const todayIso = isoDay(today), yesterdayIso = isoDay(new Date(today.getTime() - 86400000));
+        const lettersDone = String(states['input_text.brieven_ontvangen']?.state ?? '').split(',');
         const letters = (states['sensor.buiten_postnl_brieven']?.attributes?.letters ?? [])
-          .filter(l => [todayIso, yesterdayIso].includes(String(l.date ?? '').slice(0, 10))).length;
+          .filter(l => [todayIso, yesterdayIso].includes(String(l.date ?? '').slice(0, 10)) && !lettersDone.includes(String(l.id ?? '').replace('mailitem-', '').slice(0, 8))).length;
         const carriers = [['postnl', '#f97316'], ['dhl', '#facc15'], ['dpd', '#dc2626'], ['gls', '#1d4ed8']];
         const parcelDay = p => String(p.delivered_at ?? p.delivery_date ?? p.planned_from ?? p.planned_to ?? '').slice(0, 10);
         const parcels = carriers.flatMap(([key, color]) => {
@@ -4864,6 +4865,45 @@ bike_status:
   styles:
     card:
       - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
+# Een brief (de scan) met de knop om hem als ontvangen af te vinken: hij verdwijnt dan van het dashboard en de brievenbus. Het afvinken
+# staat in input_text.brieven_ontvangen (de eerste 8 tekens van het id van de brief; de laatste 25 blijven bewaard). entity: de image-entiteit.
+letter_card:
+  template: glass
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: more-info
+  custom_fields:
+    body: |
+      [[[
+        const key = String(entity.attributes.id ?? '').replace('mailitem-', '').slice(0, 8);
+        window.huisBriefOntvangen = keys => {
+          if (Date.now() - (window.huisBriefAt ?? 0) < 600) return;
+          window.huisBriefAt = Date.now();
+          const hass = document.querySelector('home-assistant').hass;
+          const current = String(hass.states['input_text.brieven_ontvangen']?.state ?? '').split(',').filter(k => k && k !== 'unknown');
+          const all = [...new Set([...current, ...keys])].slice(-25);
+          hass.callService('input_text', 'set_value', { entity_id: 'input_text.brieven_ontvangen', value: all.join(',') });
+        };
+        return `<div style="text-align:left">
+          <img src="${entity.attributes.entity_picture}" style="width:100%;border-radius:12px;display:block;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span style="font-weight:600">${entity.attributes.title ?? 'Brief'}</span>
+            <span style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 14px;border-radius:14px;background:rgba(74,222,128,0.18);border:1px solid rgba(74,222,128,0.5);color:#4ade80"
+              onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisBriefOntvangen(['${key}'])"
+              onclick="event.stopPropagation();window.huisBriefOntvangen(['${key}'])">✓ Ontvangen</span>
+          </div></div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 10px
     grid:
       - grid-template-areas: '"body"'
     custom_fields:

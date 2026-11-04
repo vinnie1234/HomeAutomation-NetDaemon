@@ -481,6 +481,26 @@ sections:
             entity: sensor.brieven_deze_week
             show_state: true
             show_icon: false
+      # Alle brieven in één keer als ontvangen afvinken (alleen zichtbaar zolang er brieven zijn)
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: sensor.brieven_deze_week
+            above: 0
+        card:
+          type: custom:button-card
+          template: action
+          name: Alle brieven ontvangen
+          icon: mdi:email-check-outline
+          tap_action:
+            action: javascript
+            javascript: |
+              [[[
+                const keys = (states['sensor.brieven_deze_week']?.attributes?.entities ?? [])
+                  .map(e => String(states[e]?.attributes?.id ?? '').replace('mailitem-', '').slice(0, 8)).filter(Boolean);
+                const current = String(states['input_text.brieven_ontvangen']?.state ?? '').split(',').filter(k => k && k !== 'unknown');
+                hass.callService('input_text', 'set_value', { entity_id: 'input_text.brieven_ontvangen', value: [...new Set([...current, ...keys])].slice(-25).join(',') });
+              ]]]
       # Scans van de brieven van de laatste 7 dagen, nieuwste eerst (sensor.brieven_deze_week, zie ha/template.yaml)
       - type: custom:auto-entities
         card:
@@ -492,7 +512,7 @@ sections:
           template: >
             {% set ns = namespace(l=[]) %}
             {% for e in (state_attr('sensor.brieven_deze_week', 'entities') or [])[:4] %}
-              {% set ns.l = ns.l + [{'entity': e, 'type': 'picture-entity', 'show_state': false, 'show_name': true}] %}
+              {% set ns.l = ns.l + [{'entity': e, 'type': 'custom:button-card', 'template': 'letter_card'}] %}
             {% endfor %}
             {{ ns.l }}
         show_empty: false

@@ -33,6 +33,8 @@ public static class HelperDefinitions
         WorkDay("werkdag_vincent_vrijdag", "Werkdag Vincent vrijdag", copyFrom: "input_boolean.officeday_friday"),
         WorkDay("werkdag_vincent_zaterdag", "Werkdag Vincent zaterdag"),
         WorkDay("werkdag_vincent_zondag", "Werkdag Vincent zondag"),
+        // Brieven die op het dashboard als ontvangen zijn afgevinkt (de eerste 8 tekens van hun id, met komma's ertussen)
+        Text("brieven_ontvangen", "Brieven ontvangen", min: 0, max: 255, mode: "text", icon: "mdi:email-check-outline"),
         Boolean("vrij_vincent", "Vrij Vincent", icon: "mdi:beach", copyFrom: "input_boolean.holliday"),
         Time("opstaan_kantoor_vincent", "Opstaan kantoor Vincent", "07:15:00", copyFrom: "input_datetime.daytimeoffice"),
         Time("opstaan_thuiswerk_vincent", "Opstaan thuiswerk Vincent", "08:15:00", copyFrom: "input_datetime.daytimehomework"),
