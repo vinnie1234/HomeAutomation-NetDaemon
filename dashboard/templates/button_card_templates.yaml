@@ -2551,7 +2551,7 @@ weather_hero:
         - z-index: 1
         - align-self: end
         - justify-self: start
-        - padding: 0 0 18px 10px
+        - padding: 0 0 46px 10px
         - text-align: left
       timers:
         - z-index: 1
