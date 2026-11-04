@@ -4168,7 +4168,7 @@ parcels:
                 history: (Array.isArray(p.history) ? p.history : p.raw?.observations ?? [])
                   .map(h => ({
                     date: new Date(h.date ?? h.datetime ?? h.timestamp ?? h.observationDate),
-                    text: String(h.description ?? h.text ?? h.status ?? h.message ?? '').trim()
+                    text: String(h.description ?? h.text ?? h.raw_status ?? h.status ?? h.message ?? '').trim()
                   }))
                   .filter(h => h.text)
                   .sort((x, y) => (y.date.getTime() || 0) - (x.date.getTime() || 0)),
