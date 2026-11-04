@@ -4744,8 +4744,8 @@ usage_alert:
     ]]]
 
 # Status van de Peugeot 2008 (Stellantis, entiteiten buiten_peugeot_2008_*): of hij op slot en dicht staat (of wat openstaat),
-# de tank en het bereik, waar hij staat en wanneer de beurt komt. Tik opent de kaart met de locatie. De knoppen staan eronder
-# (cards/auto.yaml); NetDaemon (CarMonitor) stuurt de meldingen.
+# de tank en het bereik, waar hij staat en wanneer de beurt komt. Tik opent een venster met alle acties die deze auto kent
+# (vergrendelen, ontgrendelen, lichten, toeter, ...); NetDaemon (CarMonitor) stuurt de meldingen.
 car_status:
   template: glass
   entity: device_tracker.buiten_peugeot_2008_voertuig
@@ -4753,7 +4753,63 @@ car_status:
   show_icon: false
   show_name: false
   tap_action:
-    action: more-info
+    action: javascript
+    javascript: |
+      [[[
+        window.huisActieOpen = cfg => {
+          document.getElementById('huis-actie')?.remove();
+          const hass = document.querySelector('home-assistant').hass;
+          const el = document.createElement('div');
+          el.id = 'huis-actie';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const buttons = (cfg.actions ?? []).map((a, i) => `<span data-i="${i}" style="cursor:pointer;text-align:center;padding:14px 8px;border-radius:16px;font-weight:600;font-size:13px;
+              background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px;display:block;margin:0 auto 4px;color:${a.color ?? '#ffb060'}"></ha-icon>${a.label}</span>`).join('');
+          const rows = (cfg.rows ?? []).filter(r => r[1] != null && r[1] !== '').map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${r[0]}</span><b>${r[1]}</b></div>`).join('');
+          el.innerHTML = `<div style="width:min(520px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 22px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div><div style="font-size:18px;font-weight:700">${cfg.title}</div><div style="opacity:.7;font-size:13px">${cfg.subtitle ?? ''}</div></div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${buttons ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:14px">${buttons}</div>` : ''}
+              ${rows}
+              <div style="margin-top:14px"><span data-more style="cursor:pointer;display:inline-block;padding:7px 16px;border-radius:14px;background:rgba(122,162,255,0.2);border:1px solid rgba(147,178,255,0.4);font-weight:600">Alle gegevens en de locatie</span></div>
+            </div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-i],[data-close],[data-more]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.hasAttribute('data-more')) { el.remove(); const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: cfg.entity }; document.querySelector('home-assistant').dispatchEvent(ev); return; }
+            if (!target) return;
+            const a = cfg.actions[+target.dataset.i];
+            if (a.confirm && !window.confirm(a.confirm)) return;
+            hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            target.style.borderColor = '#4ade80';
+            target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
+          });
+        };
+        const st = id => states[id]?.state;
+        const p = 'button.buiten_peugeot_2008_';
+        const all = [
+          ['deuren_vergrendelen', 'Vergrendel', 'mdi:car-door-lock', null],
+          ['deuren_ontgrendelen', 'Ontgrendel', 'mdi:car-door-lock-open', 'De deuren van de auto ontgrendelen?'],
+          ['lichten', 'Lichten', 'mdi:car-light-high', null],
+          ['toeter', 'Toeter', 'mdi:bullhorn', 'De toeter van de auto laten klinken?'],
+          ['wakker_worden', 'Wakker worden', 'mdi:sleep-off', null],
+          ['start_voorconditioneren', 'Voorverwarmen starten', 'mdi:fan', null],
+          ['stop_voorconditioneren', 'Voorverwarmen stoppen', 'mdi:fan-off', null],
+          ['start_laden', 'Laden starten', 'mdi:ev-plug-type2', null],
+          ['stop_laden', 'Laden stoppen', 'mdi:power-plug-off', null]
+        ];
+        // Alleen wat deze auto kan: een knop die niet beschikbaar is (een benzineauto kan niet laden) blijft weg
+        const actions = all.filter(([key]) => st(p + key) && st(p + key) !== 'unavailable')
+          .map(([key, label, icon, confirm]) => ({ entity: p + key, label, icon, confirm }));
+        const num = id => { const v = parseFloat(st(id)); return isNaN(v) ? null : v; };
+        window.huisActieOpen({
+          title: 'Peugeot 2008', subtitle: 'Wat wil je met de auto doen?', entity: 'device_tracker.buiten_peugeot_2008_voertuig', actions,
+          rows: [['Tank', num('sensor.buiten_peugeot_2008_brandstof') !== null ? `${Math.round(num('sensor.buiten_peugeot_2008_brandstof'))}% · ${Math.round(num('sensor.buiten_peugeot_2008_brandstof_bereik') ?? 0)} km` : null],
+            ['Beurt over', num('sensor.buiten_peugeot_2008_days_before_maintenance') !== null ? `${Math.round(num('sensor.buiten_peugeot_2008_days_before_maintenance'))} dagen of ${Math.round(num('sensor.buiten_peugeot_2008_mileage_before_maintenance') ?? 0).toLocaleString('nl-NL')} km` : null],
+            ['Kilometerstand', num('sensor.buiten_peugeot_2008_kilometerstand') !== null ? `${Math.round(num('sensor.buiten_peugeot_2008_kilometerstand')).toLocaleString('nl-NL')} km` : null]]
+        });
+      ]]]
   custom_fields:
     body: |
       [[[
@@ -4816,7 +4872,7 @@ car_status:
         - justify-self: stretch
 
 # Status van de Bosch eBike (Sparta, entiteiten bfe_ah1336572_*): de accu en het bereik, of hij laadt, waar hij staat en de laatste rit.
-# Tik opent de kaart met de locatie. NetDaemon (BikeMonitor) stuurt de meldingen (accu laag of vol, fiets weg).
+# Tik opent een venster met alle gegevens van de fiets. NetDaemon (BikeMonitor) stuurt de meldingen (accu laag of vol, fiets weg).
 bike_status:
   template: glass
   entity: device_tracker.bfe_ah1336572_location
@@ -4824,7 +4880,54 @@ bike_status:
   show_icon: false
   show_name: false
   tap_action:
-    action: more-info
+    action: javascript
+    javascript: |
+      [[[
+        window.huisActieOpen = cfg => {
+          document.getElementById('huis-actie')?.remove();
+          const hass = document.querySelector('home-assistant').hass;
+          const el = document.createElement('div');
+          el.id = 'huis-actie';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const buttons = (cfg.actions ?? []).map((a, i) => `<span data-i="${i}" style="cursor:pointer;text-align:center;padding:14px 8px;border-radius:16px;font-weight:600;font-size:13px;
+              background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px;display:block;margin:0 auto 4px;color:${a.color ?? '#ffb060'}"></ha-icon>${a.label}</span>`).join('');
+          const rows = (cfg.rows ?? []).filter(r => r[1] != null && r[1] !== '').map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${r[0]}</span><b>${r[1]}</b></div>`).join('');
+          el.innerHTML = `<div style="width:min(520px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 22px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div><div style="font-size:18px;font-weight:700">${cfg.title}</div><div style="opacity:.7;font-size:13px">${cfg.subtitle ?? ''}</div></div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${buttons ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:14px">${buttons}</div>` : ''}
+              ${rows}
+              <div style="margin-top:14px"><span data-more style="cursor:pointer;display:inline-block;padding:7px 16px;border-radius:14px;background:rgba(122,162,255,0.2);border:1px solid rgba(147,178,255,0.4);font-weight:600">Alle gegevens en de locatie</span></div>
+            </div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-i],[data-close],[data-more]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.hasAttribute('data-more')) { el.remove(); const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: cfg.entity }; document.querySelector('home-assistant').dispatchEvent(ev); return; }
+            if (!target) return;
+            const a = cfg.actions[+target.dataset.i];
+            if (a.confirm && !window.confirm(a.confirm)) return;
+            hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            target.style.borderColor = '#4ade80';
+            target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
+          });
+        };
+        const p = 'bfe_ah1336572_';
+        const st = id => states[id]?.state;
+        const num = id => { const v = parseFloat(st(id)); return isNaN(v) ? null : v; };
+        const fmt = (id, unit, digits = 0) => { const v = num(id); return v === null ? null : `${v.toLocaleString('nl-NL', { maximumFractionDigits: digits })} ${unit}`; };
+        const place = { home: 'Thuis', not_home: 'Niet thuis' }[st(`device_tracker.${p}location`)] ?? st(`device_tracker.${p}location`);
+        // De Bosch-koppeling geeft alleen gegevens en geen knoppen (slot en alarm zijn alleen te lezen)
+        window.huisActieOpen({
+          title: 'Fiets', subtitle: 'Bosch eBike (Sparta)', entity: `device_tracker.${p}location`, actions: [],
+          rows: [['Accu', fmt(`sensor.${p}battery_level`, '%')], ['Bereik', fmt(`sensor.${p}battery_reachable_min_range`, 'km') && fmt(`sensor.${p}battery_reachable_max_range`, 'km') ? `${fmt(`sensor.${p}battery_reachable_min_range`, 'km')} tot ${fmt(`sensor.${p}battery_reachable_max_range`, 'km')}` : fmt(`sensor.${p}battery_reachable_max_range`, 'km')],
+            ['Laden', st(`binary_sensor.${p}battery_charging`) === 'on' ? 'Aan de lader' : 'Niet aan de lader'], ['Locatie', place],
+            ['Laatste rit', fmt(`sensor.${p}last_ride_distance`, 'km', 1)], ['Totaal gereden', fmt(`sensor.${p}total_distance`, 'km')],
+            ['Motoruren', fmt(`sensor.${p}motor_hours`, 'u', 1)], ['Laadcycli', fmt(`sensor.${p}charge_cycles`, '', 1)],
+            ['Accucapaciteit', fmt(`sensor.${p}battery_capacity`, 'Wh')], ['Energie in de accu', fmt(`sensor.${p}battery_remaining_energy`, 'Wh')]]
+        });
+      ]]]
   custom_fields:
     body: |
       [[[
