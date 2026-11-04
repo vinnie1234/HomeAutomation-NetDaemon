@@ -95,18 +95,78 @@ public class HouseStateManager : BaseApp
     /// </summary>
     private void SetWorking()
     {
-        foreach (var schedule in new[] { VincentSchedule, CarleenSchedule })
+        foreach (var (person, schedule) in new[] { ("vincent", VincentSchedule), ("carleen", CarleenSchedule) })
         {
-            // The times come from input_datetimes and are rescheduled when changed in Home Assistant
+            // The times come from input_datetimes and are rescheduled when changed in Home Assistant. When the work of today comes
+            // from the calendar (its own hours), those hours decide instead (see CheckCalendarWorkHours).
             Scheduler.RunDailyAt(schedule.WorkStart, DefaultWorkStart, () =>
             {
-                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek)) schedule.Working.TurnOn();
+                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek) && CalendarWorkHours(person) == null) schedule.Working.TurnOn();
             });
             Scheduler.RunDailyAt(schedule.WorkEnd, DefaultWorkEnd, () =>
             {
-                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek)) schedule.Working.TurnOff();
+                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek) && CalendarWorkHours(person) == null) schedule.Working.TurnOff();
             });
             schedule.Working.StateChanges().Subscribe(_ => UpdateWorking());
+        }
+        Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), CheckCalendarWorkHours);
+        ReconcileCalendarWork();
+    }
+
+    /// <summary>After a start (or a deployment) the working state of today follows the hours from the calendar, in case the edge was missed.</summary>
+    private void ReconcileCalendarWork()
+    {
+        var now = Scheduler.NowNl().DateTime;
+        foreach (var (person, schedule) in new[] { ("vincent", VincentSchedule), ("carleen", CarleenSchedule) })
+        {
+            if (CalendarWorkHours(person) is not { } hours || schedule.IsDayOff(now.DayOfWeek)) continue;
+            var shouldWork = now >= hours.Start && now < hours.End;
+            if (shouldWork && schedule.Working.IsOff()) schedule.Working.TurnOn();
+            else if (!shouldWork && schedule.Working.IsOn()) schedule.Working.TurnOff();
+        }
+    }
+
+    /// <summary>
+    /// The working hours of today when they come from the calendar: from the time to be at the office plus the margin before it, up to the
+    /// time to leave minus the margin after it (see <see cref="OfficeTimes"/>). Null when the work does not come from the calendar or today
+    /// has no hours from it.
+    /// </summary>
+    private (DateTime Start, DateTime End)? CalendarWorkHours(string person)
+    {
+        if (HaContext.GetState($"input_boolean.werk_uit_agenda_{person}")?.State != "on") return null;
+        var today = Scheduler.NowNl().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        DateTime? Read(string entity)
+        {
+            var state = HaContext.GetState($"input_datetime.{entity}_{person}")?.State;
+            return state != null && state.StartsWith(today, StringComparison.Ordinal)
+                   && DateTime.TryParse(state, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var time) ? time : null;
+        }
+        double Minutes(string helper) =>
+            double.TryParse(HaContext.GetState($"input_number.{helper}_{person}")?.State, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : 10;
+
+        if (Read("kantoor_aankomst") is not { } arrive || Read("kantoor_vertrek") is not { } leave) return null;
+        return (arrive.AddMinutes(Minutes("reis_marge_voor")), leave.AddMinutes(-Minutes("reis_marge_na")));
+    }
+
+    /// <summary>
+    /// Every minute: at the start of the hours from the calendar the person starts working, at their end stops (a minute or two of margin,
+    /// so a manual switch in between stays as it is).
+    /// </summary>
+    private void CheckCalendarWorkHours()
+    {
+        try
+        {
+            var now = Scheduler.NowNl().DateTime;
+            foreach (var (person, schedule) in new[] { ("vincent", VincentSchedule), ("carleen", CarleenSchedule) })
+            {
+                if (CalendarWorkHours(person) is not { } hours || schedule.IsDayOff(now.DayOfWeek)) continue;
+                if (now >= hours.Start && now < hours.Start.AddMinutes(2) && schedule.Working.IsOff()) schedule.Working.TurnOn();
+                else if (now >= hours.End && now < hours.End.AddMinutes(2) && schedule.Working.IsOn()) schedule.Working.TurnOff();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not check the working hours from the calendar");
         }
     }
 

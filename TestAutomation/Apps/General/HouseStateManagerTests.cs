@@ -377,6 +377,37 @@ public class HouseStateManagerTests
         ctx.VerifyCallService("input_boolean", "turn_on", "workingvincent", times: 0);
     }
 
+    [Fact]
+    public void WorkFromTheCalendar_StartsWhenTheHoursOfTheCalendarStart_NotAtTheUsualWorkStart()
+    {
+        // Monday 3 January 2000: her usual start is 08:30, the calendar says 10:00 - 19:30 (to be at the office from 09:50, no margin after)
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        void Set(string id, string state) => ctx.HaContext.GetState(id).Returns(new EntityState { EntityId = id, State = state });
+        Set("input_boolean.onvacation", "off");
+        Set("input_boolean.vrij_carleen", "off");
+        Set("input_select.werkdag_carleen_maandag", "Kantoor");
+        Set("input_datetime.werk_start_carleen", "08:30:00");
+        Set("input_boolean.werk_uit_agenda_carleen", "on");
+        Set("input_datetime.kantoor_aankomst_carleen", "2000-01-03 09:50:00");
+        Set("input_datetime.kantoor_vertrek_carleen", "2000-01-03 19:30:00");
+        Set("input_number.reis_marge_voor_carleen", "10.0");
+        Set("input_number.reis_marge_na_carleen", "0.0");
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks);
+        ctx.InitApp<HouseStateManager>();
+
+        // 08:45 Dutch time: the usual start has passed, the calendar hours have not started
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 7, 45, 0, TimeSpan.Zero).UtcTicks);
+        ctx.VerifyCallService("input_boolean", "turn_on", "workingcarleen", times: 0);
+
+        // 10:01 Dutch time (the mocked state never turns on, so it asks again each minute of the window)
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 9, 1, 0, TimeSpan.Zero).UtcTicks);
+        var turnedOn = ctx.HaContext.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "CallService"
+            && (string)c.GetArguments()[0]! == "input_boolean" && (string)c.GetArguments()[1]! == "turn_on"
+            && ((ServiceTarget?)c.GetArguments()[2])?.EntityIds?.Contains("input_boolean.workingcarleen") == true);
+        Assert.True(turnedOn >= 1);
+    }
+
     [Theory]
     [InlineData("Vrij", "Vrij", true)]
     [InlineData("Vrij", "Thuis", false)]
