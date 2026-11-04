@@ -387,6 +387,24 @@ sections:
           template: netdaemon_alert
         grid_options:
           columns: 12
+      # De portemonnee is niet thuis terwijl Vincent thuis is
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: device_tracker.portemonnee_van_vincent_2
+            state_not:
+              - home
+              - Huis Vincent
+              - unknown
+              - unavailable
+          - condition: state
+            entity: input_boolean.awayvincent
+            state: "off"
+        card:
+          type: custom:button-card
+          template: wallet_alert
+        grid_options:
+          columns: 12
       # NetDaemon draait wel, maar publiceert niets meer via MQTT
       - type: conditional
         conditions:

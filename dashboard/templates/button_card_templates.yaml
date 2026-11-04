@@ -4805,7 +4805,8 @@ car_status:
             if (!target) return;
             const a = cfg.actions[+target.dataset.i];
             if (a.confirm && !window.confirm(a.confirm)) return;
-            hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            if (a.run) window.huisTelefoon?.[a.run]?.();
+            else hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
             target.style.borderColor = '#4ade80';
             target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
           });
@@ -4932,7 +4933,8 @@ bike_status:
             if (!target) return;
             const a = cfg.actions[+target.dataset.i];
             if (a.confirm && !window.confirm(a.confirm)) return;
-            hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            if (a.run) window.huisTelefoon?.[a.run]?.();
+            else hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
             target.style.borderColor = '#4ade80';
             target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
           });
@@ -5036,6 +5038,268 @@ letter_card:
     custom_fields:
       body:
         - justify-self: stretch
+
+# Status van de portemonnee van Vincent (Google Find Hub: een tracker in de portemonnee, entiteiten portemonnee_van_vincent_2*): of hij
+# thuis is of waar hij is geweest, wanneer hij voor het laatst is gezien en de batterij. Google geeft een plek met een label (zoals
+# "Huis Vincent") zonder coördinaten, dan is de staat de naam van het label. Tik opent een venster met piepen, stoppen en lokaliseren.
+wallet_status:
+  template: glass
+  entity: device_tracker.portemonnee_van_vincent_2
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        window.huisActieOpen = cfg => {
+          document.getElementById('huis-actie')?.remove();
+          const hass = document.querySelector('home-assistant').hass;
+          const el = document.createElement('div');
+          el.id = 'huis-actie';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const buttons = (cfg.actions ?? []).map((a, i) => `<span data-i="${i}" style="cursor:pointer;text-align:center;padding:14px 8px;border-radius:16px;font-weight:600;font-size:13px;
+              background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px;display:block;margin:0 auto 4px;color:${a.color ?? '#ffb060'}"></ha-icon>${a.label}</span>`).join('');
+          const rows = (cfg.rows ?? []).filter(r => r[1] != null && r[1] !== '').map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${r[0]}</span><b>${r[1]}</b></div>`).join('');
+          el.innerHTML = `<div style="width:min(520px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 22px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div><div style="font-size:18px;font-weight:700">${cfg.title}</div><div style="opacity:.7;font-size:13px">${cfg.subtitle ?? ''}</div></div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${buttons ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:14px">${buttons}</div>` : ''}
+              ${rows}
+              <div style="margin-top:14px"><span data-more style="cursor:pointer;display:inline-block;padding:7px 16px;border-radius:14px;background:rgba(122,162,255,0.2);border:1px solid rgba(147,178,255,0.4);font-weight:600">Alle gegevens en de locatie</span></div>
+            </div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-i],[data-close],[data-more]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.hasAttribute('data-more')) { el.remove(); const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: cfg.entity }; document.querySelector('home-assistant').dispatchEvent(ev); return; }
+            if (!target) return;
+            const a = cfg.actions[+target.dataset.i];
+            if (a.confirm && !window.confirm(a.confirm)) return;
+            if (a.run) window.huisTelefoon?.[a.run]?.();
+            else hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            target.style.borderColor = '#4ade80';
+            target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
+          });
+        };
+        const p = 'portemonnee_van_vincent_2';
+        const st = id => states[id]?.state;
+        const at = ((states[`device_tracker.${p}`]?.attributes ?? {}).last_seen);
+        const seen = at ? new Date(at).toLocaleString('nl-NL', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
+        const actions = [
+          { entity: `button.${p}_geluid_afspelen`, label: 'Laat piepen', icon: 'mdi:volume-high' },
+          { entity: `button.${p}_geluid_stoppen`, label: 'Stop piepen', icon: 'mdi:volume-off', color: '#7aa2ff' },
+          { entity: `button.${p}_nu_lokaliseren`, label: 'Nu lokaliseren', icon: 'mdi:crosshairs-gps', color: '#4ade80' }
+        ].filter(a => st(a.entity) && st(a.entity) !== 'unavailable');
+        window.huisActieOpen({
+          title: 'Portemonnee', subtitle: 'Waar is mijn portemonnee?', entity: `device_tracker.${p}`, actions,
+          rows: [['Waar', st(`device_tracker.${p}`)], ['Laatst gezien', seen], ['Batterij', st(`sensor.${p}_ble_batterij`) ? `${st(`sensor.${p}_ble_batterij`)}%` : null],
+            ['Nauwkeurigheid', states[`device_tracker.${p}`]?.attributes.accuracy_m ? `ca. ${Math.round(states[`device_tracker.${p}`].attributes.accuracy_m)} m` : null],
+            ['Ongewenste tracking', st(`binary_sensor.${p}_ongewenste_trackingmodus`) === 'on' ? '⚠️ Ja' : null]]
+        });
+      ]]]
+  custom_fields:
+    body: |
+      [[[
+        const p = 'portemonnee_van_vincent_2';
+        const tracker = states[`device_tracker.${p}`];
+        const state = tracker?.state;
+        const atHome = state === 'home' || /^(huis|thuis)/i.test(state ?? '');
+        const known = state && !['unknown', 'unavailable'].includes(state);
+        const color = !known ? '#94a3b8' : atHome ? '#4ade80' : '#ffb060';
+        const status = !known ? 'Locatie onbekend' : atHome ? 'Thuis' : `Niet thuis · ${state}`;
+        const seen = tracker?.attributes.last_seen ? new Date(tracker.attributes.last_seen) : null;
+        const ago = seen ? Math.max(0, Math.round((Date.now() - seen) / 60000)) : null;
+        const agoText = ago === null ? '' : ago < 2 ? 'zojuist gezien' : ago < 60 ? `${ago} min geleden gezien` : ago < 1440 ? `${Math.round(ago / 60)} u geleden gezien` : `${Math.round(ago / 1440)} d geleden gezien`;
+        const battery = parseFloat(states[`sensor.${p}_ble_batterij`]?.state);
+        const warn = states[`binary_sensor.${p}_ongewenste_trackingmodus`]?.state === 'on';
+        return `<div style="text-align:left;display:flex;align-items:center;gap:12px">
+          <ha-icon icon="mdi:wallet" style="--mdc-icon-size:28px;color:${color}"></ha-icon>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:16px;font-weight:700">Portemonnee</div>
+            <div style="font-size:13px;font-weight:600;color:${color}">${status}</div>
+            <div style="font-size:12px;opacity:.7">${agoText}${warn ? ' · ⚠️ ongewenste tracking' : ''}</div>
+          </div>
+          <div style="font-size:12px;opacity:.8;text-align:right;white-space:nowrap">${isNaN(battery) ? '' : `🔋 ${Math.round(battery)}%`}<br><span style="opacity:.7">tik om te zoeken</span></div>
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
+# Status van de telefoon van Vincent (de Home Assistant-app, device_tracker.vincent_mobiel): thuis of waar, de batterij en of hij laadt.
+# Tik opent een venster om hem te laten horen (spraak op de wekkerstand, ook als hij stil staat), te laten flitsen of het scherm aan te zetten.
+phone_status:
+  template: glass
+  entity: device_tracker.vincent_mobiel
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        window.huisActieOpen = cfg => {
+          document.getElementById('huis-actie')?.remove();
+          const hass = document.querySelector('home-assistant').hass;
+          const el = document.createElement('div');
+          el.id = 'huis-actie';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const buttons = (cfg.actions ?? []).map((a, i) => `<span data-i="${i}" style="cursor:pointer;text-align:center;padding:14px 8px;border-radius:16px;font-weight:600;font-size:13px;
+              background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px;display:block;margin:0 auto 4px;color:${a.color ?? '#ffb060'}"></ha-icon>${a.label}</span>`).join('');
+          const rows = (cfg.rows ?? []).filter(r => r[1] != null && r[1] !== '').map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${r[0]}</span><b>${r[1]}</b></div>`).join('');
+          el.innerHTML = `<div style="width:min(520px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 22px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div><div style="font-size:18px;font-weight:700">${cfg.title}</div><div style="opacity:.7;font-size:13px">${cfg.subtitle ?? ''}</div></div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${buttons ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:14px">${buttons}</div>` : ''}
+              ${rows}
+              <div style="margin-top:14px"><span data-more style="cursor:pointer;display:inline-block;padding:7px 16px;border-radius:14px;background:rgba(122,162,255,0.2);border:1px solid rgba(147,178,255,0.4);font-weight:600">Alle gegevens en de locatie</span></div>
+            </div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-i],[data-close],[data-more]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.hasAttribute('data-more')) { el.remove(); const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: cfg.entity }; document.querySelector('home-assistant').dispatchEvent(ev); return; }
+            if (!target) return;
+            const a = cfg.actions[+target.dataset.i];
+            if (a.confirm && !window.confirm(a.confirm)) return;
+            if (a.run) window.huisTelefoon?.[a.run]?.();
+            else hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            target.style.borderColor = '#4ade80';
+            target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
+          });
+        };
+        const st = id => states[id]?.state;
+        const send = (data, message = 'TTS', title) => hass.callService('notify', 'mobile_app_vincent_phone', { message, ...(title ? { title } : {}), data });
+        // De telefoon laten horen of zien via een melding van de app (de telefoon moet online zijn): spraak op de wekkerstand, ook als hij stil staat
+        window.huisTelefoon = {
+          luid: () => send({ ttl: 0, priority: 'high', media_stream: 'alarm_stream_max', tts_text: 'Hier ben ik! Hier ben ik! Hier ben ik!' }, 'TTS'),
+          flits: () => send({ ttl: 0, priority: 'high' }, 'command_flashlight', 'flash'),
+          scherm: () => send({ ttl: 0, priority: 'high' }, 'command_screen_on')
+        };
+        const actions = [
+          { label: 'Laat luid horen', icon: 'mdi:volume-high', run: 'luid' },
+          { label: 'Flits', icon: 'mdi:flashlight', run: 'flits', color: '#facc15' },
+          { label: 'Scherm aan', icon: 'mdi:cellphone-screenshot', run: 'scherm', color: '#7aa2ff' }
+        ];
+        const battery = st('sensor.vincent_phone_battery_level');
+        const where = st('device_tracker.vincent_mobiel');
+        window.huisActieOpen({
+          title: 'Telefoon', subtitle: 'Waar is mijn telefoon?', entity: 'device_tracker.vincent_mobiel', actions, // run: zie huisActieOpen
+          rows: [['Waar', where === 'home' ? 'Thuis' : where], ['Batterij', battery ? `${battery}%${st('binary_sensor.vincent_phone_is_charging') === 'on' ? ' (aan de lader)' : ''}` : null],
+            ['Afstand tot huis', st('sensor.thuis_sm_s938b_distance') ? `${Math.round(parseFloat(st('sensor.thuis_sm_s938b_distance')))} m` : null]]
+        });
+      ]]]
+  custom_fields:
+    body: |
+      [[[
+        const tracker = states['device_tracker.vincent_mobiel'];
+        const state = tracker?.state;
+        const atHome = state === 'home';
+        const known = state && !['unknown', 'unavailable'].includes(state);
+        const color = !known ? '#94a3b8' : atHome ? '#4ade80' : '#7aa2ff';
+        const status = !known ? 'Locatie onbekend' : atHome ? 'Thuis' : `Onderweg · ${state}`;
+        const battery = parseFloat(states['sensor.vincent_phone_battery_level']?.state);
+        const charging = states['binary_sensor.vincent_phone_is_charging']?.state === 'on';
+        const updated = tracker?.last_updated ? new Date(tracker.last_updated) : null;
+        const ago = updated ? Math.max(0, Math.round((Date.now() - updated) / 60000)) : null;
+        const agoText = ago === null ? '' : ago < 2 ? 'zojuist bijgewerkt' : ago < 60 ? `${ago} min geleden bijgewerkt` : `${Math.round(ago / 60)} u geleden bijgewerkt`;
+        return `<div style="text-align:left;display:flex;align-items:center;gap:12px">
+          <ha-icon icon="mdi:cellphone" style="--mdc-icon-size:28px;color:${color}"></ha-icon>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:16px;font-weight:700">Telefoon</div>
+            <div style="font-size:13px;font-weight:600;color:${color}">${status}</div>
+            <div style="font-size:12px;opacity:.7">${agoText}</div>
+          </div>
+          <div style="font-size:12px;opacity:.8;text-align:right;white-space:nowrap">${isNaN(battery) ? '' : `${charging ? '⚡' : '🔋'} ${Math.round(battery)}%`}<br><span style="opacity:.7">tik om te zoeken</span></div>
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
+# De portemonnee is niet thuis terwijl Vincent thuis is (Home, alleen zichtbaar dan): waar hij is en wanneer hij voor het laatst is gezien.
+# Tik opent het venster met piepen en lokaliseren.
+wallet_alert:
+  template: alert
+  entity: device_tracker.portemonnee_van_vincent_2
+  triggers_update: all
+  variables:
+    color: 255, 176, 96
+    pulse: true
+  icon: mdi:wallet-outline
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        window.huisActieOpen = cfg => {
+          document.getElementById('huis-actie')?.remove();
+          const hass = document.querySelector('home-assistant').hass;
+          const el = document.createElement('div');
+          el.id = 'huis-actie';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const buttons = (cfg.actions ?? []).map((a, i) => `<span data-i="${i}" style="cursor:pointer;text-align:center;padding:14px 8px;border-radius:16px;font-weight:600;font-size:13px;
+              background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px;display:block;margin:0 auto 4px;color:${a.color ?? '#ffb060'}"></ha-icon>${a.label}</span>`).join('');
+          const rows = (cfg.rows ?? []).filter(r => r[1] != null && r[1] !== '').map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="opacity:.75">${r[0]}</span><b>${r[1]}</b></div>`).join('');
+          el.innerHTML = `<div style="width:min(520px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 22px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div><div style="font-size:18px;font-weight:700">${cfg.title}</div><div style="opacity:.7;font-size:13px">${cfg.subtitle ?? ''}</div></div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${buttons ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:14px">${buttons}</div>` : ''}
+              ${rows}
+              <div style="margin-top:14px"><span data-more style="cursor:pointer;display:inline-block;padding:7px 16px;border-radius:14px;background:rgba(122,162,255,0.2);border:1px solid rgba(147,178,255,0.4);font-weight:600">Alle gegevens en de locatie</span></div>
+            </div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-i],[data-close],[data-more]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.hasAttribute('data-more')) { el.remove(); const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: cfg.entity }; document.querySelector('home-assistant').dispatchEvent(ev); return; }
+            if (!target) return;
+            const a = cfg.actions[+target.dataset.i];
+            if (a.confirm && !window.confirm(a.confirm)) return;
+            if (a.run) window.huisTelefoon?.[a.run]?.();
+            else hass.callService(a.domain ?? 'button', a.service ?? 'press', { entity_id: a.entity });
+            target.style.borderColor = '#4ade80';
+            target.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#4ade80">✓ Verstuurd</div>');
+          });
+        };
+        const p = 'portemonnee_van_vincent_2';
+        const st = id => states[id]?.state;
+        const at = ((states[`device_tracker.${p}`]?.attributes ?? {}).last_seen);
+        const seen = at ? new Date(at).toLocaleString('nl-NL', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
+        const actions = [
+          { entity: `button.${p}_geluid_afspelen`, label: 'Laat piepen', icon: 'mdi:volume-high' },
+          { entity: `button.${p}_geluid_stoppen`, label: 'Stop piepen', icon: 'mdi:volume-off', color: '#7aa2ff' },
+          { entity: `button.${p}_nu_lokaliseren`, label: 'Nu lokaliseren', icon: 'mdi:crosshairs-gps', color: '#4ade80' }
+        ].filter(a => st(a.entity) && st(a.entity) !== 'unavailable');
+        window.huisActieOpen({
+          title: 'Portemonnee', subtitle: 'Waar is mijn portemonnee?', entity: `device_tracker.${p}`, actions,
+          rows: [['Waar', st(`device_tracker.${p}`)], ['Laatst gezien', seen], ['Batterij', st(`sensor.${p}_ble_batterij`) ? `${st(`sensor.${p}_ble_batterij`)}%` : null],
+            ['Nauwkeurigheid', states[`device_tracker.${p}`]?.attributes.accuracy_m ? `ca. ${Math.round(states[`device_tracker.${p}`].attributes.accuracy_m)} m` : null],
+            ['Ongewenste tracking', st(`binary_sensor.${p}_ongewenste_trackingmodus`) === 'on' ? '⚠️ Ja' : null]]
+        });
+      ]]]
+  name: Je portemonnee is niet thuis
+  label: |
+    [[[
+      const tracker = states['device_tracker.portemonnee_van_vincent_2'];
+      const seen = tracker?.attributes.last_seen ? new Date(tracker.attributes.last_seen) : null;
+      const ago = seen ? Math.max(0, Math.round((Date.now() - seen) / 60000)) : null;
+      const agoText = ago === null ? '' : ago < 2 ? 'zojuist gezien' : ago < 60 ? `${ago} min geleden gezien` : `${Math.round(ago / 60)} u geleden gezien`;
+      return `${tracker?.state ?? 'Onbekend'}${agoText ? ' · ' + agoText : ''} · tik om te zoeken`;
+    ]]]
 
 # NetDaemon reageert niet: bovenaan Home zolang binary_sensor.netdaemon_online uit staat (het levensteken van NetDaemonHeartbeat
 # is een paar minuten niet gekomen). Tik herstart de add-on, na een bevestiging (hassio.addon_restart vraagt beheerdersrechten).

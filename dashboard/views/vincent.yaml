@@ -40,6 +40,18 @@ sections:
             return parts.join(' · ');
           ]]]
 
+  # Zoeken: de portemonnee (Google Find Hub) en de telefoon, met piepen en lokaliseren
+  - type: grid
+    cards:
+      - type: heading
+        heading: Waar is...
+        heading_style: title
+        icon: mdi:map-search-outline
+      - type: custom:button-card
+        template: wallet_status
+      - type: custom:button-card
+        template: phone_status
+
   # Agenda en taken, en een taak met een plek toevoegen
   - type: grid
     cards:

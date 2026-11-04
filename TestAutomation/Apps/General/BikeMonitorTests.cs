@@ -54,31 +54,6 @@ public class BikeMonitorTests
             Arg.Any<List<ActionModel>?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>());
 
     [Theory]
-    [InlineData("25", "15", 1)]
-    [InlineData("unknown", "15", 1)]
-    [InlineData("25", "20", 0)]
-    [InlineData("15", "10", 0)]
-    public void TheBattery_WarnsVincentWhenItDropsBelowTwentyPercent(string before, string after, int times)
-    {
-        Start();
-
-        Change(BikeMonitor.BatteryLevel, before, after);
-
-        VerifyVincent("Fiets: accu bijna leeg", times);
-    }
-
-    [Fact]
-    public void ALowBattery_WhileCharging_IsNoWarning()
-    {
-        Start();
-        SetState(BikeMonitor.Charging, "on");
-
-        Change(BikeMonitor.BatteryLevel, "25", "15");
-
-        VerifyVincent("Fiets: accu bijna leeg", 0);
-    }
-
-    [Theory]
     [InlineData("100", 1)]
     [InlineData("96", 1)]
     [InlineData("60", 0)]

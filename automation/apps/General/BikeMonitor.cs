@@ -8,7 +8,6 @@ namespace Automation.apps.General;
 /// <summary>
 /// Keeps an eye on the Bosch eBike (Bosch eBike integration, entities <c>*_bfe_ah1336572_*</c>):
 /// <list type="bullet">
-/// <item>The battery is almost empty (below 20%) and not charging: a reminder to Vincent.</item>
 /// <item>The battery is full again (charging stops at 95% or more): a message to Vincent, so the charger can go.</item>
 /// <item>The bike leaves the zone Thuis while Vincent is home: a message to Vincent (to both of us when we are both home), as a
 /// check against theft. Only when it is still away after a moment, so a jumping GPS position does not count.</item>
@@ -24,9 +23,6 @@ public class BikeMonitor : BaseApp
     public const string Charging = "binary_sensor." + Prefix + "battery_charging";
     public const string Range = "sensor." + Prefix + "battery_reachable_max_range";
 
-    /// <summary>Below this percentage the battery is almost empty.</summary>
-    public const double LowBattery = 20;
-
     /// <summary>From this percentage on, a battery that stops charging is full.</summary>
     public const double FullBattery = 95;
 
@@ -40,11 +36,6 @@ public class BikeMonitor : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        // Crossing the limit downwards (an unknown level before counts: the first reading may already be low)
-        new Entity(HaContext, BatteryLevel).StateChanges()
-            .Where(x => Number(x.New?.State) is { } now && now < LowBattery && !(Number(x.Old?.State) < LowBattery))
-            .Subscribe(_ => CheckLowBattery());
-
         new Entity(HaContext, Charging).StateChanges()
             .Where(x => x.Old?.State == "on" && x.New?.State == "off")
             .Subscribe(_ => CheckFull());
@@ -58,13 +49,6 @@ public class BikeMonitor : BaseApp
 
     private static double? Number(string? state) =>
         double.TryParse(state, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : null;
-
-    private void CheckLowBattery()
-    {
-        if (StateOf(Charging) == "on" || Number(StateOf(BatteryLevel)) is not { } level || level >= LowBattery) return;
-        var range = Number(StateOf(Range));
-        Notify.NotifyPhoneVincent("Fiets: accu bijna leeg", $"De accu van de fiets is bijna leeg: {level:0}%{(range is { } km ? $", bereik nog {km:0} km" : "")}", false, 12 * 60);
-    }
 
     private void CheckFull()
     {
