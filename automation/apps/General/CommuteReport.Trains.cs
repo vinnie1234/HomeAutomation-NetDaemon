@@ -52,6 +52,10 @@ public partial class CommuteReport
 
     private void SetUpTrainTracking()
     {
+        // Who is at a station already (also after a restart) has not just arrived there
+        foreach (var commuter in _commuters)
+            foreach (var link in StationLinks)
+                if (InZone(link.Station, commuter.PersonId)) _atStation.Add($"{commuter.Id}|{link.Station}");
         foreach (var link in StationLinks)
         {
             new Entity(HaContext, link.Station).StateChanges().Subscribe(_ => FollowTrains());
@@ -88,10 +92,11 @@ public partial class CommuteReport
                     if (InZone(link.Station, commuter.PersonId))
                     {
                         // At the station: remember the trips (the one they take has gone from the sensor by the time they are on the track)
-                        _atStation.Add(key);
+                        var justArrived = _atStation.Add(key);
                         _departures.Remove(key);
                         _tripsAtStation[key] = AllTrips(commuter, link.Direction);
-                        SetRouteNotNeeded(commuter, link.Direction, false);
+                        // Only on arriving: someone who stays in the zone (an office next to the station) keeps the choice "does not come home"
+                        if (justArrived) SetRouteNotNeeded(commuter, link.Direction, false);
                     }
                     else if (_atStation.Remove(key) && IsTimeForTrip(link.Direction))
                     {

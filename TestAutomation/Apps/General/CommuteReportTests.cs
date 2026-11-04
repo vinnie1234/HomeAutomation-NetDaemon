@@ -549,6 +549,36 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void StayingInTheStationZone_KeepsTheChoiceThatShedoesNotComeHome()
+    {
+        // The office is next to the station: she is in the zone all day, and "komt niet thuis" has to stay
+        Start("Vrij", configure: () =>
+        {
+            SetState("input_boolean.reis_niet_carleen_home", "on");
+            SetZone("zone.station_nijmegen", "person.carleen");
+        });
+
+        AdvanceTo(5, 0);   // past the nightly reset at 04:00
+        _ctx.HaContext.ClearReceivedCalls();
+        AdvanceTo(12, 0);
+        AdvanceTo(12, 10);
+
+        CallsOf("input_boolean", "turn_off").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ArrivingAtTheStation_ClearsTheChoiceThatShedoesNotComeHome()
+    {
+        Start("Vrij", configure: () => SetState("input_boolean.reis_niet_carleen_home", "on"));
+        AdvanceTo(12, 0);
+
+        SetZone("zone.station_nijmegen", "person.carleen");
+        AdvanceTo(12, 3);
+
+        CallsOf("input_boolean", "turn_off").Should().NotBeEmpty();
+    }
+
+    [Fact]
     public void LeavingTheStationInTheMorning_IsArriving_NotTheTrainHome()
     {
         Start("Vrij", configure: CarleenTrainHome);
