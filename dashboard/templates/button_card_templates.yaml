@@ -1779,7 +1779,7 @@ weather_hero:
           const style = {
             postnl: { name: 'PostNL', body: '#f97316', band: '#c2410c', text: '#ffffff' },
             dhl: { name: 'DHL', body: '#facc15', band: '#d40511', text: '#d40511' },
-            dpd: { name: 'dpd', body: '#4b5563', band: '#dc0032', text: '#ffffff' },
+            dpd: { name: 'dpd', body: '#f8fafc', band: '#dc0032', text: '#dc0032' },
             gls: { name: 'GLS', body: '#1d4ed8', band: '#facc15', text: '#fde047' }
           };
           // dim() kent alleen rgb(): de kleuren hierboven zijn hex
