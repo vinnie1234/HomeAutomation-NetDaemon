@@ -148,20 +148,30 @@ public class HouseStateManager : BaseApp
         return (arrive.AddMinutes(Minutes("reis_marge_voor")), leave.AddMinutes(-Minutes("reis_marge_na")));
     }
 
+    /// <summary>The hours of today from the calendar as they were last read, per person: the entities move on to the next office day as soon as the end has passed.</summary>
+    private readonly Dictionary<string, (DateTime Date, DateTime Start, DateTime End)> _calendarHours = [];
+
+    /// <summary>The edges (start and end) that were handled already, per person and day, so a late tick still counts once and a manual switch afterwards stays.</summary>
+    private readonly HashSet<string> _handledEdges = [];
+
     /// <summary>
-    /// Every minute: at the start of the hours from the calendar the person starts working, at their end stops (a minute or two of margin,
-    /// so a manual switch in between stays as it is).
+    /// Every minute: from the start of the hours from the calendar the person works, from their end the person stops. Each happens once
+    /// a day, also when the minute of the edge was missed (the entities of the day may have moved on to the next day by then).
     /// </summary>
     private void CheckCalendarWorkHours()
     {
         try
         {
             var now = Scheduler.NowNl().DateTime;
+            _handledEdges.RemoveWhere(key => !key.Contains(now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
             foreach (var (person, schedule) in new[] { ("vincent", VincentSchedule), ("carleen", CarleenSchedule) })
             {
-                if (CalendarWorkHours(person) is not { } hours || schedule.IsDayOff(now.DayOfWeek)) continue;
-                if (now >= hours.Start && now < hours.Start.AddMinutes(2) && schedule.Working.IsOff()) schedule.Working.TurnOn();
-                else if (now >= hours.End && now < hours.End.AddMinutes(2) && schedule.Working.IsOn()) schedule.Working.TurnOff();
+                if (CalendarWorkHours(person) is { } read) _calendarHours[person] = (now.Date, read.Start, read.End);
+                if (!_calendarHours.TryGetValue(person, out var hours) || hours.Date != now.Date || schedule.IsDayOff(now.DayOfWeek)) continue;
+
+                var day = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                if (now >= hours.Start && now < hours.End && _handledEdges.Add($"{person}|{day}|start") && schedule.Working.IsOff()) schedule.Working.TurnOn();
+                if (now >= hours.End && _handledEdges.Add($"{person}|{day}|end") && schedule.Working.IsOn()) schedule.Working.TurnOff();
             }
         }
         catch (Exception ex)
