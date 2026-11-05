@@ -441,6 +441,65 @@ public class HouseStateManagerTests
         Assert.True(turnedOff >= 1);
     }
 
+    private static int Calls(AppTestContext ctx, string service, string entityId) =>
+        ctx.HaContext.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "CallService"
+            && (string)c.GetArguments()[0]! == "input_boolean" && (string)c.GetArguments()[1]! == service
+            && ((ServiceTarget?)c.GetArguments()[2])?.EntityIds?.Contains(entityId) == true);
+
+    private AppTestContext ArriveAtWorkAndLeave(string workingAfter)
+    {
+        // Monday 3 January 2000, Carleen at the office: at work at 12:00 Dutch time, away from 12:30
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        void Set(string id, string state, object? attributes = null) => ctx.HaContext.GetState(id).Returns(new EntityState
+            { EntityId = id, State = state, AttributesJson = attributes == null ? null : System.Text.Json.JsonSerializer.SerializeToElement(attributes) });
+        Set("input_boolean.onvacation", "off");
+        Set("input_boolean.vrij_carleen", "off");
+        Set("input_select.werkdag_carleen_maandag", "Kantoor");
+        Set("input_boolean.workingcarleen", workingAfter);
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 8, 0, 0, TimeSpan.Zero).UtcTicks);
+        ctx.InitApp<HouseStateManager>();
+        Set("zone.werk_carleen", "1", new { persons = new[] { "person.carleen" } });
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 11, 30, 0, TimeSpan.Zero).UtcTicks);
+        Set("zone.werk_carleen", "0", new { persons = Array.Empty<string>() });
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 12, 20, 0, TimeSpan.Zero).UtcTicks);   // 13:20: away for 50 minutes
+        ctx.HaContext.ClearReceivedCalls();
+        return ctx;
+    }
+
+    [Fact]
+    public void AwayFromWork_ForMoreThanAnHour_OnAnOfficeDay_StopsWorking()
+    {
+        var ctx = ArriveAtWorkAndLeave("on");
+
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 12, 45, 0, TimeSpan.Zero).UtcTicks);   // 13:45: more than an hour after the last time at work (12:30)
+
+        Assert.True(Calls(ctx, "turn_off", "input_boolean.workingcarleen") >= 1);
+    }
+
+    [Fact]
+    public void AwayFromWork_ForLessThanAnHour_KeepsWorking()
+    {
+        var ctx = ArriveAtWorkAndLeave("on");
+
+        Assert.Equal(0, Calls(ctx, "turn_off", "input_boolean.workingcarleen"));
+    }
+
+    [Fact]
+    public void ComingBackToWork_BeforeTheEnd_StartsWorkingAgain()
+    {
+        var ctx = ArriveAtWorkAndLeave("off");
+        ctx.HaContext.GetState("zone.werk_carleen").Returns(new EntityState
+        {
+            EntityId = "zone.werk_carleen", State = "1",
+            AttributesJson = System.Text.Json.JsonSerializer.SerializeToElement(new { persons = new[] { "person.carleen" } })
+        });
+
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 12, 30, 0, TimeSpan.Zero).UtcTicks);
+
+        Assert.True(Calls(ctx, "turn_on", "input_boolean.workingcarleen") >= 1);
+    }
+
     [Theory]
     [InlineData("Vrij", "Vrij", true)]
     [InlineData("Vrij", "Thuis", false)]

@@ -110,6 +110,7 @@ public class HouseStateManager : BaseApp
             schedule.Working.StateChanges().Subscribe(_ => UpdateWorking());
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), CheckCalendarWorkHours);
+        Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), CheckAwayFromWork);
         ReconcileCalendarWork();
     }
 
@@ -147,6 +148,53 @@ public class HouseStateManager : BaseApp
         if (Read("kantoor_aankomst") is not { } arrive || Read("kantoor_vertrek") is not { } leave) return null;
         return (arrive.AddMinutes(Minutes("reis_marge_voor")), leave.AddMinutes(-Minutes("reis_marge_na")));
     }
+
+    /// <summary>How long somebody can be away from the place of work on an office day before they are no longer working.</summary>
+    public static readonly TimeSpan AwayFromWorkAfter = TimeSpan.FromHours(1);
+
+    private readonly Dictionary<string, DateTimeOffset> _lastAtWork = [];
+    private readonly Dictionary<string, bool> _wasAtWork = [];
+
+    /// <summary>
+    /// Whoever has to be at the office today and has been away from the place of work (the zone Werk) for more than an hour, no longer
+    /// works; coming back to the place of work before the end of the working hours starts the work again.
+    /// </summary>
+    private void CheckAwayFromWork()
+    {
+        try
+        {
+            var now = Scheduler.NowNl();
+            foreach (var (person, personId, zone, schedule) in new[]
+                     {
+                         ("vincent", "person.vincent_maarschalkerweerd", "zone.werk", VincentSchedule),
+                         ("carleen", "person.carleen", "zone.werk_carleen", CarleenSchedule)
+                     })
+            {
+                var atWork = HaContext.GetState(zone)?.AttributesJson is { ValueKind: JsonValueKind.Object } a
+                             && a.TryGetProperty("persons", out var persons) && persons.ValueKind == JsonValueKind.Array
+                             && persons.EnumerateArray().Any(x => x.GetString() == personId);
+                var arrived = atWork && _wasAtWork.TryGetValue(person, out var before) && !before;
+                _wasAtWork[person] = atWork;
+                if (atWork) _lastAtWork[person] = now;
+                if (!schedule.IsOfficeDay(now.DayOfWeek)) continue;
+
+                if (arrived && schedule.Working.IsOff() && now.DateTime < EndOfWork(person, schedule, now.DateTime)) schedule.Working.TurnOn();
+                else if (!atWork && schedule.Working.IsOn() && _lastAtWork.TryGetValue(person, out var last)
+                         && last.Date == now.Date && now - last > AwayFromWorkAfter)
+                    schedule.Working.TurnOff();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not check whether somebody is away from work");
+        }
+    }
+
+    /// <summary>The end of the working hours of today: from the calendar, or else the person's own.</summary>
+    private DateTime EndOfWork(string person, Models.Persons.WorkSchedule schedule, DateTime now) =>
+        _calendarHours.TryGetValue(person, out var hours) && hours.Date == now.Date
+            ? hours.End
+            : now.Date + (Extensions.SchedulerExtensions.ParseTimeOfDay(schedule.WorkEnd.State) ?? DefaultWorkEnd);
 
     /// <summary>The hours of today from the calendar as they were last read, per person: the entities move on to the next office day as soon as the end has passed.</summary>
     private readonly Dictionary<string, (DateTime Date, DateTime Start, DateTime End)> _calendarHours = [];
