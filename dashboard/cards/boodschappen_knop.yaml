@@ -1,0 +1,10 @@
+# Tegel die de pop-up #boodschappen opent (iets op de boodschappenlijst zetten). De pop-up moet in dezelfde pagina staan (popups/boodschappen.yaml).
+type: custom:button-card
+template: action
+name: Boodschappen toevoegen
+icon: mdi:cart-plus
+tap_action:
+  action: navigate
+  navigation_path: "#boodschappen"
+grid_options:
+  columns: 6

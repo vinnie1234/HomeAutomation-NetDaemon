@@ -11,7 +11,7 @@ YAML-dashboard voor Home Assistant.
 | `popups/` | Pop-ups (Bubble Card): de kamers, thema, pakketten, taken en taak met plek; opgenomen in `views/home.yaml` (en `taak` ook in Huis en op de persoonlijke pagina's) |
 | `templates/button_card_templates.yaml` | Gedeelde stijl en gedrag van tegels (kamer, persoon, actie, info) |
 | `navbar.yaml` | Navigatiebalk, opgenomen in elke pagina |
-| `cards/` | Gedeelde kaarten en lijsten: `agenda.yaml` (agenda en taken), `auto.yaml`, `todo_*.yaml` (de vier takenlijsten), `taak_knop.yaml`, `boodschappen_gedaan_knop.yaml` (knop op Home, een uur na Boodschappen AH), `camera_woonkamer.yaml`, `power_sources.yaml` (de apparaten van "Grootste verbruikers nu"), ... |
+| `cards/` | Gedeelde kaarten en lijsten: `agenda.yaml` (agenda en taken), `auto.yaml`, `todo_*.yaml` (de takenlijsten en de boodschappenlijst), `boodschappen_knop.yaml` (tegel op Huis), `taak_knop.yaml`, `boodschappen_gedaan_knop.yaml` (knop op Home, een uur na Boodschappen AH), `camera_woonkamer.yaml`, `power_sources.yaml` (de apparaten van "Grootste verbruikers nu"), ... |
 | `ha/template.yaml` | Template-sensoren voor `/config/template.yaml`: verwachting per uur, brieven van deze week en of NetDaemon online is |
 | `themes/glass_home.yaml` | Thema "Glass Home" |
 
@@ -22,7 +22,7 @@ ApexCharts Card, mini-graph-card, clock-weather-card, upcoming-media-card, tabbe
 Gaming Status Cards, Calendar & Tasks Card en Kiosk Mode.
 
 Verder in Home Assistant: de integraties Fully Kiosk Browser (de tablet), Stellantis (de auto) en Local To-do, met de
-takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent`, `todo.carleen` en `todo.boodschappen` (wie de zone Boodschappen AH binnenkomt krijgt de open items per WhatsApp).
+takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`, plus de aparte boodschappenlijst `todo.boodschappen` (niet bij de taken of de agenda; wie de zone Boodschappen AH binnenkomt krijgt de open items per WhatsApp).
 
 ## Installeren (eenmalig)
 

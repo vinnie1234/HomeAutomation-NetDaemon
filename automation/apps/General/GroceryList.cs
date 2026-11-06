@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Text.RegularExpressions;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -10,7 +11,7 @@ namespace Automation.apps.General;
 /// zone, as long as something is still open (<see cref="AskHelper"/>). Walking into the zone is handled by <see cref="TodoZoneReminders"/>.
 /// </summary>
 [NetDaemonApp(Id = nameof(GroceryList))]
-public class GroceryList : BaseApp
+public partial class GroceryList : BaseApp
 {
     /// <summary>Pressing this button ticks off every open item of the shopping list.</summary>
     public const string DoneButton = "input_button.boodschappen_alles_gehaald";
@@ -45,6 +46,33 @@ public class GroceryList : BaseApp
         // Nothing left to do: the button goes away by itself
         new Entity(HaContext, TodoZoneReminders.GroceryList).StateChanges().Where(x => x.New?.State == "0")
             .Subscribe(_ => HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(AskHelper)));
+    }
+
+    /// <summary>The words that start a WhatsApp message for the shopping list: "Boodschappen melk", "AH: melk, brood".</summary>
+    [GeneratedRegex(@"^\s*(?:(?:boodschappenlijstje|boodschappenlijst|boodschappen|boodschap|albert\s*heijn|supermarkt|winkel|lijstje|ah)\b[\s,:;.\-–]*)+(?<rest>.+?)\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex MessageRegex();
+
+    /// <summary>A message that is probably a chat sentence and not a list of products: a question, or very long.</summary>
+    private const int MaxWordsPerItem = 6;
+
+    /// <summary>
+    /// The products in a WhatsApp message that starts with a shopping word ("Boodschappen", "AH", "Albert Heijn", "supermarkt", ...),
+    /// split on commas, semicolons and new lines, or null when the message is not for the shopping list.
+    /// </summary>
+    public static List<string>? ParseMessage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Contains('?')) return null;
+        var match = MessageRegex().Match(text);
+        if (!match.Success) return null;
+
+        var items = match.Groups["rest"].Value
+            .Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(i => i.Trim(' ', '.', '!'))
+            .Where(i => i.Length > 0)
+            .Select(i => char.ToUpper(i[0], System.Globalization.CultureInfo.GetCultureInfo("nl-NL")) + i[1..])
+            .ToList();
+        return items.Count == 0 || items.Any(i => i.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > MaxWordsPerItem) ? null : items;
     }
 
     private static bool IsSupermarket(string? state) =>

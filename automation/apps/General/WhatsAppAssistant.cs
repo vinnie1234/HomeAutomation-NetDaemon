@@ -162,6 +162,16 @@ public class WhatsAppAssistant : BaseApp
     /// </summary>
     private async Task ProcessUserMessageAsync(string sender, string userText, bool isVoice)
     {
+        // "Boodschappen melk" or "AH melk, brood" goes straight onto the shopping list
+        if (GroceryList.ParseMessage(userText) is { } groceries)
+        {
+            foreach (var item in groceries)
+                HaContext.CallService("todo", "add_item", ServiceTarget.FromEntity(TodoZoneReminders.GroceryList), new { item });
+            Logger.LogInformation("Added {Count} item(s) to the shopping list from WhatsApp", groceries.Count);
+            Reply(sender, $"🛒 Op de boodschappenlijst gezet: {string.Join(", ", groceries)}");
+            return;
+        }
+
         var history = GetHistory(sender);
 
         if (await TryForwardLastReplyAsync(sender, userText, history)) return;

@@ -526,6 +526,7 @@ sections:
         heading_style: title
         icon: mdi:calendar-check
       - !include ../cards/taak_knop.yaml
+      - !include ../cards/boodschappen_knop.yaml
       - !include ../cards/agenda.yaml
 
   # Pop-up: wasmachine bedienen en instellen (opent via de wasmachinekaart)
@@ -692,3 +693,4 @@ sections:
   - type: grid
     cards:
       - !include ../popups/taak.yaml
+      - !include ../popups/boodschappen.yaml

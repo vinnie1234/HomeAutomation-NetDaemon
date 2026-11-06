@@ -106,4 +106,28 @@ public class GroceryListTests
 
         TurnedOn().Should().Be(0);
     }
+
+    // ---- the WhatsApp message
+
+    [Theory]
+    [InlineData("Boodschappen melk", "Melk")]
+    [InlineData("boodschappen, ah: melk, brood", "Melk|Brood")]
+    [InlineData("AH melk", "Melk")]
+    [InlineData("Albert Heijn kaas\nham", "Kaas|Ham")]
+    [InlineData("Supermarkt: Pindakaas.", "Pindakaas")]
+    [InlineData("  boodschap  Hagelslag ", "Hagelslag")]
+    public void ParseMessage_ReadsTheProducts(string text, string expected) =>
+        GroceryList.ParseMessage(text).Should().Equal(expected.Split('|'));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Boodschappen")]
+    [InlineData("AH, ")]
+    [InlineData("doe de lampen aan")]
+    [InlineData("Ahoy daar")]
+    [InlineData("Ah ik snap het, bedankt dat je het uitlegt aan mij")]
+    [InlineData("Boodschappen: wat staat er op de lijst?")]
+    public void ParseMessage_IgnoresWhatIsNotForTheList(string? text) =>
+        GroceryList.ParseMessage(text).Should().BeNull();
 }

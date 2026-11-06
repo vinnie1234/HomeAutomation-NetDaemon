@@ -99,6 +99,23 @@ public class WhatsAppAssistantTests : IDisposable
     }
 
     [Fact]
+    public void ShoppingMessage_AddsTheProductsToTheShoppingList_AndIsNotSentToTheAssistant()
+    {
+        CreateApp();
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        SendEvent(Carleen, fromMe: false, type: "conversation", message: new { conversation = "Boodschappen AH: melk, brood" });
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        foreach (var item in new[] { "Melk", "Brood" })
+            _ctx.HaContext.Received(1).CallService("todo", "add_item",
+                Arg.Is<ServiceTarget?>(t => t!.EntityIds!.Single() == "todo.boodschappen"), Arg.Is<object?>(d => GetProperty(d, "item") == item));
+        _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
+            Arg.Is<object>(d => GetProperty(d, "to") == Carleen && GetProperty(GetValue(d, "body"), "text")!.Contains("Melk, Brood")));
+        _ctx.HaContext.DidNotReceive().CallServiceWithResponseAsync("conversation", "process", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+    }
+
+    [Fact]
     public void TextMessage_FromCarleen_IsAlsoHandled()
     {
         CreateApp();

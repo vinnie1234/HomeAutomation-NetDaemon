@@ -1,0 +1,10 @@
+# Pop-up boodschappen, opent via #boodschappen (het label "n boodschappen" bovenaan Home en de tegel op Huis): alleen de boodschappenlijst,
+# met het invoerveld om iets toe te voegen en de knop "Alles gehaald". Boodschappen staan dus niet bij de taken en niet in de agenda.
+type: custom:bubble-card
+card_type: pop-up
+popup_mode: fit-content
+hash: "#boodschappen"
+name: Boodschappen
+icon: mdi:cart-outline
+cards:
+  - !include ../cards/todo_boodschappen.yaml

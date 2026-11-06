@@ -1,4 +1,4 @@
-# Agenda en taken in één lijst (Calendar & Tasks Card, korova-sq/calendar-tasks-card): onze agenda's en de open taken van de vier
+# Agenda en taken in één lijst (Calendar & Tasks Card, korova-sq/calendar-tasks-card): onze agenda's en de open taken van de drie
 # lijsten, per dag. De kleur zegt van wie het is: blauw is Vincent, roze is Carleen en paars is samen (de gedeelde agenda en de
 # lijst Samen). Onder elk item staat de naam van de agenda of lijst. Alleen vandaag en morgen, en geen afgevinkte taken. Taken vink je hier af en met het plusje voeg je een
 # afspraak of een taak toe aan de agenda of lijst van je keuze. Gebruikt op Home en Huis.
@@ -21,7 +21,6 @@ todos:
   - todo.vincent
   - todo.carleen
   - todo.dagelijks
-  - todo.boodschappen
 entity_colors:
   calendar.vincentmaarschalkerweerd_gmail_com: "#7aa2ff"
   calendar.carleen_vincent: "#a78bfa"
@@ -34,7 +33,6 @@ entity_colors:
   todo.vincent: "#7aa2ff"
   todo.carleen: "#ff8fab"
   todo.dagelijks: "#a78bfa"
-  todo.boodschappen: "#2dd4bf"
 show_source: true
 allow_complete: true
 show_add_event: true
