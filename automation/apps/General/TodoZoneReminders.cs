@@ -31,6 +31,14 @@ public partial class TodoZoneReminders : BaseApp
     public const string AddButton = "input_button.todo_toevoegen";
 
     private const string SharedList = "todo.dagelijks";
+
+    /// <summary>The shopping list: its open items are sent to whoever walks into <see cref="GroceryZone"/>.</summary>
+    public const string GroceryList = "todo.boodschappen";
+
+    /// <summary>The supermarket zone (the friendly name of the zone in Home Assistant).</summary>
+    public const string GroceryZone = "Boodschappen AH";
+
+    public const string Cart = "🛒";
     private const string HomeZoneName = "Thuis";
 
     /// <summary>How long to wait after the button before reading the form.</summary>
@@ -166,7 +174,12 @@ public partial class TodoZoneReminders : BaseApp
                 foreach (var (summary, description) in await OpenItemsAsync(list))
                     if (ParsePlace(description) is { Message: true } place && SameZone(place.Zone, zone))
                         tasks.Add(list == SharedList ? $"{summary} (samen)" : summary);
-            if (tasks.Count == 0) return;
+
+            // At the supermarket the whole shopping list is sent, whether or not the items have a place or a bell
+            var groceries = SameZone(zone, GroceryZone)
+                ? (await OpenItemsAsync(GroceryList)).Select(i => i.Summary).ToList()
+                : [];
+            if (tasks.Count == 0 && groceries.Count == 0) return;
 
             if (string.IsNullOrEmpty(whatsapp))
             {
@@ -175,9 +188,14 @@ public partial class TodoZoneReminders : BaseApp
             }
 
             _lastReminder[(person, zone)] = Scheduler.Now;
-            var text = $"{Pin} Je bent bij {zone}. Dit moet nog:\n{string.Join("\n", tasks.Select(t => $"• {t}"))}";
+            var parts = new List<string>();
+            if (groceries.Count > 0)
+                parts.Add($"{Cart} Je bent bij {zone}. Dit staat op de boodschappenlijst:\n{string.Join("\n", groceries.Select(t => $"• {t}"))}");
+            if (tasks.Count > 0)
+                parts.Add($"{Pin} Je bent bij {zone}. Dit moet nog:\n{string.Join("\n", tasks.Select(t => $"• {t}"))}");
+            var text = string.Join("\n\n", parts);
             Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, body: new { text });
-            Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s)", person, zone, tasks.Count);
+            Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s) and {Groceries} grocery item(s)", person, zone, tasks.Count, groceries.Count);
         }
         catch (Exception ex)
         {

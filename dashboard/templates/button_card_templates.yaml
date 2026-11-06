@@ -3562,15 +3562,15 @@ commute_card:
         // Een blok opent het venster bij een tik (niet bij vegen)
         // (pointerup voor een scherm met aanraking, click voor de muis: één van de twee komt altijd aan, een tweede binnen 0,6 s telt niet)
         const blockAttrs = key => `onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisReisOpen('${key}')" onclick="window.huisReisOpen('${key}')"`;
-        window.huisReisForward = (key, name, el, route = '') => {
+        window.huisReisForward = (key, name, el, route = '', self = false) => {
           if (Date.now() - (window.huisReisForwardedAt ?? 0) < 600) return;
           window.huisReisForwardedAt = Date.now();
           const hass = document.querySelector('home-assistant').hass;
           // Een overige route: eerst zeggen welke, daarna pas drukken (leeg = de route van de dag)
           const current = hass.states[`input_text.reis_doorsturen_route_${key}`]?.state;
           if (route || (current && current !== 'unknown')) hass.callService('input_text', 'set_value', { entity_id: `input_text.reis_doorsturen_route_${key}`, value: route });
-          setTimeout(() => hass.callService('input_button', 'press', { entity_id: `input_button.reis_doorsturen_${key}` }), route || current ? 400 : 0);
-          el.querySelector('span').textContent = `Doorgestuurd naar ${name}`;
+          setTimeout(() => hass.callService('input_button', 'press', { entity_id: `input_button.reis_doorsturen${self ? '_zelf' : ''}_${key}` }), route || current ? 400 : 0);
+          el.querySelector('span').textContent = self ? `Verstuurd naar ${name}` : `Doorgestuurd naar ${name}`;
           el.querySelector('ha-icon').setAttribute('icon', 'mdi:check-circle');
         };
         // Openbaar vervoer (9292 OV): de eerstvolgende reis met de lijnen, vertraging of een vervallen reis, en de reizen daarna
@@ -3702,13 +3702,17 @@ commute_card:
         const forwardButton = s => {
           if (s.kind === 'missing') return '';
           const key = personKey(s);
+          const ownerName = key === 'vincent' ? 'Vincent' : 'Carleen';
           const otherName = key === 'vincent' ? 'Carleen' : 'Vincent';
-          return `<div style="display:flex;justify-content:flex-end;margin-top:10px"><span style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 12px;border-radius:14px;cursor:pointer;
+          const route = s.dir === 'other' ? s.entity_id : '';
+          // Twee knoppen: naar de ander (doorsturen) en naar de eigenaar van de route zelf
+          const button = (self, name, label) => `<span style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 12px;border-radius:14px;cursor:pointer;
               font-size:13px;font-weight:600;color:#dbe7ff;background:linear-gradient(135deg, rgba(122,162,255,0.30), rgba(167,139,250,0.22));
               border:1px solid rgba(147,178,255,0.45);box-shadow:0 2px 10px rgba(80,110,200,0.25)"
             onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()"
-            onpointerup="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this,'${s.dir === 'other' ? s.entity_id : ''}')" onclick="event.stopPropagation();window.huisReisForward('${key}','${otherName}',this,'${s.dir === 'other' ? s.entity_id : ''}')">
-            <ha-icon icon="mdi:share-variant" style="--mdc-icon-size:18px"></ha-icon><span>Stuur door naar ${otherName}</span></span></div>`;
+            onpointerup="event.stopPropagation();window.huisReisForward('${key}','${name}',this,'${route}',${self})" onclick="event.stopPropagation();window.huisReisForward('${key}','${name}',this,'${route}',${self})">
+            <ha-icon icon="${self ? 'mdi:send' : 'mdi:share-variant'}" style="--mdc-icon-size:18px"></ha-icon><span>${label}</span></span>`;
+          return `<div style="display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:10px">${button(true, ownerName, `Stuur naar ${ownerName}`)}${button(false, otherName, `Stuur door naar ${otherName}`)}</div>`;
         };
         // De routes als blokken naast elkaar (op een smal scherm onder elkaar); een blok opent bij een tik zijn venster
         // "Komt niet thuis" / "Gaat niet": de route is dan voor vandaag niet nodig en verdwijnt (NetDaemon zet hem 's nachts weer terug)

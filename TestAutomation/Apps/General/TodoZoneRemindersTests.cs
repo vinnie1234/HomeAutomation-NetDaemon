@@ -207,6 +207,63 @@ public class TodoZoneRemindersTests
     }
 
     [Fact]
+    public async Task EnteringTheSupermarket_SendsTheWholeShoppingList_ToWhoeverEntered()
+    {
+        Start("Boodschappen AH");
+        OpenItems("todo.vincent");
+        OpenItems("todo.dagelijks");
+        OpenItems("todo.boodschappen", ("Melk", null), ("Brood", "iets anders"));
+
+        Enter("person.carleen", "not_home", "Boodschappen AH");
+
+        var messages = await MessagesAsync();
+        messages.Should().ContainSingle();
+        messages[0].To.Should().Be(CarleenWhatsapp);
+        messages[0].Text.Should().Be("🛒 Je bent bij Boodschappen AH. Dit staat op de boodschappenlijst:\n• Melk\n• Brood");
+    }
+
+    [Fact]
+    public async Task EnteringTheSupermarket_WithTasksAndGroceries_SendsBothInOneMessage()
+    {
+        Start("Boodschappen AH");
+        OpenItems("todo.vincent", ("Pinpas ophalen", "📍 Boodschappen AH 🔔"));
+        OpenItems("todo.dagelijks");
+        OpenItems("todo.boodschappen", ("Melk", null));
+
+        Enter(VincentId, "not_home", "Boodschappen AH");
+
+        (await MessagesAsync()).Should().ContainSingle().Which.Text.Should()
+            .Contain("🛒 Je bent bij Boodschappen AH. Dit staat op de boodschappenlijst:\n• Melk")
+            .And.Contain("📍 Je bent bij Boodschappen AH. Dit moet nog:\n• Pinpas ophalen");
+    }
+
+    [Fact]
+    public async Task EnteringTheSupermarket_WithAnEmptyShoppingList_SendsNothing()
+    {
+        Start("Boodschappen AH");
+        OpenItems("todo.vincent");
+        OpenItems("todo.dagelijks");
+        OpenItems("todo.boodschappen");
+
+        Enter(VincentId, "not_home", "Boodschappen AH");
+
+        (await MessagesAsync()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task EnteringAnotherZone_DoesNotSendTheShoppingList()
+    {
+        Start("Boodschappen AH", "Werk");
+        OpenItems("todo.vincent");
+        OpenItems("todo.dagelijks");
+        OpenItems("todo.boodschappen", ("Melk", null));
+
+        Enter(VincentId, "not_home", "Werk");
+
+        (await MessagesAsync()).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task EnteringAZone_WithoutMatchingTasks_SendsNothing()
     {
         Start("Boodschappen AH");

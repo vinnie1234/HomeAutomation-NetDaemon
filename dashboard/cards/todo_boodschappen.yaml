@@ -1,0 +1,24 @@
+# Todo-lijst "Boodschappen" (todo.boodschappen) met de knop "Alles gehaald" eronder, die alles afvinkt (NetDaemon, GroceryList).
+# Wie de zone Boodschappen AH binnenkomt, krijgt de open items per WhatsApp (TodoZoneReminders). Het invoerveld staat in de lijst:
+# een item toevoegen kan overal waar de lijst staat.
+type: vertical-stack
+cards:
+  - type: todo-list
+    entity: todo.boodschappen
+    title: Boodschappen
+    card_mod:
+      style: |
+        ha-card {
+          border: 1px solid rgba(45, 212, 191, 0.55);
+          box-shadow: 0 0 24px rgba(45, 212, 191, 0.25);
+          background: linear-gradient(135deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.06));
+        }
+  - type: custom:button-card
+    template: action
+    name: Alles gehaald
+    icon: mdi:cart-check
+    tap_action:
+      action: perform-action
+      perform_action: input_button.press
+      target:
+        entity_id: input_button.boodschappen_alles_gehaald

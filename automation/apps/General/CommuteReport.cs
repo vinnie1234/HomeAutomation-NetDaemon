@@ -105,6 +105,11 @@ public partial class CommuteReport : BaseApp
             new Entity(HaContext, $"input_button.reis_doorsturen_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
                 .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true,
                     otherRoute: HaContext.GetState($"input_text.reis_doorsturen_route_{sender.Id}")?.State));
+
+            // "Stuur naar ..." for the person themself: the same message, but to their own WhatsApp
+            new Entity(HaContext, $"input_button.reis_doorsturen_zelf_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
+                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, toSelf: true,
+                    otherRoute: HaContext.GetState($"input_text.reis_doorsturen_route_{sender.Id}")?.State));
         }
     }
 
@@ -168,12 +173,13 @@ public partial class CommuteReport : BaseApp
     /// <param name="direction">To the office or home.</param>
     /// <param name="test">A test message, whatever day it is.</param>
     /// <param name="forward">The message goes to the other person, as the expected times of this person (the "Stuur door" button).</param>
+    /// <param name="toSelf">The message goes to this person themself (the "Stuur naar ..." button), worded like the forwarded one.</param>
     /// <param name="otherRoute">The sensor of a route that is neither to the office nor home, which is forwarded instead of the trip of the day.</param>
-    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false, string? otherRoute = null)
+    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false, string? otherRoute = null, bool toSelf = false)
     {
         try
         {
-            if (!test && !forward)
+            if (!test && !forward && !toSelf)
             {
                 // Switched off by the person, or not an office day
                 if (HaContext.GetState($"input_boolean.verkeer_bericht_{commuter.Id}")?.State == "off") return;
@@ -215,15 +221,15 @@ public partial class CommuteReport : BaseApp
                 // With the id of the first trip the integration tells every step; without it (or when asking fails) the short version
                 var journey = transit is { Trips.Count: > 0 } ? await GetJourneyAsync(transit) : null;
                 parts.Add(transit == null ? "⚠️ Ik kan de OV-reis nu niet ophalen (9292 is niet beschikbaar)."
-                    : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward ? null : otherName, title)
-                    : CommuteMessage.BuildTransit(direction, transit, target, title) + (forward ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
+                    : journey != null ? CommuteMessage.BuildJourney(direction, transit, journey, target, forward || toSelf ? null : otherName, title)
+                    : CommuteMessage.BuildTransit(direction, transit, target, title) + (forward || toSelf ? "" : $"\n↪️ Antwoord *Stuur door* om dit naar {otherName} te sturen"));
                 parts[^1] += DashboardLink(commuter, side, "ov");
             }
             var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
-            var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
+            var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : toSelf ? $"↪️ Dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
             Services.Whatsapp.SendMessage(clientId: "default", to: recipient, body: new { text });
             // The message is also the last reply in the WhatsApp conversation, so "Stuur door" forwards it to the other person
-            if (transitPrefix != null && !forward) RememberAsLastReply(commuter.Whatsapp, text);
+            if (transitPrefix != null && !forward && !toSelf) RememberAsLastReply(commuter.Whatsapp, text);
             Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);
         }
         catch (Exception ex)

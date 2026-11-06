@@ -1,0 +1,21 @@
+# Knop op Home: "Alle boodschappen gedaan". Staat er een uur nadat Vincent of Carleen bij Boodschappen AH wegging, zolang er nog iets
+# op de lijst staat (NetDaemon, GroceryList, input_boolean.boodschappen_afvinken). Een tik vinkt de hele lijst af.
+type: conditional
+conditions:
+  - condition: state
+    entity: input_boolean.boodschappen_afvinken
+    state: "on"
+card:
+  type: custom:button-card
+  template: action
+  name: Alle boodschappen gedaan
+  icon: mdi:cart-check
+  tap_action:
+    action: perform-action
+    perform_action: input_button.press
+    target:
+      entity_id: input_button.boodschappen_alles_gehaald
+  grid_options:
+    columns: 6
+grid_options:
+  columns: 6

@@ -634,6 +634,22 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void TheSendToSelfButton_SendsThePersonThemselfTheExpectedTimes()
+    {
+        Start("Kantoor", configure: () => SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00"));
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.reis_doorsturen_zelf_vincent").FromState("unknown").ToState("2026-10-29T06:30:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        var message = Messages().Should().ContainSingle().Which;
+        message.To.Should().Be(VincentWhatsapp);
+        message.Text.Should().Contain("Dit zijn de tijden die verwacht worden voor Vincent").And.Contain("Op kantoor om 08:20")
+            .And.NotContain("Doorgestuurd door");
+    }
+
+    [Fact]
     public void TheForwardButton_WithAnotherRoute_SendsThatRoute_UnderItsOwnName()
     {
         Start("Vrij", configure: () =>

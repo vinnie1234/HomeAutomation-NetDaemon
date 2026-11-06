@@ -169,6 +169,9 @@ public static class HelperDefinitions
         Text("todo_tekst", "todo_tekst", min: 0, max: 255, icon: "mdi:checkbox-marked-circle-outline"),
         Boolean("todo_stuur_bericht", "todo_stuur_bericht", icon: "mdi:whatsapp"),
         Button("todo_toevoegen", "todo_toevoegen", icon: "mdi:plus"),
+        // Boodschappenlijst (GroceryList): alles afvinken, en of de knop daarvoor op Home staat
+        Button("boodschappen_alles_gehaald", "boodschappen_alles_gehaald", icon: "mdi:cart-check"),
+        Boolean("boodschappen_afvinken", "boodschappen_afvinken", icon: "mdi:cart-check"),
 
         // input_select
         Select("housemodeselect", "HouseModeSelect", options: ["Morning", "Day", "Evening", "Night"], icon: "mdi:home-alert"),
@@ -240,6 +243,7 @@ public static class HelperDefinitions
         Text($"reis_keuze_{person}_work", $"Reis keuze {name} work", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Text($"reis_keuze_{person}_home", $"Reis keuze {name} home", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
+        Button($"reis_doorsturen_zelf_{person}", $"Reis doorsturen zelf {name}", icon: "mdi:send"),
         Button($"sync_agenda_{person}", $"Sync agenda {name}", icon: "mdi:calendar-sync"),
         Boolean($"werk_uit_agenda_{person}", $"Werk uit agenda {name}", icon: "mdi:calendar-sync", start: person == "carleen"),
         Select($"reis_ochtend_soort_{person}", $"Reis ochtend soort {name}", [Models.Persons.OfficeTravel.MorningArrive, Models.Persons.OfficeTravel.MorningDepart], icon: "mdi:weather-sunset-up"),

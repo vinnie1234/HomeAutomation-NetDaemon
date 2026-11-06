@@ -143,12 +143,15 @@ sections:
                   - condition: numeric_state
                     entity: todo.carleen
                     above: 0
+                  - condition: numeric_state
+                    entity: todo.boodschappen
+                    above: 0
             chip:
               type: template
               icon: mdi:checkbox-marked-circle-outline
               icon_color: purple
               content: >-
-                {% set n = states('todo.dagelijks') | int(0) + states('todo.vincent') | int(0) + states('todo.carleen') | int(0) %}
+                {% set n = states('todo.dagelijks') | int(0) + states('todo.vincent') | int(0) + states('todo.carleen') | int(0) + states('todo.boodschappen') | int(0) %}
                 {{ n }} {{ 'taak' if n == 1 else 'taken' }}
               tap_action:
                 action: navigate
@@ -809,6 +812,7 @@ sections:
           columns: 6
 
       - !include ../cards/taak_knop.yaml
+      - !include ../cards/boodschappen_gedaan_knop.yaml
 
   # Agenda en taken: een kolom breed
   - type: grid
