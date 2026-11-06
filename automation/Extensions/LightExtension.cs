@@ -36,16 +36,16 @@ public static class LightExtension
         switch (houseState)
         {
             case HouseState.Morning:
-                entities.Scene.Woonkamermorning.Activate();
+                entities.Scene.Woonkamermorning.TurnOn();
                 break;
             case HouseState.Day:
-                entities.Scene.Woonkamerday.Activate();
+                entities.Scene.Woonkamerday.TurnOn();
                 break;
             case HouseState.Evening:
-                entities.Scene.Woonkamerevening.Activate();
+                entities.Scene.Woonkamerevening.TurnOn();
                 break;
             case HouseState.Night:
-                entities.Scene.Woonkamernight.Activate();
+                entities.Scene.Woonkamernight.TurnOn();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(houseState), $"{houseState} is not a valid house state!");

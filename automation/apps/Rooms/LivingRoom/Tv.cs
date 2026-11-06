@@ -99,19 +99,19 @@ public class Tv : BaseApp
         switch (GetHouseState(Entities))
         {
             case HouseState.Morning:
-                Entities.Scene.Woonkamermorning.Activate();
+                Entities.Scene.Woonkamermorning.TurnOn();
                 break;
             case HouseState.Day:
-                Entities.Scene.Woonkamerday.Activate();
+                Entities.Scene.Woonkamerday.TurnOn();
                 break;
             case HouseState.Evening:
-                Entities.Scene.Woonkamerevening.Activate();
+                Entities.Scene.Woonkamerevening.TurnOn();
                 break;
             case HouseState.Night:
-                Entities.Scene.Woonkamernight.Activate();
+                Entities.Scene.Woonkamernight.TurnOn();
                 break;
             default:
-                Entities.Scene.Woonkamerday.Activate();
+                Entities.Scene.Woonkamerday.TurnOn();
                 break;
         }
 
@@ -127,7 +127,7 @@ public class Tv : BaseApp
 
         if (!DisableLightAutomations)
         {
-            Entities.Scene.WoonkamerMovie2.Activate();
+            Entities.Scene.WoonkamerMovie2.TurnOn();
             Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();
             Entities.Light.HueFilamentBulb1.TurnOff();
