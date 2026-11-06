@@ -136,4 +136,115 @@ public class WalletMonitorTests
 
         VerifyVincent("Portemonnee: ongewenste tracking");
     }
+
+    // ---- coming home with the wallet not at home: scan, scan again, and only then the alert
+
+    private int Calls(string domain, string service, string entityId) =>
+        _ctx.HaContext.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == domain
+            && (string)c.GetArguments()[1]! == service && c.GetArguments()[2] is ServiceTarget t && t.EntityIds!.Contains(entityId));
+
+    private int Scans() => Calls("button", "press", WalletMonitor.LocateButton);
+    private int AlertsOn() => Calls("input_boolean", "turn_on", WalletMonitor.AlertHelper);
+
+    [Fact]
+    public void ComingHome_WithTheWalletNotAtHome_ScansNow_ScansAgainAMinuteLater_AndAlertsAMinuteAfterThat()
+    {
+        Start(vincentAway: "on", tracker: "Werk");
+
+        Change("input_boolean.awayvincent", "on", "off");
+        Scans().Should().Be(1);
+        AlertsOn().Should().Be(0);
+
+        // (every Wait also lets the mock process a second)
+        Wait(TimeSpan.FromSeconds(50));
+        Scans().Should().Be(1);
+
+        Wait(TimeSpan.FromSeconds(15));
+        Scans().Should().Be(2);
+        AlertsOn().Should().Be(0);
+
+        Wait(TimeSpan.FromSeconds(40));
+        AlertsOn().Should().Be(0);
+
+        Wait(TimeSpan.FromSeconds(30));
+        AlertsOn().Should().Be(1);
+        Scans().Should().Be(2);
+    }
+
+    [Fact]
+    public void ComingHome_AndTheWalletIsFoundByTheFirstScan_NeverAlerts()
+    {
+        Start(vincentAway: "on", tracker: "Werk");
+
+        Change("input_boolean.awayvincent", "on", "off");
+        Change(WalletMonitor.Tracker, "Werk", "Huis Vincent");
+        Wait(TimeSpan.FromMinutes(3));
+
+        Scans().Should().Be(1);
+        AlertsOn().Should().Be(0);
+    }
+
+    [Fact]
+    public void ComingHome_AndTheWalletIsFoundByTheSecondScan_NeverAlerts()
+    {
+        Start(vincentAway: "on", tracker: "Werk");
+
+        Change("input_boolean.awayvincent", "on", "off");
+        Wait(TimeSpan.FromSeconds(70));
+        Change(WalletMonitor.Tracker, "Werk", "home");
+        Wait(TimeSpan.FromMinutes(3));
+
+        Scans().Should().Be(2);
+        AlertsOn().Should().Be(0);
+    }
+
+    [Fact]
+    public void ComingHome_WithTheWalletAtHome_DoesNotScanOrAlert()
+    {
+        Start(vincentAway: "on", tracker: "Huis Vincent");
+
+        Change("input_boolean.awayvincent", "on", "off");
+        Wait(TimeSpan.FromMinutes(3));
+
+        Scans().Should().Be(0);
+        AlertsOn().Should().Be(0);
+    }
+
+    [Fact]
+    public void WhenVincentLeavesAgainDuringTheSearch_ThereIsNoAlert()
+    {
+        Start(vincentAway: "on", tracker: "Werk");
+
+        Change("input_boolean.awayvincent", "on", "off");
+        Wait(TimeSpan.FromSeconds(30));
+        Change("input_boolean.awayvincent", "off", "on");
+        Wait(TimeSpan.FromMinutes(3));
+
+        AlertsOn().Should().Be(0);
+    }
+
+    [Fact]
+    public void WhenTheWalletIsFoundAfterTheAlert_TheAlertGoesAway()
+    {
+        Start(vincentAway: "on", tracker: "Werk");
+        Change("input_boolean.awayvincent", "on", "off");
+        Wait(TimeSpan.FromMinutes(3));
+        AlertsOn().Should().Be(1);
+
+        Change(WalletMonitor.Tracker, "Werk", "Huis Vincent");
+
+        Calls("input_boolean", "turn_off", WalletMonitor.AlertHelper).Should().BeGreaterThan(1);
+    }
+
+    [Fact]
+    public void TheWalletLeaves_WhileVincentIsHome_AlsoScansTwiceBeforeTheAlert()
+    {
+        Start();
+
+        Change(WalletMonitor.Tracker, "Huis Vincent", "Werk");
+        Wait(TimeSpan.FromMinutes(3));
+
+        Scans().Should().Be(2);
+        AlertsOn().Should().Be(1);
+    }
 }

@@ -12,6 +12,9 @@ namespace Automation.apps.General;
 /// at home after he left, he gets a message ("Portemonnee vergeten?"). A wallet that was not seen since he left, is not reported:
 /// it can be in his pocket.</item>
 /// <item>The wallet leaves home while Vincent is home: a message to Vincent.</item>
+/// <item>Vincent comes home (or the wallet leaves while he is home) and the wallet is not at home: the tracker often lags, so the wallet
+/// is asked where it is, a minute later again, and only when it is still not at home a minute after that the alert on the dashboard
+/// shows (<see cref="AlertHelper"/>).</item>
 /// <item>The tracker warns that an unknown tracker follows him (unwanted tracking): a message.</item>
 /// </list>
 /// Google calls a place that has a label ("Huis") a semantic location: the tracker has no coordinates then and its state is the name of
@@ -27,6 +30,15 @@ public class WalletMonitor : BaseApp
     public const string LocateButton = "button." + Prefix + "_nu_lokaliseren";
     public const string SoundButton = "button." + Prefix + "_geluid_afspelen";
 
+    /// <summary>On when the wallet is still not at home after it was asked twice where it is: the dashboard shows its alert then.</summary>
+    public const string AlertHelper = "input_boolean.portemonnee_melding";
+
+    /// <summary>How long between asking the wallet where it is, and checking whether it answered.</summary>
+    public static readonly TimeSpan RescanAfter = TimeSpan.FromMinutes(1);
+
+    /// <summary>Changes with every search, so a search that was overtaken stops.</summary>
+    private int _searchId;
+
     /// <summary>How long after Vincent left the wallet is asked where it is, and how long after that the answer is read.</summary>
     public static readonly TimeSpan AskAfter = TimeSpan.FromMinutes(4);
     public static readonly TimeSpan ReadAfter = TimeSpan.FromMinutes(7);
@@ -41,11 +53,23 @@ public class WalletMonitor : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        Entities.InputBoolean.Awayvincent.WhenTurnsOn(_ => VincentLeft(Scheduler.Now));
+        Entities.InputBoolean.Awayvincent.WhenTurnsOn(_ =>
+        {
+            StopSearch();
+            VincentLeft(Scheduler.Now);
+        });
+        Entities.InputBoolean.Awayvincent.WhenTurnsOff(_ => StartSearch());
 
         new Entity(HaContext, Tracker).StateChanges()
             .Where(x => IsAtHome(x.Old?.State) && !IsAtHome(x.New?.State) && x.New?.State is not (null or "unknown" or "unavailable"))
-            .Subscribe(_ => Scheduler.Schedule(LeavingCheckDelay, CheckLeftWhileVincentIsHome));
+            .Subscribe(_ =>
+            {
+                Scheduler.Schedule(LeavingCheckDelay, CheckLeftWhileVincentIsHome);
+                StartSearch();
+            });
+
+        // Found: the alert goes away
+        new Entity(HaContext, Tracker).StateChanges().Where(x => IsAtHome(x.New?.State)).Subscribe(_ => StopSearch());
 
         new Entity(HaContext, UnwantedTracking).StateChanges()
             .Where(x => x.New?.State == "on" && x.Old?.State != "on")
@@ -57,6 +81,43 @@ public class WalletMonitor : BaseApp
         state is not null && (state.Equals("home", StringComparison.OrdinalIgnoreCase)
                               || state.StartsWith("Huis", StringComparison.OrdinalIgnoreCase)
                               || state.StartsWith("Thuis", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Vincent is home and the wallet is known to be somewhere else.</summary>
+    private bool IsMissing() =>
+        !Entities.InputBoolean.Awayvincent.IsOn() && StateOf(Tracker) is { } state && state is not ("unknown" or "unavailable") && !IsAtHome(state);
+
+    private void SetAlert(bool on) =>
+        HaContext.CallService("input_boolean", on ? "turn_on" : "turn_off", ServiceTarget.FromEntity(AlertHelper));
+
+    private void Locate() => HaContext.CallService("button", "press", ServiceTarget.FromEntity(LocateButton));
+
+    private void StopSearch()
+    {
+        _searchId++;
+        SetAlert(false);
+    }
+
+    /// <summary>
+    /// The wallet is asked where it is right away and after a minute again; when it is still not at home a minute after the second time,
+    /// the alert shows. The tracker lags behind, so the first answer is often too old.
+    /// </summary>
+    private void StartSearch()
+    {
+        var id = ++_searchId;
+        SetAlert(false);
+        if (!IsMissing()) return;
+
+        Locate();
+        Scheduler.Schedule(RescanAfter, () =>
+        {
+            if (id != _searchId || !IsMissing()) return;
+            Locate();
+            Scheduler.Schedule(RescanAfter, () =>
+            {
+                if (id == _searchId && IsMissing()) SetAlert(true);
+            });
+        });
+    }
 
     private string? StateOf(string entityId) => HaContext.GetState(entityId)?.State;
 

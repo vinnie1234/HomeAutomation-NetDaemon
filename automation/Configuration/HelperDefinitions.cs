@@ -172,6 +172,8 @@ public static class HelperDefinitions
         // Boodschappenlijst (GroceryList): alles afvinken, en of de knop daarvoor op Home staat
         Button("boodschappen_alles_gehaald", "boodschappen_alles_gehaald", icon: "mdi:cart-check"),
         Boolean("boodschappen_afvinken", "boodschappen_afvinken", icon: "mdi:cart-check"),
+        // Aan als de portemonnee na twee keer zoeken nog niet thuis is (WalletMonitor): dan komt de melding op Home
+        Boolean("portemonnee_melding", "portemonnee_melding", icon: "mdi:wallet-outline"),
 
         // input_select
         Select("housemodeselect", "HouseModeSelect", options: ["Morning", "Day", "Evening", "Night"], icon: "mdi:home-alert"),
