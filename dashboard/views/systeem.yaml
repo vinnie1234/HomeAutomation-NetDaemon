@@ -972,4 +972,4 @@ sections:
                   action: perform-action
                   perform_action: button.press
                   target:
-                    entity_id: button.watchman_report
+                    entity_id: button.watchman_create_report_file
