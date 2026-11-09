@@ -42,28 +42,26 @@ cards:
     show_state: true
     tap_action:
       action: toggle
-  - type: custom:bubble-card
-    card_type: button
-    button_type: slider
-    entity: light.festavia_string_lights_1
-    name: Kerstboom
-    icon: mdi:pine-tree
-    show_state: true
-    tap_action:
-      action: toggle
-    hold_action:
-      action: more-info
-  - type: custom:bubble-card
-    card_type: button
-    button_type: name
-    name: Kerstmuziek
-    icon: mdi:music-note
-    show_state: false
-    tap_action:
-      action: perform-action
-      perform_action: input_button.press
-      target:
-        entity_id: input_button.start_kerstmuziek
+  # De kerstboom, alleen zolang de lampjes er zijn (weg na het weghalen); de knop Kerstmuziek staat op Home
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: light.festavia_string_lights_1
+        state:
+          - "on"
+          - "off"
+    card:
+      type: custom:bubble-card
+      card_type: button
+      button_type: slider
+      entity: light.festavia_string_lights_1
+      name: Kerstboom
+      icon: mdi:pine-tree
+      show_state: true
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
   - type: custom:bubble-card
     card_type: button
     button_type: slider

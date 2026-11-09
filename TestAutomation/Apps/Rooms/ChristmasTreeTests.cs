@@ -15,8 +15,14 @@ public class ChristmasTreeTests
 
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
 
-    private void Start(string playlist = Playlist) =>
+    private void SetState(string entityId, string state) =>
+        _ctx.HaContext.GetState(entityId).Returns(new EntityState { EntityId = entityId, State = state });
+
+    private void Start(string playlist = Playlist, string tree = "off")
+    {
+        SetState(ChristmasTree.Tree, tree);
         _ctx.InitApp<ChristmasTree>(_ctx.Spotcast, Options.Create(new AppConfig { SpotifyKerstUrl = playlist }));
+    }
 
     private void Change(string entityId, string from, string to)
     {
@@ -42,6 +48,19 @@ public class ChristmasTreeTests
         Change("input_boolean.sleepingvincent", "off", "on");
 
         _ctx.VerifyCallService("light", "turn_off", "festavia_string_lights_1", times: 1);
+    }
+
+    [Theory]
+    [InlineData("unavailable")]
+    [InlineData("unknown")]
+    public void WhenTheLampsAreGone_NothingIsSwitched(string state)
+    {
+        Start(tree: state);
+
+        Change("input_boolean.sleepingvincent", "on", "off");
+        Change("input_boolean.sleepingvincent", "off", "on");
+
+        _ctx.HaContext.DidNotReceive().CallService("light", Arg.Any<string>(), Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
     }
 
     [Fact]

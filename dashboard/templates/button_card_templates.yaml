@@ -510,6 +510,7 @@ weather_hero:
     - input_boolean.onvacation
     - device_tracker.buiten_peugeot_2008_voertuig
     - vacuum.jaap
+    - light.festavia_string_lights_1
     - input_datetime.pixellastlitterboxvisit
     - sensor.thuis_3_voertuig_direction_of_travel
     - sensor.thuis_3_voertuig_afstand
@@ -1201,7 +1202,8 @@ weather_hero:
               }`;
         // deco: 'kerst' (lichtjes langs het dak en een krans op de deur) of 'sinterklaas' (een Piet die uit de schoorsteen gluurt)
         // curtains: de gordijnen zijn dicht (op vakantie)
-        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null, curtains = false, vacuum = false } = {}) => {
+        // tree: de kerstboom achter het raam, 'on' (de lichtjes branden, zoals de echte boom) of 'off'; null is geen boom
+        const house = (x, size, chimney, { lit = true, smoke = false, tv = false, music = false, airing = false, deco = null, curtains = false, vacuum = false, tree = null } = {}) => {
           const top = groundTop(x);
           const glow = !lit ? (day ? 'rgba(70,82,104,0.75)' : 'rgb(18,22,34)') : day ? 'rgba(255,214,140,0.55)' : '#ffcf73';
           let puffs = '';
@@ -1225,6 +1227,12 @@ weather_hero:
                       <rect x="7" y="14" width="4" height="4" fill="none" stroke="#7ee787" stroke-width="0.25" style="animation:hero-twinkle 1.6s ease-in-out infinite"/>` : ''}
                     ${tv ? `<rect x="7" y="14" width="4" height="4" style="animation:hero-tv 2.6s steps(6) infinite;opacity:${day ? 0.75 : 0.95};
                       filter:drop-shadow(0 0 ${day ? 1.5 : 3}px #6fa8ff)"/>` : ''}
+                    ${tree ? `<clipPath id="tree-window"><rect x="7" y="14" width="4" height="4"/></clipPath>
+                      <g clip-path="url(#tree-window)"><rect x="8.8" y="17.5" width="0.4" height="0.6" fill="${night('rgb(96,64,46)')}"/>
+                      ${['9,14.2 8,15.8 10,15.8', '9,15 7.7,16.9 10.3,16.9', '9,15.9 7.4,17.9 10.6,17.9'].map(points => `<polygon points="${points}" fill="${night('rgb(34,100,66)')}"/>`).join('')}
+                      ${tree === 'on' ? `<circle cx="9" cy="14.3" r="0.35" fill="#ffd166" style="filter:drop-shadow(0 0 0.6px #ffd166)"/>
+                        ${[[8.6, 15.4], [9.5, 15.6], [8.2, 16.5], [9, 16.4], [9.9, 16.7], [7.9, 17.5], [8.7, 17.4], [9.6, 17.5], [10.3, 17.6]].map(([lx, ly], i) => `<circle cx="${lx}" cy="${ly}" r="0.26"
+                          fill="${['#ff5a5a', '#ffd166', '#7ee787', '#7aa2ff'][i % 4]}" style="animation:hero-twinkle ${1.2 + (i % 3) * 0.4}s ease-in-out ${-i * 0.3}s infinite;filter:drop-shadow(0 0 0.5px currentColor)"/>`).join('')}` : ''}</g>` : ''}
                     ${airing ? `<path d="M7.2 14 Q4.4 15.4 5.2 18.6 Q6.6 17.6 8.2 18.2 Q7.8 16.2 9.6 14 Z" fill="rgba(255,255,255,0.92)"
                       style="transform-box:view-box;transform-origin:8px 14px;animation:hero-curtain 2.2s ease-in-out infinite"/>` : ''}
                     ${curtains ? `<path d="M7 14 H9.1 Q8.6 16 9 18 H7 Z" fill="${night('rgb(150,60,70)')}"/><path d="M11 14 H8.9 Q9.4 16 9 18 H11 Z" fill="${night('rgb(130,50,62)')}"/>
@@ -1279,7 +1287,9 @@ weather_hero:
                 fill="${night(wintry ? 'rgb(222,228,236)' : 'rgb(206,186,152)')}"/>
               <path d="M${homeX + 0.8} 4 C${homeX + 1.8} 38 ${homeX + 5} 60 ${homeX + 6.2} 96" stroke="${night('rgb(160,140,112)')}" stroke-width="0.25"
                 stroke-dasharray="1.2 2.4" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
-          scene += house(homeX, mobile ? 64 : 78, true, { lit: occupied, smoke: stoking, tv: tvOn, music: musicOn, airing: occupied && temperature >= 20 && !tvOn,
+          // De kerstboom staat achter het raam zolang de lampjes er zijn (in Google Home / Hue); weg na het weghalen (de lamp is dan niet meer beschikbaar)
+          const treeState = states['light.festavia_string_lights_1']?.state;
+          scene += house(homeX, mobile ? 72 : 92, true, { tree: treeState === 'on' ? 'on' : treeState === 'off' ? 'off' : null, lit: occupied, smoke: stoking, tv: tvOn, music: musicOn, airing: occupied && temperature >= 20 && !tvOn,
             deco: theme, curtains: closedUp, vacuum: states['vacuum.jaap']?.state === 'cleaning' });
         }
         // Wat achter het huis langs loopt (Sinterklaas en zijn Piet) komt op deze plek in de tekening, vóór het huis en de bomen

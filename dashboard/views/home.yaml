@@ -826,6 +826,7 @@ sections:
 
       - !include ../cards/taak_knop.yaml
       - !include ../cards/boodschappen_gedaan_knop.yaml
+      - !include ../cards/kerstmuziek_knop.yaml
 
   # Agenda en taken: een kolom breed
   - type: grid

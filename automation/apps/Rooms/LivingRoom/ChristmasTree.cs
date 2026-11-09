@@ -7,7 +7,7 @@ namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
 /// The Christmas tree (a Hue Festavia string): it is on all day, so it goes on when Vincent gets up (the sleeping switch goes off) and
-/// off when he goes to sleep. The button "Kerstmuziek" plays the Christmas playlist on the kitchen speaker.
+/// off when he goes to sleep (only while the lamps are there: they are taken away after the holidays). The button "Kerstmuziek" plays the Christmas playlist on the kitchen speaker.
 /// </summary>
 [NetDaemonApp(Id = nameof(ChristmasTree))]
 public class ChristmasTree : BaseApp
@@ -46,6 +46,13 @@ public class ChristmasTree : BaseApp
 
     private void SetTree(bool on)
     {
+        // The lamps are taken away after the holidays: then there is nothing to switch
+        if (HaContext.GetState(Tree)?.State is null or "unavailable" or "unknown")
+        {
+            Logger.LogDebug("The Christmas tree is not there, nothing to switch");
+            return;
+        }
+
         HaContext.CallService("light", on ? "turn_on" : "turn_off", ServiceTarget.FromEntity(Tree));
         Logger.LogInformation("Christmas tree {State}", on ? "on" : "off");
     }
