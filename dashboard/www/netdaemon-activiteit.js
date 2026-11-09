@@ -40,11 +40,26 @@
     set hass(hass) {
       const first = !this._hass;
       this._hass = hass;
-      if (first) { this._load(); return; }
-      // Live: een nieuwe actie is een nieuwe waarde van de sensor
+      if (first) { this._load(); this._subscribe(); return; }
+      // De sensor houdt de laatste actie bij: een vangnet voor als de verbinding even weg was
       const a = hass.states[ENTITY]?.attributes;
       if (a?.id && !this._seen.has(a.id)) { this._add(a, Date.now()); this._sortAndShow(); }
     }
+
+    // Realtime: elke actie van NetDaemon komt als event binnen en staat meteen bovenaan, ook als er er meer tegelijk komen
+    // (de sensor laat er dan maar een zien). De geschiedenis erachter komt van de sensor.
+    async _subscribe() {
+      if (this._unsub || !this._hass?.connection) return;
+      try {
+        this._unsub = await this._hass.connection.subscribeEvents(ev => {
+          this._add(ev.data, Date.now());
+          this._sortAndShow();
+        }, 'netdaemon_activity');
+      } catch (e) { /* geen live; de sensor vangt het op */ }
+    }
+
+    connectedCallback() { if (this._hass) this._subscribe(); }
+    disconnectedCallback() { this._unsub?.(); this._unsub = null; }
 
     _add(a, fallbackTime) {
       if (!a?.id || this._seen.has(a.id)) return;
@@ -67,7 +82,7 @@
         if (now?.id) this._add(now, Date.now());
         this._status('');
       } catch (e) {
-        this._status('De geschiedenis kon niet worden opgehaald. Staat de sensor er al (ha/template.yaml)?');
+        this._status('De geschiedenis kon niet worden opgehaald (staat sensor.netdaemon_activiteit er al, zie ha/template.yaml?). Nieuwe acties komen wel live binnen.');
       }
       this._sortAndShow();
     }
