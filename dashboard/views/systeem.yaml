@@ -49,7 +49,7 @@ sections:
             return parts.join(' · ');
           ]]]
 
-  # Aandachtspunten en onderdelen. Wat veel ruimte inneemt staat in een venster: tik op de tegel.
+  # Kolom 1: Home Assistant en onderhoud. Wat veel ruimte inneemt staat in een venster: tik op de tegel.
   - type: grid
     cards:
       - type: heading
@@ -170,6 +170,10 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#componenten"
+
+  # Kolom 2: netwerk, Raspberry Pi, NetDaemon en afwezigheid
+  - type: grid
+    cards:
       - type: heading
         heading: Systeem
         heading_style: title
@@ -282,6 +286,10 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#afwezigheid"
+
+  # Kolom 3: instellingen en het dashboard verversen
+  - type: grid
+    cards:
       - type: heading
         heading: Instellingen
         heading_style: title
