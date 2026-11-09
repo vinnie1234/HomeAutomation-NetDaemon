@@ -74,6 +74,21 @@ sections:
         entity: sensor.backup_last_successful_automatic_backup
         name: Laatste back-up
         icon: mdi:backup-restore
+        triggers_update:
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_last_attempted_automatic_backup
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const ok = new Date(states['sensor.backup_last_successful_automatic_backup']?.state);
+                  const tried = new Date(states['sensor.backup_last_attempted_automatic_backup']?.state);
+                  if (!isNaN(tried) && (isNaN(ok) || tried - ok > 10 * 60000)) return '#ff6b6b';
+                  return !isNaN(ok) && Date.now() - ok > 2 * 86400000 ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#backup"
         grid_options:
           columns: 6
       - type: heading
@@ -103,6 +118,34 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#updates"
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:lan-disconnect
+        name: |
+          [[[
+            const n = Object.values(states).filter(s => s.state === 'unavailable').length;
+            return n ? `${n} niet beschikbaar` : 'Alles is bereikbaar';
+          ]]]
+        label: |
+          [[[
+            const bad = Object.values(states).filter(s => s.state === 'unavailable');
+            const by = {};
+            bad.forEach(s => { const d = s.entity_id.split('.')[0]; by[d] = (by[d] ?? 0) + 1; });
+            const names = { sensor: 'sensoren', media_player: 'mediaspelers', button: 'knoppen', image: 'afbeeldingen', switch: 'schakelaars', binary_sensor: 'binaire sensoren', light: 'lampen' };
+            const parts = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([d, n]) => `${n} ${names[d] ?? d}`);
+            return parts.length ? `${parts.join(', ')} · tik voor de lijst` : '';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const n = Object.values(states).filter(s => s.state === 'unavailable').length;
+                  return n > 150 ? '#ffb060' : n ? '#7aa2ff' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#niet-beschikbaar"
       # Watchman: automatiseringen en scripts die naar verdwenen entiteiten of acties verwijzen
       - type: custom:button-card
         template: glass
@@ -171,7 +214,7 @@ sections:
           action: navigate
           navigation_path: "#componenten"
 
-  # Kolom 2: netwerk, Raspberry Pi, NetDaemon en afwezigheid
+  # Kolom 2: netwerk, Raspberry Pi, NetDaemon en Hue
   - type: grid
     cards:
       - type: heading
@@ -241,23 +284,65 @@ sections:
         icon: mdi:robot-outline
         name: |
           [[[
-            return states['binary_sensor.netdaemon_online']?.state === 'off' ? 'NetDaemon reageert niet' : 'NetDaemon';
+            if (states['binary_sensor.netdaemon_online']?.state === 'off') return 'NetDaemon reageert niet';
+            return states['binary_sensor.netdaemon_mqtt_ok']?.state === 'off' ? 'NetDaemon: MQTT werkt niet' : 'NetDaemon';
           ]]]
         label: |
           [[[
             const apps = Object.entries(states).filter(([id]) => id.startsWith('input_boolean.netdaemon_'));
             const on = apps.filter(([, s]) => s.state === 'on').length;
-            return apps.length ? `${on} van ${apps.length} apps aan · herstarten en apps aan of uit` : 'Herstarten en apps aan of uit';
+            const beat = new Date(states['sensor.netdaemon_mqtt_heartbeat']?.state);
+            const ago = isNaN(beat) ? null : Math.max(0, Math.round((Date.now() - beat) / 60000));
+            const parts = [];
+            if (apps.length) parts.push(`${on} van ${apps.length} apps aan`);
+            if (ago !== null) parts.push(ago < 2 ? 'levensteken zojuist' : `levensteken ${ago} min geleden`);
+            return parts.join(' · ');
           ]]]
         styles:
           icon:
             - color: |
                 [[[
-                  return states['binary_sensor.netdaemon_online']?.state === 'off' ? '#ff6b6b' : '#4ade80';
+                  return states['binary_sensor.netdaemon_online']?.state === 'off' || states['binary_sensor.netdaemon_mqtt_ok']?.state === 'off' ? '#ff6b6b' : '#4ade80';
                 ]]]
         tap_action:
           action: navigate
           navigation_path: "#netdaemon"
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:lightbulb-group-outline
+        name: |
+          [[[
+            const all = Object.values(states).filter(s => s.entity_id.startsWith('light.') && s.attributes.dynamics !== undefined);
+            const bad = all.filter(s => s.state === 'unavailable').length;
+            if (all.length && bad === all.length) return 'Hue Bridge reageert niet';
+            return bad ? `${bad} Hue-lampen niet bereikbaar` : 'Hue';
+          ]]]
+        label: |
+          [[[
+            const all = Object.values(states).filter(s => s.entity_id.startsWith('light.') && s.attributes.dynamics !== undefined);
+            const bad = all.filter(s => s.state === 'unavailable').length;
+            return all.length ? `${all.length - bad} van ${all.length} lampen bereikbaar` : 'Geen Hue-lampen gevonden';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const all = Object.values(states).filter(s => s.entity_id.startsWith('light.') && s.attributes.dynamics !== undefined);
+                  const bad = all.filter(s => s.state === 'unavailable').length;
+                  return all.length && bad === all.length ? '#ff6b6b' : bad ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#hue"
+
+  # Kolom 3: afwezigheid, instellingen en het dashboard verversen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Huis en dashboard
+        heading_style: title
+        icon: mdi:home-cog-outline
       - type: custom:button-card
         template: beheer_tile
         triggers_update: all
@@ -286,14 +371,6 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#afwezigheid"
-
-  # Kolom 3: instellingen en het dashboard verversen
-  - type: grid
-    cards:
-      - type: heading
-        heading: Instellingen
-        heading_style: title
-        icon: mdi:tune-vertical
       - type: custom:button-card
         template: action
         name: Dagritme en licht instellen
@@ -571,6 +648,49 @@ sections:
         name: NetDaemon
         icon: mdi:robot-outline
         cards:
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: stat
+                entity: binary_sensor.netdaemon_online
+                name: Draait
+                icon: mdi:robot-outline
+                state_display: |
+                  [[[
+                    return states['binary_sensor.netdaemon_online']?.state === 'on' ? 'Ja' : 'Nee';
+                  ]]]
+              - type: custom:button-card
+                template: stat
+                entity: binary_sensor.netdaemon_mqtt_ok
+                name: MQTT werkt
+                icon: mdi:message-text-outline
+                state_display: |
+                  [[[
+                    return states['binary_sensor.netdaemon_mqtt_ok']?.state === 'on' ? 'Ja' : 'Nee';
+                  ]]]
+              - type: custom:button-card
+                template: stat
+                entity: sensor.netdaemon_mqtt_heartbeat
+                name: Laatste levensteken
+                icon: mdi:heart-pulse
+                state_display: |
+                  [[[
+                    const t = new Date(entity?.state);
+                    if (isNaN(t)) return 'Onbekend';
+                    const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+                    return m < 2 ? 'Zojuist' : m < 60 ? `${m} min geleden` : `${Math.round(m / 60)} uur geleden`;
+                  ]]]
+              - type: custom:button-card
+                template: stat
+                entity: update.netdaemon_v6_net_10_update
+                name: Update
+                icon: mdi:update
+                state_display: |
+                  [[[
+                    return entity?.state === 'on' ? 'Beschikbaar' : 'Actueel';
+                  ]]]
           - type: custom:button-card
             template: action
             name: NetDaemon herstarten
@@ -660,6 +780,117 @@ sections:
                     setTimeout(() => hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_start_url_laden' }), 1500);
                   })();
                 ]]]
+
+      # Pop-up: alles wat niet beschikbaar is, om op te ruimen of te herstellen
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#niet-beschikbaar"
+        name: Niet beschikbaar
+        icon: mdi:lan-disconnect
+        cards:
+          - type: custom:auto-entities
+            card:
+              type: entities
+              title: Niet beschikbaar
+              state_color: true
+            filter:
+              include:
+                - state: unavailable
+            sort:
+              method: entity_id
+            show_empty: true
+          - type: custom:button-card
+            template: action
+            name: Alle entiteiten openen
+            icon: mdi:format-list-bulleted
+            tap_action:
+              action: navigate
+              navigation_path: /config/entities
+
+      # Pop-up: back-ups van Home Assistant
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#backup"
+        name: Back-up
+        icon: mdi:backup-restore
+        cards:
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: stat
+                entity: sensor.backup_last_successful_automatic_backup
+                name: Laatste geslaagd
+                icon: mdi:backup-restore
+              - type: custom:button-card
+                template: stat
+                entity: sensor.backup_last_attempted_automatic_backup
+                name: Laatste poging
+                icon: mdi:backup-restore
+                styles:
+                  icon:
+                    - color: |
+                        [[[
+                          const ok = new Date(states['sensor.backup_last_successful_automatic_backup']?.state);
+                          const tried = new Date(entity?.state);
+                          return !isNaN(tried) && (isNaN(ok) || tried - ok > 10 * 60000) ? '#ff6b6b' : '#4ade80';
+                        ]]]
+              - type: custom:button-card
+                template: stat
+                entity: sensor.backup_next_scheduled_automatic_backup
+                name: Volgende
+                icon: mdi:calendar-clock
+              - type: custom:button-card
+                template: stat
+                entity: sensor.backup_last_successful_automatic_backup_size
+                name: Grootte
+                icon: mdi:database
+                state_display: |
+                  [[[
+                    const v = parseFloat(entity?.state);
+                    if (isNaN(v)) return 'Onbekend';
+                    const unit = entity.attributes.unit_of_measurement ?? 'MiB';
+                    return /^Mi?B$/.test(unit) && v >= 1024 ? `${(v / 1024).toFixed(1)} GB` : `${Math.round(v)} ${unit}`;
+                  ]]]
+          - type: custom:button-card
+            template: action
+            name: Nu een back-up maken
+            icon: mdi:cloud-upload-outline
+            tap_action:
+              action: perform-action
+              perform_action: backup.create_automatic
+              confirmation:
+                text: Nu een back-up maken?
+
+      # Pop-up: de Hue-lampen en de bridge
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#hue"
+        name: Hue
+        icon: mdi:lightbulb-group-outline
+        cards:
+          - type: custom:auto-entities
+            card:
+              type: entities
+              title: Hue-lampen die niet bereikbaar zijn
+              state_color: true
+            filter:
+              include:
+                - domain: light
+                  state: unavailable
+                  attributes:
+                    dynamics: "*"
+            sort:
+              method: name
+            show_empty: true
+          - type: custom:button-card
+            template: action
+            name: Hue-integratie openen
+            icon: mdi:open-in-new
+            tap_action:
+              action: navigate
+              navigation_path: /config/integrations/integration/hue
 
   # Pop-up: dagritme (HouseStateManager) en helderheid dag/nacht (badkamer en hal)
   - type: grid
