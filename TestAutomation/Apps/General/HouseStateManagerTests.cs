@@ -377,6 +377,33 @@ public class HouseStateManagerTests
         ctx.VerifyCallService("input_boolean", "turn_on", "workingvincent", times: 0);
     }
 
+    [Theory]
+    [InlineData("3600", 0)]          // the work laptop is on at home: he keeps working past 17:00 (the laptop stops it later)
+    [InlineData("unavailable", 1)]   // the laptop is off: the work stops at 17:00 as before
+    public void VincentsWorkEnd_WaitsForTheLaptopThatIsStillOn(string laptop, int expectedTurnOffs)
+    {
+        // Monday 3 January 2000, working until 17:00 (Dutch time)
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        void Set(string id, string state) => ctx.HaContext.GetState(id).Returns(new EntityState { EntityId = id, State = state });
+        Set("input_boolean.onvacation", "off");
+        Set("input_boolean.vrij_vincent", "off");
+        Set("input_select.werkdag_vincent_maandag", "Thuis");
+        Set("input_datetime.werk_eind_vincent", "17:00:00");
+        Set("input_boolean.awayvincent", "off");
+        Set("input_boolean.workingvincent", "on");
+        Set("sensor.werk_laptop_uptime", laptop);
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 0, 0, 0, TimeSpan.Zero).UtcTicks);
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 16, 1, 0, TimeSpan.Zero).UtcTicks);
+
+        var turnedOff = ctx.HaContext.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "CallService"
+            && (string)c.GetArguments()[0]! == "input_boolean" && (string)c.GetArguments()[1]! == "turn_off"
+            && ((ServiceTarget?)c.GetArguments()[2])?.EntityIds?.Contains("input_boolean.workingvincent") == true);
+        Assert.Equal(expectedTurnOffs, turnedOff);
+    }
+
     [Fact]
     public void WorkFromTheCalendar_StartsWhenTheHoursOfTheCalendarStart_NotAtTheUsualWorkStart()
     {

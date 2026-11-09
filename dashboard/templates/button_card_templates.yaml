@@ -5209,6 +5209,72 @@ wallet_status:
       body:
         - justify-self: stretch
 
+# De werklaptop van Vincent (entiteiten werk_laptop_*, NetDaemon WorkLaptop): aan of uit (hij is niet beschikbaar als hij uit staat of niet
+# thuis is), de batterij en de lader, hoe lang hij stil ligt, en knoppen om te vergrendelen, de beeldschermen uit te zetten, in de
+# slaapstand te zetten en wakker te houden.
+laptop_status:
+  template: glass
+  entity: sensor.werk_laptop_uptime
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    body: |
+      [[[
+        const st = id => states[id]?.state;
+        const on = !['unavailable', 'unknown', undefined].includes(st('sensor.werk_laptop_uptime'));
+        window.huisLaptop = (domain, service, entityId) => {
+          if (Date.now() - (window.huisLaptopAt ?? 0) < 600) return;
+          window.huisLaptopAt = Date.now();
+          document.querySelector('home-assistant').hass.callService(domain, service, { entity_id: entityId });
+        };
+        const num = id => { const v = parseFloat(st(id)); return isNaN(v) ? null : v; };
+        const level = num('sensor.werk_laptop_battery');
+        const charging = st('binary_sensor.werk_laptop_plugged_in') === 'on';
+        const locked = st('binary_sensor.werk_laptop_session_locked') === 'on';
+        const presenting = st('binary_sensor.werk_laptop_presenting_or_full_screen') === 'on';
+        const idle = num('sensor.werk_laptop_idle_time');
+        const idleText = idle === null ? null : idle < 90 ? 'in gebruik' : idle < 5400 ? `${Math.round(idle / 60)} min stil` : `${Math.round(idle / 3600)} uur stil`;
+        const color = !on ? '#94a3b8' : level !== null && level < 20 && !charging ? '#ff6b6b' : '#4ade80';
+        const status = !on ? 'Uit of niet thuis' : presenting ? 'Presenteert' : locked ? 'Vergrendeld' : 'Aan';
+        const button = (label, icon, domain, service, entityId, active) => `<span style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+            padding:5px 12px;border-radius:12px;color:${active ? '#4ade80' : 'rgba(255,255,255,0.85)'};border:1px solid ${active ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.2)'}"
+            onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisLaptop('${domain}','${service}','${entityId}')"
+            onclick="event.stopPropagation();window.huisLaptop('${domain}','${service}','${entityId}')"><ha-icon icon="${icon}" style="--mdc-icon-size:16px"></ha-icon>${label}</span>`;
+        const awake = st('switch.werk_laptop_keep_awake') === 'on';
+        const buttons = on ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            ${button('Vergrendel', 'mdi:lock-outline', 'button', 'press', 'button.werk_laptop_lock')}
+            ${button('Beeldschermen uit', 'mdi:monitor-off', 'button', 'press', 'button.werk_laptop_monitors_off')}
+            ${button('Slaapstand', 'mdi:sleep', 'button', 'press', 'button.werk_laptop_sleep')}
+            ${button(awake ? 'Houdt wakker' : 'Wakker houden', 'mdi:coffee-outline', 'switch', 'toggle', 'switch.werk_laptop_keep_awake', awake)}</div>` : '';
+        const info = on ? [idleText, st('sensor.werk_laptop_current_user') && st('sensor.werk_laptop_current_user') !== 'unknown' ? st('sensor.werk_laptop_current_user') : null].filter(Boolean).join(' · ') : '';
+        return `<div style="text-align:left">
+          <div style="display:flex;align-items:center;gap:10px">
+            <ha-icon icon="${on ? 'mdi:laptop' : 'mdi:laptop-off'}" style="--mdc-icon-size:28px;color:${color}"></ha-icon>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:16px;font-weight:700">Werklaptop</div>
+              <div style="font-size:13px;font-weight:600;color:${color}">${status}${charging ? ' · aan de lader ⚡' : ''}</div>
+            </div>
+            ${info ? `<div style="font-size:12px;opacity:0.8;white-space:nowrap;text-align:right">${info}</div>` : ''}
+          </div>
+          ${on && level !== null ? `<div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:4px"><span>🔋 Batterij${level < 20 && !charging ? ' bijna leeg' : ''}</span><span>${Math.round(level)}%</span></div>
+            <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.12);overflow:hidden"><div style="width:${Math.max(2, Math.min(100, level))}%;height:100%;background:${color}"></div></div>
+          </div>` : ''}
+          ${buttons}
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
 # Status van de telefoon van Vincent (de Home Assistant-app, device_tracker.vincent_mobiel): thuis of waar, de batterij en of hij laadt.
 # Tik opent een venster om hem te laten horen (spraak op de wekkerstand, ook als hij stil staat), te laten flitsen of het scherm aan te zetten.
 phone_status:

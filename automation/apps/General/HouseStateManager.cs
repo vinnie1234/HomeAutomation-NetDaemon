@@ -105,7 +105,7 @@ public class HouseStateManager : BaseApp
             });
             Scheduler.RunDailyAt(schedule.WorkEnd, DefaultWorkEnd, () =>
             {
-                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek) && CalendarWorkHours(person) == null) schedule.Working.TurnOff();
+                if (!schedule.IsDayOff(Scheduler.NowNl().DayOfWeek) && CalendarWorkHours(person) == null && !LaptopKeepsWorking(person, Scheduler.NowNl().DateTime)) schedule.Working.TurnOff();
             });
             schedule.Working.StateChanges().Subscribe(_ => UpdateWorking());
         }
@@ -132,22 +132,15 @@ public class HouseStateManager : BaseApp
     /// time to leave minus the margin after it (see <see cref="OfficeTimes"/>). Null when the work does not come from the calendar or today
     /// has no hours from it.
     /// </summary>
-    private (DateTime Start, DateTime End)? CalendarWorkHours(string person)
-    {
-        if (HaContext.GetState($"input_boolean.werk_uit_agenda_{person}")?.State != "on") return null;
-        var today = Scheduler.NowNl().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-        DateTime? Read(string entity)
-        {
-            var state = HaContext.GetState($"input_datetime.{entity}_{person}")?.State;
-            return state != null && state.StartsWith(today, StringComparison.Ordinal)
-                   && DateTime.TryParse(state, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var time) ? time : null;
-        }
-        double Minutes(string helper) =>
-            double.TryParse(HaContext.GetState($"input_number.{helper}_{person}")?.State, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : 10;
+    private (DateTime Start, DateTime End)? CalendarWorkHours(string person) =>
+        Models.Persons.WorkHours.FromCalendar(HaContext, person, Scheduler.NowNl().DateTime);
 
-        if (Read("kantoor_aankomst") is not { } arrive || Read("kantoor_vertrek") is not { } leave) return null;
-        return (arrive.AddMinutes(Minutes("reis_marge_voor")), leave.AddMinutes(-Minutes("reis_marge_na")));
-    }
+    /// <summary>
+    /// Whether the work laptop keeps Vincent working past the end of his hours (see <see cref="WorkLaptop"/>): it is on, he is home and the
+    /// end is no more than the margin ago. <see cref="WorkLaptop"/> stops the work when that is over.
+    /// </summary>
+    private bool LaptopKeepsWorking(string person, DateTime end) =>
+        WorkLaptop.KeepsWorking(HaContext, person, Vincent.IsHome, Scheduler.NowNl().DateTime, end);
 
     /// <summary>How long somebody can be away from the place of work on an office day before they are no longer working.</summary>
     public static readonly TimeSpan AwayFromWorkAfter = TimeSpan.FromHours(1);
@@ -219,7 +212,7 @@ public class HouseStateManager : BaseApp
 
                 var day = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
                 if (now >= hours.Start && now < hours.End && _handledEdges.Add($"{person}|{day}|start") && schedule.Working.IsOff()) schedule.Working.TurnOn();
-                if (now >= hours.End && _handledEdges.Add($"{person}|{day}|end") && schedule.Working.IsOn()) schedule.Working.TurnOff();
+                if (now >= hours.End && _handledEdges.Add($"{person}|{day}|end") && schedule.Working.IsOn() && !LaptopKeepsWorking(person, hours.End)) schedule.Working.TurnOff();
             }
         }
         catch (Exception ex)

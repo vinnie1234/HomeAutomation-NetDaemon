@@ -1,0 +1,30 @@
+using System.Globalization;
+
+namespace Automation.Models.Persons;
+
+/// <summary>The working hours of today when they come from the calendar.</summary>
+public static class WorkHours
+{
+    /// <summary>
+    /// From the time to be at the office plus the margin before it, up to the time to leave minus the margin after it (see
+    /// <see cref="OfficeTimes"/>). Null when the work does not come from the calendar or today has no hours from it.
+    /// </summary>
+    public static (DateTime Start, DateTime End)? FromCalendar(IHaContext ha, string person, DateTime now)
+    {
+        if (ha.GetState($"input_boolean.werk_uit_agenda_{person}")?.State != "on") return null;
+        var today = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        DateTime? Read(string entity)
+        {
+            var state = ha.GetState($"input_datetime.{entity}_{person}")?.State;
+            return state != null && state.StartsWith(today, StringComparison.Ordinal)
+                   && DateTime.TryParse(state, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : null;
+        }
+
+        double Minutes(string helper) =>
+            double.TryParse(ha.GetState($"input_number.{helper}_{person}")?.State, NumberStyles.Float, CultureInfo.InvariantCulture, out var m) ? m : 10;
+
+        if (Read("kantoor_aankomst") is not { } arrive || Read("kantoor_vertrek") is not { } leave) return null;
+        return (arrive.AddMinutes(Minutes("reis_marge_voor")), leave.AddMinutes(-Minutes("reis_marge_na")));
+    }
+}

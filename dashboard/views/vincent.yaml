@@ -51,6 +51,8 @@ sections:
         template: wallet_status
       - type: custom:button-card
         template: phone_status
+      - type: custom:button-card
+        template: laptop_status
 
   # Agenda en taken, en een taak met een plek toevoegen
   - type: grid
