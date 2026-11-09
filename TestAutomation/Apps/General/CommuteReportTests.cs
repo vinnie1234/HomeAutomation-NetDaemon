@@ -105,6 +105,86 @@ public class CommuteReportTests
         Messages().Where(m => m.Text.Contains("Naar huis")).Should().ContainSingle();
     }
 
+    // ---- the work laptop goes off at the office
+
+    private void LaptopOff(bool atOffice = true)
+    {
+        SetZone("zone.werk", atOffice ? ["person.vincent_maarschalkerweerd"] : []);
+        SetState("sensor.werk_laptop_uptime", "unavailable");
+        _ctx.ChangeStateFor("sensor.werk_laptop_uptime").FromState("3600").ToState("unavailable");
+        _ctx.HaContextMock.ProcessPendingOperations();
+    }
+
+    private List<(string To, string Text)> WayHome() => Messages().Where(m => m.To == VincentWhatsapp && m.Text.Contains("Naar huis")).ToList();
+
+    [Fact]
+    public void TheLaptopGoesOffAtTheOffice_AfternoonOfAnOfficeDay_SendsTheWayHomeNow()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(16, 30);
+
+        LaptopOff();
+
+        WayHome().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void TheLaptopGoesOffAtTheOffice_InTheMorning_ChangesNothing()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(10, 0);
+
+        LaptopOff();
+
+        WayHome().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TheLaptopGoesOff_WhenNotAtTheOffice_SendsNothing()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(16, 30);
+
+        LaptopOff(atOffice: false);
+
+        WayHome().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TheLaptopGoesOff_OnADayWithoutOffice_SendsNothing()
+    {
+        Start("Thuis", vincentHome: false);
+        AdvanceTo(16, 30);
+
+        LaptopOff();
+
+        WayHome().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TheMessageBecauseOfTheLaptop_IsNotRepeatedByTheFixedTimeShortlyAfter()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(16, 30);
+        LaptopOff();
+
+        AdvanceTo(17, 16);
+
+        WayHome().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void TheMessageBecauseOfTheLaptop_AndTheFixedTimeMuchLater_ComeBoth()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(15, 30);
+        LaptopOff();
+
+        AdvanceTo(17, 16);
+
+        WayHome().Should().HaveCount(2);
+    }
+
     [Fact]
     public void OfficeDay_At1715_SendsNothing_WhenAlreadyHome()
     {

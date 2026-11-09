@@ -52,6 +52,14 @@ public partial class CommuteReport : BaseApp
     /// <summary>The messages already sent (or tried) for a person, direction and date, so a message comes once per trip.</summary>
     private readonly HashSet<string> _sent = [];
 
+    /// <summary>The work laptop is switched off at the office from this long before the time to leave: that is the moment of the message about the way home.</summary>
+    private static readonly TimeSpan LaptopEarliest = TimeSpan.FromHours(2);
+
+    /// <summary>A message about the way home that was sent because of the laptop makes the one of the fixed time within this time unnecessary.</summary>
+    private static readonly TimeSpan LaptopOverlap = TimeSpan.FromMinutes(60);
+
+    private DateTimeOffset? _laptopSentAt;
+
     /// <summary>How long before leaving the message comes.</summary>
     private static readonly TimeSpan SendBefore = TimeSpan.FromMinutes(10);
 
@@ -84,10 +92,15 @@ public partial class CommuteReport : BaseApp
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_heen_{commuter.Id}"), DefaultMorning,
                 () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) _ = Send(commuter, CommuteDirection.ToWork); });
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_terug_{commuter.Id}"), DefaultEvening,
-                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null) _ = Send(commuter, CommuteDirection.ToHome); });
+                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null && !SentByLaptopRecently(commuter, CommuteDirection.ToHome)) _ = Send(commuter, CommuteDirection.ToHome); });
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
         SetUpTrainTracking();
+
+        // The work laptop goes off while Vincent is at the office: the message about the way home comes now, besides the fixed time
+        new Entity(HaContext, WorkLaptop.Uptime).StateChanges()
+            .Where(x => WorkLaptop.IsAvailable(x.Old?.State) && !WorkLaptop.IsAvailable(x.New?.State))
+            .Subscribe(_ => LaptopSwitchedOff());
 
         // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
@@ -134,6 +147,7 @@ public partial class CommuteReport : BaseApp
                     var sendAt = LeaveBy(commuter, direction, target) - SendBefore;
                     if (now < sendAt || now >= sendAt + TooLate) continue;
                     _sent.Add(key);
+                    if (SentByLaptopRecently(commuter, direction)) continue;
                     _ = Send(commuter, direction);
                 }
         }
@@ -141,6 +155,48 @@ public partial class CommuteReport : BaseApp
         {
             Logger.LogError(ex, "Could not check whether a commute message is due");
         }
+    }
+
+    private bool SentByLaptopRecently(Commuter commuter, CommuteDirection direction) =>
+        commuter.Id == "vincent" && direction == CommuteDirection.ToHome && _laptopSentAt is { } sent && Scheduler.Now - sent < LaptopOverlap;
+
+    /// <summary>
+    /// The work laptop was switched off. At the office on an office day, from two hours before the time to leave, that means he is about to
+    /// leave: the message about the way home is sent now. (A laptop that goes off in the morning or at lunch changes nothing.)
+    /// </summary>
+    private void LaptopSwitchedOff()
+    {
+        try
+        {
+            var vincent = _commuters.First(c => c.Id == "vincent");
+            var now = Scheduler.Now;
+            if (!vincent.Schedule.IsOfficeDay(Scheduler.NowNl().DayOfWeek) || !IsAtOffice(vincent)) return;
+
+            var leaveAt = TargetTime(vincent, CommuteDirection.ToHome) is { } target ? LeaveBy(vincent, CommuteDirection.ToHome, target) : FixedEveningToday(vincent);
+            if (now < leaveAt - LaptopEarliest) return;
+
+            Logger.LogInformation("The work laptop went off at the office: the message about the way home");
+            _laptopSentAt = now;
+            _ = Send(vincent, CommuteDirection.ToHome);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not send the message about the way home after the laptop went off");
+        }
+    }
+
+    /// <summary>Whether the person is in the zone of the place of work.</summary>
+    private bool IsAtOffice(Commuter commuter) =>
+        HaContext.GetState("zone.werk")?.AttributesJson is { ValueKind: JsonValueKind.Object } a
+        && a.TryGetProperty("persons", out var persons) && persons.ValueKind == JsonValueKind.Array
+        && persons.EnumerateArray().Any(x => x.GetString() == commuter.PersonId);
+
+    /// <summary>The fixed time of the message about the way home, today (the helper of the person, otherwise the default).</summary>
+    private DateTimeOffset FixedEveningToday(Commuter commuter)
+    {
+        var time = Extensions.SchedulerExtensions.ParseTimeOfDay(HaContext.GetState($"input_datetime.verkeer_terug_{commuter.Id}")?.State) ?? DefaultEvening;
+        var local = Scheduler.NowNl().Date + time;
+        return new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
     }
 
     /// <summary>When to leave: the time to leave itself, or the time to be somewhere minus the travel time of now (45 minutes when it is not known).</summary>
