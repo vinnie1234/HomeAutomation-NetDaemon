@@ -175,6 +175,16 @@ public class WorkLaptopTests
         WorkingOff().Should().Be(1);
     }
 
+    [Fact]
+    public void AfterHalfPastSix_TheLaptopNeverKeepsHimWorking()
+    {
+        Start(18, 40);
+        var end = new DateTime(2026, 11, 10, 18, 20, 0);   // the margin would run to 19:20
+
+        WorkLaptop.KeepsWorking(_ctx.HaContext, "vincent", true, new DateTime(2026, 11, 10, 18, 29, 0), end).Should().BeTrue();
+        WorkLaptop.KeepsWorking(_ctx.HaContext, "vincent", true, new DateTime(2026, 11, 10, 18, 31, 0), end).Should().BeFalse();
+    }
+
     [Theory]
     [InlineData(17, 30, true)]
     [InlineData(17, 59, true)]

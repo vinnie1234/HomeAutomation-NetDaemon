@@ -8,6 +8,12 @@ public static class WorkHours
     private static readonly TimeSpan DefaultStart = new(8, 30, 0);
     private static readonly TimeSpan DefaultEnd = new(17, 0, 0);
 
+    /// <summary>
+    /// After this time in the evening the laptop is private: it never counts as work (not for the work time, and it does not keep him
+    /// "working" past the end of the hours), whatever the margin after the end says.
+    /// </summary>
+    public static readonly TimeSpan LatestEnd = new(18, 30, 0);
+
     /// <summary>The working hours of today: from the calendar when the work comes from it, otherwise the hours of the person.</summary>
     public static (DateTime Start, DateTime End) Today(IHaContext ha, WorkSchedule schedule, string person, DateTime now)
     {

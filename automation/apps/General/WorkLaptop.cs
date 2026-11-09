@@ -76,7 +76,7 @@ public class WorkLaptop : BaseApp
     /// <see cref="Margin"/>. <see cref="HouseStateManager"/> asks this before it stops the work at the end.
     /// </summary>
     public static bool KeepsWorking(IHaContext ha, string person, bool personHome, DateTime now, DateTime end) =>
-        person == "vincent" && personHome && IsOnline(ha) && now < end + Margin;
+        person == "vincent" && personHome && IsOnline(ha) && now < end + Margin && now.TimeOfDay < Models.Persons.WorkHours.LatestEnd;
 
     /// <summary>The working hours of today: from the calendar when the work comes from it, otherwise the hours of the person.</summary>
     private (DateTime Start, DateTime End) HoursToday(DateTime now) =>
@@ -110,7 +110,7 @@ public class WorkLaptop : BaseApp
                 }
 
                 // The end of the day: a reminder to close the laptop
-                if (athome && _reminderDay != today && now < end + Margin)
+                if (athome && _reminderDay != today && now < end + Margin && now.TimeOfDay < Models.Persons.WorkHours.LatestEnd)
                 {
                     _reminderDay = today;
                     Notify.NotifyPhoneVincent("Werklaptop", "Het is tijd om af te sluiten", false, 60,

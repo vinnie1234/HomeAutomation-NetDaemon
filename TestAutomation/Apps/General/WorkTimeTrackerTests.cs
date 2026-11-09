@@ -40,15 +40,15 @@ public class WorkTimeTrackerTests
         });
 
     private void Start(int hour, int minute, bool laptopOn = true, string place = "home", string workday = "Thuis",
-        Dictionary<string, WorkDay>? before = null)
+        Dictionary<string, WorkDay>? before = null, bool vacation = false, string end = "17:00:00")
     {
         SetState("input_select.werkdag_vincent_dinsdag", workday);
         SetState("input_boolean.vrij_vincent", "off");
-        SetState("input_boolean.onvacation", "off");
+        SetState("input_boolean.onvacation", vacation ? "on" : "off");
         SetState("input_boolean.awayvincent", place == "home" ? "off" : "on");
         SetState("zone.werk", place == "office" ? "1" : "0", new { persons = place == "office" ? new[] { "person.vincent_maarschalkerweerd" } : [] });
         SetState("input_datetime.werk_start_vincent", "08:30:00");
-        SetState("input_datetime.werk_eind_vincent", "17:00:00");
+        SetState("input_datetime.werk_eind_vincent", end);
         SetState(WorkLaptop.Uptime, laptopOn ? "3600" : "unavailable");
         _storage.Get<Dictionary<string, WorkDay>>(WorkTimeTracker.StorageKey).Returns(before);
         _entityManager.EntityExists(WorkTimeTracker.Sensor).Returns(true);
@@ -145,6 +145,30 @@ public class WorkTimeTrackerTests
         Tick(120);   // the hours end at 17:00, the margin at 18:00
 
         Today().Home.Should().BeInRange(before, before + 20 * 60);
+    }
+
+    [Fact]
+    public void OnVacation_TheLaptopNeverCounts_EvenInsideTheHours()
+    {
+        Start(10, 0, vacation: true);
+
+        Tick(20);
+
+        _saved.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AfterHalfPastSixInTheEvening_TheLaptopIsPrivate_EvenWhenTheHoursEndLater()
+    {
+        // The hours end at 18:00, so the margin would run to 19:00; half past six is the limit
+        Start(18, 20, end: "18:00:00");
+
+        Tick(10);
+        var untilHalfPastSix = Today().Home;
+        Tick(30);
+
+        untilHalfPastSix.Should().BeGreaterThan(0);
+        Today().Home.Should().Be(untilHalfPastSix);
     }
 
     [Fact]

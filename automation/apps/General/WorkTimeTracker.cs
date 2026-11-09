@@ -105,11 +105,15 @@ public class WorkTimeTracker : BaseApp
         }
     }
 
-    /// <summary>Within the working hours of today, not further than the margin before the start or after the end.</summary>
+    /// <summary>
+    /// Within the working hours of today, not further than the margin before the start or after the end, and not after half past six. A day
+    /// off, a vacation and a day without work are not checked here: those never count (see <c>counting</c> in <see cref="Tick"/>).
+    /// </summary>
     private bool InsideHours(DateTime now)
     {
         var (start, end) = Models.Persons.WorkHours.Today(HaContext, VincentSchedule, "vincent", now);
-        return now >= start - WorkLaptop.Margin && now <= end + WorkLaptop.Margin;
+        // Never after half past six in the evening: then the laptop is private
+        return now >= start - WorkLaptop.Margin && now <= end + WorkLaptop.Margin && now.TimeOfDay < Models.Persons.WorkHours.LatestEnd;
     }
 
     private void Add(DateTimeOffset now, double seconds)
