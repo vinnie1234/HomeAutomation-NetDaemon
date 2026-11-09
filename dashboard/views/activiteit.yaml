@@ -1,0 +1,34 @@
+# Activiteit (subpagina van Beheer): wat NetDaemon precies doet, met filters op app, ruimte en persoon. De kaart komt uit
+# www/netdaemon-activiteit.js; de acties bewaart Home Assistant via sensor.netdaemon_activiteit (ha/template.yaml).
+# Filter vooraf zetten met de link: /dashboard-huis/activiteit?app=Alarm, ?ruimte=Woonkamer of ?persoon=Carleen.
+title: Activiteit
+path: activiteit
+icon: mdi:history
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/systeem
+max_columns: 2
+dense_section_placement: true
+sections:
+  - type: grid
+    column_span: 2
+    cards:
+      - !include ../navbar.yaml
+      - type: custom:button-card
+        template: action
+        name: Terug naar Beheer
+        icon: mdi:arrow-left
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/systeem
+        styles:
+          grid:
+            - grid-template-areas: '"i n"'
+            - grid-template-columns: auto 1fr
+            - column-gap: 10px
+          card:
+            - height: 48px
+      - type: custom:netdaemon-activiteit-card
+        grid_options:
+          columns: full

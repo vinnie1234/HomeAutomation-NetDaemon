@@ -28,7 +28,7 @@ takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`, 
 
 1. Kopieer deze map naar Home Assistant als `/config/dashboards/huis/`
    (via de Samba-share: `\\192.168.50.189\config\dashboards\huis`).
-2. Kopieer `themes/glass_home.yaml` naar `/config/themes/`, `www/idle-home.js` naar `/config/www/huis/`, en de map `www/clouds` naar `/config/www/huis/clouds`
+2. Kopieer `themes/glass_home.yaml` naar `/config/themes/`, `www/idle-home.js` en `www/netdaemon-activiteit.js` naar `/config/www/huis/`, en de map `www/clouds` naar `/config/www/huis/clouds`
    (de wolken van de weerkaart; in het dashboard is dat `/local/huis/clouds/`). Bestaat `/config/www` nog niet,
    herstart HA dan na het aanmaken. De wolken zijn gemaakt met `tools/generate_clouds.py` (numpy en Pillow).
 3. Voeg toe aan `configuration.yaml` (sla over wat er al staat):
@@ -43,6 +43,8 @@ takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`, 
        - /hacsfiles/lovelace-card-mod/card-mod.js
        # Na 30 seconden niets doen terug naar Home (www/idle-home.js); ?v= ophogen na een wijziging
        - /local/huis/idle-home.js?v=1
+       # De kaart NetDaemon activiteit (pagina Activiteit onder Beheer, www/netdaemon-activiteit.js); ?v= ophogen na een wijziging
+       - /local/huis/netdaemon-activiteit.js?v=1
 
    lovelace:
      dashboards:

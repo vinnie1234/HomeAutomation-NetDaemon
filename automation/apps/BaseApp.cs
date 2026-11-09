@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Core;
 using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 
@@ -113,6 +114,12 @@ public class BaseApp
         IScheduler scheduler,
         IOptions<AppConfig> config)
     {
+        // Everything the app does in Home Assistant goes through this wrapper, which also writes it to the activity log
+        var people = new Dictionary<string, string>();
+        if (config.Value.Whatsapp?.Vincent is { Length: > 0 } vincentJid) people[vincentJid] = "vincent";
+        if (config.Value.Whatsapp?.Carleen is { Length: > 0 } carleenJid) people[carleenJid] = "carleen";
+        haContext = new ActivityHaContext(haContext, GetType().Name, people);
+
         HaContext = haContext;
         Logger = logger;
         Notify = notify;

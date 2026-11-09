@@ -280,6 +280,26 @@ sections:
           navigation_path: "#raspberry-pi"
       - type: custom:button-card
         template: beheer_tile
+        triggers_update:
+          - sensor.netdaemon_activiteit
+        icon: mdi:history
+        name: Activiteit
+        label: |
+          [[[
+            const a = states['sensor.netdaemon_activiteit']?.attributes;
+            if (!a?.id) return 'Alles wat NetDaemon doet, met filters · tik om te openen';
+            const t = new Date(a.time);
+            const ago = isNaN(t) ? '' : Math.max(0, Math.round((Date.now() - t) / 60000));
+            return `Laatste: ${a.text}${ago === '' ? '' : ago < 1 ? ' (zojuist)' : ` (${ago} min geleden)`}`;
+          ]]]
+        styles:
+          icon:
+            - color: "#7aa2ff"
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/activiteit
+      - type: custom:button-card
+        template: beheer_tile
         triggers_update: all
         icon: mdi:robot-outline
         name: |

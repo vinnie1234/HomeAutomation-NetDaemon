@@ -41,6 +41,7 @@ public class Notify : INotify
     /// <param name="config">The app configuration.</param>
     public Notify(IHaContext ha, IDataRepository storage, ILogger<Notify> logger, IOptions<AppConfig> config)
     {
+        ha = new Core.ActivityHaContext(ha, nameof(Notify));
         _ha = ha;
         _storage = storage;
         _logger = logger;
