@@ -55,8 +55,8 @@ public partial class CommuteReport : BaseApp
     /// <summary>The work laptop is switched off at the office from this long before the time to leave: that is the moment of the message about the way home.</summary>
     private static readonly TimeSpan LaptopEarliest = TimeSpan.FromHours(2);
 
-    /// <summary>A message about the way home that was sent because of the laptop makes the one of the fixed time within this time unnecessary.</summary>
-    private static readonly TimeSpan LaptopOverlap = TimeSpan.FromMinutes(60);
+    /// <summary>A message about the way home that was sent because of the laptop makes the one of the fixed time within this time unnecessary (10 minutes: later it is new information again).</summary>
+    private static readonly TimeSpan LaptopOverlap = TimeSpan.FromMinutes(10);
 
     private DateTimeOffset? _laptopSentAt;
 

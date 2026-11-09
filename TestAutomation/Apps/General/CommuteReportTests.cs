@@ -162,15 +162,27 @@ public class CommuteReportTests
     }
 
     [Fact]
-    public void TheMessageBecauseOfTheLaptop_IsNotRepeatedByTheFixedTimeShortlyAfter()
+    public void TheMessageBecauseOfTheLaptop_IsNotRepeatedByTheFixedTimeWithinTenMinutes()
     {
         Start("Kantoor", vincentHome: false);
-        AdvanceTo(16, 30);
+        AdvanceTo(17, 8);
         LaptopOff();
 
         AdvanceTo(17, 16);
 
         WayHome().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void TheMessageBecauseOfTheLaptop_AndTheFixedTimeHalfAnHourLater_ComeBoth()
+    {
+        Start("Kantoor", vincentHome: false);
+        AdvanceTo(16, 40);
+        LaptopOff();
+
+        AdvanceTo(17, 16);
+
+        WayHome().Should().HaveCount(2);
     }
 
     [Fact]
