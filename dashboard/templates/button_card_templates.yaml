@@ -3298,8 +3298,8 @@ commute_card:
             // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
             // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
             // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
-            // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
-            // werkdag halverwege is, tot 22:00.
+            // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en het nog
+            // een uur is tot zijn vertrektijd (kantoor_vertrek van vandaag), tot 22:00.
             const directionOf = s => {
               const name = String(s.attributes.friendly_name ?? s.entity_id);
               // Alleen een naam met werk (kantoor) én thuis (huis) is een route tussen die twee
@@ -3328,7 +3328,9 @@ commute_card:
               const end = leave != null ? leave - 10 / 60 : (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17);
               const middle = (start + end) / 2;
               const from = Math.max(7, (arrival ?? start) - 4);
-              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= middle && hourNow < 22);
+              // De terugreis staat er vanaf een uur voordat de persoon vertrekt (de ingestelde tijd van vandaag), tot 22:00
+              const homeFrom = (leave ?? end + 10 / 60) - 1;
+              return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= homeFrom && hourNow < 22);
             };
             const asked = new URLSearchParams(window.location.search).get('reis');
             const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
@@ -3378,8 +3380,8 @@ commute_card:
         // de richting volgt uit de naam ("werk" voor "thuis" = naar huis, "thuis" voor "werk" = naar kantoor), anders uit of hij thuis
         // begint of eindigt. Een nieuwe route (ook van iemand anders) komt zo vanzelf bij. mode 'all' = alle routes, 'auto' = per
         // persoon alleen de route die nu telt: op een kantoordag (niet vrij, niet op vakantie) de heenreis vanaf 07:00 zolang de persoon thuis is en
-        // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en de
-        // werkdag halverwege is, tot 22:00.
+        // de werkdag niet halverwege is (midden tussen werk_start en werk_eind), de terugreis zodra de persoon niet thuis is en het nog
+        // een uur is tot zijn vertrektijd (kantoor_vertrek van vandaag), tot 22:00.
         const directionOf = s => {
           const name = String(s.attributes.friendly_name ?? s.entity_id);
           // Alleen een naam met werk (kantoor) én thuis (huis) is een route tussen die twee
@@ -3408,7 +3410,9 @@ commute_card:
           const end = leave != null ? leave - 10 / 60 : (hoursOf(`input_datetime.werk_eind_${key}`) ?? 17);
           const middle = (start + end) / 2;
           const from = Math.max(7, (arrival ?? start) - 4);
-          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= middle && hourNow < 22);
+          // De terugreis staat er vanaf een uur voordat de persoon vertrekt (de ingestelde tijd van vandaag), tot 22:00
+          const homeFrom = (leave ?? end + 10 / 60) - 1;
+          return s.dir === (atHome ? 'work' : 'home') && (atHome ? hourNow >= from && hourNow < middle : hourNow >= homeFrom && hourNow < 22);
         };
         const asked = new URLSearchParams(window.location.search).get('reis');
         const isAsked = s => asked === `${personKey(s)}-${s.dir}-${s.kind}`;
