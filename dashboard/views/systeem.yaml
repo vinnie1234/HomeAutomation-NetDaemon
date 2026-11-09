@@ -342,7 +342,7 @@ sections:
       - type: heading
         heading: Huis en dashboard
         heading_style: title
-        icon: mdi:home-cog-outline
+        icon: mdi:home-edit-outline
       - type: custom:button-card
         template: beheer_tile
         triggers_update: all
