@@ -21,8 +21,9 @@ public class AppConfig
     public string SpotifyDoucheUrl { get; set; } = "";
     [Url]
     public string SpotifyKeukenUrl { get; set; } = "";
+    /// <summary>Optional: the Christmas playlist for the Kerstmuziek button (no button without it).</summary>
     [Url]
-    public string SpotifyKerstUrl { get; set; } = "";
+    public string? SpotifyKerstUrl { get; set; }
     public DiscordConfig Discord { get; set; } = new();
     public RoombaConfig Roomba { get; set; } = new();
     public TwitterConfig Twitter { get; set; } = new();
