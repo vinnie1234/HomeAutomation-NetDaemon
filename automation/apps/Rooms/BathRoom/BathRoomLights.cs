@@ -172,14 +172,17 @@ public class BathRoomLights : BaseApp
         switch (on)
         {
             case true:
-                Entities.Light.PlafondBadkamer.TurnOn(
-                    brightnessPct: brightnessPct,
-                    transition: 2,
-                    colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.PlafondBadkamer));
-                Entities.Light.BadkamerSpiegel.TurnOn(
-                    brightnessPct: brightnessPct,
-                    transition: 2,
-                    colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.BadkamerSpiegel));
+                // A light that is on already is left as it is: the motion sensor keeps reporting motion while somebody is in the bathroom
+                if (!Entities.Light.PlafondBadkamer.IsOn())
+                    Entities.Light.PlafondBadkamer.TurnOn(
+                        brightnessPct: brightnessPct,
+                        transition: 2,
+                        colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.PlafondBadkamer));
+                if (!Entities.Light.BadkamerSpiegel.IsOn())
+                    Entities.Light.BadkamerSpiegel.TurnOn(
+                        brightnessPct: brightnessPct,
+                        transition: 2,
+                        colorTempKelvin: _circadianLightingService.GetColorTemperature(Entities.Light.BadkamerSpiegel));
                 break;
             case false:
                 Entities.Light.PlafondBadkamer.TurnOff();

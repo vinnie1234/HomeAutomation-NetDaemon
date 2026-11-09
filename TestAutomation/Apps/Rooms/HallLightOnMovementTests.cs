@@ -35,6 +35,21 @@ public class HallLightOnMovementTests
         ctx.VerifyCallService("light", "turn_on", "hal_2", times: 1);
     }
 
+    [Fact]
+    public void MotionDetectedAgain_LeavesTheLightsThatAreOnAlone()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        foreach (var light in new[] { "light.hal_2", "light.hal", "light.gang_sigaret" })
+            ctx.HaContext.GetState(light).Returns(new EntityState { EntityId = light, State = "on" });
+        ctx.InitApp<HallLightOnMovement>();
+
+        ctx.ChangeStateFor("binary_sensor.gang_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.HaContext.DidNotReceive().CallService("light", "turn_on", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+    }
+
     [Theory(Skip = "Bot29ff staat tijdelijk uit in HallLightOnMovement (commit 8df5024)")]
     [InlineData("unavailable", 1)] // no power: the wall switch is off, so the bot presses it
     [InlineData("off", 0)]         // has power: turning it on is enough, pressing the switch would cut the power

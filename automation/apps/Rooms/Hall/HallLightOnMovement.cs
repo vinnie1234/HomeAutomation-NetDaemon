@@ -92,17 +92,20 @@ public class HallLightOnMovement : BaseApp
         switch (on)
         {
             case true:
+                // A light that is on already is left as it is: the motion sensor keeps reporting motion while somebody is in the hall
                 var colorTemp = _circadianLightingService.GetColorTemperature(Entities.Light.Hal2);
-                Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
+                if (!Entities.Light.Hal2.IsOn())
+                    Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
                 if (!IsLightSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     // Bot29ff is off for now: an unavailable Hal has no power (wall switch off) and the bot presses the switch.
                     // Decide before TurnOn, because the state doesn't update right after the call:
                     // if (Entities.Light.Hal.State is "unavailable")
                     //     Entities.Switch.Bot29ff.TurnOn();
-                    Entities.Light.Hal.TurnOn();
-                    
-                    if(Entities.MediaPlayer.Tv.IsOff())
+                    if (!Entities.Light.Hal.IsOn())
+                        Entities.Light.Hal.TurnOn();
+
+                    if (Entities.MediaPlayer.Tv.IsOff() && !Entities.Light.GangSigaret.IsOn())
                         Entities.Light.GangSigaret.TurnOn();
                 }
 
