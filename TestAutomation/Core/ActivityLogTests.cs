@@ -69,7 +69,7 @@ public class ActivityLogTests
 
         var e = _events.Should().ContainSingle().Subject;
         Text(e, "person").Should().Be("Carleen");
-        Text(e, "text").Should().Be("whatsapp: bericht verstuurd");
+        Text(e, "text").Should().Be("whatsapp: bericht verstuurd “hoi”");
     }
 
     [Fact]
@@ -123,6 +123,37 @@ public class ActivityLogTests
 
         answer.Should().NotBeNull();
         Text(_events.Should().ContainSingle().Subject, "app").Should().Be("GroceryList");
+    }
+
+    [Fact]
+    public void AnAppInARoomFolder_GivesItsRoomToActionsThatSayNothingAboutOne()
+    {
+        ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.Kitchen.KitchenMusicOnMotion)).Should().Be("Keuken");
+        ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.BathRoom.BathRoomLights)).Should().Be("Badkamer");
+        ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.Hall.HallLightOnMovement)).Should().Be("Gang");
+        ActivityLog.RoomOfApp(typeof(Automation.apps.General.Alarm)).Should().BeNull();
+
+        new ActivityHaContext(_inner, "KitchenMusicOnMotion", null, "Keuken").CallService("spotcast", "play_media", null, new { spotify_uri = "x" });
+
+        Text(_events.Should().ContainSingle().Subject, "room").Should().Be("Keuken");
+    }
+
+    [Fact]
+    public void TheRoomOfTheEntity_GoesBeforeTheRoomOfTheApp()
+    {
+        new ActivityHaContext(_inner, "KitchenMusicOnMotion", null, "Keuken").CallService("light", "turn_on", ServiceTarget.FromEntity("light.woonkamer_plafond"));
+
+        Text(_events.Should().ContainSingle().Subject, "room").Should().Be("Woonkamer");
+    }
+
+    [Fact]
+    public void AMessage_ShowsWhatItSaid()
+    {
+        Wrap().CallService("notify", "mobile_app_carleen", null, new { title = "Wasmachine", message = "De was is klaar" });
+        Wrap().CallService("whatsapp", "send_message", null, new { to = "1@lid", body = new { text = "Je bent bij Albert Heijn" } });
+
+        Text(_events[0], "text").Should().Be("notify: melding verstuurd \u201cWasmachine: De was is klaar\u201d");
+        Text(_events[1], "text").Should().Be("whatsapp: bericht verstuurd \u201cJe bent bij Albert Heijn\u201d");
     }
 
     [Fact]

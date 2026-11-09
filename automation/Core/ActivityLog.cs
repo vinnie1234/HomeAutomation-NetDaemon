@@ -26,6 +26,12 @@ public static class ActivityLog
 
     private static long _counter;
 
+    /// <summary>
+    /// The actions from the first moments after NetDaemon started, before <see cref="Automation.apps.General.ActivityRecorder"/> was
+    /// listening: the apps wake up in no fixed order and many of them act at once. The recorder takes them over when it starts.
+    /// </summary>
+    public static ActivityBacklog Backlog { get; } = new();
+
     private static readonly (string Room, string[] Words)[] Rooms =
     [
         ("Woonkamer", ["woonkamer", "tv", "bank", "soundbar", "hanglamp", "hue_play", "hueplay", "kerstboom", "festavia", "bot29ff"]),
@@ -40,6 +46,17 @@ public static class ActivityLog
 
     private static readonly string[] People = ["vincent", "carleen"];
 
+    /// <summary>The room an app belongs to, from the folder it lives in (<c>apps/Rooms/Kitchen</c> is the kitchen); null for the other apps.</summary>
+    public static string? RoomOfApp(Type app) => app.Namespace?.Split('.').LastOrDefault() switch
+    {
+        "LivingRoom" => "Woonkamer",
+        "Kitchen" => "Keuken",
+        "BathRoom" => "Badkamer",
+        "BedRoom" => "Slaapkamer",
+        "Hall" => "Gang",
+        _ => null
+    };
+
     /// <summary>Records an action that an app took on Home Assistant (a service call).</summary>
     /// <param name="inner">The context to fire the event on (never the one that records, or it would record itself).</param>
     /// <param name="app">The app that did it.</param>
@@ -48,8 +65,9 @@ public static class ActivityLog
     /// <param name="target">What the call is aimed at, when it has a target.</param>
     /// <param name="data">The data of the call.</param>
     /// <param name="knownPeople">Messaging ids of persons (WhatsApp ids), so a message to someone counts for that person.</param>
+    /// <param name="appRoom">The room of the app, for an action whose entities say nothing about a room.</param>
     public static void Service(IHaContext inner, string app, string domain, string service, ServiceTarget? target, object? data,
-        IReadOnlyDictionary<string, string>? knownPeople = null)
+        IReadOnlyDictionary<string, string>? knownPeople = null, string? appRoom = null)
     {
         try
         {
@@ -79,7 +97,7 @@ public static class ActivityLog
                 service = $"{domain}.{service}",
                 entity = entities.FirstOrDefault() ?? "",
                 text,
-                room = string.Join(", ", RoomsFor(inner, entities, entities.Concat(names).Append(text))),
+                room = string.Join(", ", RoomsFor(inner, entities, entities.Concat(names).Append(text)) is { Count: > 0 } rooms ? rooms : appRoom is null ? [] : [appRoom]),
                 person = string.Join(", ", people.Select(Capitalize))
             });
         }
@@ -139,7 +157,11 @@ public static class ActivityLog
 
     private static string NextId() => $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Interlocked.Increment(ref _counter)}";
 
-    private static void Fire(IHaContext inner, object data) => inner.SendEvent(EventType, data);
+    private static void Fire(IHaContext inner, object data)
+    {
+        Backlog.Add(JsonSerializer.SerializeToElement(data));
+        inner.SendEvent(EventType, data);
+    }
 
     private static string Capitalize(string s) => char.ToUpperInvariant(s[0]) + s[1..];
 
@@ -189,7 +211,21 @@ public static class ActivityLog
             _ => $"{service.Replace('_', ' ')}"
         };
         var detail = Detail(data);
-        return $"{what}: {action}{(detail.Length > 0 ? $" ({detail})" : "")}";
+        // A message: what it said, so the log shows more than that one was sent
+        var said = Said(domain, data);
+        return $"{what}: {action}{(detail.Length > 0 ? $" ({detail})" : "")}{(said.Length > 0 ? $" \u201c{said}\u201d" : "")}";
+    }
+
+    /// <summary>The words of a message (a notification, a WhatsApp message), shortened.</summary>
+    private static string Said(string domain, JsonElement? data)
+    {
+        if (data is not { ValueKind: JsonValueKind.Object } d) return "";
+        string? Get(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+
+        string? text = null;
+        if (domain == "whatsapp" && d.TryGetProperty("body", out var body)) text = Get(body, "text");
+        else if (domain == "notify") text = Get(d, "message") is { Length: > 0 } m ? (Get(d, "title") is { Length: > 0 } t ? $"{t}: {m}" : m) : Get(d, "title");
+        return string.IsNullOrWhiteSpace(text) ? "" : Trim(text.Replace('\n', ' ').Trim(), 90);
     }
 
     /// <summary>The numbers and options of a call worth reading: brightness, colour temperature, volume, the option chosen.</summary>

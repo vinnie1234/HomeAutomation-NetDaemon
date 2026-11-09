@@ -7,7 +7,7 @@ namespace Automation.Core;
 /// Wraps the Home Assistant context of one app: everything works as before, and every service call the app makes is also written to the
 /// activity log (<see cref="ActivityLog"/>) under the name of that app.
 /// </summary>
-public sealed class ActivityHaContext(IHaContext inner, string app, IReadOnlyDictionary<string, string>? knownPeople = null) : IHaContext
+public sealed class ActivityHaContext(IHaContext inner, string app, IReadOnlyDictionary<string, string>? knownPeople = null, string? appRoom = null) : IHaContext
 {
     public IHaContext Inner => inner;
 
@@ -26,13 +26,13 @@ public sealed class ActivityHaContext(IHaContext inner, string app, IReadOnlyDic
     public void CallService(string domain, string service, ServiceTarget? target = null, object? data = null)
     {
         inner.CallService(domain, service, target, data);
-        ActivityLog.Service(inner, app, domain, service, target, data, knownPeople);
+        ActivityLog.Service(inner, app, domain, service, target, data, knownPeople, appRoom);
     }
 
     public async Task<JsonElement?> CallServiceWithResponseAsync(string domain, string service, ServiceTarget? target = null, object? data = null)
     {
         var response = await inner.CallServiceWithResponseAsync(domain, service, target, data);
-        ActivityLog.Service(inner, app, domain, service, target, data, knownPeople);
+        ActivityLog.Service(inner, app, domain, service, target, data, knownPeople, appRoom);
         return response;
     }
 

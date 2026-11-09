@@ -8,6 +8,10 @@
   const ENTITY = 'sensor.netdaemon_activiteit';
   const PERIODS = [['1 uur', 1], ['6 uur', 6], ['24 uur', 24], ['7 dagen', 168]];
   const PAGE = 150;
+  // Altijd te kiezen, ook als er (nog) niets voor gelogd is; wat er verder in de acties voorkomt komt erbij
+  const ROOMS = ['Woonkamer', 'Keuken', 'Badkamer', 'Slaapkamer', 'Gang', 'Berging', 'Toilet', 'Buiten'];
+  const PEOPLE = ['Vincent', 'Carleen'];
+  const NONE = '__geen';
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = n => String(n).padStart(2, '0');
@@ -101,8 +105,8 @@
     _matches(e) {
       const f = this._filter;
       if (f.app && e.app !== f.app) return false;
-      if (f.ruimte && !split(e.room).includes(f.ruimte)) return false;
-      if (f.persoon && !split(e.person).includes(f.persoon)) return false;
+      if (f.ruimte && (f.ruimte === NONE ? split(e.room).length > 0 : !split(e.room).includes(f.ruimte))) return false;
+      if (f.persoon && (f.persoon === NONE ? split(e.person).length > 0 : !split(e.person).includes(f.persoon))) return false;
       if (f.soort && e.kind !== f.soort) return false;
       if (f.tekst) {
         const hay = `${e.text} ${e.app} ${e.entity} ${e.service} ${e.room} ${e.person}`.toLowerCase();
@@ -111,23 +115,24 @@
       return true;
     }
 
-    _count(entries, pick) {
-      const m = new Map();
+    _count(entries, pick, always = []) {
+      const m = new Map(always.map(v => [v, 0]));
       for (const e of entries) for (const v of pick(e)) m.set(v, (m.get(v) ?? 0) + 1);
       return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'nl'));
     }
 
     _fillOptions() {
-      const set = (id, label, options, current) => {
+      const set = (id, label, options, current, noneLabel) => {
         const el = this.shadowRoot.getElementById(id);
         el.innerHTML = `<option value="">${label}</option>` + options.map(([v, n]) =>
-          `<option value="${esc(v)}"${v === current ? ' selected' : ''}>${esc(v)} (${n})</option>`).join('');
+          `<option value="${esc(v)}"${v === current ? ' selected' : ''}>${esc(v)} (${n})</option>`).join('') +
+          (noneLabel ? `<option value="${NONE}"${current === NONE ? ' selected' : ''}>${noneLabel}</option>` : '');
         // Een filter dat uit een link komt maar (nog) niets oplevert blijft zichtbaar, zodat je het kunt wissen
-        if (current && !options.some(([v]) => v === current)) el.insertAdjacentHTML('beforeend', `<option value="${esc(current)}" selected>${esc(current)} (0)</option>`);
+        if (current && current !== NONE && !options.some(([v]) => v === current)) el.insertAdjacentHTML('beforeend', `<option value="${esc(current)}" selected>${esc(current)} (0)</option>`);
       };
       set('app', 'Alle apps', this._count(this._entries, e => [e.app]), this._filter.app);
-      set('ruimte', 'Alle ruimtes', this._count(this._entries, e => split(e.room)), this._filter.ruimte);
-      set('persoon', 'Iedereen', this._count(this._entries, e => split(e.person)), this._filter.persoon);
+      set('ruimte', 'Alle ruimtes', this._count(this._entries, e => split(e.room), ROOMS), this._filter.ruimte, 'Zonder ruimte');
+      set('persoon', 'Iedereen', this._count(this._entries, e => split(e.person), PEOPLE), this._filter.persoon, 'Zonder persoon');
     }
 
     _render() {

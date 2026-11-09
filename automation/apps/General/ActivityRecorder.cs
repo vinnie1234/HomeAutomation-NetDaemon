@@ -26,6 +26,7 @@ public sealed class ActivityRecorder : BaseApp
     private readonly Channel<JsonElement> _queue = Channel.CreateUnbounded<JsonElement>(new UnboundedChannelOptions { SingleReader = true });
     private readonly IEntityManager _entityManager;
     private readonly IMqttEntityManager _mqtt;
+    private readonly HashSet<string> _written = [];
 
     public ActivityRecorder(
         IHaContext ha,
@@ -34,7 +35,8 @@ public sealed class ActivityRecorder : BaseApp
         IScheduler scheduler,
         IOptions<AppConfig> config,
         IEntityManager entityManager,
-        IMqttEntityManager mqtt)
+        IMqttEntityManager mqtt,
+        ActivityBacklog? backlog = null)
         : base(ha, logger, notify, scheduler, config)
     {
         _entityManager = entityManager;
@@ -43,6 +45,9 @@ public sealed class ActivityRecorder : BaseApp
         HaContext.Events
             .Where(e => e.EventType == ActivityLog.EventType && e.DataElement is { ValueKind: JsonValueKind.Object })
             .Subscribe(e => _queue.Writer.TryWrite(e.DataElement!.Value.Clone()));
+
+        // What happened before this app was listening (the apps start in no fixed order); an action in both places is written once
+        foreach (var early in (backlog ?? ActivityLog.Backlog).Drain()) _queue.Writer.TryWrite(early);
 
         _ = Task.Run(WriteAsync);
     }
@@ -64,7 +69,8 @@ public sealed class ActivityRecorder : BaseApp
             try
             {
                 var id = entry.TryGetProperty("id", out var i) ? i.GetString() : null;
-                if (string.IsNullOrEmpty(id)) continue;
+                if (string.IsNullOrEmpty(id) || !_written.Add(id)) continue;
+                if (_written.Count > 5000) _written.Clear();
                 await _mqtt.SetAttributesAsync(Sensor, entry);
                 await _mqtt.SetStateAsync(Sensor, id);
             }

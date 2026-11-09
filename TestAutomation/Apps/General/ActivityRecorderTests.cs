@@ -29,12 +29,16 @@ public class ActivityRecorderTests
         _mqtt.SetStateAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(c => { _calls.Add("state:" + c.ArgAt<string>(1)); return Task.CompletedTask; });
     }
 
-    private void Start(bool sensorExists = false)
+    private void Start(bool sensorExists = false, ActivityBacklog? backlog = null)
     {
         _entityManager.EntityExists(ActivityRecorder.Sensor).Returns(sensorExists);
         _ctx.HaContext.Events.Returns(_events);
-        _ctx.InitApp<ActivityRecorder>(Options.Create(new AppConfig()), _entityManager, _mqtt);
+        // An own backlog: the one of ActivityLog is shared by every test that runs at the same time
+        _ctx.InitApp<ActivityRecorder>(Options.Create(new AppConfig()), _entityManager, _mqtt, backlog ?? new ActivityBacklog());
     }
+
+    private static JsonElement Entry(string id) =>
+        JsonSerializer.SerializeToElement(new { id, app = "Alarm", kind = "actie", text = "Lamp: aan" });
 
     private void Fire(string id, string eventType = ActivityLog.EventType) =>
         _events.OnNext(new Event
@@ -69,6 +73,45 @@ public class ActivityRecorderTests
         await WaitFor(6);
 
         _calls.Should().Equal("attributes:a1", "state:a1", "attributes:a2", "state:a2", "attributes:a3", "state:a3");
+    }
+
+    [Fact]
+    public async Task WhatHappenedBeforeTheRecorderWasListening_IsWrittenToo_AndOnlyOnce()
+    {
+        var backlog = new ActivityBacklog();
+        backlog.Add(Entry("early1"));
+        backlog.Add(Entry("early2"));
+
+        Start(backlog: backlog);
+        Fire("early2");
+        Fire("a1");
+        await WaitFor(6);
+
+        _calls.Should().Equal("attributes:early1", "state:early1", "attributes:early2", "state:early2", "attributes:a1", "state:a1");
+    }
+
+    [Fact]
+    public void TheBacklog_IsHandedOverOnce_AndThenKeepsNothing()
+    {
+        var backlog = new ActivityBacklog();
+        backlog.Add(Entry("x"));
+
+        backlog.Drain().Should().HaveCount(1);
+        backlog.Add(Entry("y"));
+
+        backlog.Drain().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TheBacklog_KeepsTheLast500()
+    {
+        var backlog = new ActivityBacklog();
+        for (var i = 0; i < 520; i++) backlog.Add(Entry($"e{i}"));
+
+        var kept = backlog.Drain();
+
+        kept.Should().HaveCount(500);
+        kept[0].GetProperty("id").GetString().Should().Be("e20");
     }
 
     [Fact]
