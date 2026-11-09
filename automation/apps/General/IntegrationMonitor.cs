@@ -29,6 +29,13 @@ public class IntegrationMonitor : BaseApp
     /// <summary>How long to wait after a reload before checking whether it helped.</summary>
     public static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// Integrations of a device that is off most of the time: while it is off the integration waits to connect (<c>setup_retry</c>), which is
+    /// not a problem. The Android TV Remote of the living room TV reloaded twice and then sent a Discord alert every time the TV was off.
+    /// Another state (<c>setup_error</c>) is still a problem.
+    /// </summary>
+    public static readonly string[] SleepingDeviceDomains = ["androidtv_remote"];
+
     /// <summary>The storage key of the entities that have been seen loaded.</summary>
     public const string LoadedEntitiesStorageKey = "IntegrationMonitorLoadedEntities";
 
@@ -267,9 +274,13 @@ public class IntegrationMonitor : BaseApp
         return entries
             .Where(e => e.DisabledBy is null)
             .Select(e => new IntegrationProblem(e, notLoaded[e.EntryId].Order().ToList()))
-            .Where(p => p.Entry.HasFailed || (p.Entry.State == "loaded" && p.NotLoadedEntities.Count > 0))
+            .Where(p => IsWaitingForASleepingDevice(p.Entry) is false && (p.Entry.HasFailed || (p.Entry.State == "loaded" && p.NotLoadedEntities.Count > 0)))
             .ToList();
     }
+
+    /// <summary>Whether the integration only waits for a device that is off (see <see cref="SleepingDeviceDomains"/>).</summary>
+    private static bool IsWaitingForASleepingDevice(ConfigEntry entry) =>
+        entry.State == "setup_retry" && SleepingDeviceDomains.Contains(entry.Domain);
 
     /// <summary>
     /// Gets the entity registry; empty when it could not be read, so failed integrations are still found.

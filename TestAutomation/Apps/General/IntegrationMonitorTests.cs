@@ -48,6 +48,31 @@ public class IntegrationMonitorTests : IDisposable
     }
 
     [Fact]
+    public void ADeviceThatIsOff_LikeTheAndroidTvRemote_IsNeitherReloadedNorReported()
+    {
+        _entries = [Failing("androidtv_remote")];
+        CreateApp();
+
+        AdvanceToFirstCheck();
+        Advance(IntegrationMonitor.RetryDelay);
+        Advance(IntegrationMonitor.RetryDelay);
+
+        VerifyReloads("androidtv_remote", 0);
+        _notify.DidNotReceiveWithAnyArgs().NotifyDiscord(null!, null!);
+    }
+
+    [Fact]
+    public void ThatSameDevice_WithARealError_IsStillAProblem()
+    {
+        _entries = [Failing("androidtv_remote") with { State = "setup_error" }];
+        CreateApp();
+
+        AdvanceToFirstCheck();
+
+        VerifyReloads("androidtv_remote", 1);
+    }
+
+    [Fact]
     public void FailingIntegration_RecoversAfterReload_IsReloadedOnceAndForgotten()
     {
         _entries = [Failing("hue")];

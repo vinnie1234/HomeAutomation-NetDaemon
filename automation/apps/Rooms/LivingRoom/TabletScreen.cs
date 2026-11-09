@@ -119,7 +119,10 @@ public class TabletScreen : BaseApp
         // Motion only turns the screen on: the dashboard is still where it was, so loading the start URL every time somebody walks by
         // is not needed (and reloaded the whole dashboard under their fingers). Only an alert (force) opens Home, so it is in view.
         Logger.LogInformation("Tablet aan: {Reason}", reason);
-        HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
+        // The timer is set once: it stays at this value, so setting it at every wake-up was the same call again and again
+        if (!double.TryParse(HaContext.GetState(ScreenOffTimer)?.State, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var timer)
+            || Math.Abs(timer - AwakeTimeoutSeconds) > 0.5)
+            HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
         HaContext.CallService("switch", "turn_on", ServiceTarget.FromEntity(Screen));
         if (force) HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
     }

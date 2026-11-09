@@ -26,6 +26,9 @@ public static class ActivityLog
 
     private static long _counter;
 
+    /// <summary>The last status written down per entity: NetDaemon sets some sensors again and again with the same value.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastStatus = new();
+
     /// <summary>
     /// The actions from the first moments after NetDaemon started, before <see cref="Automation.apps.General.ActivityRecorder"/> was
     /// listening: the apps wake up in no fixed order and many of them act at once. The recorder takes them over when it starts.
@@ -119,6 +122,9 @@ public static class ActivityLog
         try
         {
             if (Ignored.Contains(entityId)) return;
+            // Only a status that changed is news: the same value again is not written down
+            if (LastStatus.TryGetValue(entityId, out var last) && last == state) return;
+            LastStatus[entityId] = state;
             var text = $"{NameOf(inner, entityId)} wordt {Trim(state, 80)}";
             var people = People.Where(p => entityId.Contains(p, StringComparison.OrdinalIgnoreCase)).ToList();
             var cause = ActivityContext.Current;

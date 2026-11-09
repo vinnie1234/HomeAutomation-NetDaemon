@@ -157,6 +157,17 @@ public class ActivityLogTests
     }
 
     [Fact]
+    public void TheSameStatusAgain_IsNotWrittenDownAgain_ButAChangeIs()
+    {
+        ActivityLog.Status(_inner, "Entiteiten", "sensor.repeated_status_test", "off");
+        ActivityLog.Status(_inner, "Entiteiten", "sensor.repeated_status_test", "off");
+        ActivityLog.Status(_inner, "Entiteiten", "sensor.repeated_status_test", "on");
+        ActivityLog.Status(_inner, "Entiteiten", "sensor.repeated_status_test", "off");
+
+        _events.Should().HaveCount(3);
+    }
+
+    [Fact]
     public void AStatusNetDaemonSets_IsWrittenDownAsStatus()
     {
         ActivityLog.Status(_inner, "Entiteiten", "sensor.batteries_to_buy", "3 batterijen");

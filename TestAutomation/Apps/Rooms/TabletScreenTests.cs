@@ -51,6 +51,17 @@ public class TabletScreenTests
     }
 
     [Fact]
+    public void TheScreenOffTimer_IsOnlySetWhenItIsNotAlreadyRight()
+    {
+        Start();
+        SetState("number.tab_s6_van_vincent_scherm_uit_timer", "300");
+
+        Change("binary_sensor.motionwoonkamer", "off", "on");
+
+        Commands().Should().Equal("switch.turn_on");
+    }
+
+    [Fact]
     public void Motion_WhileTheScreenIsAlreadyOn_DoesNotReloadTheDashboard()
     {
         Start();
