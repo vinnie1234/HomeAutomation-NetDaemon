@@ -21,6 +21,8 @@ public class AppConfig
     public string SpotifyDoucheUrl { get; set; } = "";
     [Url]
     public string SpotifyKeukenUrl { get; set; } = "";
+    [Url]
+    public string SpotifyKerstUrl { get; set; } = "";
     public DiscordConfig Discord { get; set; } = new();
     public RoombaConfig Roomba { get; set; } = new();
     public TwitterConfig Twitter { get; set; } = new();

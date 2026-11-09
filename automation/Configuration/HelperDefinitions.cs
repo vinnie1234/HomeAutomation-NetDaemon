@@ -134,6 +134,7 @@ public static class HelperDefinitions
         Button("feedcat", "FeedCat", icon: "mdi:cat"),
         Button("restartnetdeamon", "RestartNetDaemon"),
         Button("start_friends", "Start Friends"),
+        Button("start_kerstmuziek", "Start Kerstmuziek", icon: "mdi:music-note"),
         Button("start_pc", "Start PC", icon: "mdi:desktop-classic"),
         Button("startnewyear", "StartNewYear", icon: "mdi:firework"),
         Button("vacuumcleanbank", "VacuumCleanBank", icon: "mdi:robot-vacuum"),

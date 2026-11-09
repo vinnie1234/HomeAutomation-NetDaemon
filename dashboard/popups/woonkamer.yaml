@@ -45,6 +45,28 @@ cards:
   - type: custom:bubble-card
     card_type: button
     button_type: slider
+    entity: light.festavia_string_lights_1
+    name: Kerstboom
+    icon: mdi:pine-tree
+    show_state: true
+    tap_action:
+      action: toggle
+    hold_action:
+      action: more-info
+  - type: custom:bubble-card
+    card_type: button
+    button_type: name
+    name: Kerstmuziek
+    icon: mdi:music-note
+    show_state: false
+    tap_action:
+      action: perform-action
+      perform_action: input_button.press
+      target:
+        entity_id: input_button.start_kerstmuziek
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
     entity: light.hue_filament_bulb_1
     name: Filament 1
     icon: mdi:lightbulb-variant-outline
