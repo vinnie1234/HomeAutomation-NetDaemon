@@ -161,7 +161,7 @@ public partial class CommuteReport : BaseApp
     {
         var car = FindRoutePrefix(commuter.PersonId, direction);
         var transit = FindTransitPrefix(commuter.PersonId, direction);
-        if (commuter.Schedule.Transport(Scheduler.NowNl().DayOfWeek) == WorkSchedule.PublicTransport)
+        if (commuter.Schedule.TransportToday(Scheduler.NowNl().DayOfWeek) == WorkSchedule.PublicTransport)
         {
             if (transit != null) car = null;
         }

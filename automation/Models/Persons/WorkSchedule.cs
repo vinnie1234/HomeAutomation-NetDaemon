@@ -35,6 +35,21 @@ public class WorkSchedule
     public const string Car = "Auto";
     public const string PublicTransport = "OV";
 
+    /// <summary>The choice for today that follows the weekday settings: <c>input_select.vervoer_vandaag_{person}</c>.</summary>
+    public const string FollowSchedule = "Volgens schema";
+
+    /// <summary>
+    /// How the person goes to the office today: what was chosen for today on the dashboard (the car instead of public transport, or the
+    /// other way around) when that is set, otherwise the setting of this weekday.
+    /// </summary>
+    public string TransportToday(DayOfWeek today) =>
+        new InputSelectEntity(_haContext, $"input_select.vervoer_vandaag_{_person}").State switch
+        {
+            Car => Car,
+            PublicTransport => PublicTransport,
+            _ => Transport(today)
+        };
+
     /// <summary>How the person goes to the office on a day of the week; the car while nothing is set.</summary>
     public string Transport(DayOfWeek day) =>
         new InputSelectEntity(_haContext, $"input_select.vervoer_{_person}_{DayNames[day]}").State == PublicTransport ? PublicTransport : Car;

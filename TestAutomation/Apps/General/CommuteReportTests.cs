@@ -608,6 +608,35 @@ public class CommuteReportTests
     }
 
     [Fact]
+    public void ChoosingTheCarForToday_GivesTheCarMessage_EvenWhenTheWeekdayIsPublicTransport()
+    {
+        Start("Vrij", configure: () =>
+        {
+            CarleenGoesByTrain();
+            SetState("input_select.vervoer_vandaag_carleen", "Auto");
+        });
+
+        AdvanceTo(7, 51);
+
+        var text = Messages().Single(m => m.To == CarleenWhatsapp).Text;
+        text.Should().NotContain("met het OV");
+    }
+
+    [Fact]
+    public void TheChoiceForToday_IsClearedEveryNightAt4()
+    {
+        Start("Vrij", configure: () => SetState("input_select.vervoer_vandaag_carleen", "Auto"));
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.AdvanceTimeTo(new DateTime(2026, 10, 29, 3, 5, 0, DateTimeKind.Utc).Ticks);
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        _ctx.HaContext.Received(1).CallService("input_select", "select_option",
+            Arg.Is<ServiceTarget?>(t => t!.EntityIds!.Single() == "input_select.vervoer_vandaag_carleen"),
+            Arg.Is<object?>(d => System.Text.Json.JsonSerializer.SerializeToElement(d).GetProperty("option").GetString() == "Volgens schema"));
+    }
+
+    [Fact]
     public void TheTravelMessage_IsTheLastReplyOfTheConversation_SoStuurDoorForwardsIt()
     {
         Start("Vrij", configure: CarleenGoesByTrain);

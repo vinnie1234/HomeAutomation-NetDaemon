@@ -269,6 +269,9 @@ public static class HelperDefinitions
         Time($"reis_ochtend_tijd_{person}", $"Reis ochtend tijd {name}", "08:20:00"),
         Select($"reis_avond_soort_{person}", $"Reis avond soort {name}", [Models.Persons.OfficeTravel.EveningLeave, Models.Persons.OfficeTravel.EveningArrive], icon: "mdi:weather-sunset-down"),
         Time($"reis_avond_tijd_{person}", $"Reis avond tijd {name}", "17:10:00"),
+        // Wat voor vandaag is gekozen op het dashboard (met de auto in plaats van het OV, of andersom); 's nachts weer volgens het schema (CommuteReport)
+        Select($"vervoer_vandaag_{person}", $"Vervoer vandaag {name}",
+            [Models.Persons.WorkSchedule.FollowSchedule, Models.Persons.WorkSchedule.Car, Models.Persons.WorkSchedule.PublicTransport], icon: "mdi:swap-horizontal"),
         .. Models.Persons.WorkSchedule.DayNames.Values.Select(day =>
             Select($"vervoer_{person}_{day}", $"Vervoer {name} {day}", [Models.Persons.WorkSchedule.Car, Models.Persons.WorkSchedule.PublicTransport], icon: "mdi:car-clock"))
     ];

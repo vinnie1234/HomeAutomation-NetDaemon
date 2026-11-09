@@ -3314,8 +3314,8 @@ commute_card:
             const todayText = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`;
             const targetOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d{4}-\d{2}-\d{2}) (\d+):(\d+)/); return m && m[1] === todayText ? +m[2] + m[3] / 60 : null; };
             const personKey = s => String(s.attributes.person).replace('person.', '').split('_')[0];
-            // Auto of OV: de keuze van vandaag (per weekdag in te stellen)
-            const chosenKind = s => states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car';
+            // Auto of OV: wat voor vandaag op de kaart is gekozen, anders de keuze van deze weekdag (per weekdag in te stellen)
+            const chosenKind = s => { const today = states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state; return today === 'OV' ? 'ov' : today === 'Auto' ? 'car' : states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car'; };
             const wanted = s => {
               const key = personKey(s);
               const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
@@ -3396,8 +3396,8 @@ commute_card:
         const todayText = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`;
         const targetOf = id => { const m = String(states[id]?.state ?? '').match(/^(\d{4}-\d{2}-\d{2}) (\d+):(\d+)/); return m && m[1] === todayText ? +m[2] + m[3] / 60 : null; };
         const personKey = s => String(s.attributes.person).replace('person.', '').split('_')[0];
-        // Auto of OV: de keuze van vandaag (per weekdag in te stellen)
-        const chosenKind = s => states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car';
+        // Auto of OV: wat voor vandaag op de kaart is gekozen, anders de keuze van deze weekdag (per weekdag in te stellen)
+        const chosenKind = s => { const today = states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state; return today === 'OV' ? 'ov' : today === 'Auto' ? 'car' : states[`input_select.vervoer_${personKey(s)}_${dayNames[nowDate.getDay()]}`]?.state === 'OV' ? 'ov' : 'car'; };
         const wanted = s => {
           const key = personKey(s);
           const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
@@ -3774,6 +3774,12 @@ commute_card:
           window.huisReisSkipAt = Date.now();
           document.querySelector('home-assistant').hass.callService('input_boolean', 'toggle', { entity_id: entityId });
         };
+        // "Komt met de auto" op de OV-kaart (of andersom): alleen voor vandaag; 's nachts staat het weer volgens het schema (NetDaemon, CommuteReport)
+        window.huisReisVervoer = (person, option) => {
+          if (Date.now() - (window.huisReisVervoerAt ?? 0) < 600) return;
+          window.huisReisVervoerAt = Date.now();
+          document.querySelector('home-assistant').hass.callService('input_select', 'select_option', { entity_id: `input_select.vervoer_vandaag_${person}`, option });
+        };
         const kindStyle = s => s.dir === 'work' ? { label: 'Naar kantoor', rgb: '96,165,250', icon: 'mdi:office-building-outline' }
           : s.dir === 'home' ? { label: 'Naar huis', rgb: '74,222,128', icon: 'mdi:home-import-outline' }
           : { label: 'Overige route', rgb: '148,163,184', icon: 'mdi:map-marker-path' };
@@ -3784,13 +3790,26 @@ commute_card:
           const skipped = s.dir !== 'other' && flagged(s);
           const name = (states[s.attributes.person]?.attributes.friendly_name ?? '').split(' ')[0];
           const skipText = s.dir === 'home' ? `${name} komt niet thuis` : `${name} gaat niet`;
+          // Hoe de persoon vandaag komt: de kaart van het OV heeft "komt met de auto" (dan komt de ANWB-kaart in beeld), en terug naar het schema
+          const today = states[`input_select.vervoer_vandaag_${person}`]?.state;
+          const hasOv = Object.values(states).some(x => /^sensor\.9292_.*_lijnen$/.test(x.entity_id) && x.attributes.person === s.attributes.person && directionOf(x) === s.dir);
+          const chip = (text, option, active) => `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
+              color:${active ? '#4ade80' : 'rgba(255,255,255,0.75)'};border:1px solid ${active ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.2)'}"
+              onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisReisVervoer('${person}','${option}')"
+              onclick="event.stopPropagation();window.huisReisVervoer('${person}','${option}')">${text}</span>`;
+          const vervoer = s.dir === 'other' ? '' : [
+            s.kind === 'ov' && today !== 'OV' ? chip(`${name} komt met de auto`, 'Auto') : '',
+            s.kind === 'ov' && today === 'OV' ? chip(`✓ komt met het OV · terug naar schema`, 'Volgens schema', true) + chip(`${name} komt met de auto`, 'Auto') : '',
+            s.kind === 'car' && today === 'Auto' ? chip(`✓ komt met de auto · terug naar schema`, 'Volgens schema', true) : '',
+            s.kind === 'car' && today !== 'Auto' && hasOv ? chip(`${name} komt met het OV`, 'OV') : ''
+          ].join('');
           const skip = s.dir === 'other' ? '' : `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
               color:${skipped ? '#ffb060' : 'rgba(255,255,255,0.75)'};border:1px solid ${skipped ? 'rgba(255,176,96,0.6)' : 'rgba(255,255,255,0.2)'}"
               onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')"
               onclick="event.stopPropagation();window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')">${skipped ? `✓ ${skipText} · ongedaan maken` : skipText}</span>`;
           return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
             <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:rgb(${k.rgb})">
-              <ha-icon icon="${k.icon}" style="--mdc-icon-size:16px"></ha-icon>${k.label}</span>${skip}</div>`;
+              <ha-icon icon="${k.icon}" style="--mdc-icon-size:16px"></ha-icon>${k.label}</span><span style="display:flex;flex-wrap:wrap;gap:6px">${vervoer}${skip}</span></div>`;
         };
         // Een route met zijn knoppen; gedempt als hij vandaag niet doorgaat
         const rowOf = s => `<div style="opacity:${s.dir !== 'other' && flagged(s) ? 0.45 : 1}">${toolbar(s)}${card(s)}${forwardButton(s)}</div>`;

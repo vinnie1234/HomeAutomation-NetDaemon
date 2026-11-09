@@ -67,4 +67,21 @@ public class WorkScheduleTests
         Assert.False(schedule.IsOfficeDay(DayOfWeek.Monday));
         Assert.False(schedule.IsHomeWorkDay(DayOfWeek.Tuesday));
     }
+
+    // ---- how to get to the office today
+
+    [Theory]
+    [InlineData("Volgens schema", "OV", "OV")]
+    [InlineData("Volgens schema", "Auto", "Auto")]
+    [InlineData("Auto", "OV", "Auto")]
+    [InlineData("OV", "Auto", "OV")]
+    [InlineData("unknown", "OV", "OV")]
+    public void TransportToday_IsWhatWasChosenForToday_OtherwiseTheSettingOfTheWeekday(string today, string weekday, string expected)
+    {
+        var schedule = Schedule();
+        SetState("input_select.vervoer_vandaag_carleen", today);
+        SetState("input_select.vervoer_carleen_maandag", weekday);
+
+        Assert.Equal(expected, schedule.TransportToday(DayOfWeek.Monday));
+    }
 }

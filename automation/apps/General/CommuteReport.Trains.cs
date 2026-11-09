@@ -68,6 +68,13 @@ public partial class CommuteReport
             foreach (var commuter in _commuters)
                 foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
                     SetRouteNotNeeded(commuter, direction, false);
+            // The choice of today (the car instead of public transport) is over: back to the weekday settings
+            foreach (var commuter in _commuters)
+            {
+                var today = $"input_select.vervoer_vandaag_{commuter.Id}";
+                if (HaContext.GetState(today)?.State is { } chosen && chosen != Models.Persons.WorkSchedule.FollowSchedule && chosen is not ("unknown" or "unavailable"))
+                    HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(today), new { option = Models.Persons.WorkSchedule.FollowSchedule });
+            }
             foreach (var commuter in _commuters)
                 foreach (var helper in new[] { "afspraak_route", "afspraak_aangekomen" })
                     if (HaContext.GetState($"input_boolean.{helper}_{commuter.Id}")?.State == "on")
