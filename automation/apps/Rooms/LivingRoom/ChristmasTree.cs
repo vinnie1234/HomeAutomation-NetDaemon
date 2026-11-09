@@ -7,15 +7,15 @@ namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
 /// The Christmas tree (a Hue Festavia string): it is on all day, so it goes on when Vincent gets up (the sleeping switch goes off) and
-/// off when he goes to sleep. The button "Kerstmuziek" plays the Christmas playlist on the soundbar.
+/// off when he goes to sleep. The button "Kerstmuziek" plays the Christmas playlist on the kitchen speaker.
 /// </summary>
 [NetDaemonApp(Id = nameof(ChristmasTree))]
 public class ChristmasTree : BaseApp
 {
     public const string Tree = "light.festavia_string_lights_1";
 
-    /// <summary>The soundbar in the living room, where the tree stands.</summary>
-    public const string Soundbar = "media_player.soundbar";
+    /// <summary>The speaker the Christmas music plays on: the kitchen.</summary>
+    public const string Speaker = "media_player.nestmini9818";
 
     /// <summary>Pressing this button starts the Christmas playlist.</summary>
     public const string MusicButton = "input_button.start_kerstmuziek";
@@ -57,7 +57,7 @@ public class ChristmasTree : BaseApp
             Logger.LogWarning("No SpotifyKerstUrl in config.json, no Christmas music");
             return;
         }
-        _spotcast.PlaySpotify(new MediaPlayerEntity(HaContext, Soundbar), _config.SpotifyKerstUrl);
+        _spotcast.PlaySpotify(new MediaPlayerEntity(HaContext, Speaker), _config.SpotifyKerstUrl);
         Logger.LogInformation("Christmas music started");
     }
 }

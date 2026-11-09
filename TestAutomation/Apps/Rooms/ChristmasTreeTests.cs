@@ -45,13 +45,13 @@ public class ChristmasTreeTests
     }
 
     [Fact]
-    public void TheMusicButton_PlaysTheChristmasPlaylistOnTheSoundbar()
+    public void TheMusicButton_PlaysTheChristmasPlaylistOnTheKitchenSpeaker()
     {
         Start();
 
         Change(ChristmasTree.MusicButton, "unknown", "2026-11-09T10:00:00+00:00");
 
-        _ctx.Spotcast.Received(1).PlaySpotify(Arg.Is<MediaPlayerEntity>(m => m.EntityId == ChristmasTree.Soundbar), Playlist);
+        _ctx.Spotcast.Received(1).PlaySpotify(Arg.Is<MediaPlayerEntity>(m => m.EntityId == ChristmasTree.Speaker), Playlist);
     }
 
     [Fact]
