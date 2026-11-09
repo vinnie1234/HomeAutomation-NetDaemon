@@ -49,7 +49,7 @@ sections:
             return parts.join(' · ');
           ]]]
 
-  # NetDaemon en Home Assistant
+  # Aandachtspunten en onderdelen. Wat veel ruimte inneemt staat in een venster: tik op de tegel.
   - type: grid
     cards:
       - type: heading
@@ -76,22 +76,33 @@ sections:
         icon: mdi:backup-restore
         grid_options:
           columns: 6
-      - type: custom:auto-entities
-        card:
-          type: entities
-          title: Updates beschikbaar
-        filter:
-          include:
-            - domain: update
-              state: "on"
-        sort:
-          method: name
-        show_empty: false
-
       - type: heading
-        heading: Watchman
+        heading: Onderhoud
         heading_style: title
-        icon: mdi:shield-search
+        icon: mdi:wrench-outline
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:update
+        name: |
+          [[[
+            const list = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on');
+            return list.length ? `${list.length} ${list.length === 1 ? 'update' : 'updates'} beschikbaar` : 'Alles is bijgewerkt';
+          ]]]
+        label: |
+          [[[
+            const list = Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').map(([id, s]) => s.attributes.title ?? s.attributes.friendly_name ?? id);
+            return list.length ? `${list.slice(0, 3).join(', ')}${list.length > 3 ? ` en ${list.length - 3} meer` : ''} · tik voor de lijst` : '';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  return Object.entries(states).filter(([id, s]) => id.startsWith('update.') && s.state === 'on').length ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#updates"
       # Watchman: automatiseringen en scripts die naar verdwenen entiteiten of acties verwijzen
       - type: custom:button-card
         template: glass
@@ -132,6 +143,145 @@ sections:
             - text-align: left
             - font-size: 12px
 
+      # Custom Component Monitor (HACS): ongebruikte integraties, thema's en kaarten, en de updates die nog wachten
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:puzzle-outline
+        name: |
+          [[[
+            const n = id => parseInt(states[id]?.state) || 0;
+            const unused = n('sensor.unused_custom_integrations') + n('sensor.unused_custom_themes') + n('sensor.unused_frontend_resources');
+            const updates = n('sensor.hacs_updates');
+            return unused || updates ? `${unused} ongebruikt · ${updates} ${updates === 1 ? 'update' : 'updates'}` : 'Alle aangepaste onderdelen worden gebruikt';
+          ]]]
+        label: |
+          [[[
+            const n = parseInt(states['sensor.hacs_installed_components']?.state) || 0;
+            return n ? `${n} onderdelen via HACS · tik voor de lijst` : '';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const n = id => parseInt(states[id]?.state) || 0;
+                  return n('sensor.unused_custom_integrations') + n('sensor.unused_custom_themes') + n('sensor.unused_frontend_resources') + n('sensor.hacs_updates') ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#componenten"
+      - type: heading
+        heading: Systeem
+        heading_style: title
+        icon: mdi:server
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:router-wireless
+        name: |
+          [[[
+            return states['binary_sensor.rt_ax88u_internet']?.state === 'off' ? 'Geen internet' : 'Netwerk';
+          ]]]
+        label: |
+          [[[
+            const num = id => parseFloat(states[id]?.state);
+            const down = num('sensor.cloudflare_speed_test_90th_percentile_down') * 4.5, up = num('sensor.cloudflare_speed_test_90th_percentile_up') * 4.5;
+            const ping = num('sensor.ping_round_trip_time_average');
+            const parts = [];
+            if (!isNaN(down)) parts.push(`↓ ${Math.round(down)} Mbit/s`);
+            if (!isNaN(up)) parts.push(`↑ ${Math.round(up)} Mbit/s`);
+            if (!isNaN(ping)) parts.push(`ping ${Math.round(ping < 1 ? ping * 1000 : ping)} ms`);
+            return parts.join(' · ');
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  return states['binary_sensor.rt_ax88u_internet']?.state === 'off' ? '#ff6b6b' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#netwerk"
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:raspberry-pi
+        name: |
+          [[[
+            return 'Raspberry Pi';
+          ]]]
+        label: |
+          [[[
+            const num = id => Math.round(parseFloat(states[id]?.state));
+            const parts = [];
+            const cpu = num('sensor.processor_use'), mem = num('sensor.memory_use_percent'), disk = num('sensor.disk_use_percent'), temp = num('sensor.processor_temperature');
+            if (!isNaN(cpu)) parts.push(`processor ${cpu}%`);
+            if (!isNaN(mem)) parts.push(`geheugen ${mem}%`);
+            if (!isNaN(disk)) parts.push(`schijf ${disk}%`);
+            if (!isNaN(temp)) parts.push(`${temp}°C`);
+            return parts.join(' · ');
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  const hot = ['sensor.processor_use', 'sensor.memory_use_percent', 'sensor.disk_use_percent'].some(id => parseFloat(states[id]?.state) >= 90) || parseFloat(states['sensor.processor_temperature']?.state) >= 75;
+                  return hot ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#raspberry-pi"
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:robot-outline
+        name: |
+          [[[
+            return states['binary_sensor.netdaemon_online']?.state === 'off' ? 'NetDaemon reageert niet' : 'NetDaemon';
+          ]]]
+        label: |
+          [[[
+            const apps = Object.entries(states).filter(([id]) => id.startsWith('input_boolean.netdaemon_'));
+            const on = apps.filter(([, s]) => s.state === 'on').length;
+            return apps.length ? `${on} van ${apps.length} apps aan · herstarten en apps aan of uit` : 'Herstarten en apps aan of uit';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  return states['binary_sensor.netdaemon_online']?.state === 'off' ? '#ff6b6b' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#netdaemon"
+      - type: custom:button-card
+        template: beheer_tile
+        triggers_update: all
+        icon: mdi:home-export-outline
+        name: |
+          [[[
+            return 'Afwezigheid';
+          ]]]
+        label: |
+          [[[
+            const on = id => states[id]?.state === 'on';
+            if (on('input_boolean.away')) return 'Niemand thuis';
+            const parts = [];
+            if (on('input_boolean.awayvincent')) parts.push('Vincent weg');
+            if (on('input_boolean.awaycarleen')) parts.push('Carleen weg');
+            if (on('input_boolean.onvacation')) parts.push('op vakantie');
+            if (on('input_boolean.working')) parts.push('aan het werk');
+            return parts.length ? parts.join(' · ') : 'Iedereen is thuis';
+          ]]]
+        styles:
+          icon:
+            - color: |
+                [[[
+                  return states['input_boolean.away']?.state === 'on' ? '#ffb060' : '#4ade80';
+                ]]]
+        tap_action:
+          action: navigate
+          navigation_path: "#afwezigheid"
       - type: heading
         heading: Instellingen
         heading_style: title
@@ -144,295 +294,364 @@ sections:
           action: navigate
           navigation_path: "#instellingen"
       # Dashboard verversen: op de tablet (Fully Kiosk) is er geen verversknop of trek-om-te-verversen
-      - type: heading
-        heading: Dashboard
-        heading_style: title
-        icon: mdi:refresh
-      # Dit scherm: eerst Home Assistant de dashboardbestanden opnieuw laten inlezen (een YAML-dashboard wordt onthouden tot dat
-      # gebeurt, en het menu "Vernieuwen" zit achter Kiosk Mode), dan de service workers en caches van de browser weggooien en de
-      # pagina opnieuw laden. In Fully Kiosk eerst zijn eigen cache wissen en de start-URL laden.
       - type: custom:button-card
         template: action
-        name: Ververs dit scherm
+        name: Dashboard verversen
         icon: mdi:cached
         tap_action:
-          action: javascript
-          javascript: |
-            [[[
-              (async () => {
-                try { await hass.callWS({ type: 'lovelace/config', url_path: 'dashboard-huis', force: true }); } catch (e) { /* geen verbinding */ }
-                try { if (window.fully?.clearCache) { fully.clearCache(); fully.loadStartUrl(); return; } } catch (e) { /* geen Fully */ }
-                try { for (const worker of await navigator.serviceWorker.getRegistrations()) await worker.unregister(); } catch (e) { /* geen service worker */ }
-                try { for (const key of await caches.keys()) await caches.delete(key); } catch (e) { /* geen cache */ }
-                location.reload();
-              })();
-            ]]]
-      # De tablet vanaf een ander apparaat: Home Assistant leest de bestanden opnieuw in, Fully Kiosk wist zijn cache en laadt het
-      # dashboard opnieuw (via de Fully-integratie)
-      - type: custom:button-card
-        template: action
-        name: Ververs de tablet
-        icon: mdi:tablet-dashboard
-        tap_action:
-          action: javascript
-          javascript: |
-            [[[
-              (async () => {
-                try { await hass.callWS({ type: 'lovelace/config', url_path: 'dashboard-huis', force: true }); } catch (e) { /* geen verbinding */ }
-                hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_clear_browser_cache' });
-                setTimeout(() => hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_start_url_laden' }), 1500);
-              })();
-            ]]]
-      - type: heading
-        heading: NetDaemon
-        heading_style: title
-        icon: mdi:robot-outline
-      - type: custom:button-card
-        template: action
-        name: NetDaemon herstarten
-        icon: mdi:restart
-        tap_action:
-          action: perform-action
-          perform_action: input_button.press
-          target:
-            entity_id: input_button.restartnetdaemon
-          confirmation:
-            text: NetDaemon herstarten?
-      - type: custom:auto-entities
-        card:
-          type: entities
-          title: Apps
-          state_color: true
-        filter:
-          include:
-            - entity_id: input_boolean.netdaemon_*
-        sort:
-          method: name
-
-  # Netwerk en Raspberry Pi
-  - type: grid
-    cards:
-      - type: heading
-        heading: Netwerk
-        heading_style: title
-        icon: mdi:router-wireless
-      - type: custom:button-card
-        template: stat
-        entity: binary_sensor.rt_ax88u_internet
-        name: Internet
-        icon: mdi:web
-        state_display: '[[[ return entity.state === "on" ? "Verbonden" : "Geen verbinding"; ]]]'
-        styles:
-          icon:
-            - color: '[[[ return entity.state === "on" ? "#4ade80" : "#ff6b6b"; ]]]'
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.rt_ax88u_uptime
-        name: Router draait
-        icon: mdi:router
-        # Uptime in seconden (of een opstarttijdstip); getoond als "6 dagen, 4 uur"
-        state_display: |
-          [[[
-            const v = parseFloat(entity?.state);
-            const since = isNaN(v) || entity?.attributes.device_class === 'timestamp' ? new Date(entity?.state) : null;
-            const seconds = since ? (Date.now() - since) / 1000 : v;
-            if (isNaN(seconds)) return 'Onbekend';
-            const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600);
-            if (days > 0) return `${days} ${days === 1 ? 'dag' : 'dagen'}, ${hours} uur`;
-            return hours > 0 ? `${hours} uur` : `${Math.max(1, Math.round(seconds / 60))} min`;
-          ]]]
-        grid_options:
-          columns: 6
-      # De Cloudflare-test meet ongeveer 4,5× te laag; daarom worden download en upload hier gecorrigeerd
-      - type: custom:button-card
-        template: stat
-        entity: sensor.cloudflare_speed_test_90th_percentile_down
-        name: Download
-        icon: mdi:download
-        state_display: |
-          [[[
-            const v = parseFloat(entity.state) * 4.5;
-            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
-          ]]]
-        styles:
-          icon:
-            - color: "#4ade80"
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.cloudflare_speed_test_90th_percentile_up
-        name: Upload
-        icon: mdi:upload
-        state_display: |
-          [[[
-            const v = parseFloat(entity?.state) * 4.5;
-            return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
-          ]]]
-        styles:
-          icon:
-            - color: "#7aa2ff"
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: ms
-        entity: sensor.ping_round_trip_time_average
-        name: Ping
-        icon: mdi:timer-outline
-        grid_options:
-          columns: 4
-      - type: custom:button-card
-        template: ms
-        entity: sensor.cloudflare_speed_test_latency
-        name: Latency
-        icon: mdi:timer-sync-outline
-        grid_options:
-          columns: 4
-      - type: custom:button-card
-        template: ms
-        entity: sensor.cloudflare_speed_test_jitter
-        name: Jitter
-        icon: mdi:sine-wave
-        grid_options:
-          columns: 4
-      - type: custom:apexcharts-card
-        graph_span: 24h
-        hours_12: false
-        header:
-          show: true
-          title: Ping laatste 24 uur
-        apex_config:
-          chart:
-            height: 180
-          legend:
-            show: false
-          stroke:
-            curve: smooth
-            width: 2
-          fill:
-            type: gradient
-            gradient:
-              opacityFrom: 0.4
-              opacityTo: 0.05
-          grid:
-            borderColor: "rgba(255, 255, 255, 0.06)"
-          xaxis:
-            labels:
-              format: HH:mm
-        series:
-          - entity: sensor.ping_round_trip_time_average
-            name: Ping
-            type: area
-            color: "#4ade80"
-            unit: " ms"
-            float_precision: 1
-            group_by:
-              func: avg
-              duration: 15min
-            # Gemeten in seconden: omrekenen naar milliseconden
-            transform: "return x < 1 ? x * 1000 : x;"
-      # Doorklikken naar alle apparaten in het netwerk
-      - type: custom:button-card
-        template: glass
-        triggers_update: all
-        icon: mdi:devices
-        show_label: true
-        name: Apparaten in het netwerk
-        label: |
-          [[[
-            const devices = Object.values(states)
-              .filter(s => s.entity_id.startsWith('device_tracker.') && s.attributes.ip);
-            const online = devices.filter(s => s.state === 'home').length;
-            return `${online} verbonden · ${devices.length - online} offline`;
-          ]]]
-        custom_fields:
-          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.6"></ha-icon>'
-        tap_action:
           action: navigate
-          navigation_path: /dashboard-huis/netwerk
-        styles:
-          grid:
-            - grid-template-areas: '"i n arrow" "i l arrow"'
-            - grid-template-columns: auto 1fr auto
-            - column-gap: 14px
-          card:
-            - height: 76px
-          icon:
-            - width: 28px
-            - color: var(--accent-color)
-          custom_fields:
-            arrow:
-              - align-self: center
+          navigation_path: "#dashboard-verversen"
 
-      - type: heading
-        heading: Raspberry Pi
-        heading_style: title
-        icon: mdi:raspberry-pi
-      - type: custom:button-card
-        template: progress
-        entity: sensor.processor_use
-        name: Processor
-        icon: mdi:cpu-64-bit
-        variables:
-          max: 100
-          unit: "%"
-      - type: custom:button-card
-        template: progress
-        entity: sensor.memory_use_percent
-        name: Geheugen
-        icon: mdi:memory
-        variables:
-          max: 100
-          unit: "%"
-      - type: custom:button-card
-        template: progress
-        entity: sensor.disk_use_percent
-        name: Schijf
-        icon: mdi:harddisk
-        variables:
-          max: 100
-          unit: "%"
-      - type: custom:button-card
-        template: stat
-        entity: sensor.processor_temperature
-        name: Temperatuur
-        icon: mdi:thermometer
-        grid_options:
-          columns: 6
-      - type: custom:button-card
-        template: stat
-        entity: sensor.last_boot
-        name: Opgestart
-        icon: mdi:power
-        grid_options:
-          columns: 6
-
-  # Afwezigheid
+  # Vensters (openen via de tegels hierboven)
   - type: grid
     cards:
-      - type: heading
-        heading: Afwezigheid
-        heading_style: title
+      # Pop-up: de updates die beschikbaar zijn
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#updates"
+        name: Updates
+        icon: mdi:update
+        cards:
+          - type: custom:auto-entities
+            card:
+              type: entities
+              title: Updates beschikbaar
+            filter:
+              include:
+                - domain: update
+                  state: "on"
+            sort:
+              method: name
+            show_empty: false
+
+      # Pop-up: Custom Component Monitor
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#componenten"
+        name: Custom Component Monitor
+        icon: mdi:puzzle-outline
+        cards:
+          # Wat van HACS ongebruikt is (integraties, thema's, kaarten) en de updates die nog een actie vragen
+          - type: custom:custom-component-monitor-card
+            title: Ongebruikt
+            collapsed_by_default: true
+          - type: custom:update-action-tracker-card
+            title: HACS-updates
+          - type: custom:recently-installed-unused-card
+            title: Recent geïnstalleerd, nog niet gebruikt
+            days_window: 30
+
+      # Pop-up: internet, snelheid, ping en de apparaten in het netwerk
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#netwerk"
+        name: Netwerk
+        icon: mdi:router-wireless
+        cards:
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: stat
+                entity: binary_sensor.rt_ax88u_internet
+                name: Internet
+                icon: mdi:web
+                state_display: '[[[ return entity.state === "on" ? "Verbonden" : "Geen verbinding"; ]]]'
+                styles:
+                  icon:
+                    - color: '[[[ return entity.state === "on" ? "#4ade80" : "#ff6b6b"; ]]]'
+                grid_options:
+                  columns: 6
+              - type: custom:button-card
+                template: stat
+                entity: sensor.rt_ax88u_uptime
+                name: Router draait
+                icon: mdi:router
+                # Uptime in seconden (of een opstarttijdstip); getoond als "6 dagen, 4 uur"
+                state_display: |
+                  [[[
+                    const v = parseFloat(entity?.state);
+                    const since = isNaN(v) || entity?.attributes.device_class === 'timestamp' ? new Date(entity?.state) : null;
+                    const seconds = since ? (Date.now() - since) / 1000 : v;
+                    if (isNaN(seconds)) return 'Onbekend';
+                    const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600);
+                    if (days > 0) return `${days} ${days === 1 ? 'dag' : 'dagen'}, ${hours} uur`;
+                    return hours > 0 ? `${hours} uur` : `${Math.max(1, Math.round(seconds / 60))} min`;
+                  ]]]
+                grid_options:
+                  columns: 6
+              # De Cloudflare-test meet ongeveer 4,5× te laag; daarom worden download en upload hier gecorrigeerd
+              - type: custom:button-card
+                template: stat
+                entity: sensor.cloudflare_speed_test_90th_percentile_down
+                name: Download
+                icon: mdi:download
+                state_display: |
+                  [[[
+                    const v = parseFloat(entity.state) * 4.5;
+                    return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+                  ]]]
+                styles:
+                  icon:
+                    - color: "#4ade80"
+                grid_options:
+                  columns: 6
+              - type: custom:button-card
+                template: stat
+                entity: sensor.cloudflare_speed_test_90th_percentile_up
+                name: Upload
+                icon: mdi:upload
+                state_display: |
+                  [[[
+                    const v = parseFloat(entity?.state) * 4.5;
+                    return isNaN(v) ? 'Onbekend' : `${Math.round(v)} ${entity.attributes.unit_of_measurement ?? 'Mbit/s'}`;
+                  ]]]
+                styles:
+                  icon:
+                    - color: "#7aa2ff"
+                grid_options:
+                  columns: 6
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:button-card
+                template: ms
+                entity: sensor.ping_round_trip_time_average
+                name: Ping
+                icon: mdi:timer-outline
+                grid_options:
+                  columns: 4
+              - type: custom:button-card
+                template: ms
+                entity: sensor.cloudflare_speed_test_latency
+                name: Latency
+                icon: mdi:timer-sync-outline
+                grid_options:
+                  columns: 4
+              - type: custom:button-card
+                template: ms
+                entity: sensor.cloudflare_speed_test_jitter
+                name: Jitter
+                icon: mdi:sine-wave
+                grid_options:
+                  columns: 4
+          - type: custom:apexcharts-card
+            graph_span: 24h
+            hours_12: false
+            header:
+              show: true
+              title: Ping laatste 24 uur
+            apex_config:
+              chart:
+                height: 180
+              legend:
+                show: false
+              stroke:
+                curve: smooth
+                width: 2
+              fill:
+                type: gradient
+                gradient:
+                  opacityFrom: 0.4
+                  opacityTo: 0.05
+              grid:
+                borderColor: "rgba(255, 255, 255, 0.06)"
+              xaxis:
+                labels:
+                  format: HH:mm
+            series:
+              - entity: sensor.ping_round_trip_time_average
+                name: Ping
+                type: area
+                color: "#4ade80"
+                unit: " ms"
+                float_precision: 1
+                group_by:
+                  func: avg
+                  duration: 15min
+                # Gemeten in seconden: omrekenen naar milliseconden
+                transform: "return x < 1 ? x * 1000 : x;"
+          # Doorklikken naar alle apparaten in het netwerk
+          - type: custom:button-card
+            template: glass
+            triggers_update: all
+            icon: mdi:devices
+            show_label: true
+            name: Apparaten in het netwerk
+            label: |
+              [[[
+                const devices = Object.values(states)
+                  .filter(s => s.entity_id.startsWith('device_tracker.') && s.attributes.ip);
+                const online = devices.filter(s => s.state === 'home').length;
+                return `${online} verbonden · ${devices.length - online} offline`;
+              ]]]
+            custom_fields:
+              arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.6"></ha-icon>'
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-huis/netwerk
+            styles:
+              grid:
+                - grid-template-areas: '"i n arrow" "i l arrow"'
+                - grid-template-columns: auto 1fr auto
+                - column-gap: 14px
+              card:
+                - height: 76px
+              icon:
+                - width: 28px
+                - color: var(--accent-color)
+              custom_fields:
+                arrow:
+                  - align-self: center
+
+      # Pop-up: de Raspberry Pi
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#raspberry-pi"
+        name: Raspberry Pi
+        icon: mdi:raspberry-pi
+        cards:
+          - type: custom:button-card
+            template: progress
+            entity: sensor.processor_use
+            name: Processor
+            icon: mdi:cpu-64-bit
+            variables:
+              max: 100
+              unit: "%"
+          - type: custom:button-card
+            template: progress
+            entity: sensor.memory_use_percent
+            name: Geheugen
+            icon: mdi:memory
+            variables:
+              max: 100
+              unit: "%"
+          - type: custom:button-card
+            template: progress
+            entity: sensor.disk_use_percent
+            name: Schijf
+            icon: mdi:harddisk
+            variables:
+              max: 100
+              unit: "%"
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: stat
+                entity: sensor.processor_temperature
+                name: Temperatuur
+                icon: mdi:thermometer
+                grid_options:
+                  columns: 6
+              - type: custom:button-card
+                template: stat
+                entity: sensor.last_boot
+                name: Opgestart
+                icon: mdi:power
+                grid_options:
+                  columns: 6
+
+      # Pop-up: NetDaemon herstarten en de apps aan of uit zetten
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#netdaemon"
+        name: NetDaemon
+        icon: mdi:robot-outline
+        cards:
+          - type: custom:button-card
+            template: action
+            name: NetDaemon herstarten
+            icon: mdi:restart
+            tap_action:
+              action: perform-action
+              perform_action: input_button.press
+              target:
+                entity_id: input_button.restartnetdaemon
+              confirmation:
+                text: NetDaemon herstarten?
+          - type: custom:auto-entities
+            card:
+              type: entities
+              title: Apps
+              state_color: true
+            filter:
+              include:
+                - entity_id: input_boolean.netdaemon_*
+            sort:
+              method: name
+
+      # Pop-up: wie weg is
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#afwezigheid"
+        name: Afwezigheid
         icon: mdi:home-export-outline
-      - type: entities
-        state_color: true
-        entities:
-          - entity: input_boolean.away
-            name: Niemand thuis
-          - entity: input_boolean.awayvincent
-            name: Vincent weg
-          - entity: input_boolean.awaycarleen
-            name: Carleen weg
-          - entity: input_boolean.disableautoaway
-            name: Automatisch weg uitzetten
-          - entity: input_boolean.onvacation
-            name: Op vakantie
-          - entity: input_boolean.working
-            name: Aan het werk
-          - entity: input_boolean.disablereset
-            name: Reset uitzetten
+        cards:
+          - type: entities
+            state_color: true
+            entities:
+              - entity: input_boolean.away
+                name: Niemand thuis
+              - entity: input_boolean.awayvincent
+                name: Vincent weg
+              - entity: input_boolean.awaycarleen
+                name: Carleen weg
+              - entity: input_boolean.disableautoaway
+                name: Automatisch weg uitzetten
+              - entity: input_boolean.onvacation
+                name: Op vakantie
+              - entity: input_boolean.working
+                name: Aan het werk
+              - entity: input_boolean.disablereset
+                name: Reset uitzetten
+
+      # Pop-up: dit scherm of de tablet verversen
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#dashboard-verversen"
+        name: Dashboard verversen
+        icon: mdi:cached
+        cards:
+          # Dit scherm: eerst Home Assistant de dashboardbestanden opnieuw laten inlezen (een YAML-dashboard wordt onthouden tot dat
+          # gebeurt, en het menu "Vernieuwen" zit achter Kiosk Mode), dan de service workers en caches van de browser weggooien en de
+          # pagina opnieuw laden. In Fully Kiosk eerst zijn eigen cache wissen en de start-URL laden.
+          - type: custom:button-card
+            template: action
+            name: Ververs dit scherm
+            icon: mdi:cached
+            tap_action:
+              action: javascript
+              javascript: |
+                [[[
+                  (async () => {
+                    try { await hass.callWS({ type: 'lovelace/config', url_path: 'dashboard-huis', force: true }); } catch (e) { /* geen verbinding */ }
+                    try { if (window.fully?.clearCache) { fully.clearCache(); fully.loadStartUrl(); return; } } catch (e) { /* geen Fully */ }
+                    try { for (const worker of await navigator.serviceWorker.getRegistrations()) await worker.unregister(); } catch (e) { /* geen service worker */ }
+                    try { for (const key of await caches.keys()) await caches.delete(key); } catch (e) { /* geen cache */ }
+                    location.reload();
+                  })();
+                ]]]
+          # De tablet vanaf een ander apparaat: Home Assistant leest de bestanden opnieuw in, Fully Kiosk wist zijn cache en laadt het
+          # dashboard opnieuw (via de Fully-integratie)
+          - type: custom:button-card
+            template: action
+            name: Ververs de tablet
+            icon: mdi:tablet-dashboard
+            tap_action:
+              action: javascript
+              javascript: |
+                [[[
+                  (async () => {
+                    try { await hass.callWS({ type: 'lovelace/config', url_path: 'dashboard-huis', force: true }); } catch (e) { /* geen verbinding */ }
+                    hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_clear_browser_cache' });
+                    setTimeout(() => hass.callService('button', 'press', { entity_id: 'button.tab_s6_van_vincent_start_url_laden' }), 1500);
+                  })();
+                ]]]
 
   # Pop-up: dagritme (HouseStateManager) en helderheid dag/nacht (badkamer en hal)
   - type: grid

@@ -2602,6 +2602,23 @@ weather_hero:
         - justify-self: end
         - padding: 0 22px 24px 0
 
+# Tegel op Beheer die een venster opent (tap_action navigate naar "#naam"): een icoon, een kop met de stand van zaken en daaronder een
+# regel uitleg. De tegel zelf geeft icoon, name, label (JavaScript), de kleur van het icoon en het venster.
+beheer_tile:
+  template: glass
+  show_label: true
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i l"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 14px
+    icon:
+      - width: 28px
+    label:
+      - white-space: normal
+      - text-align: left
+      - font-size: 12px
+
 # Apparaat in het netwerk (device_tracker van de router): naam, IP en hoe het verbonden is.
 network_device:
   template: glass
