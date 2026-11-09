@@ -16,19 +16,14 @@ sections:
     cards:
       - !include ../navbar.yaml
       - type: custom:button-card
-        template: action
+        template: terug_knop
         name: Terug naar Beheer
         icon: mdi:arrow-left
         tap_action:
           action: navigate
           navigation_path: /dashboard-huis/systeem
-        styles:
-          grid:
-            - grid-template-areas: '"i n"'
-            - grid-template-columns: auto 1fr
-            - column-gap: 10px
-          card:
-            - height: 48px
+        grid_options:
+          columns: full
       - type: custom:netdaemon-activiteit-card
         grid_options:
           columns: full

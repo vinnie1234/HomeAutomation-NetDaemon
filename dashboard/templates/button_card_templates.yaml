@@ -2602,6 +2602,28 @@ weather_hero:
         - justify-self: end
         - padding: 0 22px 24px 0
 
+# Terugknop bovenaan een subpagina: smalle strook over de volle breedte met een pijl links en de tekst ernaast. De pagina geeft name,
+# icon en de tap_action (navigate).
+terug_knop:
+  template: glass
+  show_label: false
+  styles:
+    grid:
+      - grid-template-areas: '"i n"'
+      - grid-template-columns: auto 1fr
+      - column-gap: 12px
+      - align-items: center
+    card:
+      - height: 52px
+      - padding: 0 18px
+    icon:
+      - width: 22px
+      - color: var(--accent-color)
+    name:
+      - justify-self: start
+      - font-size: 14px
+      - font-weight: 600
+
 # Tegel op Beheer die een venster opent (tap_action navigate naar "#naam"): een icoon, een kop met de stand van zaken en daaronder een
 # regel uitleg. De tegel zelf geeft icoon, name, label (JavaScript), de kleur van het icoon en het venster.
 beheer_tile:
