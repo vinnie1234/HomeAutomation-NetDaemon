@@ -123,7 +123,8 @@ public class BaseApp
         HaContext = haContext;
         Logger = logger;
         Notify = notify;
-        Scheduler = scheduler;
+        // What runs at a planned time knows it was the time that made it run (see ActivityTrigger)
+        Scheduler = new ActivityScheduler(scheduler);
         Entities = new Entities(haContext);
         Services = new Services(haContext);
 

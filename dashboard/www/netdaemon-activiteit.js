@@ -3,6 +3,8 @@
 // NetDaemon (ActivityLog.cs) als event netdaemon_activity; NetDaemon maakt er zelf de sensor sensor.netdaemon_activiteit van
 // (ActivityRecorder.cs), en Home Assistant bewaart ze in zijn geschiedenis. Deze kaart leest die geschiedenis, houdt nieuwe acties live bij en filtert op app, ruimte, persoon,
 // soort, periode en tekst. Een link kan het filter vooraf zetten: ?app=Alarm, ?ruimte=Woonkamer of ?persoon=Carleen.
+// Een tik op een actie klapt open waarom die gebeurde (de beweging, de tijd of de verandering die ervoor zorgde, en wat daarop volgde)
+// en wat er precies is gestuurd.
 // Geladen via frontend.extra_module_url in configuration.yaml (zie README.md).
 (() => {
   const ENTITY = 'sensor.netdaemon_activiteit';
@@ -30,6 +32,7 @@
       this._seen = new Set();
       this._hours = 24;
       this._limit = PAGE;
+      this._open = new Set();
       this._filter = { app: '', ruimte: '', persoon: '', soort: '', tekst: '' };
       const q = new URLSearchParams(location.search);
       this._filter.app = q.get('app') ?? '';
@@ -151,16 +154,36 @@
         const chips = [`<span class="chip app" data-set="app" data-v="${esc(e.app)}">${esc(e.app)}</span>`]
           .concat(split(e.room).map(r => `<span class="chip room" data-set="ruimte" data-v="${esc(r)}">${esc(r)}</span>`))
           .concat(split(e.person).map(p => `<span class="chip person" data-set="persoon" data-v="${esc(p)}">${esc(p)}</span>`));
-        html += `<div class="row ${esc(e.kind)}">
+        const open = this._open.has(e.id);
+        html += `<div class="row ${esc(e.kind)}${open ? ' open' : ''}" data-id="${esc(e.id)}">
             <span class="time">${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</span>
             <ha-icon icon="${e.kind === 'status' ? 'mdi:gauge' : 'mdi:flash'}"></ha-icon>
             <div class="what"><div class="text">${esc(e.text)}</div>
               <div class="meta">${chips.join('')}<span class="code">${esc(e.service || e.entity)}</span></div></div>
-          </div>`;
+          </div>${open ? this._detail(e) : ''}`;
       }
       if (shown.length > this._limit) html += `<div class="more" id="more">Toon meer (${shown.length - this._limit} verborgen)</div>`;
       list.innerHTML = html;
       this.shadowRoot.getElementById('more')?.addEventListener('click', () => { this._limit += PAGE; this._render(); });
+    }
+
+    // Waarom en wat: de keten van oorzaken (de eerste is wat het echt in gang zette), en wat er is gestuurd
+    _detail(e) {
+      const chain = Array.isArray(e.causeChain) && e.causeChain.length ? e.causeChain : [];
+      const icon = (i, kind) => i === 0 ? ({ entiteit: 'mdi:eye-outline', event: 'mdi:gesture-tap-button', tijd: 'mdi:clock-outline' }[kind] ?? 'mdi:help-circle-outline') : 'mdi:timer-sand';
+      const why = chain.length
+        ? chain.map((step, i) => `<li><ha-icon icon="${icon(i, e.causeKind)}"></ha-icon><span>${esc(step)}</span></li>`).join('')
+        : `<li><ha-icon icon="mdi:help-circle-outline"></ha-icon><span>${esc(e.cause || 'Niet vastgelegd (deze actie is van voor de uitleg)')}</span></li>`;
+      const when = e._t ? new Date(e._t).toLocaleString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+      const kv = (k, v, code) => v ? `<div class="kv"><span>${k}</span>${code ? `<code>${esc(v)}</code>` : `<b>${esc(v)}</b>`}</div>` : '';
+      const btn = (label, entity) => entity ? `<span class="btn" data-more="${esc(entity)}">${esc(label)}</span>` : '';
+      return `<div class="detail">
+          <div class="dt">Waarom?</div><ol class="why">${why}</ol>
+          <div class="dt">Wat</div>
+          ${kv('Wanneer', when)}${kv('App', e.app)}${kv('Dienst', e.service, true)}${kv('Lamp of entiteit', e.entity, true)}${kv('Gestuurd', e.data, true)}
+          ${kv('Ruimte', e.room)}${kv('Persoon', e.person)}
+          <div class="acts">${btn('Open ' + (e.entity || ''), e.entity)}${btn('Open oorzaak', e.causeEntity)}</div>
+        </div>`;
     }
 
     _build() {
@@ -183,6 +206,18 @@
           .time { font-variant-numeric: tabular-nums; font-size: 12px; opacity: .7; padding-top: 2px; }
           .row ha-icon { --mdc-icon-size: 16px; opacity: .8; margin-top: 2px; }
           .row.status ha-icon { color: #7aa2ff; } .row.actie ha-icon { color: #ffd166; }
+          .row { cursor: pointer; }
+          .row.open { background: rgba(255,255,255,.04); border-radius: 10px 10px 0 0; }
+          .detail { margin: 0 0 6px 0; padding: 8px 12px 12px 90px; background: rgba(255,255,255,.04); border-radius: 0 0 10px 10px; font-size: 13px; }
+          .dt { margin: 8px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; opacity: .6; }
+          .why { list-style: none; margin: 0; padding: 0; }
+          .why li { display: flex; gap: 8px; align-items: flex-start; padding: 2px 0; line-height: 1.35; }
+          .why li ha-icon { --mdc-icon-size: 16px; margin-top: 1px; color: #ffd166; flex: 0 0 auto; }
+          .kv { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+          .kv > span { flex: 0 0 120px; opacity: .6; }
+          .kv code { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; opacity: .9; }
+          .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+          .btn { cursor: pointer; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 10px; background: rgba(122,162,255,.22); }
           .text { font-size: 14px; line-height: 1.35; word-break: break-word; }
           .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; align-items: center; }
           .chip { cursor: pointer; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 9px; background: rgba(255,255,255,.1); }
@@ -216,9 +251,25 @@
       // Een chip in een regel zet dat filter
       root.getElementById('list').addEventListener('click', ev => {
         const chip = ev.target.closest?.('.chip');
-        if (!chip) return;
-        this._filter[chip.dataset.set] = chip.dataset.v;
-        this._limit = PAGE; this._fillOptions(); this._render();
+        if (chip) {
+          this._filter[chip.dataset.set] = chip.dataset.v;
+          this._limit = PAGE; this._fillOptions(); this._render();
+          return;
+        }
+        // Een knop onder de uitleg opent de entiteit zelf
+        const more = ev.target.closest?.('.btn');
+        if (more) {
+          const open = new Event('hass-more-info', { bubbles: true, composed: true });
+          open.detail = { entityId: more.dataset.more };
+          this.dispatchEvent(open);
+          return;
+        }
+        // Een tik op een regel klapt de uitleg open of dicht
+        const row = ev.target.closest?.('.row');
+        if (!row) return;
+        const id = row.dataset.id;
+        if (this._open.has(id)) this._open.delete(id); else this._open.add(id);
+        this._render();
       });
     }
   }

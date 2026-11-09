@@ -88,6 +88,7 @@ public static class ActivityLog
                 to.ValueKind == JsonValueKind.String && knownPeople.TryGetValue(to.GetString() ?? "", out var named) && !people.Contains(named))
                 people.Add(named);
 
+            var cause = ActivityContext.Current;
             Fire(inner, new
             {
                 id = NextId(),
@@ -96,6 +97,11 @@ public static class ActivityLog
                 kind = "actie",
                 service = $"{domain}.{service}",
                 entity = entities.FirstOrDefault() ?? "",
+                cause = CauseText(cause),
+                causeKind = cause?.RootKind ?? "geen",
+                causeEntity = cause?.RootEntity ?? "",
+                causeChain = cause?.Chain ?? [],
+                data = DataText(json),
                 text,
                 room = string.Join(", ", RoomsFor(inner, entities, entities.Concat(names).Append(text)) is { Count: > 0 } rooms ? rooms : appRoom is null ? [] : [appRoom]),
                 person = string.Join(", ", people.Select(Capitalize))
@@ -115,6 +121,7 @@ public static class ActivityLog
             if (Ignored.Contains(entityId)) return;
             var text = $"{NameOf(inner, entityId)} wordt {Trim(state, 80)}";
             var people = People.Where(p => entityId.Contains(p, StringComparison.OrdinalIgnoreCase)).ToList();
+            var cause = ActivityContext.Current;
             Fire(inner, new
             {
                 id = NextId(),
@@ -123,6 +130,11 @@ public static class ActivityLog
                 kind = "status",
                 service = "",
                 entity = entityId,
+                cause = CauseText(cause),
+                causeKind = cause?.RootKind ?? "geen",
+                causeEntity = cause?.RootEntity ?? "",
+                causeChain = cause?.Chain ?? [],
+                data = "",
                 text,
                 room = string.Join(", ", RoomsFor(inner, [entityId], [entityId])),
                 person = string.Join(", ", people.Select(Capitalize))
@@ -154,6 +166,13 @@ public static class ActivityLog
             if (words.Any(w => w.Length >= 5 ? all.Contains(w, StringComparison.Ordinal) : Regex.IsMatch(all, $@"(?<![a-z0-9]){w}(?![a-z0-9])")))
                 yield return room;
     }
+
+    /// <summary>Why it happened, in one line: the cause and what followed from it. Nothing found: say so.</summary>
+    private static string CauseText(ActivityTrigger? cause) =>
+        cause == null ? "Geen aanleiding gevonden: de app deed dit uit zichzelf (bijvoorbeeld bij het opstarten)" : string.Join(" › ", cause.Chain);
+
+    /// <summary>What was sent, compact and shortened, so the page can show it.</summary>
+    private static string DataText(JsonElement? data) => data is { ValueKind: not JsonValueKind.Null } d ? Trim(d.GetRawText(), 400) : "";
 
     private static string NextId() => $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Interlocked.Increment(ref _counter)}";
 

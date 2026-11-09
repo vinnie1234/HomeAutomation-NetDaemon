@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using System.Text.Json;
 using NetDaemon.HassModel.Entities;
 
@@ -15,9 +16,35 @@ public sealed class ActivityHaContext(IHaContext inner, string app, IReadOnlyDic
 
     public IReadOnlyList<Entity> GetAllEntities() => inner.GetAllEntities();
 
-    public IObservable<StateChange> StateAllChanges() => inner.StateAllChanges();
+    /// <summary>The state changes as before; while an app handles one it is the trigger of what the app does (and of timers it starts).</summary>
+    public IObservable<StateChange> StateAllChanges() =>
+        Observable.Create<StateChange>(observer => inner.StateAllChanges().Subscribe(
+            change =>
+            {
+                // (An observable that is not a real one, as in tests, can hand over nothing: that is passed on to nobody)
+                if ((object?)change == null) return;
+                using var scope = ActivityContext.Begin(ActivityTrigger.FromState(change));
+                observer.OnNext(change);
+            },
+            observer.OnError,
+            observer.OnCompleted));
 
-    public IObservable<Event> Events => inner.Events;
+    /// <summary>The events as before; the ones that are a reason for something (a button, a message) are the trigger while an app handles them.</summary>
+    public IObservable<Event> Events =>
+        Observable.Create<Event>(observer => inner.Events.Subscribe(
+            e =>
+            {
+                if ((object?)e == null) return;
+                if (Array.IndexOf(ActivityContext.IgnoredEvents, e.EventType) >= 0)
+                {
+                    observer.OnNext(e);
+                    return;
+                }
+                using var scope = ActivityContext.Begin(ActivityTrigger.FromEvent(e));
+                observer.OnNext(e);
+            },
+            observer.OnError,
+            observer.OnCompleted));
 
     public Area? GetAreaFromEntityId(string entityId) => inner.GetAreaFromEntityId(entityId);
 
