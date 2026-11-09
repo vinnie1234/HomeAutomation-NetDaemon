@@ -41,13 +41,13 @@ public class TabletScreenTests
             .ToList();
 
     [Fact]
-    public void MotionInTheLivingRoom_TurnsTheScreenOn_AndOpensHome()
+    public void MotionInTheLivingRoom_OnlyTurnsTheScreenOn_WithoutLoadingTheDashboardAgain()
     {
         Start();
 
         Change("binary_sensor.motionwoonkamer", "off", "on");
 
-        Commands().Should().Equal("number.set_value", "switch.turn_on", "button.press");
+        Commands().Should().Equal("number.set_value", "switch.turn_on");
     }
 
     [Fact]

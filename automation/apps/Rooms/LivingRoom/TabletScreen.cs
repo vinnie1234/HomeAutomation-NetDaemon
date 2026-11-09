@@ -5,8 +5,9 @@ using Microsoft.Extensions.Options;
 namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
-/// Wakes Vincent's tablet in the living room (Galaxy Tab S6, Fully Kiosk Browser) and opens the dashboard on Home: on motion
-/// in the living room, at someone's wake-up time, when someone comes home and on important alerts. Not while everyone at
+/// Wakes Vincent's tablet in the living room (Galaxy Tab S6, Fully Kiosk Browser): on motion in the living room, at someone's
+/// wake-up time, when someone comes home and on important alerts. Motion only turns the screen on; the others also open the
+/// dashboard on Home. Not while everyone at
 /// home sleeps and not while the TV is on. The screen goes off again when everyone goes to sleep and when the TV turns on.
 /// <para>
 /// Fully Kiosk does it through its HA integration: the screen switch turns the screen on and off, the start URL is Home,
@@ -103,7 +104,7 @@ public class TabletScreen : BaseApp
     private static bool IsExtremePrice(double? price) => price is < 0 or > 0.55;
 
     /// <summary>
-    /// Turns the screen on and opens Home. Not while the TV is on, and not while everyone sleeps (unless it is the alarm).
+    /// Turns the screen on, and with <paramref name="force"/> opens Home. Not while the TV is on, and not while everyone sleeps (unless it is the alarm).
     /// </summary>
     /// <param name="reason">Why, for the log.</param>
     /// <param name="force">Also when the tablet was woken a moment ago (an alert should always show).</param>
@@ -115,13 +116,12 @@ public class TabletScreen : BaseApp
         if (!force && now - _lastWake < WakeAgainAfter) return;
         _lastWake = now;
 
-        // Only a screen that was off opens Home. Motion while someone is looking at the tablet just keeps it on for longer:
-        // loading the start URL every few minutes reloaded the whole dashboard under their fingers. An alert (force) still opens Home.
-        var wasOn = HaContext.GetState(Screen)?.State == "on";
+        // Motion only turns the screen on: the dashboard is still where it was, so loading the start URL every time somebody walks by
+        // is not needed (and reloaded the whole dashboard under their fingers). Only an alert (force) opens Home, so it is in view.
         Logger.LogInformation("Tablet aan: {Reason}", reason);
         HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
         HaContext.CallService("switch", "turn_on", ServiceTarget.FromEntity(Screen));
-        if (!wasOn || force) HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
+        if (force) HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
     }
 
     private void ScreenOffIfAllAsleep()
