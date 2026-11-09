@@ -85,12 +85,50 @@ public class SpotifyChoiceTests
         SpotifyChoice.Resolve(_ha, _config, SpotifyRoom.Keuken, true, false).Url.Should().Be("config:keuken");
     }
 
+    private void AddPlayer(string id, string friendlyName)
+    {
+        SetState(id, "idle", new { friendly_name = friendlyName });
+        _entities.Add(new Entity(_ha, id));
+    }
+
+    [Fact]
+    public void Accounts_AreMergedByNameFromSpotcastSpotifyAndSpotifyPlus()
+    {
+        AddAccount("111", "01ENTRYVINCENT", "Vincent M");
+        AddPlayer("media_player.spotify_vincent_m", "Spotify Vincent M");
+        AddPlayer("media_player.spotifyplus_vincent_m", "SpotifyPlus Vincent M");
+        AddPlayer("media_player.spotify_carleen_m", "Spotify Carleen M");
+
+        var accounts = SpotifyChoice.Accounts(_ha);
+
+        accounts.Select(x => x.Label).Should().Equal("Carleen M (Spotify)", "Vincent M (Spotcast, Spotify, SpotifyPlus)");
+        accounts.Single(x => x.Name == "Vincent M").SpotcastEntryId.Should().Be("01ENTRYVINCENT");
+        accounts.Single(x => x.Name == "Carleen M").InSpotcast.Should().BeFalse();
+    }
+
+    [Fact]
+    public void AnAccountThatIsNotLinkedInSpotcast_PlaysOnTheDefaultAccount()
+    {
+        AddPlayer("media_player.spotify_carleen_m", "Spotify Carleen M");
+        SetState(SpotifyChoice.AccountHelper("carleen"), "Carleen M (Spotify)");
+
+        SpotifyChoice.Resolve(_ha, _config, SpotifyRoom.Keuken, false, true).Account.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("Vincent M (Spotcast, Spotify)", "Vincent M")]
+    [InlineData("Vincent M", "Vincent M")]
+    [InlineData("  Vincent M (Spotcast)  ", "Vincent M")]
+    public void TheNameOfAChoice_LeavesOutTheIntegrations(string label, string expected) =>
+        SpotifyChoice.NameOf(label).Should().Be(expected);
+
     [Fact]
     public void TheChosenAccount_BecomesTheSpotcastEntryOfThatAccount()
     {
         AddAccount("111", "01ENTRYVINCENT", "Vincent M");
         AddAccount("222", "01ENTRYCARLEEN", "Carleen M");
-        SetState(SpotifyChoice.AccountHelper("carleen"), "carleen m");
+        AddPlayer("media_player.spotify_carleen_m", "Spotify Carleen M");
+        SetState(SpotifyChoice.AccountHelper("carleen"), "carleen m (Spotcast, Spotify)");
 
         SpotifyChoice.Resolve(_ha, _config, SpotifyRoom.Keuken, false, true).Account.Should().Be("01ENTRYCARLEEN");
         SpotifyChoice.Resolve(_ha, _config, SpotifyRoom.Keuken, true, false).Account.Should().BeNull();

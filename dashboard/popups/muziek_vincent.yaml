@@ -1,6 +1,6 @@
 # Pop-up Muziek van Vincent, opent via #muziek (de tegel Muziek): de playlist per ruimte en het Spotify-account. NetDaemon (SpotifyChoice)
 # kiest bij het afspelen de instellingen van wie thuis is, en van de standaardpersoon als jullie allebei thuis zijn. Spotcast speelt af.
-# Een ruimte zonder eigen playlist speelt wat in config.json staat. Zonder gekoppeld account speelt Spotcast op zijn standaardaccount.
+# Een playlist die nog niet is ingevuld krijgt wat in config.json staat. Zonder gekoppeld account speelt Spotcast op zijn standaardaccount.
 type: custom:bubble-card
 card_type: pop-up
 popup_mode: fit-content
@@ -11,7 +11,7 @@ cards:
   - type: entities
     entities:
       - type: section
-        label: Account
+        label: Account (alle accounts van Spotcast, Spotify en SpotifyPlus)
       - entity: input_select.spotify_account_vincent
         name: Spotify-account
         icon: mdi:account-music
@@ -34,16 +34,74 @@ cards:
       - entity: input_select.spotify_standaard_persoon
         name: Wiens muziek telt dan
         icon: mdi:account-switch
-  # Een account dat er nog niet is: Spotcast opent in Home Assistant het scherm om er een toe te voegen; zodra het er is kiest NetDaemon het
+  # Waar het gekozen account gekoppeld is. Afspelen gaat altijd via Spotcast: staat het account daar niet bij, dan speelt Spotcast op zijn standaardaccount.
   - type: custom:button-card
-    template: action
-    name: Account koppelen
-    icon: mdi:link-variant-plus
+    template: beheer_tile
+    triggers_update: all
+    icon: mdi:link-variant
+    name: Koppelingen
+    label: |
+      [[[
+        const choice = states['input_select.spotify_account_vincent']?.state ?? '';
+        const name = choice.replace(/\s*\([^()]*\)\s*$/, '');
+        if (!name || name === 'Standaard account') return 'Geen account gekozen: Spotcast speelt op zijn standaardaccount';
+        const lower = name.toLowerCase();
+        const all = Object.values(states);
+        const spotcast = all.some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === lower);
+        const spotify = all.some(s => s.entity_id.startsWith('media_player.spotify_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotify ${lower}`);
+        const plus = all.some(s => s.entity_id.startsWith('media_player.spotifyplus_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotifyplus ${lower}`);
+        const mark = (ok, label) => `${label} ${ok ? '✓' : '✗'}`;
+        return `${mark(spotcast, 'Spotcast')} · ${mark(spotify, 'Spotify')} · ${mark(plus, 'SpotifyPlus')}${spotcast ? '' : ' · speelt nog niet: koppel Spotcast'}`;
+      ]]]
+    styles:
+      icon:
+        - color: |
+            [[[
+              const name = (states['input_select.spotify_account_vincent']?.state ?? '').replace(/\s*\([^()]*\)\s*$/, '').toLowerCase();
+              const ok = name && Object.values(states).some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === name);
+              return ok ? '#1db954' : '#ffb060';
+            ]]]
     tap_action:
-      action: javascript
-      javascript: |
-        [[[
-          hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_vincent' });
-          history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotcast');
-          window.dispatchEvent(new CustomEvent('location-changed'));
-        ]]]
+      action: none
+  # Een koppeling die er nog niet is: de knop opent in Home Assistant het scherm om hem toe te voegen en zegt tegen NetDaemon dat Vincent gaat koppelen;
+  # zodra het account (of de extra koppeling) er is kiest NetDaemon het
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: custom:button-card
+        template: action
+        name: Spotcast koppelen
+        icon: mdi:link-variant-plus
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_vincent' });
+              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotcast');
+              window.dispatchEvent(new CustomEvent('location-changed'));
+            ]]]
+      - type: custom:button-card
+        template: action
+        name: Spotify koppelen
+        icon: mdi:link-variant-plus
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_vincent' });
+              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotify');
+              window.dispatchEvent(new CustomEvent('location-changed'));
+            ]]]
+      - type: custom:button-card
+        template: action
+        name: SpotifyPlus koppelen
+        icon: mdi:link-variant-plus
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_vincent' });
+              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotifyplus');
+              window.dispatchEvent(new CustomEvent('location-changed'));
+            ]]]

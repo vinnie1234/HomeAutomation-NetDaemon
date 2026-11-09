@@ -21,7 +21,8 @@ public enum SpotifyRoom
 }
 
 /// <summary>
-/// Which playlist and which Spotify account (a Spotcast account) a room plays. Vincent and Carleen each set their own on their own page
+/// Which playlist and which Spotify account (a Spotcast account) a room plays. The account is chosen from the accounts of all three
+/// Spotify integrations; it plays when it is linked in Spotcast, otherwise Spotcast takes its default account. Vincent and Carleen each set their own on their own page
 /// (<c>input_text.spotify_{room}_{person}</c> and <c>input_select.spotify_account_{person}</c>); whose settings count depends on who is home,
 /// and when both are home on <see cref="DefaultPersonHelper"/>. What nobody has set falls back to config.json.
 /// </summary>
@@ -36,29 +37,66 @@ public static class SpotifyChoice
     public static readonly string[] People = ["vincent", "carleen"];
 
     private static readonly Regex ProfileSensor = new(@"^sensor\.spotcast_[^_]+_spotify_profile$", RegexOptions.Compiled);
+    private static readonly Regex Brackets = new(@"\s*\([^()]*\)\s*$", RegexOptions.Compiled);
 
     public static string PlaylistHelper(SpotifyRoom room, string person) => $"input_text.spotify_{room.ToString().ToLowerInvariant()}_{person}";
 
     public static string AccountHelper(string person) => $"input_select.spotify_account_{person}";
 
-    /// <summary>A Spotcast account: the config entry it lives in (what <c>spotcast.play_media</c> calls the account) and the Spotify name.</summary>
-    public sealed record Account(string EntryId, string Name);
+    /// <summary>
+    /// A Spotify account and where it is linked: Spotcast (the config entry it lives in, which is what <c>spotcast.play_media</c> calls the
+    /// account; null when not linked there), the Spotify integration and SpotifyPlus. Music is always played through Spotcast.
+    /// </summary>
+    public sealed record Account(string Name, string? SpotcastEntryId, bool Spotify, bool SpotifyPlus)
+    {
+        /// <summary>The account is linked in Spotcast, so it can play.</summary>
+        public bool InSpotcast => SpotcastEntryId != null;
 
-    /// <summary>The Spotcast accounts that exist now, from the profile sensor each of them has.</summary>
+        /// <summary>What the choice shows: the name and the integrations it is linked in.</summary>
+        public string Label => $"{Name} ({string.Join(", ", new[] { InSpotcast ? "Spotcast" : null, Spotify ? "Spotify" : null, SpotifyPlus ? "SpotifyPlus" : null }.OfType<string>())})";
+    }
+
+    /// <summary>The name of an account in a choice (without the integrations behind it).</summary>
+    public static string NameOf(string label) => Brackets.Replace(label.Trim(), "");
+
+    /// <summary>
+    /// The Spotify accounts that exist now, merged by name from the three integrations: the profile sensor of each Spotcast account and the
+    /// media player of each account in the Spotify and SpotifyPlus integrations.
+    /// </summary>
     public static List<Account> Accounts(IHaContext ha)
     {
-        var accounts = new List<Account>();
+        var spotcast = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var spotify = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var spotifyPlus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entity in ha.GetAllEntities() ?? [])
         {
-            if (!ProfileSensor.IsMatch(entity.EntityId)) continue;
             if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a) continue;
-            var entryId = a.TryGetProperty("entry_id", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : null;
-            var name = a.TryGetProperty("display_name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() : null;
-            if (!string.IsNullOrEmpty(entryId) && !string.IsNullOrEmpty(name) && accounts.All(x => x.EntryId != entryId))
-                accounts.Add(new Account(entryId, name));
+            if (ProfileSensor.IsMatch(entity.EntityId))
+            {
+                var entryId = Text(a, "entry_id");
+                var name = Text(a, "display_name");
+                if (!string.IsNullOrEmpty(entryId) && !string.IsNullOrEmpty(name)) spotcast.TryAdd(name, entryId);
+            }
+            else if (entity.EntityId.StartsWith("media_player.spotifyplus_", StringComparison.Ordinal))
+                AddName(spotifyPlus, Text(a, "friendly_name"), "SpotifyPlus ");
+            else if (entity.EntityId.StartsWith("media_player.spotify_", StringComparison.Ordinal))
+                AddName(spotify, Text(a, "friendly_name"), "Spotify ");
         }
-        return accounts.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+        return spotcast.Keys.Concat(spotify).Concat(spotifyPlus).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Select(n => new Account(n, spotcast.GetValueOrDefault(n), spotify.Contains(n), spotifyPlus.Contains(n)))
+            .ToList();
     }
+
+    private static void AddName(HashSet<string> names, string? friendlyName, string prefix)
+    {
+        if (friendlyName != null && friendlyName.StartsWith(prefix, StringComparison.Ordinal) && friendlyName.Length > prefix.Length)
+            names.Add(friendlyName[prefix.Length..].Trim());
+    }
+
+    private static string? Text(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
     /// <summary>
     /// The playlist and the account to play in a room. The account is null when the person did not choose one (or the chosen one is gone):
@@ -71,7 +109,7 @@ public static class SpotifyChoice
         var chosen = Value(ha, AccountHelper(person));
         var account = chosen is null || chosen == NoAccount
             ? null
-            : Accounts(ha).FirstOrDefault(x => string.Equals(x.Name, chosen, StringComparison.OrdinalIgnoreCase))?.EntryId;
+            : Accounts(ha).FirstOrDefault(x => string.Equals(x.Name, NameOf(chosen), StringComparison.OrdinalIgnoreCase))?.SpotcastEntryId;
         return (url, account);
     }
 
