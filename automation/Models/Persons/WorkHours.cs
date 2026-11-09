@@ -5,6 +5,17 @@ namespace Automation.Models.Persons;
 /// <summary>The working hours of today when they come from the calendar.</summary>
 public static class WorkHours
 {
+    private static readonly TimeSpan DefaultStart = new(8, 30, 0);
+    private static readonly TimeSpan DefaultEnd = new(17, 0, 0);
+
+    /// <summary>The working hours of today: from the calendar when the work comes from it, otherwise the hours of the person.</summary>
+    public static (DateTime Start, DateTime End) Today(IHaContext ha, WorkSchedule schedule, string person, DateTime now)
+    {
+        if (FromCalendar(ha, person, now) is { } calendar) return calendar;
+        DateTime At(string? state, TimeSpan fallback) => now.Date + (Extensions.SchedulerExtensions.ParseTimeOfDay(state) ?? fallback);
+        return (At(schedule.WorkStart.State, DefaultStart), At(schedule.WorkEnd.State, DefaultEnd));
+    }
+
     /// <summary>
     /// From the time to be at the office plus the margin before it, up to the time to leave minus the margin after it (see
     /// <see cref="OfficeTimes"/>). Null when the work does not come from the calendar or today has no hours from it.

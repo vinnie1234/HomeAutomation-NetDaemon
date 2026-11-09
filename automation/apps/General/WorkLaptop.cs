@@ -34,9 +34,6 @@ public class WorkLaptop : BaseApp
     private const double LowBattery = 20;
     private const double BatteryRecovered = 30;
 
-    private static readonly TimeSpan DefaultWorkStart = new(8, 30, 0);
-    private static readonly TimeSpan DefaultWorkEnd = new(17, 0, 0);
-
     private string _workModeDay = "";
     private string _reminderDay = "";
     private string _extendedDay = "";
@@ -82,12 +79,8 @@ public class WorkLaptop : BaseApp
         person == "vincent" && personHome && IsOnline(ha) && now < end + Margin;
 
     /// <summary>The working hours of today: from the calendar when the work comes from it, otherwise the hours of the person.</summary>
-    private (DateTime Start, DateTime End) HoursToday(DateTime now)
-    {
-        if (Models.Persons.WorkHours.FromCalendar(HaContext, "vincent", now) is { } calendar) return calendar;
-        DateTime At(string? state, TimeSpan fallback) => now.Date + (Extensions.SchedulerExtensions.ParseTimeOfDay(state) ?? fallback);
-        return (At(VincentSchedule.WorkStart.State, DefaultWorkStart), At(VincentSchedule.WorkEnd.State, DefaultWorkEnd));
-    }
+    private (DateTime Start, DateTime End) HoursToday(DateTime now) =>
+        Models.Persons.WorkHours.Today(HaContext, VincentSchedule, "vincent", now);
 
     private void CheckWork()
     {

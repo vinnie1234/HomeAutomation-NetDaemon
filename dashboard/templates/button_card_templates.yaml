@@ -5275,6 +5275,103 @@ laptop_status:
       body:
         - justify-self: stretch
 
+# Werktijd van Vincent (sensor.werktijd_vincent, NetDaemon WorkTimeTracker): hoe lang de werklaptop aan staat binnen de werktijd. De tegel toont
+# vandaag; een tik opent een venster met per dag, week en kalendermaand: zonder pauze (de laptop aan), met pauze (30 minuten eraf) en met
+# pauze en roken (nog eens 20 minuten eraf), en hoeveel uur op kantoor en thuis. De pauzes gaan per dag eraf, en alleen van een dag van
+# vier uur of meer.
+werktijd_status:
+  template: glass
+  entity: sensor.werktijd_vincent
+  triggers_update: all
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const attributes = () => states['sensor.werktijd_vincent']?.attributes ?? {};
+        const fmt = m => `${Math.floor((m ?? 0) / 60)}u ${String(Math.round((m ?? 0) % 60)).padStart(2, '0')}m`;
+        const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const date = d => new Date(`${d}T12:00:00`);
+        const label = {
+          dag: row => date(row.k).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }),
+          week: row => `Week ${Number(String(row.k).split('-W')[1])} · ${date(row.van).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} t/m ${date(row.tot).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`,
+          maand: row => { const s = date(`${row.k}-01`).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' }); return s.charAt(0).toUpperCase() + s.slice(1); }
+        };
+        const split = row => {
+          const total = (row.ko ?? 0) + (row.th ?? 0) + (row.ov ?? 0);
+          const part = (m, color) => total ? `<div style="width:${(m / total) * 100}%;background:${color}"></div>` : '';
+          return `<div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:rgba(255,255,255,0.1);margin:6px 0">${part(row.ko ?? 0, '#60a5fa')}${part(row.th ?? 0, '#4ade80')}${part(row.ov ?? 0, '#94a3b8')}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;opacity:.9"><span><span style="color:#60a5fa">●</span> Kantoor ${fmt(row.ko)}</span><span><span style="color:#4ade80">●</span> Thuis ${fmt(row.th)}</span>${row.ov ? `<span><span style="color:#94a3b8">●</span> Elders ${fmt(row.ov)}</span>` : ''}</div>`;
+        };
+        const figures = row => `<div style="display:grid;grid-template-columns:1fr auto;gap:4px 14px;font-size:14px;margin:8px 0 4px">
+            <span style="opacity:.75">Zonder pauze (laptop aan)</span><b>${fmt(row.b)}</b>
+            <span style="opacity:.75">Met pauze (30 min eraf)</span><b>${fmt(row.p)}</b>
+            <span style="opacity:.75">Met pauze en roken (nog 20 min eraf)</span><b style="color:#4ade80">${fmt(row.n)}</b></div>`;
+        const empty = { b: 0, p: 0, n: 0, th: 0, ko: 0, ov: 0 };
+        const titles = { dag: 'Vandaag', week: 'Deze week', maand: 'Deze maand' };
+        const current = { dag: 'vandaag', week: 'week', maand: 'maand' };
+        const lists = { dag: 'dagen', week: 'weken', maand: 'maanden' };
+        const tabContent = tab => {
+          const a = attributes();
+          const now = a[current[tab]] ?? empty;
+          const rows = (a[lists[tab]] ?? []).map(row => `<div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-weight:600">${esc(label[tab](row))}</span><b style="font-size:16px;color:#4ade80">${fmt(row.n)}</b></div>
+              <div style="font-size:12px;opacity:.7;margin-top:2px">zonder pauze ${fmt(row.b)} · met pauze ${fmt(row.p)}${row.first ? ` · ${esc(row.first)} - ${esc(row.last)}` : ''}</div>${split(row)}</div>`).join('');
+          return `<div style="padding:12px 14px;border-radius:16px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);margin-bottom:6px">
+              <div style="font-size:13px;opacity:.75">${titles[tab]}</div>
+              <div style="font-size:28px;font-weight:700;color:#4ade80">${fmt(now.n)}</div>${figures(now)}${split(now)}</div>
+            <div style="font-weight:600;margin:12px 0 0;font-size:13px;opacity:.7;text-transform:uppercase;letter-spacing:.04em">${tab === 'dag' ? 'Per dag' : tab === 'week' ? 'Per week' : 'Per maand'}</div>
+            ${rows || '<div style="opacity:.7;padding:12px 0">Nog niets geteld.</div>'}`;
+        };
+        window.huisWerktijdOpen = (tab = 'dag') => {
+          document.getElementById('huis-werktijd')?.remove();
+          const el = document.createElement('div');
+          el.id = 'huis-werktijd';
+          el.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,8,16,0.8);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+          const tabs = ['dag', 'week', 'maand'].map(t => `<span data-tab="${t}" style="cursor:pointer;padding:7px 18px;border-radius:12px;font-weight:600;font-size:14px;
+              background:${t === tab ? 'rgba(122,162,255,0.3)' : 'rgba(255,255,255,0.07)'};border:1px solid ${t === tab ? 'rgba(147,178,255,0.6)' : 'rgba(255,255,255,0.12)'}">${{ dag: 'Dag', week: 'Week', maand: 'Maand' }[t]}</span>`).join('');
+          el.innerHTML = `<div style="width:min(560px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:18px 20px 24px;color:#f2f4f8;font-size:14px;line-height:1.45;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:18px;font-weight:700">Werktijd</div>
+                <span data-close style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              <div style="display:flex;gap:8px;margin-bottom:12px">${tabs}</div>${tabContent(tab)}</div>`;
+          document.body.appendChild(el);
+          el.addEventListener('click', e => {
+            const target = e.target.closest('[data-tab],[data-close]');
+            if (e.target === el || target?.hasAttribute('data-close')) return el.remove();
+            if (target?.dataset.tab) window.huisWerktijdOpen(target.dataset.tab);
+          });
+        };
+        window.huisWerktijdOpen('dag');
+      ]]]
+  custom_fields:
+    body: |
+      [[[
+        const a = states['sensor.werktijd_vincent']?.attributes;
+        const fmt = m => `${Math.floor((m ?? 0) / 60)}u ${String(Math.round((m ?? 0) % 60)).padStart(2, '0')}m`;
+        const today = a?.vandaag ?? { b: 0, n: 0, ko: 0, th: 0 }, week = a?.week ?? { n: 0 }, month = a?.maand ?? { n: 0 };
+        const active = today.b > 0;
+        return `<div style="text-align:left">
+          <div style="display:flex;align-items:center;gap:10px">
+            <ha-icon icon="mdi:timer-outline" style="--mdc-icon-size:28px;color:${active ? '#4ade80' : '#94a3b8'}"></ha-icon>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:16px;font-weight:700">Werktijd</div>
+              <div style="font-size:13px;font-weight:600;color:${active ? '#4ade80' : 'rgba(255,255,255,0.7)'}">Vandaag ${fmt(today.n)}${active ? '' : ' · nog niet gestart'}</div>
+            </div>
+            <ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:.6"></ha-icon>
+          </div>
+          <div style="margin-top:8px;font-size:12px;opacity:.75">Zonder pauze ${fmt(today.b)} · deze week ${fmt(week.n)} · deze maand ${fmt(month.n)}</div>
+        </div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px 16px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+
 # Status van de telefoon van Vincent (de Home Assistant-app, device_tracker.vincent_mobiel): thuis of waar, de batterij en of hij laadt.
 # Tik opent een venster om hem te laten horen (spraak op de wekkerstand, ook als hij stil staat), te laten flitsen of het scherm aan te zetten.
 phone_status:

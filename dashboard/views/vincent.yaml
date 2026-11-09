@@ -53,6 +53,8 @@ sections:
         template: phone_status
       - type: custom:button-card
         template: laptop_status
+      - type: custom:button-card
+        template: werktijd_status
 
   # Agenda en taken, en een taak met een plek toevoegen
   - type: grid
