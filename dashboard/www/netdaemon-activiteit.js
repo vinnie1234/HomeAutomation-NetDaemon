@@ -1,7 +1,7 @@
 // Huis-dashboard: de kaart "NetDaemon activiteit" (type: custom:netdaemon-activiteit-card).
 // Laat precies zien wat NetDaemon doet: een lamp die aangaat, een scene, een bericht, een status die verandert. Elke actie komt van
-// NetDaemon (ActivityLog.cs) als event netdaemon_activity; de template-sensor sensor.netdaemon_activiteit (ha/template.yaml) bewaart ze in
-// de geschiedenis van Home Assistant. Deze kaart leest die geschiedenis, houdt nieuwe acties live bij en filtert op app, ruimte, persoon,
+// NetDaemon (ActivityLog.cs) als event netdaemon_activity; NetDaemon maakt er zelf de sensor sensor.netdaemon_activiteit van
+// (ActivityRecorder.cs), en Home Assistant bewaart ze in zijn geschiedenis. Deze kaart leest die geschiedenis, houdt nieuwe acties live bij en filtert op app, ruimte, persoon,
 // soort, periode en tekst. Een link kan het filter vooraf zetten: ?app=Alarm, ?ruimte=Woonkamer of ?persoon=Carleen.
 // Geladen via frontend.extra_module_url in configuration.yaml (zie README.md).
 (() => {
@@ -42,8 +42,8 @@
       this._hass = hass;
       if (first) { this._load(); this._subscribe(); return; }
       // De sensor houdt de laatste actie bij: een vangnet voor als de verbinding even weg was
-      const a = hass.states[ENTITY]?.attributes;
-      if (a?.id && !this._seen.has(a.id)) { this._add(a, Date.now()); this._sortAndShow(); }
+      const s = hass.states[ENTITY];
+      if (s?.attributes?.id && s.state === s.attributes.id && !this._seen.has(s.attributes.id)) { this._add(s.attributes, Date.now()); this._sortAndShow(); }
     }
 
     // Realtime: elke actie van NetDaemon komt als event binnen en staat meteen bovenaan, ook als er er meer tegelijk komen
@@ -77,12 +77,13 @@
           include_start_time_state: false, significant_changes_only: false, minimal_response: false, no_attributes: false
         });
         this._entries = []; this._seen = new Set();
-        for (const row of res?.[ENTITY] ?? []) this._add(row.a, (row.lu ?? 0) * 1000);
-        const now = this._hass.states[ENTITY]?.attributes;
-        if (now?.id) this._add(now, Date.now());
+        // MQTT zet eerst de attributen en dan de state: alleen een rij waarvan de state het id van zijn attributen is, is een hele actie
+        for (const row of res?.[ENTITY] ?? []) if (row.a?.id && row.s === row.a.id) this._add(row.a, (row.lu ?? 0) * 1000);
+        const now = this._hass.states[ENTITY];
+        if (now?.attributes?.id && now.state === now.attributes.id) this._add(now.attributes, Date.now());
         this._status('');
       } catch (e) {
-        this._status('De geschiedenis kon niet worden opgehaald (staat sensor.netdaemon_activiteit er al, zie ha/template.yaml?). Nieuwe acties komen wel live binnen.');
+        this._status('De geschiedenis kon niet worden opgehaald (bestaat sensor.netdaemon_activiteit al, NetDaemon maakt hem aan?). Nieuwe acties komen wel live binnen.');
       }
       this._sortAndShow();
     }

@@ -7,8 +7,9 @@ namespace Automation.Core;
 /// <summary>
 /// The activity log of NetDaemon: every action an app takes in Home Assistant (a light that goes on, a scene, a message, a status that
 /// changes) becomes one event <c>netdaemon_activity</c> with who did it (the app), what, where (the room) and for whom (the person).
-/// Home Assistant keeps them for as long as it keeps its history: the template sensor <c>sensor.netdaemon_activiteit</c> (ha/template.yaml)
-/// turns each event into a state, and the dashboard page Activiteit reads that history and filters it. This replaces reading the text logs.
+/// <see cref="Automation.apps.General.ActivityRecorder"/> turns each event into a state of the sensor <c>sensor.netdaemon_activiteit</c>, which
+/// NetDaemon creates itself; Home Assistant keeps it in its history, and the dashboard page Activiteit reads that history and filters it.
+/// This replaces reading the text logs.
 /// </summary>
 public static class ActivityLog
 {
@@ -18,7 +19,7 @@ public static class ActivityLog
     /// <summary>Things NetDaemon does all the time that nobody wants to read: the heartbeat, and the log itself.</summary>
     private static readonly string[] Ignored =
     [
-        "input_datetime.netdaemon_heartbeat", "input_boolean.netdaemon_net_daemon_heartbeat", "sensor.netdaemon_mqtt_heartbeat"
+        "input_datetime.netdaemon_heartbeat", "input_boolean.netdaemon_net_daemon_heartbeat", "sensor.netdaemon_mqtt_heartbeat", "sensor.netdaemon_activiteit"
     ];
 
     private static readonly string[] IgnoredDomains = ["logbook"];

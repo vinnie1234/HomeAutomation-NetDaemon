@@ -123,26 +123,3 @@
       state: "{{ now().isoformat() }}"
       attributes:
         forecast: "{{ verwachting['weather.weer_thuis'].forecast[:48] }}"
-
-# Activiteit van NetDaemon (ActivityLog.cs): elke actie van NetDaemon komt als event netdaemon_activity. Dit maakt er een state van, zodat de
-# geschiedenis van Home Assistant ze bewaart; de pagina Activiteit (kaart netdaemon-activiteit-card) leest en filtert die geschiedenis.
-# De state is het unieke id van de actie, de rest staat in de attributen.
-- trigger:
-    - trigger: event
-      event_type: netdaemon_activity
-  sensor:
-    - name: "NetDaemon activiteit"
-      unique_id: netdaemon_activiteit
-      default_entity_id: sensor.netdaemon_activiteit
-      icon: mdi:history
-      state: "{{ trigger.event.data.id }}"
-      attributes:
-        id: "{{ trigger.event.data.id }}"
-        time: "{{ trigger.event.data.time }}"
-        app: "{{ trigger.event.data.app }}"
-        kind: "{{ trigger.event.data.kind }}"
-        service: "{{ trigger.event.data.service }}"
-        entity: "{{ trigger.event.data.entity }}"
-        text: "{{ trigger.event.data.text }}"
-        room: "{{ trigger.event.data.room }}"
-        person: "{{ trigger.event.data.person }}"
