@@ -340,7 +340,17 @@ sections:
         name: Ons jubileum
         icon: mdi:heart-outline
 
+  # Muziek: de playlist per ruimte en het Spotify-account
+  - type: grid
+    cards:
+      - type: heading
+        heading: Muziek
+        heading_style: title
+        icon: mdi:music
+      - !include ../cards/muziek_knop_vincent.yaml
+
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
   - type: grid
     cards:
       - !include ../popups/taak.yaml
+      - !include ../popups/muziek_vincent.yaml

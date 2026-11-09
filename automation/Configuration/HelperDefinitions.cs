@@ -61,6 +61,11 @@ public static class HelperDefinitions
         Time("verkeer_heen_carleen", "Verkeer heen Carleen", "07:50:00"),
         Time("verkeer_terug_carleen", "Verkeer terug Carleen", "17:15:00"),
 
+        // Muziek per persoon (SpotifyChoice, SpotifyAccounts): de playlist per ruimte en het Spotify-account; Spotcast speelt af
+        .. SpotifyHelpers("vincent", "Vincent"),
+        .. SpotifyHelpers("carleen", "Carleen"),
+        Select("spotify_standaard_persoon", "Spotify standaard persoon", ["Vincent", "Carleen"], icon: "mdi:account-switch"),
+
         // Kantoortijden en vervoer per persoon (OfficeTimes, CommuteReport)
         .. OfficeHelpers("vincent", "Vincent"),
         .. OfficeHelpers("carleen", "Carleen"),
@@ -220,6 +225,17 @@ public static class HelperDefinitions
     /// start) and the time to leave the office (ten minutes after the end), for the next office day. A 9292 route can use them as
     /// its arrival or departure time. Besides these, a choice of car or public transport for every day of the week.
     /// </summary>
+    private static IEnumerable<HelperDefinition> SpotifyHelpers(string person, string name) =>
+    [
+        Text($"spotify_douche_{person}", $"Spotify douche {name}", min: 0, max: 255, mode: "text", icon: "mdi:shower"),
+        Text($"spotify_keuken_{person}", $"Spotify keuken {name}", min: 0, max: 255, mode: "text", icon: "mdi:silverware-fork-knife"),
+        Text($"spotify_radio_{person}", $"Spotify radio {name}", min: 0, max: 255, mode: "text", icon: "mdi:radio"),
+        Text($"spotify_kerst_{person}", $"Spotify kerst {name}", min: 0, max: 255, mode: "text", icon: "mdi:pine-tree"),
+        // De keuzes komen van SpotifyAccounts (de accounts die Spotcast heeft); zonder account speelt Spotcast op zijn standaardaccount
+        Select($"spotify_account_{person}", $"Spotify account {name}", [Helpers.SpotifyChoice.NoAccount], icon: "mdi:account-music"),
+        Button($"spotify_koppelen_{person}", $"Spotify koppelen {name}", icon: "mdi:link-variant-plus"),
+    ];
+
     private static IEnumerable<HelperDefinition> OfficeHelpers(string person, string name) =>
     [
         DateTime($"kantoor_aankomst_{person}", $"Kantoor aankomst {name}", hasDate: true, hasTime: true, icon: "mdi:office-building-marker"),

@@ -1,0 +1,28 @@
+# Tegel Muziek van Vincent: het gekoppelde Spotify-account en hoeveel playlists zijn ingesteld; opent de pop-up #muziek (popups/muziek_vincent.yaml).
+type: custom:button-card
+template: beheer_tile
+triggers_update:
+  - input_select.spotify_account_vincent
+  - input_text.spotify_douche_vincent
+  - input_text.spotify_keuken_vincent
+  - input_text.spotify_radio_vincent
+  - input_text.spotify_kerst_vincent
+icon: mdi:spotify
+name: Muziek
+label: |
+  [[[
+    const account = states['input_select.spotify_account_vincent']?.state;
+    const set = ['douche', 'keuken', 'radio', 'kerst'].filter(r => { const v = states[`input_text.spotify_${r}_vincent`]?.state; return v && v !== 'unknown' && v !== 'unavailable'; }).length;
+    const linked = account && account !== 'Standaard account' && account !== 'unknown';
+    return `${linked ? account : 'Nog niet gekoppeld'} · ${set} van 4 playlists`;
+  ]]]
+styles:
+  icon:
+    - color: |
+        [[[
+          const account = states['input_select.spotify_account_vincent']?.state;
+          return account && account !== 'Standaard account' && account !== 'unknown' ? '#1db954' : '#ffb060';
+        ]]]
+tap_action:
+  action: navigate
+  navigation_path: "#muziek"

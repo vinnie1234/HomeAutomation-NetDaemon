@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Interfaces;
+using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.LivingRoom;
@@ -59,12 +60,13 @@ public class ChristmasTree : BaseApp
 
     private void PlayMusic()
     {
-        if (string.IsNullOrEmpty(_config.SpotifyKerstUrl))
+        var (url, account) = SpotifyChoice.Resolve(HaContext, _config, SpotifyRoom.Kerst, Vincent.IsHome, Carleen.IsHome);
+        if (string.IsNullOrEmpty(url))
         {
-            Logger.LogWarning("No SpotifyKerstUrl in config.json, no Christmas music");
+            Logger.LogWarning("No Christmas playlist (not set on the Muziek page, not in config.json as SpotifyKerstUrl), no Christmas music");
             return;
         }
-        _spotcast.PlaySpotify(new MediaPlayerEntity(HaContext, Speaker), _config.SpotifyKerstUrl);
+        _spotcast.PlaySpotify(new MediaPlayerEntity(HaContext, Speaker), url, account);
         Logger.LogInformation("Christmas music started");
     }
 }

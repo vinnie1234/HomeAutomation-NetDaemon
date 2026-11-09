@@ -1,5 +1,7 @@
 using Automation.apps.Rooms.Kitchen;
+using Automation.Configuration;
 using HomeAssistantGenerated;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
@@ -8,6 +10,8 @@ namespace TestAutomation.Apps.Rooms;
 
 public class KitchenMusicOnMotionTests
 {
+    private static readonly IOptions<AppConfig> KitchenConfig = Options.Create(new AppConfig { SpotifyKeukenUrl = "spotify:keuken" });
+
     private const string Motion = "binary_sensor.motionwoonkamer";
     private const string KitchenPlayer = "media_player.nestmini9818";
     private const string SpotifyPlayer = "media_player.spotify_vincent_maarschalkerweerd";
@@ -48,7 +52,7 @@ public class KitchenMusicOnMotionTests
     public void Music_Starts_When_AllConditionsMet()
     {
         using var ctx = ArrangeAllGreen();
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -59,7 +63,7 @@ public class KitchenMusicOnMotionTests
     public void Music_StartsOnCorrectSpeaker()
     {
         using var ctx = ArrangeAllGreen();
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -75,7 +79,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(AwayVincent, "on"); // Vincent away
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -89,7 +93,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(Working, "on");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -103,7 +107,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(SpotifyPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -117,7 +121,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(Tv, "on");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -129,7 +133,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(Tv, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -143,7 +147,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(SleepingVincent, "on");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -156,7 +160,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(AwayCarleen, "off");    // Carleen home
         ctx.WithEntityState(SleepingCarleen, "on"); // and sleeping
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -171,7 +175,7 @@ public class KitchenMusicOnMotionTests
         ctx.WithEntityState(AwayCarleen, "on");
         ctx.WithEntityState(SleepingCarleen, "on");
         ctx.WithEntityState("person.carleen", "home");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -185,7 +189,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(AwayCarleen, "on");     // Carleen away
         ctx.WithEntityState(SleepingCarleen, "on"); // sleep flag set (stale/irrelevant)
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -199,7 +203,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         // Simulate the kitchen speaker stopping
         ctx.ChangeStateFor(KitchenPlayer).FromState("playing").ToState("idle");
@@ -216,7 +220,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         // Speaker stops → cooldown starts
         ctx.ChangeStateFor(KitchenPlayer).FromState("playing").ToState("idle");
@@ -240,7 +244,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         TriggerMotion(ctx);
 
@@ -255,7 +259,7 @@ public class KitchenMusicOnMotionTests
         // Carleen already away (ArrangeAllGreen), Vincent goes away too → house empty
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(AwayVincent).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -269,7 +273,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(AwayCarleen, "off"); // Carleen is home
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(AwayVincent).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -284,7 +288,7 @@ public class KitchenMusicOnMotionTests
         ctx.WithEntityState(AwayVincent, "on");  // Vincent already away
         ctx.WithEntityState(AwayCarleen, "off"); // Carleen still home
         ctx.WithEntityState(KitchenPlayer, "playing");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(AwayCarleen).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -297,7 +301,7 @@ public class KitchenMusicOnMotionTests
     {
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "idle");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(AwayVincent).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -311,7 +315,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
         ctx.WithEntityState(Tv, "off");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(Tv).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -325,7 +329,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "playing");
         ctx.WithEntityState(Tv, "idle");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(Tv).FromState("idle").ToState("playing");
         ctx.HaContextMock.ProcessPendingOperations();
@@ -339,7 +343,7 @@ public class KitchenMusicOnMotionTests
         using var ctx = ArrangeAllGreen();
         ctx.WithEntityState(KitchenPlayer, "idle");
         ctx.WithEntityState(Tv, "off");
-        ctx.InitApp<KitchenMusicOnMotion>();
+        ctx.InitApp<KitchenMusicOnMotion>(ctx.Spotcast, KitchenConfig);
 
         ctx.ChangeStateFor(Tv).FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();

@@ -4,7 +4,7 @@ public class Spotcast(IHaContext ha) : ISpotcast
 {
     private readonly Entities _entities = new(ha);
 
-    public void PlaySpotify(MediaPlayerEntity mediaPlayer, string spotifyUrl)
+    public void PlaySpotify(MediaPlayerEntity mediaPlayer, string spotifyUrl, string? account = null)
     {
         // Don't play music while Vincent and Carleen are both away (e.g. only a house sitter is home)
         if (_entities.InputBoolean.Away.IsOn()) return;
@@ -23,6 +23,8 @@ public class Spotcast(IHaContext ha) : ISpotcast
                     { "shuffle", true }
                 }}
             };
+
+            if (!string.IsNullOrEmpty(account)) serviceData["account"] = account;
 
             ha.CallService("spotcast", "play_media", null, serviceData);
         }

@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Enum;
+using Automation.Helpers;
 using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
@@ -140,6 +141,7 @@ public class KitchenMusicOnMotion : BaseApp
         }
 
         Logger.LogInformation("Starting kitchen music on nestmini9818");
-        _spotcast.PlaySpotify(Entities.MediaPlayer.Nestmini9818, _config.SpotifyKeukenUrl);
+        var (url, account) = SpotifyChoice.Resolve(HaContext, _config, SpotifyRoom.Keuken, Vincent.IsHome, Carleen.IsHome);
+        if (!string.IsNullOrEmpty(url)) _spotcast.PlaySpotify(Entities.MediaPlayer.Nestmini9818, url, account);
     }
 }

@@ -1,0 +1,49 @@
+# Pop-up Muziek van Carleen, opent via #muziek (de tegel Muziek): de playlist per ruimte en het Spotify-account. NetDaemon (SpotifyChoice)
+# kiest bij het afspelen de instellingen van wie thuis is, en van de standaardpersoon als jullie allebei thuis zijn. Spotcast speelt af.
+# Een ruimte zonder eigen playlist speelt wat in config.json staat. Zonder gekoppeld account speelt Spotcast op zijn standaardaccount.
+type: custom:bubble-card
+card_type: pop-up
+popup_mode: fit-content
+hash: "#muziek"
+name: Muziek Carleen
+icon: mdi:spotify
+cards:
+  - type: entities
+    entities:
+      - type: section
+        label: Account
+      - entity: input_select.spotify_account_carleen
+        name: Spotify-account
+        icon: mdi:account-music
+      - type: section
+        label: Playlist per ruimte (een Spotify-link)
+      - entity: input_text.spotify_douche_carleen
+        name: Douche
+        icon: mdi:shower
+      - entity: input_text.spotify_keuken_carleen
+        name: Keuken
+        icon: mdi:silverware-fork-knife
+      - entity: input_text.spotify_radio_carleen
+        name: Radio (badkamer)
+        icon: mdi:radio
+      - entity: input_text.spotify_kerst_carleen
+        name: Kerst
+        icon: mdi:pine-tree
+      - type: section
+        label: Als jullie allebei thuis zijn
+      - entity: input_select.spotify_standaard_persoon
+        name: Wiens muziek telt dan
+        icon: mdi:account-switch
+  # Een account dat er nog niet is: Spotcast opent in Home Assistant het scherm om er een toe te voegen; zodra het er is kiest NetDaemon het
+  - type: custom:button-card
+    template: action
+    name: Account koppelen
+    icon: mdi:link-variant-plus
+    tap_action:
+      action: javascript
+      javascript: |
+        [[[
+          hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
+          history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotcast');
+          window.dispatchEvent(new CustomEvent('location-changed'));
+        ]]]

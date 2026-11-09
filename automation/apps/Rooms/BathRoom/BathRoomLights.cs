@@ -92,6 +92,14 @@ public class BathRoomLights : BaseApp
     /// Handles the automation when the shower is in use.
     /// </summary>
     /// <param name="isOn">A value indicating whether the shower is in use.</param>
+    /// <summary>Starts the shower playlist (or the radio) of whoever is home, on the account that person chose.</summary>
+    private void PlayShowerMusic()
+    {
+        var room = Carleen.IsHome ? SpotifyRoom.Douche : SpotifyRoom.Radio;
+        var (url, account) = SpotifyChoice.Resolve(HaContext, _config, room, Vincent.IsHome, Carleen.IsHome);
+        if (!string.IsNullOrEmpty(url)) _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, url, account);
+    }
+
     private void DouchingAutomation(bool isOn)
     {
         if (isOn)
@@ -99,8 +107,7 @@ public class BathRoomLights : BaseApp
             if (!IsSleepMode)
             {
                 Entities.MediaPlayer.Googlehome0351.VolumeSet(0.40);
-                _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
-                    Carleen.IsHome ? _config.SpotifyDoucheUrl : _config.SpotifyRadioNlUrl);
+                PlayShowerMusic();
             }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
@@ -228,8 +235,7 @@ public class BathRoomLights : BaseApp
                 if (!IsDouching && !IsSleepMode)
                 {
                     Entities.MediaPlayer.Googlehome0351.VolumeSet(0.25);
-                    _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351,
-                        Carleen.IsHome ? _config.SpotifyDoucheUrl : _config.SpotifyRadioNlUrl);
+                    PlayShowerMusic();
 
                     Entities.MediaPlayer.Googlehome0351.MediaPlay();
                 }
