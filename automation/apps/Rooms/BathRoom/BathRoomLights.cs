@@ -165,11 +165,14 @@ public class BathRoomLights : BaseApp
     /// <summary>
     /// The brightness for the time of day: dimmed while someone sleeps, except on the morning of an office day.
     /// </summary>
+    private const int FullBrightnessPct = 100;
+
     private int GetBrightness()
     {
         var night = IsLightSleepMode;
-        var brightness = _circadianLightingService.GetBrightness(night);
-        Core.ActivityContext.Note($"Helderheid {brightness}% ({(night ? "nachtstand" : "dagstand, volgens de zon")})");
+        // Where the lights may be fully on (nobody sleeps, or a day working at home or an office morning) they are: 100%
+        var brightness = night ? _circadianLightingService.GetBrightness(true) : FullBrightnessPct;
+        Core.ActivityContext.Note($"Helderheid {brightness}% ({(night ? "nachtstand" : "dagstand: vol aan")})");
         return brightness;
     }
 

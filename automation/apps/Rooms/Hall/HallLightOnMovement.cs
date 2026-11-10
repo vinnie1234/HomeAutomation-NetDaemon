@@ -67,11 +67,14 @@ public class HallLightOnMovement : BaseApp
     /// <summary>
     /// The brightness for the time of day: dimmed while someone sleeps, except on the morning of an office day.
     /// </summary>
+    private const int FullBrightnessPct = 100;
+
     private int GetBrightness()
     {
         var night = IsLightSleepMode;
-        var brightness = _circadianLightingService.GetBrightness(night);
-        Core.ActivityContext.Note($"Helderheid {brightness}% ({(night ? "nachtstand" : "dagstand, volgens de zon")})");
+        // Where the lights may be fully on (nobody sleeps, or a day working at home or an office morning) they are: 100%
+        var brightness = night ? _circadianLightingService.GetBrightness(true) : FullBrightnessPct;
+        Core.ActivityContext.Note($"Helderheid {brightness}% ({(night ? "nachtstand" : "dagstand: vol aan")})");
         return brightness;
     }
 
@@ -101,7 +104,7 @@ public class HallLightOnMovement : BaseApp
                 // A light that is on already is left as it is: the motion sensor keeps reporting motion while somebody is in the hall
                 var colorTemp = _circadianLightingService.GetColorTemperature(Entities.Light.Hal2);
                 if (!Entities.Light.Hal2.IsOn())
-                    Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 5, colorTempKelvin: colorTemp);
+                    Entities.Light.Hal2.TurnOn(brightnessPct: brightnessPct, transition: 2, colorTempKelvin: colorTemp);
                 if (!IsLightSleepMode || (!Vincent.IsSleeping && !Carleen.IsSleeping && !Entities.InputBoolean.Away.IsOn()))
                 {
                     // Bot29ff is off for now: an unavailable Hal has no power (wall switch off) and the bot presses the switch.
@@ -109,10 +112,10 @@ public class HallLightOnMovement : BaseApp
                     // if (Entities.Light.Hal.State is "unavailable")
                     //     Entities.Switch.Bot29ff.TurnOn();
                     if (!Entities.Light.Hal.IsOn())
-                        Entities.Light.Hal.TurnOn();
+                        Entities.Light.Hal.TurnOn(brightnessPct: FullBrightnessPct, transition: 2);
 
                     if (Entities.MediaPlayer.Tv.IsOff() && !Entities.Light.GangSigaret.IsOn())
-                        Entities.Light.GangSigaret.TurnOn();
+                        Entities.Light.GangSigaret.TurnOn(brightnessPct: FullBrightnessPct, transition: 2);
                 }
 
                 break;
