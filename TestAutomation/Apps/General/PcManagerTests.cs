@@ -39,24 +39,4 @@ public class PcManagerTests
         ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
         ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
     }
-
-    [Fact]
-    public void VincentPcLaatstopgestartSensor_ShouldTurnOnAndOffLightsAndTV()
-    {
-        // Arrange
-        using var ctx = AppTestContext.NewWithScheduler();
-        ctx.HaContext.GetState("sensor.vincent_pc_laatstopgestart").Returns(new EntityState { EntityId = "sensor.vincent_pc_laatstopgestart", State = "2023-10-10" });
-        ctx.InitApp<PcManager>();
-
-        // Act
-        ctx.ChangeStateFor("sensor.vincent_pc_laatstopgestart").FromState("2023-10-10").ToState("2023-10-11");
-        ctx.HaContextMock.ProcessPendingOperations();
-
-        // Assert
-        ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
-        ctx.VerifyCallService("light", "turn_off", "nachtkastje", times: 1);
-        ctx.VerifyCallService("light", "turn_on", "plafondslaapkamer", times: 1);
-        ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
-    }
 }
-

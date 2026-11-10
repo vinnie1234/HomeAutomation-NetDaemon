@@ -127,7 +127,6 @@ public static class HelperDefinitions
         Boolean("sleepingcarleen", "SleepingCarleen", icon: "mdi:sleep"),
         Boolean("start_friends", "Start Friends"),
         Boolean("start_pc", "Start PC"),
-        Boolean("vincent_pc_afsluiten", "PC Afsluiten"),
         Boolean("working", "Working", icon: "mdi:briefcase"),
         Boolean("workingcarleen", "WorkingCarleen", icon: "mdi:briefcase"),
         Boolean("workingvincent", "WorkingVincent", icon: "mdi:briefcase"),

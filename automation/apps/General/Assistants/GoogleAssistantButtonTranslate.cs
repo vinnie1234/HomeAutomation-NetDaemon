@@ -28,13 +28,6 @@ public class GoogleAssistantButtonTranslate : BaseApp
                 translateEntity.Key.TurnOff();
                 translateEntity.Value.Press();
             });
-
-        foreach (var translateEntity in TranslationButtonEntity())
-            translateEntity.Key.WhenTurnsOn(_ =>
-            {
-                translateEntity.Key.TurnOff();
-                translateEntity.Value.Press();
-            });
     }
 
     /// <summary>
@@ -52,18 +45,6 @@ public class GoogleAssistantButtonTranslate : BaseApp
             { Entities.InputBoolean.Cleanpetsnowy, Entities.InputButton.Cleanpetsnowy },
             { Entities.InputBoolean.Feedcat, Entities.InputButton.Feedcat },
             { Entities.InputBoolean.StartPc, Entities.InputButton.StartPc }
-        };
-    }
-
-    /// <summary>
-    /// Gets a dictionary mapping input boolean entities to button entities.
-    /// </summary>
-    /// <returns>A dictionary of input boolean entities and their corresponding button entities.</returns>
-    private Dictionary<InputBooleanEntity, ButtonEntity> TranslationButtonEntity()
-    {
-        return new Dictionary<InputBooleanEntity, ButtonEntity>
-        {
-            { Entities.InputBoolean.VincentPcAfsluiten, Entities.Button.VincentPcAfsluiten }
         };
     }
 }

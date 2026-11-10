@@ -36,24 +36,5 @@ public class PcManager : BaseApp
                 Entities.MediaPlayer.Tv.TurnOff();
             });
 
-        Entities.Sensor.VincentPcLaatstopgestart
-            .StateChanges()
-            .Subscribe(_ =>
-            {
-                Entities.Light.Bureau.TurnOn();
-                Entities.Light.Nachtkastje.TurnOff();
-                Entities.Light.Plafondslaapkamer.TurnOn();
-                Entities.MediaPlayer.Tv.TurnOff();
-            });
-
-        // Entities.Button.VincentPcAfsluiten
-        //     .StateChanges()
-        //     .Subscribe(_ =>
-        //     {
-        //         LightExtension.TurnOnLightsWoonkamer(Entities, scheduler);
-        //
-        //         Thread.Sleep(TimeSpan.FromMinutes(1));
-        //         Entities.Light.Bureau.TurnOff();
-        //     });
     }
 }

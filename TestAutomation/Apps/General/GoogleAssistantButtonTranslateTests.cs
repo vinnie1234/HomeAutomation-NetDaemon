@@ -45,25 +45,4 @@ public class GoogleAssistantButtonTranslateTests
         ctx.VerifyCallService("input_boolean", "turn_off", booleanEntityId.Replace("input_boolean.", ""), times: 1);
         ctx.VerifyCallService("input_button", "press", buttonEntityId.Replace("input_button.", ""), times: 1);
     }
-
-    [Fact]
-    public void GoogleAssistantButtonTranslate_ShouldTurnOffBooleanAndPressButton_WhenBooleanTurnsOn()
-    {
-        // Arrange
-        var ctx = AppTestContext.NewWithScheduler();
-        var booleanEntityId = "input_boolean.vincent_pc_afsluiten";
-        var buttonEntityId = "button.vincent_pc_afsluiten";
-
-        ctx.HaContext.GetState(booleanEntityId).Returns(new EntityState { EntityId = booleanEntityId, State = "off" });
-        ctx.InitApp<GoogleAssistantButtonTranslate>();
-
-        // Act
-        ctx.ChangeStateFor(booleanEntityId).FromState("off").ToState("on");
-        ctx.HaContextMock.ProcessPendingOperations();
-
-        // Assert
-        ctx.VerifyCallService("input_boolean", "turn_off", booleanEntityId.Replace("input_boolean.", ""), times: 1);
-        ctx.VerifyCallService("button", "press", buttonEntityId.Replace("button.", ""), times: 1);
-    }
 }
-
