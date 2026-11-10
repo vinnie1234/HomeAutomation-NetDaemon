@@ -3160,7 +3160,7 @@ music_now_card:
             document.querySelector('home-assistant').hass.callService('media_player', 'media_play_pause', { entity_id: id });
           }
         };
-        return `<div style="display:flex;flex-direction:column;gap:10px">${list.map(n => `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px;cursor:pointer"
+        return `<div style="display:flex;flex-direction:column;gap:10px">${list.map(n => `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px;cursor:pointer;pointer-events:auto"
               onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisMuziek.open('${n.entity}')" onclick="window.huisMuziek.open('${n.entity}')">
             ${n.picture ? `<img src="${n.picture}" style="width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.35)">`
               : `<div style="width:72px;height:72px;border-radius:14px;background:rgba(74,222,128,0.18);display:flex;align-items:center;justify-content:center">
