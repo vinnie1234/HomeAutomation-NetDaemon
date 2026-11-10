@@ -1215,9 +1215,40 @@ weather_hero:
                 style="transform-box:fill-box;transform-origin:center;animation:hero-note 3.2s ease-out ${(-i * 0.8).toFixed(1)}s infinite;
                 filter:drop-shadow(0 0 0.6px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(0,0,0,0.35))">${n}</text>`;
           });
+          // ---- Stroom: zonnepanelen op het dak, elektriciteitspalen met de draad naar het huis, en waar de stroom nu vandaan komt ----
+          // Net: sensor van de P1-meter (plus = van het net, min = terug naar het net). Zon: de schatting van Forecast.Solar (er is geen omvormer-sensor).
+          const gridW = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state);
+          const sunW = parseFloat(states['sensor.power_production_now']?.state);
+          const gridKnown = !isNaN(gridW), sunning = !isNaN(sunW) && sunW >= 20;
+          const importing = gridKnown && gridW > 15, exporting = gridKnown && gridW < -15;
+          const watts = w => Math.abs(w) >= 1000 ? `${(Math.abs(w) / 1000).toFixed(1).replace('.', ',')} kW` : `${Math.round(Math.abs(w))} W`;
+          const flowColor = importing ? '#ffb060' : '#4ade80';
+          // De palen staan links van het huis (in de maat van het huis: 24 breed), de draad loopt van de verste paal over de palen naar de dakrand
+          const wire = 'M-62 -3.5 Q-53 0 -44 -5.2 Q-36 -1.5 -29 -6.2 Q-12 -3 2.3 10.7';
+          const pole = (px, ph) => `<rect x="${px - 0.45}" y="${ph}" width="0.9" height="${24 - ph}" fill="${night('rgb(110,84,62)')}"/>
+              <rect x="${px - 2.4}" y="${ph + 0.2}" width="4.8" height="0.7" fill="${night('rgb(96,72,52)')}"/>
+              <rect x="${px - 2.4}" y="${ph - 0.3}" width="0.5" height="0.6" fill="${night('rgb(190,200,214)')}"/><rect x="${px + 1.9}" y="${ph - 0.3}" width="0.5" height="0.6" fill="${night('rgb(190,200,214)')}"/>`;
+          const dotCount = gridKnown ? Math.min(5, 1 + Math.round(Math.abs(gridW) / 400)) : 0;
+          const dotSeconds = Math.max(1.6, 4.5 - Math.abs(gridW || 0) / 1200).toFixed(1);
+          let dots = '';
+          if (importing || exporting) for (let i = 0; i < dotCount; i++)
+            dots += `<circle r="0.55" fill="${flowColor}" style="filter:drop-shadow(0 0 0.7px ${flowColor})"><animateMotion dur="${dotSeconds}s" begin="${(-i * dotSeconds / dotCount).toFixed(2)}s"
+              repeatCount="indefinite" keyPoints="${importing ? '0;1' : '1;0'}" keyTimes="0;1" calcMode="linear"><mpath href="#hero-stroomdraad"/></animateMotion></circle>`;
+          const label = (lx, ly, text, color) => `<text x="${lx}" y="${ly}" font-size="3.3" font-weight="700" text-anchor="middle" fill="${color}"
+              stroke="rgba(10,14,24,0.7)" stroke-width="0.55" paint-order="stroke" stroke-linejoin="round">${text}</text>`;
+          const gridText = !gridKnown ? '' : importing ? `⚡ Net ${watts(gridW)}` : exporting ? `⚡ Terug ${watts(gridW)}` : '⚡ Net 0 W';
+          const poles = `${pole(-44, -5.6)}${pole(-29, -6.6)}
+              <path id="hero-stroomdraad" d="${wire}" fill="none" stroke="${night('rgb(40,44,56)')}" stroke-width="0.28"/>${dots}
+              ${gridText ? label(-36, -9.6, gridText, importing ? '#ffb060' : exporting ? '#4ade80' : '#cbd5e1') : ''}`;
+          // Zonnepanelen op de linker dakhelft (rechts staat de schoorsteen): donkerblauw met raster, lichter en met glans als de zon schijnt
+          const panelColor = sunning ? 'rgb(52,100,190)' : 'rgb(28,44,84)';
+          const panels = `<polygon points="3.6,9.72 10.6,4.12 9.86,3.18 2.86,8.78" fill="${night(panelColor)}" stroke="${night('rgb(188,200,222)')}" stroke-width="0.18"/>
+              ${[0.25, 0.5, 0.75].map(f => `<line x1="${(3.6 + (10.6 - 3.6) * f).toFixed(2)}" y1="${(9.72 + (4.12 - 9.72) * f).toFixed(2)}" x2="${(2.86 + (9.86 - 2.86) * f).toFixed(2)}" y2="${(8.78 + (3.18 - 8.78) * f).toFixed(2)}" stroke="${night('rgb(188,200,222)')}" stroke-width="0.12"/>`).join('')}
+              ${sunning ? `<polygon points="3.6,9.72 10.6,4.12 9.86,3.18 2.86,8.78" fill="#ffe08a" fill-opacity="0.3"/>
+                ${label(9.5, 0.9, `☀ ${watts(sunW)}`, '#ffd166')}` : ''}`;
           return `<svg viewBox="0 0 24 22" style="position:absolute;left:${x}%;top:${top}%;transform:translate(-50%,-96%);width:${size}px;height:${size * 0.92}px;overflow:visible">
-                    ${puffs}${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
-                    <path d="M2 11 L12 3 L22 11 Z" fill="${night('rgb(120,48,40)')}"/>
+                    ${poles}${puffs}${chimney ? `<rect x="16" y="2" width="3" height="7" fill="${night('rgb(90,52,44)')}"/>` : ''}
+                    <path d="M2 11 L12 3 L22 11 Z" fill="${night('rgb(120,48,40)')}"/>${panels}
                     ${wintry ? `<path d="M2 11 L12 3 L22 11 L20.5 11 L12 4.6 L3.5 11 Z" fill="${snowCap}"/>` : ''}
                     <rect x="4" y="11" width="16" height="11" fill="${night('rgb(168,140,112)')}"/>
                     <rect x="7" y="14" width="4" height="4" fill="${glow}" style="${day || !lit ? '' : 'filter:drop-shadow(0 0 3px #ffcf73)'}"/>

@@ -56,6 +56,9 @@ Our house on the hill tells what is going on at home:
 
 - **Who is home** — smoke from the chimney and a lit window; on warm days an open window with a waving curtain instead
 - **Inside** — music notes rising from the roof when a speaker plays, blue TV light behind the window
+- **Power** — solar panels on the roof (they light up when the sun produces) and power poles with a wire to the house; dots
+  run along the wire towards the house while it takes power from the grid and away from it while it feeds back, with the
+  live watts of the grid and the estimated solar production
 - **Outside** — the laundry on the line (swaying in the wind), garbage bags or the paper bin at the curb, a paddling
   pool with a rubber duck on hot sunny days
 - **Post** — the letterbox fills up when there is mail, and today's parcels stand stacked at the door
