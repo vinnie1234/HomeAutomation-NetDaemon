@@ -210,9 +210,15 @@ sections:
                   const n = id => parseInt(states[id]?.state) || 0;
                   return n('sensor.unused_custom_integrations') + n('sensor.unused_custom_themes') + n('sensor.unused_frontend_resources') + n('sensor.hacs_updates') ? '#ffb060' : '#4ade80';
                 ]]]
+        # De lijst opent een onderdeel in de Marketplace van Home Assistant (www/marketplace-links.js; ?v= ophogen na een wijziging)
         tap_action:
-          action: navigate
-          navigation_path: "#componenten"
+          action: javascript
+          javascript: |
+            [[[
+              import('/local/huis/marketplace-links.js?v=1').then(m => m.install());
+              history.pushState(null, '', location.pathname + '#componenten');
+              window.dispatchEvent(new CustomEvent('location-changed'));
+            ]]]
 
   # Kolom 2: netwerk, Raspberry Pi, NetDaemon en Hue
   - type: grid
