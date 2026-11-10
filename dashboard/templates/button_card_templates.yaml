@@ -493,6 +493,7 @@ weather_hero:
     - input_boolean.laundryhangingoutside
     - sensor.afval_vandaag
     - sensor.afval_morgen
+    - sensor.afval_buiten_zetten
     - weather.weer_thuis
     - input_select.weerkaart_thema
     - input_select.tijd_van_de_dag
@@ -695,7 +696,7 @@ weather_hero:
           if (scenario === 'mist') weather('fog', 100, 6, 3);
           if (scenario === 'muziek en tv') { set('media_player.woonkamer', 'playing'); set('media_player.tv', 'on'); }
           if (scenario === 'was buiten') set('input_boolean.laundryhangingoutside', 'on');
-          if (scenario === 'afval buiten') { set('sensor.afval_vandaag', 'PMD'); set('sensor.afval_morgen', 'Papier'); }
+          if (scenario === 'afval buiten') { set('sensor.afval_vandaag', 'PMD'); set('sensor.afval_morgen', 'Papier'); set('sensor.afval_buiten_zetten', 'Papier'); }
           if (scenario === 'niemand thuis') set('input_boolean.away', 'on');
           if (scenario === 'post en pakketjes') {
             const d = new Date(), iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -786,7 +787,7 @@ weather_hero:
             'sensor.season', 'sensor.moon_phase',
             'binary_sensor.weer_thuis_waarschuwing_actief', 'sensor.weer_thuis_waarschuwingscode', 'sensor.weer_thuis_waarschuwingen',
             'input_boolean.away', 'input_boolean.laundryhangingoutside', 'input_boolean.pixelskipnextautofeed',
-            'sensor.afval_vandaag', 'sensor.afval_morgen', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
+            'sensor.afval_vandaag', 'sensor.afval_morgen', 'sensor.afval_buiten_zetten', 'input_datetime.pixelfeedfirsttime', 'input_datetime.pixelfeedsecondtime',
             'input_datetime.pixelfeedthirdtime', 'input_datetime.pixelfeedfourthtime', 'media_player.spotify_vincent_maarschalkerweerd',
             'media_player.tv', 'media_player.woonkamer', 'media_player.nestmini9818', 'media_player.googlehome0351', 'media_player.friends_speakers', 'media_player.hub_vincent', 'media_player.hele_huis', 'media_player.googlehome7421', 'media_player.googlehome8627', 'media_player.soundbar'].map(id => states[id]?.state)
         ]);
@@ -1960,7 +1961,8 @@ weather_hero:
 
         // ---------- Afval dat vandaag of morgen buiten moet: PMD-zakken of de blauwe kliko, klein op de stoep ----------
         const bins = [];
-        for (const [sensor, when] of [['sensor.afval_vandaag', 'vandaag'], ['sensor.afval_morgen', 'morgen']]) {
+        // Het afval van morgen staat er pas vanavond (NetDaemon, GarbageOutside), eerder hoeft het nog niet buiten
+        for (const [sensor, when] of [['sensor.afval_vandaag', 'vandaag'], ['sensor.afval_buiten_zetten', 'vanavond']]) {
           const kind = String(states[sensor]?.state ?? '').toLowerCase();
           if (kind.includes('pmd') || kind.includes('plastic')) bins.push(['pmd', when]);
           if (kind.includes('papier')) bins.push(['papier', when]);
@@ -1978,7 +1980,7 @@ weather_hero:
           // Op de voorgrond (de stoep) onderaan de kaart: bomen en huizen staan hoger, op de heuvelrand, dus daar staat nooit iets voor.
           // Aan het eind van het tuinpad langs de weg.
           out += `<svg viewBox="0 0 32 40" style="position:absolute;left:calc(max(${homeX + 15}%, 250px) + ${i * 28}px);bottom:${roadH + 1.5}%;
-              width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'morgen' ? 0.75 : 1};
+              width:30px;height:38px;transform:translateX(-50%);overflow:visible;pointer-events:none;opacity:${when === 'vanavond' ? 0.75 : 1};
               filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3))">${body}
               <text x="16" y="39.5" text-anchor="middle" font-size="5.5" font-family="sans-serif" fill="rgba(255,255,255,0.8)">${when}</text></svg>`;
         });

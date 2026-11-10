@@ -261,7 +261,7 @@ sections:
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.afval_morgen
+                entity: sensor.afval_buiten_zetten
                 state_not:
                   - Geen
                   - unknown
@@ -270,7 +270,7 @@ sections:
               type: template
               icon: mdi:trash-can-outline
               icon_color: orange
-              content: "Morgen: {{ states('sensor.afval_morgen') }}"
+              content: "Vanavond buiten: {{ states('sensor.afval_buiten_zetten') }}"
               tap_action:
                 action: navigate
                 navigation_path: /dashboard-huis/huishouden
