@@ -1,9 +1,9 @@
-// Huis-dashboard: na 30 seconden niets doen (niet tikken, klikken, scrollen of typen) terug naar Home.
+// Huis-dashboard: na 1 minuut niets doen (niet tikken, klikken, scrollen of typen) terug naar Home.
 // Alleen op het Huis-dashboard en niet op Home zelf. Staat er een venster open (bladeren in Jellyfin, de geschiedenis van
 // de medicijnen, een tijdlijn) of is iets schermvullend, dan wacht hij tot dat dicht is.
 // Geladen via frontend.extra_module_url in configuration.yaml (zie README.md).
 (() => {
-  const DASHBOARD = '/dashboard-huis/', HOME = '/dashboard-huis/home', IDLE_MS = 30000;
+  const DASHBOARD = '/dashboard-huis/', HOME = '/dashboard-huis/home', IDLE_MS = 60000;
   let timer;
 
   const somethingOpen = () => document.fullscreenElement

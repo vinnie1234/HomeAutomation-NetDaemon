@@ -3,6 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
 using Automation.Configuration;
+using Automation.Core;
 using Automation.Helpers;
 
 namespace Automation.apps.General;
@@ -359,13 +360,61 @@ public class Alarm : BaseApp
             .StateChanges()
             .Subscribe(x =>
             {
-                if (x.New?.State > 0.55)
+                if (x.New?.State is not > HighPriceLimit) return;
+
+                // The price changes every hour, so one stretch of expensive hours would give a message every hour: one message per
+                // stretch, with when it starts and ends
+                var period = ExpensivePeriod(x.New.AttributesJson, Scheduler.Now, HighPriceLimit);
+                if (period is { } p)
                 {
-                    Notify.NotifyDiscord($"ENERGY IS ENORM DUUR - {x.New.State}", [_config.Discord.Logs]);
-                    Notify.NotifyPeopleHome($"ENERGY IS ENORM DUUR - {x.New.State}",
-                        "Je energy is hoog, dit kan geld kosten.", false, 10);
+                    if (_notifiedExpensiveFrom == p.Start) return;
+                    _notifiedExpensiveFrom = p.Start;
                 }
+                else if (_notifiedExpensiveFrom is null && _lastUnknownPeriodAt is { } last && Scheduler.Now - last < TimeSpan.FromHours(6)) return;
+                else _lastUnknownPeriodAt = Scheduler.Now;
+
+                ActivityContext.Note(period is { } q
+                    ? $"Een duur stuk van {Hm(q.Start)} tot {Hm(q.End)}: een melding per stuk"
+                    : "De prijzen per uur zijn niet bekend: hooguit eens per 6 uur");
+                var message = period is { } w
+                    ? $"Je energy is hoog van {Hm(w.Start)} tot {Hm(w.End)} (nu € {x.New.State:0.00}/kWh), dit kan geld kosten."
+                    : "Je energy is hoog, dit kan geld kosten.";
+                Notify.NotifyDiscord($"ENERGY IS ENORM DUUR - {x.New.State}", [_config.Discord.Logs]);
+                Notify.NotifyPeopleHome($"ENERGY IS ENORM DUUR - {x.New.State}", message, false, 10);
             });
+    }
+
+    /// <summary>The price per kWh above which the energy is very expensive.</summary>
+    private const double HighPriceLimit = 0.55;
+
+    /// <summary>The start of the stretch of expensive hours that was reported last.</summary>
+    private DateTimeOffset? _notifiedExpensiveFrom;
+
+    private DateTimeOffset? _lastUnknownPeriodAt;
+
+    private static string Hm(DateTimeOffset time) => Extensions.SchedulerExtensions.ToDutchTime(time).ToString("HH:mm", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The stretch of consecutive hours above the limit that contains <paramref name="now"/>, from the <c>hourly_prices</c> attribute of the
+    /// price sensor (the hour as key, <c>all_in_price</c> as value). Null when the attribute is missing or the current hour is not above the limit.
+    /// </summary>
+    public static (DateTimeOffset Start, DateTimeOffset End)? ExpensivePeriod(JsonElement? attributes, DateTimeOffset now, double limit)
+    {
+        if (attributes is not { ValueKind: JsonValueKind.Object } a || !a.TryGetProperty("hourly_prices", out var prices) || prices.ValueKind != JsonValueKind.Object) return null;
+        var hours = new SortedDictionary<DateTimeOffset, double>();
+        foreach (var hour in prices.EnumerateObject())
+            if (DateTimeOffset.TryParse(hour.Name, CultureInfo.InvariantCulture, DateTimeStyles.None, out var t) && hour.Value.TryGetProperty("all_in_price", out var p) && p.TryGetDouble(out var price))
+                hours[t] = price;
+
+        var one = TimeSpan.FromHours(1);
+        var current = hours.Keys.FirstOrDefault(t => t <= now && now < t + one);
+        if (current == default || hours[current] <= limit) return null;
+
+        var start = current;
+        while (hours.TryGetValue(start - one, out var before) && before > limit) start -= one;
+        var end = current + one;
+        while (hours.TryGetValue(end, out var after) && after > limit) end += one;
+        return (start, end);
     }
     
 

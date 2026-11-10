@@ -1,4 +1,5 @@
 using Automation.apps.General;
+using FluentAssertions;
 using Automation.Helpers;
 using Automation.Configuration;
 using Automation.Extensions;
@@ -443,6 +444,41 @@ public class AlarmTests
         var expectedTitle = $"ENERGY IS ENORM DUUR - {0.6}";
         _notify.Received(1).NotifyDiscord(expectedTitle, Arg.Is<string[]>(t => t.AsEnumerable().Contains("logs")));
         _notify.Received(1).NotifyPeopleHome(expectedTitle, "Je energy is hoog, dit kan geld kosten.", false, 10);
+    }
+
+    [Fact]
+    public void ExpensivePeriod_IsTheStretchOfHoursAboveTheLimitAroundNow()
+    {
+        var prices = System.Text.Json.JsonSerializer.SerializeToElement(new
+        {
+            hourly_prices = new Dictionary<string, object>
+            {
+                ["2026-11-10T16:00:00+01:00"] = new { all_in_price = 0.50 },
+                ["2026-11-10T17:00:00+01:00"] = new { all_in_price = 0.60 },
+                ["2026-11-10T18:00:00+01:00"] = new { all_in_price = 0.70 },
+                ["2026-11-10T19:00:00+01:00"] = new { all_in_price = 0.56 },
+                ["2026-11-10T20:00:00+01:00"] = new { all_in_price = 0.40 }
+            }
+        });
+
+        var period = Alarm.ExpensivePeriod(prices, new DateTimeOffset(2026, 11, 10, 18, 30, 0, TimeSpan.FromHours(1)), 0.55);
+
+        period.Should().Be((new DateTimeOffset(2026, 11, 10, 17, 0, 0, TimeSpan.FromHours(1)), new DateTimeOffset(2026, 11, 10, 20, 0, 0, TimeSpan.FromHours(1))));
+        Alarm.ExpensivePeriod(prices, new DateTimeOffset(2026, 11, 10, 16, 30, 0, TimeSpan.FromHours(1)), 0.55).Should().BeNull("that hour is not expensive");
+        Alarm.ExpensivePeriod(null, new DateTimeOffset(2026, 11, 10, 18, 30, 0, TimeSpan.FromHours(1)), 0.55).Should().BeNull("no prices known");
+    }
+
+    [Fact]
+    public void EnergyHighPriceCheck_WithoutKnownHours_SendsAtMostOneMessageEverySixHours()
+    {
+        CreateApp();
+
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.10").ToState("0.60");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        _ctx.ChangeStateFor("sensor.anwb_electricity_all_in_price_current").FromState("0.60").ToState("0.70");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        _notify.Received(1).NotifyPeopleHome(Arg.Any<string>(), Arg.Any<string>(), false, 10);
     }
 
     [Fact]
