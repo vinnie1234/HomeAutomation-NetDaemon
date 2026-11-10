@@ -23,9 +23,14 @@ Highlights:
   into that zone) and one agenda that shows appointments and open tasks together
 - **The car** — our Peugeot 2008: status, fuel and service on the dashboard, reminders (low fuel, service, not locked,
   a door left open) and security (it drives off while we are home, a door opens while we sleep)
+- **Commute** — a WhatsApp message with the traffic (ANWB) or the public transport trip (9292) before the way to the office
+  and home, one per person; on the dashboard the route home is kept as it was the moment you leave work, other routes
+  (for an appointment) show public transport unless the car is chosen, and only the one that fits where the person is
 - **The tablet** — the living room tablet (Fully Kiosk) wakes up on motion, wake-up times, coming home and important
   alerts, and goes off when the TV turns on or everyone sleeps
 - **Notifications** — Discord, the mobile app, text-to-speech and a WhatsApp assistant (text and voice notes)
+- **Activity log** — every action of NetDaemon is written down with why it happened (what triggered it) and under which
+  conditions (the states it looked at); numbers that count along are logged at most every 30 minutes
 - **Self-maintaining** — creates its own Home Assistant helpers, reloads failing integrations and auto-updates; sends a
   heartbeat every minute so Home Assistant notices when NetDaemon itself is down, and a second one over MQTT to notice when
   its sensors stop updating (for example after a refused login); the dashboard then shows an alert
@@ -150,6 +155,8 @@ dotnet test
 - **[Auto Update](docs/apps/auto-update.md)** - Monthly Home Assistant updates with notifications
 - **[Away Manager](docs/apps/away-manager.md)** - Away and welcome-home state machine
 - **[Battery Monitoring](docs/apps/battery-monitoring.md)** - Low battery notifications for all devices
+- **Christmas Tree** - The Christmas lights stay on, except while Vincent sleeps, plus the Christmas music button
+- **Commute Report** - Traffic and public transport messages for the way to the office and home, "Stuur door", and the route home kept when leaving work
 - **[Cat Care](docs/apps/cat.md)** - Automatic feeding, litter box and fountain monitoring
 - **Car Monitor** - Peugeot 2008: reminders (low fuel, service, not locked, a door left open) and security
 - **Cat Vomit Tracker** - Remembers when Pixel threw up and publishes the last two weeks for the dashboard
@@ -172,7 +179,7 @@ dotnet test
 - **Presence Simulation** - Makes the house look lived-in while on vacation
 - **[Reset App](docs/apps/reset.md)** - System reset and restoration capabilities
 - **[Save In State](docs/apps/save-in-state.md)** - Device state management and restoration
-- **[Sleep Manager](docs/apps/sleep-manager.md)** - Sleep routines, roller blind and wake-up
+- **[Sleep Manager](docs/apps/sleep-manager.md)** - Sleep routines, roller blind, wake-up (and the desk light on a day working at home) and the garbage reminder
 - **Todo Zone Reminders** - Tasks with a place: a WhatsApp message with what is left to do when someone walks into the zone
 - **[Vacuum](docs/apps/vacuum.md)** - Robot vacuum automation and room-specific cleaning
 - **WhatsApp Assistant** - Answers text and voice messages from Vincent and Carleen through the Home Assistant assistant
