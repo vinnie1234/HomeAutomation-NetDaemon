@@ -3146,12 +3146,22 @@ music_now_card:
         if (!list.length) return `<div style="display:flex;align-items:center;gap:12px;text-align:left;opacity:0.7">
             <ha-icon icon="mdi:music-off" style="--mdc-icon-size:28px"></ha-icon><div><div style="font-weight:600">Stil</div>
             <div style="font-size:12px">Er speelt nergens muziek</div></div></div>`;
-        window.huisMuziek = window.huisMuziek ?? {
-          open: id => { const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } }); document.querySelector('home-assistant').dispatchEvent(ev); },
-          toggle: id => document.querySelector('home-assistant').hass.callService('media_player', 'media_play_pause', { entity_id: id })
+        window.huisMuziek = window.huisMuziek?.v2 ? window.huisMuziek : {
+          v2: true,
+          // (pointerup voor een scherm met aanraking, click voor de muis: een van de twee komt altijd aan, een tweede binnen 0,6 s telt niet)
+          open: id => {
+            if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
+            window.huisMuziekAt = Date.now();
+            document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } }));
+          },
+          toggle: id => {
+            if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
+            window.huisMuziekAt = Date.now();
+            document.querySelector('home-assistant').hass.callService('media_player', 'media_play_pause', { entity_id: id });
+          }
         };
         return `<div style="display:flex;flex-direction:column;gap:10px">${list.map(n => `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px;cursor:pointer"
-              onclick="window.huisMuziek.open('${n.entity}')">
+              onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisMuziek.open('${n.entity}')" onclick="window.huisMuziek.open('${n.entity}')">
             ${n.picture ? `<img src="${n.picture}" style="width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.35)">`
               : `<div style="width:72px;height:72px;border-radius:14px;background:rgba(74,222,128,0.18);display:flex;align-items:center;justify-content:center">
                    <ha-icon icon="mdi:music" style="--mdc-icon-size:30px;color:#4ade80"></ha-icon></div>`}
@@ -3160,7 +3170,7 @@ music_now_card:
               <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title ?? 'Muziek'}</div>
               <div style="font-size:13px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.artist ?? ''}</div>
             </div>
-            <span style="padding:6px" onclick="event.stopPropagation();window.huisMuziek.toggle('${n.entity}')"><ha-icon icon="mdi:pause-circle-outline" style="--mdc-icon-size:30px;opacity:0.8"></ha-icon></span></div>`).join('')}</div>`;
+            <span style="padding:6px" onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisMuziek.toggle('${n.entity}')" onclick="event.stopPropagation();window.huisMuziek.toggle('${n.entity}')"><ha-icon icon="mdi:pause-circle-outline" style="--mdc-icon-size:30px;opacity:0.8"></ha-icon></span></div>`).join('')}</div>`;
       ]]]
   styles:
     grid:
