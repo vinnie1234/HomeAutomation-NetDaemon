@@ -3153,7 +3153,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=6').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=7').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {

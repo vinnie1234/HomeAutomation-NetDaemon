@@ -1,9 +1,8 @@
 // Huis-dashboard: de muziekspeler. Opent bij een tik op de muziektegel (template music_now_card) als venster of schermvullend:
-// bedienen (hoes, balk, volume, shuffle, herhalen), bladeren en zoeken (playlists, albums, artiesten), het apparaat kiezen waarop
-// Spotify speelt, en een QR-code om te delen wat speelt. Elk Spotify-account (media_player.spotify_*) is te kiezen.
+// bedienen (hoes, balk, volume, shuffle, herhalen), bladeren en zoeken (playlists, albums, artiesten), en het apparaat kiezen waarop
+// Spotify speelt (ook elke Google Cast-speaker). Elk Spotify-account (media_player.spotify_*) is te kiezen.
 // Wordt door de kaart geladen met import('/local/huis/muziek-speler.js?v=N'); N ophogen na een wijziging.
 // Terwijl de speler open staat (#huis-speler) gaat idle-home.js niet terug naar Home.
-import qrcode from './qrcode.js';
 
 const ID = 'huis-speler';
 
@@ -129,7 +128,7 @@ function build() {
       <button class="ib" data-a="full" title="Schermvullend">${icon(full ? 'mdi:fullscreen-exit' : 'mdi:fullscreen')}</button>
     </header>
     ${all.length > 1 ? `<div class="chips">${all.map(id => `<button class="chip ${id === entity ? 'on' : ''}" data-a="account" data-id="${id}">${esc(nameOf(id))}</button>`).join('')}</div>` : ''}
-    <nav>${[['nu', 'Speler', 'mdi:music'], ['bladeren', 'Bladeren', 'mdi:folder-music'], ['apparaten', 'Apparaten', 'mdi:speaker'], ['delen', 'Delen', 'mdi:qrcode']]
+    <nav>${[['nu', 'Speler', 'mdi:music'], ['bladeren', 'Bladeren', 'mdi:folder-music'], ['apparaten', 'Apparaten', 'mdi:speaker']]
       .map(([k, label, ic]) => `<button class="tab ${k === tab ? 'on' : ''}" data-a="tab" data-k="${k}">${label}</button>`).join('')}</nav>
     <main id="sp-main"></main>`;
   box.onclick = onClick;
@@ -168,8 +167,7 @@ function render() {
   main.style.overflow = tab === 'nu' ? 'hidden' : 'auto';
   if (tab === 'nu') renderNow(main);
   else if (tab === 'bladeren') renderBrowse(main);
-  else if (tab === 'apparaten') renderDevices(main);
-  else renderShare(main);
+  else renderDevices(main);
   update();
 }
 
@@ -329,19 +327,4 @@ function renderDevices(main) {
     ${sources.length ? `<div class="hint" style="margin:6px 0">Spotify</div>${sources.map(s => `<button class="row ${s === a.source ? 'on' : ''}" data-a="source" data-s="${esc(s)}">${icon(s === a.source ? 'mdi:volume-high' : 'mdi:speaker')}<span>${esc(s)}</span></button>`).join('')}` : ''}
     ${cast.length ? `<div class="hint" style="margin:14px 0 6px">Google Cast</div>${cast.map(c => `<button class="row ${c.playing ? 'on' : ''}" data-a="cast" data-id="${esc(c.id)}" data-n="${esc(c.name)}">${icon(c.playing ? 'mdi:volume-high' : 'mdi:cast-audio')}<span>${esc(c.name)}</span></button>`).join('')}` : ''}
     ${sources.length || cast.length ? '' : '<div class="hint">Er zijn nu geen apparaten gevonden. Open Spotify op een telefoon of speaker.</div>'}`;
-}
-
-// Delen: een QR-code van wat nu speelt (spotify:track:ID wordt open.spotify.com/track/ID). Een Jam kan Spotify niet aan Home Assistant doorgeven.
-function renderShare(main) {
-  const uri = String(state()?.attributes.media_content_id ?? '');
-  const m = uri.match(/^spotify:(track|album|playlist|episode):(\w+)$/);
-  const link = m ? `https://open.spotify.com/${m[1]}/${m[2]}` : '';
-  let svg = '';
-  if (link) {
-    try { const q = qrcode(0, 'M'); q.addData(link); q.make(); svg = q.createSvgTag(4, 0).replace(/width="[^"]*"/, '').replace(/height="[^"]*"/, ''); }
-    catch (e) { svg = ''; }
-  }
-  main.innerHTML = svg
-    ? `<div class="hint" style="text-align:center">Scan om dit te openen in Spotify:<br><b>${esc(state()?.attributes.media_title ?? '')}</b></div><div class="qr">${svg}</div>`
-    : '<div class="hint">Er speelt nu niets om te delen.</div>';
 }
