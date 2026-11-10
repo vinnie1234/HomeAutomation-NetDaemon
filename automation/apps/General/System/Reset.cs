@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Represents an application that handles the reset logic for alarms and lights.
@@ -40,15 +40,15 @@ public class Reset : BaseApp
         
         if (Entities.InputBoolean.Disablereset.IsOff())
         {
-            ResetAlarmAsync();
-            ResetLightsAsync();
+            ResetAlarm();
+            ResetLights();
         }
     }
 
     /// <summary>
     /// Resets the alarms by comparing the current active alarms with the stored alarms.
     /// </summary>
-    private void ResetAlarmAsync()
+    private void ResetAlarm()
     {
         // //todo TTP steps!
         // var oldAlarms = _storage.Get<List<AlarmStateModel?>>("LightState");
@@ -73,7 +73,7 @@ public class Reset : BaseApp
     /// <summary>
     /// Resets the lights to their previous states.
     /// </summary>
-    private void ResetLightsAsync()
+    private void ResetLights()
     {
         //todo TTP steps!
         LightEntitiesStates = _storage.Get<List<LightStateModel>>("LightState");
@@ -120,7 +120,7 @@ public class Reset : BaseApp
     /// <param name="light">The light entity to turn on.</param>
     private static void TurnOnReset(LightStateModel oldStateLight, LightEntity light)
     {
-        if ((light.Attributes?.SupportedColorModes ?? Array.Empty<string>()).Any(x => x == "xy"))
+        if ((light.Attributes?.SupportedColorModes ?? []).Any(x => x == "xy"))
         {
             if (oldStateLight.RgbColors != null)
             {
@@ -139,7 +139,7 @@ public class Reset : BaseApp
         {
             if (light.Attributes == null ||
                 (light.Attributes?.SupportedColorModes ??
-                 Array.Empty<string>())
+                 [])
                 .Any(x => x == "onoff"))
                 light.TurnOn();
             else

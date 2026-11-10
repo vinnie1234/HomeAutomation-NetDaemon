@@ -5,7 +5,7 @@ using NetDaemon.Client;
 
 // ReSharper disable UnusedParameter.Local
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 //[NetDaemonApp(Id = nameof(TestApp))]
 //[Focus]

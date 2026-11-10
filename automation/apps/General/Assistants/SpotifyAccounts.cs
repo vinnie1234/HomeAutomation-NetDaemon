@@ -3,7 +3,7 @@ using Automation.Configuration;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Assistants;
 
 /// <summary>
 /// Keeps the choice of Spotify account on the pages of Vincent and Carleen in line with the accounts that Spotcast has
@@ -68,7 +68,7 @@ public class SpotifyAccounts : BaseApp
         try
         {
             foreach (var person in SpotifyChoice.People)
-                foreach (var room in System.Enum.GetValues<SpotifyRoom>())
+                foreach (var room in global::System.Enum.GetValues<SpotifyRoom>())
                 {
                     var helper = SpotifyChoice.PlaylistHelper(room, person);
                     var state = HaContext.GetState(helper)?.State;
@@ -109,7 +109,7 @@ public class SpotifyAccounts : BaseApp
                 var current = new List<string>();
                 if (state?.AttributesJson is { ValueKind: JsonValueKind.Object } a &&
                     a.TryGetProperty("options", out var existing) && existing.ValueKind == JsonValueKind.Array)
-                    current = existing.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+                    current = [.. existing.EnumerateArray().Select(x => x.GetString() ?? "")];
 
                 if (!current.SequenceEqual(options))
                 {
@@ -119,7 +119,7 @@ public class SpotifyAccounts : BaseApp
 
                 // The chosen account is no longer a choice: the same account with other integrations behind it (it got linked in one more
                 // place, or lost one) stays chosen under its new name; an account that is gone goes back to the default account
-                if (state?.State is { Length: > 0 } chosen && chosen is not ("unknown" or "unavailable") && !options.Contains(chosen))
+                if (state?.State is { Length: > 0 } chosen and not ("unknown" or "unavailable") && !options.Contains(chosen))
                 {
                     var name = SpotifyChoice.NameOf(chosen);
                     var renamed = options.FirstOrDefault(o => o != SpotifyChoice.NoAccount && string.Equals(SpotifyChoice.NameOf(o), name, StringComparison.OrdinalIgnoreCase));

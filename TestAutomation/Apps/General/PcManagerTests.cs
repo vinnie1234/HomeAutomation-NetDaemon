@@ -1,5 +1,5 @@
 using NSubstitute;
-using Automation.apps.General;
+using Automation.apps.General.Work;
 using NetDaemon.HassModel.Entities;
 using TestAutomation.Helpers;
 using Xunit;

@@ -3,7 +3,7 @@ using Automation.Configuration;
 using Automation.Models.Energy;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Keeps track of the electricity used while Vincent works from home: on home work days, while
@@ -69,7 +69,7 @@ public class HomeWorkEnergyTracker : BaseApp
         try
         {
             if (!_entityManager.EntityExists(SensorId))
-                await _entityManager.Create(SensorId, new EntityCreationOptions
+                await _entityManager.CreateAsync(SensorId, new EntityCreationOptions
                 {
                     Name = "Thuiswerken kosten vandaag",
                     UnitOfMeasurement = "€",
@@ -90,19 +90,20 @@ public class HomeWorkEnergyTracker : BaseApp
         lock (_lock)
         {
             var active = IsWorkingFromHome;
-            if (active && _previous == null)
+            switch (active)
             {
-                _previous = ReadMeters();
-                _lastTick = Scheduler.Now;
-                Logger.LogInformation("Thuiswerken: begonnen met meten");
-            }
-            else if (!active && _previous != null)
-            {
-                CountStepLocked();
-                AddMinutes();
-                _previous = null;
-                Save();
-                Logger.LogInformation("Thuiswerken: gestopt met meten");
+                case true when _previous == null:
+                    _previous = ReadMeters();
+                    _lastTick = Scheduler.Now;
+                    Logger.LogInformation("Thuiswerken: begonnen met meten");
+                    break;
+                case false when _previous != null:
+                    CountStepLocked();
+                    AddMinutes();
+                    _previous = null;
+                    Save();
+                    Logger.LogInformation("Thuiswerken: gestopt met meten");
+                    break;
             }
         }
     }

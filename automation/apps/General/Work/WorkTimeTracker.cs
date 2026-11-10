@@ -4,7 +4,7 @@ using Automation.Configuration;
 using Automation.Models.Work;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Keeps track of how long Vincent works, from the work laptop: every minute that the laptop is on within the working hours of a working
@@ -62,7 +62,7 @@ public class WorkTimeTracker : BaseApp
         try
         {
             if (!_entityManager.EntityExists(Sensor))
-                await _entityManager.Create(Sensor, new EntityCreationOptions { Name = "Werktijd Vincent", Icon = "mdi:timer-outline", UnitOfMeasurement = "h" });
+                await _entityManager.CreateAsync(Sensor, new EntityCreationOptions { Name = "Werktijd Vincent", Icon = "mdi:timer-outline", UnitOfMeasurement = "h" });
             Publish();
         }
         catch (Exception ex)

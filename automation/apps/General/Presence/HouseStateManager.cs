@@ -1,10 +1,13 @@
+using System.Globalization;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
+using Automation.apps.General.Work;
 using Automation.Configuration;
 using Automation.Enum;
 using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 [NetDaemonApp(Id = nameof(HouseStateManager))]
 public class HouseStateManager : BaseApp
@@ -65,28 +68,35 @@ public class HouseStateManager : BaseApp
         Entities.Scene.Woonkamermorning.StateChanges().Subscribe(_ => SetHouseState(HouseState.Morning));
     }
 
+    /// <summary>The wake-up at the time of the next alarm; replaced whenever the next alarm changes.</summary>
+    private readonly SerialDisposable _alarmWakeUp = new();
+
+    /// <summary>The furthest an alarm may lie ahead to be scheduled: further away it will be looked at again once it is the next one.</summary>
+    private static readonly TimeSpan AlarmLookAhead = TimeSpan.FromHours(36);
+
     /// <summary>
-    /// Sets the sleeping state off based on the alarm.
+    /// Sets Vincent's sleeping state off when his alarm goes off: the state of <c>sensor.hub_vincent_alarms</c> is the time of the next alarm.
+    /// A change of that alarm (set, moved, switched off, or gone off and replaced by the next) schedules it again.
     /// </summary>
     private void SetSleepingOffFromAlarm()
     {
-        // Scheduler.ScheduleCron("00 00 * * *", () =>
-        // {
-        //     var alarmsHubJson = JsonConvert.SerializeObject(Entities.Sensor.HubVincentAlarms.Attributes?.Alarms);
-        //     var alarmsHub = JsonConvert.DeserializeObject<List<AlarmStateModel>>(alarmsHubJson);
-        //     var alarmToday =
-        //         alarmsHub?.Find(alarmStateModel =>
-        //             !string.IsNullOrEmpty(alarmStateModel.LocalTime) &&
-        //             DateTimeOffset.Parse(alarmStateModel.LocalTime, new CultureInfo("nl-Nl")).Date == DateTimeOffset.Now.Date);
-        //
-        //     if (alarmToday is { LocalTime: not null })
-        //         Scheduler.Schedule(DateTimeOffset.Parse(alarmToday.LocalTime, new CultureInfo("nl-Nl")), () =>
-        //         {
-        //             Logger.LogDebug("Setting schedular for {Time}. Sleeping off from alarm",
-        //                 alarmToday.LocalTime);
-        //             Entities.InputBoolean.Sleeping.TurnOff();
-        //         });
-        // });
+        Entities.Sensor.HubVincentAlarms.StateChanges().Subscribe(x => ScheduleWakeUp(x.New?.State));
+        ScheduleWakeUp(Entities.Sensor.HubVincentAlarms.State);
+    }
+
+    private void ScheduleWakeUp(string? nextAlarm)
+    {
+        _alarmWakeUp.Disposable = null;
+        if (!DateTimeOffset.TryParse(nextAlarm, CultureInfo.InvariantCulture, DateTimeStyles.None, out var alarm)) return;
+        if (alarm <= Scheduler.Now || alarm - Scheduler.Now > AlarmLookAhead) return;
+
+        _alarmWakeUp.Disposable = Scheduler.Schedule(alarm, () =>
+        {
+            if (!Entities.InputBoolean.Sleepingvincent.IsOn()) return;
+            Logger.LogInformation("The alarm of {Time} went off: Vincent is awake", alarm);
+            Core.ActivityContext.Note($"De wekker van {Extensions.SchedulerExtensions.ToDutchTime(alarm):HH:mm} gaat af");
+            Entities.InputBoolean.Sleepingvincent.TurnOff();
+        });
     }
 
     /// <summary>
@@ -122,8 +132,15 @@ public class HouseStateManager : BaseApp
         {
             if (CalendarWorkHours(person) is not { } hours || schedule.IsDayOff(now.DayOfWeek)) continue;
             var shouldWork = now >= hours.Start && now < hours.End;
-            if (shouldWork && schedule.Working.IsOff()) schedule.Working.TurnOn();
-            else if (!shouldWork && schedule.Working.IsOn()) schedule.Working.TurnOff();
+            switch (shouldWork)
+            {
+                case true when schedule.Working.IsOff():
+                    schedule.Working.TurnOn();
+                    break;
+                case false when schedule.Working.IsOn():
+                    schedule.Working.TurnOff();
+                    break;
+            }
         }
     }
 
@@ -204,13 +221,13 @@ public class HouseStateManager : BaseApp
         try
         {
             var now = Scheduler.NowNl().DateTime;
-            _handledEdges.RemoveWhere(key => !key.Contains(now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
+            _handledEdges.RemoveWhere(key => !key.Contains(now.ToString("yyyy-MM-dd", global::System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
             foreach (var (person, schedule) in new[] { ("vincent", VincentSchedule), ("carleen", CarleenSchedule) })
             {
                 if (CalendarWorkHours(person) is { } read) _calendarHours[person] = (now.Date, read.Start, read.End);
                 if (!_calendarHours.TryGetValue(person, out var hours) || hours.Date != now.Date || schedule.IsDayOff(now.DayOfWeek)) continue;
 
-                var day = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                var day = now.ToString("yyyy-MM-dd", global::System.Globalization.CultureInfo.InvariantCulture);
                 if (now >= hours.Start && now < hours.End && _handledEdges.Add($"{person}|{day}|start") && schedule.Working.IsOff()) schedule.Working.TurnOn();
                 if (now >= hours.End && _handledEdges.Add($"{person}|{day}|end") && schedule.Working.IsOn() && !LaptopKeepsWorking(person, hours.End)) schedule.Working.TurnOff();
             }
@@ -227,8 +244,15 @@ public class HouseStateManager : BaseApp
     private void UpdateWorking()
     {
         var anyoneWorking = VincentSchedule.Working.IsOn() || CarleenSchedule.Working.IsOn();
-        if (anyoneWorking && Entities.InputBoolean.Working.IsOff()) Entities.InputBoolean.Working.TurnOn();
-        else if (!anyoneWorking && Entities.InputBoolean.Working.IsOn()) Entities.InputBoolean.Working.TurnOff();
+        switch (anyoneWorking)
+        {
+            case true when Entities.InputBoolean.Working.IsOff():
+                Entities.InputBoolean.Working.TurnOn();
+                break;
+            case false when Entities.InputBoolean.Working.IsOn():
+                Entities.InputBoolean.Working.TurnOff();
+                break;
+        }
     }
 
     /// <summary>

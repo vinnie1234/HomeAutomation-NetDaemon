@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Assistants;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;

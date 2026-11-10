@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Interfaces;
 using Automation.Models;
 using NetDaemon.HassModel.Entities;
@@ -49,6 +49,8 @@ public class ResetTests
         ctx.VerifyCallService("light", "turn_off", "bureau", times: 1);
     }
 
+    private static readonly string[] value1 = ["xy", "color_temp"];
+
     [Fact]
     public void Reset_ShouldResetLightsWithRgb_WhenSupportedColorModesContainsXy()
     {
@@ -61,7 +63,7 @@ public class ResetTests
         // Mock light state in HomeAssistant context so it has the supported color modes in attributes
         var attributes = new Dictionary<string, object>
         {
-            { "supported_color_modes", new[] { "xy", "color_temp" } }
+            { "supported_color_modes", value1 }
         };
         ctx.HaContext.GetState("light.bureau").Returns(new EntityState
         {
@@ -83,6 +85,8 @@ public class ResetTests
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
     }
 
+    private static readonly string[] value2 = ["color_temp"];
+
     [Fact]
     public void Reset_ShouldResetLightsWithColorTemp_WhenSupportedColorModesDoesNotContainXyAndContainsOtherModes()
     {
@@ -94,7 +98,7 @@ public class ResetTests
         
         var attributes = new Dictionary<string, object>
         {
-            { "supported_color_modes", new[] { "color_temp" } }
+            { "supported_color_modes", value2 }
         };
         ctx.HaContext.GetState("light.bureau").Returns(new EntityState
         {
@@ -116,6 +120,8 @@ public class ResetTests
         ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
     }
 
+    private static readonly string[] value3 = ["onoff"];
+
     [Fact]
     public void Reset_ShouldResetLightsOnOff_WhenSupportedColorModesContainsOnOff()
     {
@@ -127,7 +133,7 @@ public class ResetTests
         
         var attributes = new Dictionary<string, object>
         {
-            { "supported_color_modes", new[] { "onoff" } }
+            { "supported_color_modes", value3 }
         };
         ctx.HaContext.GetState("light.bureau").Returns(new EntityState
         {

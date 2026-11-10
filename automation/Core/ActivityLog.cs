@@ -1,13 +1,13 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
+using Automation.apps.General.System;
 
 namespace Automation.Core;
 
 /// <summary>
 /// The activity log of NetDaemon: every action an app takes in Home Assistant (a light that goes on, a scene, a message, a status that
 /// changes) becomes one event <c>netdaemon_activity</c> with who did it (the app), what, where (the room) and for whom (the person).
-/// <see cref="Automation.apps.General.ActivityRecorder"/> turns each event into a state of the sensor <c>sensor.netdaemon_activiteit</c>, which
+/// <see cref="ActivityRecorder"/> turns each event into a state of the sensor <c>sensor.netdaemon_activiteit</c>, which
 /// NetDaemon creates itself; Home Assistant keeps it in its history, and the dashboard page Activiteit reads that history and filters it.
 /// This replaces reading the text logs.
 /// </summary>
@@ -43,7 +43,7 @@ public static class ActivityLog
                 .Select(c => $"{NameOf(inner, c.Entity)}: {ActivityTrigger.StateText(c.State)}")];
 
     /// <summary>
-    /// The actions from the first moments after NetDaemon started, before <see cref="Automation.apps.General.ActivityRecorder"/> was
+    /// The actions from the first moments after NetDaemon started, before <see cref="ActivityRecorder"/> was
     /// listening: the apps wake up in no fixed order and many of them act at once. The recorder takes them over when it starts.
     /// </summary>
     public static ActivityBacklog Backlog { get; } = new();
@@ -182,7 +182,7 @@ public static class ActivityLog
             var area = ha.GetAreaFromEntityId(entity)?.Name;
             if (!string.IsNullOrWhiteSpace(area) && !rooms.Contains(area, StringComparer.OrdinalIgnoreCase)) rooms.Add(area);
         }
-        return rooms.Count > 0 ? rooms : RoomsOf(texts).ToList();
+        return rooms.Count > 0 ? rooms : [.. RoomsOf(texts)];
     }
 
     /// <summary>The rooms an action touches: from the words in the entities, their names and the text.</summary>
@@ -190,7 +190,7 @@ public static class ActivityLog
     {
         var all = string.Join(' ', texts).ToLowerInvariant();
         foreach (var (room, words) in Rooms)
-            if (words.Any(w => w.Length >= 5 ? all.Contains(w, StringComparison.Ordinal) : Regex.IsMatch(all, $@"(?<![a-z0-9]){w}(?![a-z0-9])")))
+            if (words.Any(w => w.Length >= 5 ? all.Contains(w, StringComparison.Ordinal) : Regex.IsMatch(all, $"(?<![a-z0-9]){w}(?![a-z0-9])")))
                 yield return room;
     }
 
@@ -217,7 +217,7 @@ public static class ActivityLog
     {
         var name = ha.GetState(entityId)?.AttributesJson is { ValueKind: JsonValueKind.Object } a &&
                    a.TryGetProperty("friendly_name", out var f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null;
-        return string.IsNullOrWhiteSpace(name) ? entityId : name!;
+        return string.IsNullOrWhiteSpace(name) ? entityId : name;
     }
 
     private static JsonElement? ToJson(object? data)
@@ -268,9 +268,14 @@ public static class ActivityLog
         if (data is not { ValueKind: JsonValueKind.Object } d) return "";
         string? Get(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-        string? text = null;
-        if (domain == "whatsapp" && d.TryGetProperty("body", out var body)) text = Get(body, "text");
-        else if (domain == "notify") text = Get(d, "message") is { Length: > 0 } m ? (Get(d, "title") is { Length: > 0 } t ? $"{t}: {m}" : m) : Get(d, "title");
+        var text = domain switch
+        {
+            "whatsapp" when d.TryGetProperty("body", out var body) => Get(body, "text"),
+            "notify" => Get(d, "message") is { Length: > 0 } m
+                ? Get(d, "title") is { Length: > 0 } t ? $"{t}: {m}" : m
+                : Get(d, "title"),
+            _ => null
+        };
         return string.IsNullOrWhiteSpace(text) ? "" : Trim(text.Replace('\n', ' ').Trim(), 90);
     }
 

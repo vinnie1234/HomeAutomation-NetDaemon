@@ -3,7 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Tells Home Assistant every minute that NetDaemon is alive, by setting <c>input_datetime.netdaemon_heartbeat</c> to the
@@ -50,7 +50,7 @@ public class NetDaemonHeartbeat : BaseApp
         {
             // When it exists, Beat() already published the first beat; a new sensor gets it right after it is created
             if (_entityManager.EntityExists(MqttBeatId)) return;
-            await _entityManager.Create(MqttBeatId, new EntityCreationOptions
+            await _entityManager.CreateAsync(MqttBeatId, new EntityCreationOptions
             {
                 Name = "NetDaemon MQTT levensteken",
                 DeviceClass = "timestamp",

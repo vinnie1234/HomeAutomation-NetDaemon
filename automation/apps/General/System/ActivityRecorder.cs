@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using NetDaemon.Extensions.MqttEntityManager;
 using EntityCreationOptions = Automation.Interfaces.EntityCreationOptions;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Turns the actions of NetDaemon (the <c>netdaemon_activity</c> events of <see cref="ActivityLog"/>) into the sensor
@@ -43,7 +43,7 @@ public sealed class ActivityRecorder : BaseApp
         _mqtt = mqtt;
 
         HaContext.Events
-            .Where(e => e.EventType == ActivityLog.EventType && e.DataElement is { ValueKind: JsonValueKind.Object })
+            .Where(e => e is { EventType: ActivityLog.EventType, DataElement.ValueKind: JsonValueKind.Object })
             .Subscribe(e => _queue.Writer.TryWrite(e.DataElement!.Value.Clone()));
 
         // What happened before this app was listening (the apps start in no fixed order); an action in both places is written once
@@ -57,7 +57,7 @@ public sealed class ActivityRecorder : BaseApp
         try
         {
             if (!_entityManager.EntityExists(Sensor))
-                await _entityManager.Create(Sensor, new EntityCreationOptions { Name = "NetDaemon activiteit", Icon = "mdi:history" });
+                await _entityManager.CreateAsync(Sensor, new EntityCreationOptions { Name = "NetDaemon activiteit", Icon = "mdi:history" });
         }
         catch (Exception ex)
         {
@@ -65,7 +65,6 @@ public sealed class ActivityRecorder : BaseApp
         }
 
         await foreach (var entry in _queue.Reader.ReadAllAsync())
-        {
             try
             {
                 var id = entry.TryGetProperty("id", out var i) ? i.GetString() : null;
@@ -78,6 +77,5 @@ public sealed class ActivityRecorder : BaseApp
             {
                 Logger.LogWarning(ex, "Could not write an action to {Sensor}", Sensor);
             }
-        }
     }
 }

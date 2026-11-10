@@ -16,7 +16,7 @@ namespace TestAutomation.Apps.Rooms;
 
 public class BathRoomLightsTests
 {
-    private void SetupDefaultStates(AppTestContext ctx)
+    private static void SetupDefaultStates(AppTestContext ctx)
     {
         ctx.HaContext.GetState("input_boolean.disablelightautomationbathroom").Returns(new EntityState { State = "off" });
         ctx.HaContext.GetState("input_boolean.douchen").Returns(new EntityState { State = "off" });
@@ -126,7 +126,7 @@ public class BathRoomLightsTests
 
         // Not the night brightness (the default of the circadian service for night mode is lower than 20%)
         ctx.HaContext.DidNotReceive().CallService("light", "turn_on", Arg.Any<ServiceTarget?>(),
-            Arg.Is<object>(d => System.Text.Json.JsonSerializer.Serialize(d, (System.Text.Json.JsonSerializerOptions?)null).Contains("\"brightness_pct\":5,")));
+            Arg.Is<object>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("\"brightness_pct\":5,")));
     }
 
     [Fact]

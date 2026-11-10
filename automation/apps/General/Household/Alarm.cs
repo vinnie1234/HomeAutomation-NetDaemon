@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
-using Automation.Models.DiscordNotificationModels;
-using Microsoft.Extensions.Options;
 using Automation.Configuration;
 using Automation.Core;
 using Automation.Helpers;
+using Automation.Models.DiscordNotificationModels;
+using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Represents the Alarm application that monitors various sensors and triggers notifications based on specific conditions.
@@ -18,8 +18,6 @@ public class Alarm : BaseApp
 
     private readonly IEntityManager _entityManager;
     private readonly IDataRepository _storage;
-
-    private const string PetSnowyEvent = "event.snow_self_cleaning_litter_box_device_notifications";
 
     /// <summary>Words that make a litter box notification worth waking the phones for (English, Dutch and what a full bin or jam might say).</summary>
     private static readonly string[] ProblemWords = ["error", "fault", "alarm", "fout", "storing", "stuck", "jam", "blocked", "full", "vol", "overload"];
@@ -139,7 +137,7 @@ public class Alarm : BaseApp
         try
         {
             if (!_entityManager.EntityExists(HighUsageSensor))
-                await _entityManager.Create(HighUsageSensor, new EntityCreationOptions { Name = "Hoog stroomverbruik", Icon = "mdi:flash-alert" });
+                await _entityManager.CreateAsync(HighUsageSensor, new EntityCreationOptions { Name = "Hoog stroomverbruik", Icon = "mdi:flash-alert" });
             SetHighUsage(false, null);
         }
         catch (Exception ex)
@@ -241,7 +239,7 @@ public class Alarm : BaseApp
                 if (!_entityManager.EntityExists(entityId))
                     try
                     {
-                        await _entityManager.Create(entityId, new EntityCreationOptions
+                        await _entityManager.CreateAsync(entityId, new EntityCreationOptions
                         {
                             Name = $"{displayName} keer buiten gezet",
                             Icon = "mdi:trash-can",
@@ -442,20 +440,14 @@ public class Alarm : BaseApp
             
 
             if (string.IsNullOrEmpty(lastLocalBackString))
-            {
                 Notify.NotifyDiscord("Er is geen  backup", [_config.Discord.Logs]);
-            }
             else if (!DateTimeOffset.TryParse(lastLocalBackString, CultureInfo.InvariantCulture, out var lastBackup))
-            {
                 // e.g. "unknown"/"unavailable": a broken backup sensor must not go unnoticed
                 Notify.NotifyDiscord($"De backup status is onbekend ({lastLocalBackString})", [_config.Discord.Logs]);
-            }
             else if (lastBackup < DateTimeOffset.Now.AddDays(-2))
-            {
                 Notify.NotifyDiscord(
                     $"Er is al 2 dagen geen backup, laatste backup is van {lastLocalBackString}",
                     [_config.Discord.Logs]);
-            }
         });
     }
 }

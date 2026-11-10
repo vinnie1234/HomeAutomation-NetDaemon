@@ -8,7 +8,7 @@ namespace TestAutomation.Apps.Rooms;
 
 public class TvTests
 {
-    private void SetupDefaultStates(AppTestContext ctx)
+    private static void SetupDefaultStates(AppTestContext ctx)
     {
         ctx.HaContext.GetState("input_boolean.disablelightautomationlivingroom").Returns(new EntityState { EntityId = "input_boolean.disablelightautomationlivingroom", State = "off" });
         ctx.HaContext.GetState("input_boolean.working").Returns(new EntityState { EntityId = "input_boolean.working", State = "off" });

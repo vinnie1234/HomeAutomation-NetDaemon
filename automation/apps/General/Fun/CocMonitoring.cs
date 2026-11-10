@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Models.COC;
 using Automation.Models.DiscordNotificationModels;
 using Automation.Models.Twitter;
-using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using RestSharp;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Fun;
 [NetDaemonApp(Id = nameof(CocMonitoring))]
 public class CocMonitoring : BaseApp
 {
@@ -106,7 +106,7 @@ public class CocMonitoring : BaseApp
                     Thumbnail = new Location("https://www.pngitem.com/pimgs/m/32-325072_logo-coc-png-clash-of-clans-logo-transparent.png"),
                     Description = tweet.Text
                 },
-                Urls = url.ToArray()
+                Urls = [.. url]
             };
 
             Notify.NotifyDiscord("", [discordChannel], discordModel);

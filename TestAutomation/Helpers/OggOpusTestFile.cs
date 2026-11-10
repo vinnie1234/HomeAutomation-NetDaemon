@@ -21,7 +21,7 @@ public static class OggOpusTestFile
         {
             var outBuffer = new byte[4000];
             var length = encoder.Encode(pcm.AsSpan(offset, frameSize), frameSize, outBuffer, outBuffer.Length);
-            packets.Add(outBuffer.AsSpan(0, length).ToArray());
+            packets.Add([.. outBuffer.AsSpan(0, length)]);
         }
 
         return BuildFile(packets, sampleRate);

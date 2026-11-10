@@ -3,7 +3,7 @@ namespace Automation.apps;
 public class Spotcast(IHaContext rawHa) : ISpotcast
 {
     // What this plays is written to the activity log as the app Spotcast
-    private readonly IHaContext ha = new Core.ActivityHaContext(rawHa, nameof(Spotcast));
+    private readonly IHaContext _ha = new Core.ActivityHaContext(rawHa, nameof(Spotcast));
     private readonly Entities _entities = new(rawHa);
 
     public void PlaySpotify(MediaPlayerEntity mediaPlayer, string spotifyUrl, string? account = null)
@@ -28,7 +28,7 @@ public class Spotcast(IHaContext rawHa) : ISpotcast
 
             if (!string.IsNullOrEmpty(account)) serviceData["account"] = account;
 
-            ha.CallService("spotcast", "play_media", null, serviceData);
+            _ha.CallService("spotcast", "play_media", null, serviceData);
         }
     }
 }

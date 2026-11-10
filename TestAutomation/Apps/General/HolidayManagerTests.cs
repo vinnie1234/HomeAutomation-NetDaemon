@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Presence;
 using Automation.Interfaces;
 using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;

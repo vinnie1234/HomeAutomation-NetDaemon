@@ -11,7 +11,7 @@ public class EntityManager(IMqttEntityManager mqttEntityManager, IHaContext haCo
     /// <summary>
     /// Creates an entity in Home Assistant using MQTT Entity Manager.
     /// </summary>
-    public async Task Create(string entityId, EntityCreationOptions options)
+    public async Task CreateAsync(string entityId, EntityCreationOptions options)
     {
         try
         {

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Options;

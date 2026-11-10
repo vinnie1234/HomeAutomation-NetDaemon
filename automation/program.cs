@@ -2,14 +2,14 @@ using System.Reflection;
 using Automation;
 using Automation.Configuration;
 using Automation.CustomLogger;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using NetDaemon.Extensions.Tts;
 using NetDaemon.Extensions.MqttEntityManager;
+using NetDaemon.Extensions.Tts;
 using NetDaemon.Runtime;
 
 #pragma warning disable CA1812
@@ -98,4 +98,7 @@ catch (Exception ex)
     throw;
 }
 
-public partial class Program;
+namespace Automation
+{
+    public class Program;
+}

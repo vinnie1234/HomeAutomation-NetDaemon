@@ -5,7 +5,7 @@ using Automation.Models.Assist;
 using Automation.Models.WhatsApp;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Assistants;
 
 /// <summary>
 /// Lets Vincent and Carleen control the house, and ask questions, over WhatsApp. A text message is sent
@@ -163,7 +163,7 @@ public class WhatsAppAssistant : BaseApp
     private async Task ProcessUserMessageAsync(string sender, string userText, bool isVoice)
     {
         // "Boodschappen melk" or "AH melk, brood" goes straight onto the shopping list
-        if (GroceryList.ParseMessage(userText) is { } groceries)
+        if (Household.GroceryList.ParseMessage(userText) is { } groceries)
         {
             foreach (var item in groceries)
                 Entities.Todo.Boodschappen.AddItem(item);
@@ -210,7 +210,7 @@ public class WhatsAppAssistant : BaseApp
     private async Task<bool> TryForwardLastReplyAsync(string sender, string userText, IReadOnlyList<WhatsAppConversationTurn> history)
     {
         // "Stuur door" is clear on its own (and is what the travel messages say); other wordings are left to the conversation agent
-        var plainRequest = System.Text.RegularExpressions.Regex.IsMatch(userText.Trim(), @"^stuur\s*door[.!]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var plainRequest = global::System.Text.RegularExpressions.Regex.IsMatch(userText.Trim(), @"^stuur\s*door[.!]*$", global::System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (!plainRequest && !await IsForwardRequestAsync(userText)) return false;
 
         var lastReply = history.Count > 0 ? history[^1].AssistantReply : null;

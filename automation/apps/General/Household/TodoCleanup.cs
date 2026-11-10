@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Every night at midnight (Dutch time) removes the completed items from all todo lists in Home Assistant, so the lists
@@ -26,7 +26,6 @@ public class TodoCleanup : BaseApp
     private void RemoveCompleted()
     {
         foreach (var list in Entities.Todo.EnumerateAll())
-        {
             try
             {
                 new TodoEntity(HaContext, list.EntityId).RemoveCompletedItems();
@@ -36,6 +35,5 @@ public class TodoCleanup : BaseApp
             {
                 Logger.LogWarning(ex, "Could not remove the completed items of {List}", list.EntityId);
             }
-        }
     }
 }

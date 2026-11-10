@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Microsoft.Extensions.Options;
@@ -16,12 +16,13 @@ public class NetDaemonHeartbeatTests
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
 
     private List<long> Beats() =>
-        _ctx.HaContext.ReceivedCalls()
+    [
+        .. _ctx.HaContext.ReceivedCalls()
             .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "input_datetime" &&
                         (string)c.GetArguments()[1]! == "set_datetime" &&
                         ((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single() == NetDaemonHeartbeat.HeartbeatId)
             .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("timestamp").GetInt64())
-            .ToList();
+    ];
 
     [Fact]
     public void AtStartup_TheFirstBeatIsSentAtOnce_WithTheCurrentTime()
@@ -49,7 +50,7 @@ public class NetDaemonHeartbeatTests
     {
         var exists = sensorExists;
         _entityManager.EntityExists(NetDaemonHeartbeat.MqttBeatId).Returns(_ => exists);
-        _entityManager.Create(NetDaemonHeartbeat.MqttBeatId, Arg.Any<EntityCreationOptions>()).Returns(_ =>
+        _entityManager.CreateAsync(NetDaemonHeartbeat.MqttBeatId, Arg.Any<EntityCreationOptions>()).Returns(_ =>
         {
             exists = true;
             return Task.CompletedTask;
@@ -58,17 +59,19 @@ public class NetDaemonHeartbeatTests
     }
 
     private List<string> MqttBeats() =>
-        _entityManager.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState) && (string)c.GetArguments()[0]! == NetDaemonHeartbeat.MqttBeatId)
+    [
+        .. _entityManager.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState) &&
+                        (string)c.GetArguments()[0]! == NetDaemonHeartbeat.MqttBeatId)
             .Select(c => (string)c.GetArguments()[1]!)
-            .ToList();
+    ];
 
     [Fact]
     public void AtStartup_TheMqttSensorIsCreatedAsATimestamp_AndGetsItsFirstBeat()
     {
         StartWith(sensorExists: false);
 
-        _entityManager.Received(1).Create(NetDaemonHeartbeat.MqttBeatId, Arg.Is<EntityCreationOptions>(o => o.DeviceClass == "timestamp"));
+        _entityManager.Received(1).CreateAsync(NetDaemonHeartbeat.MqttBeatId, Arg.Is<EntityCreationOptions>(o => o.DeviceClass == "timestamp"));
         MqttBeats().Should().HaveCount(1);
     }
 
@@ -79,7 +82,7 @@ public class NetDaemonHeartbeatTests
 
         _ctx.AdvanceTimeBy(TimeSpan.FromMinutes(3).Ticks);
 
-        _entityManager.DidNotReceiveWithAnyArgs().Create(null!, null!);
+        _entityManager.DidNotReceiveWithAnyArgs().CreateAsync(null!, null!);
         var beats = MqttBeats();
         beats.Should().HaveCount(4);
         beats.Select(b => DateTimeOffset.Parse(b, System.Globalization.CultureInfo.InvariantCulture)).Zip(

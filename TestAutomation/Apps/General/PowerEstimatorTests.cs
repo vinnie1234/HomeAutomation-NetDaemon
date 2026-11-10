@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Microsoft.Extensions.Options;

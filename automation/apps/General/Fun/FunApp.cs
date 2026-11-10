@@ -5,7 +5,7 @@ using Automation.Enum;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Fun;
 
 [NetDaemonApp(Id = nameof(FunApp))]
 // ReSharper disable once UnusedType.Global

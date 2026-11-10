@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Represents an application that saves the state of lights and alarms, so <see cref="Reset"/> can restore
@@ -85,7 +85,7 @@ public class SaveInState : BaseApp, IAsyncInitializable
         //
         // return activeAlarmsHub;
 
-        return new List<AlarmStateModel?>();
+        return [];
     }
 
     /// <summary>

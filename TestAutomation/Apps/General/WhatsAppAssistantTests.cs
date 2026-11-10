@@ -1,6 +1,6 @@
 using System.Reactive.Subjects;
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Assistants;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Assist;
@@ -347,7 +347,7 @@ public class WhatsAppAssistantTests : IDisposable
         return GetProperty(d, "clientId") == "default" && keys is { } k &&
                k.GetProperty("id").GetString() == "ABC" &&
                k.GetProperty("remoteJid").GetString() == Vincent &&
-               k.GetProperty("fromMe").GetBoolean() == false;
+               !k.GetProperty("fromMe").GetBoolean();
     }
 
     [Fact]

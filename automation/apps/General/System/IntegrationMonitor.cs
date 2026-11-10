@@ -5,7 +5,7 @@ using Automation.Models.Integrations;
 using Microsoft.Extensions.Options;
 using NetDaemon.Client;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Watches the Home Assistant integrations every quarter of an hour. An integration has a problem when it failed
@@ -242,7 +242,7 @@ public class IntegrationMonitor : BaseApp
                 Title = $"Integratie {entry.Title} heeft problemen",
                 Description = $"Na {record.ReloadAttempts} keer herladen werkt de integratie nog steeds niet goed.",
                 Url = $"{_config.BaseUrlHomeAssistant}/config/integrations/integration/{entry.Domain}",
-                Fields = fields.ToArray()
+                Fields = [.. fields]
             }
         });
 
@@ -271,11 +271,14 @@ public class IntegrationMonitor : BaseApp
             .Where(e => seenLoaded.Contains(e.EntityId) && IsNotLoaded(e.EntityId))
             .ToLookup(e => e.ConfigEntryId!, e => e.EntityId);
 
-        return entries
-            .Where(e => e.DisabledBy is null)
-            .Select(e => new IntegrationProblem(e, notLoaded[e.EntryId].Order().ToList()))
-            .Where(p => IsWaitingForASleepingDevice(p.Entry) is false && (p.Entry.HasFailed || (p.Entry.State == "loaded" && p.NotLoadedEntities.Count > 0)))
-            .ToList();
+        return
+        [
+            .. entries
+                .Where(e => e.DisabledBy is null)
+                .Select(e => new IntegrationProblem(e, [.. notLoaded[e.EntryId].Order()]))
+                .Where(p => !IsWaitingForASleepingDevice(p.Entry) &&
+                            (p.Entry.HasFailed || (p.Entry.State == "loaded" && p.NotLoadedEntities.Count > 0)))
+        ];
     }
 
     /// <summary>Whether the integration only waits for a device that is off (see <see cref="SleepingDeviceDomains"/>).</summary>

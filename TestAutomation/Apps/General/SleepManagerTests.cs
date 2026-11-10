@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Presence;
 using Automation.Helpers;
 using Automation.Extensions;
 using Automation.Interfaces;
@@ -12,7 +12,7 @@ namespace TestAutomation.Apps.General;
 
 public class SleepManagerTests
 {
-    private AppTestContext SetupContext()
+    private static AppTestContext SetupContext()
     {
         var ctx = AppTestContext.New();
 

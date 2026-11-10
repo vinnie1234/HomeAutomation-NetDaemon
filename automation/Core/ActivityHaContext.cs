@@ -1,7 +1,3 @@
-using System.Reactive.Linq;
-using System.Text.Json;
-using NetDaemon.HassModel.Entities;
-
 namespace Automation.Core;
 
 /// <summary>

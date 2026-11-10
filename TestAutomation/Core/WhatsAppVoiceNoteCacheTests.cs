@@ -30,8 +30,8 @@ public class WhatsAppVoiceNoteCacheTests
     {
         var cache = new WhatsAppVoiceNoteCache();
 
-        var id1 = cache.Add("a"u8.ToArray());
-        var id2 = cache.Add("b"u8.ToArray());
+        var id1 = cache.Add([.. "a"u8]);
+        var id2 = cache.Add([.. "b"u8]);
 
         id1.Should().NotBe(id2);
     }

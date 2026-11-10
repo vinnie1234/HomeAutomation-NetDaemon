@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Assistants;
 using Automation.Configuration;
 using Automation.Helpers;
 using FluentAssertions;
@@ -31,7 +31,7 @@ public class SpotifyAccountsTests
     {
         SetState(id, state, attributes);
         _entities.Add(new Entity(_ctx.HaContext, id));
-        _ctx.HaContext.GetAllEntities().Returns(_entities.ToList());
+        _ctx.HaContext.GetAllEntities().Returns([.. _entities]);
     }
 
     /// <summary>A Spotcast account is known by the profile sensor it has.</summary>
@@ -49,7 +49,7 @@ public class SpotifyAccountsTests
         foreach (var person in SpotifyChoice.People)
             SetState(SpotifyChoice.AccountHelper(person), person == "vincent" ? vincentChoice : SpotifyChoice.NoAccount,
                 new { options = currentOptions ?? [SpotifyChoice.NoAccount] });
-        _ctx.HaContext.GetAllEntities().Returns(_entities.ToList());
+        _ctx.HaContext.GetAllEntities().Returns([.. _entities]);
         _ctx.InitApp<SpotifyAccounts>(Options.Create(config ?? new AppConfig()));
     }
 
@@ -58,14 +58,23 @@ public class SpotifyAccountsTests
         ((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single() == SpotifyChoice.AccountHelper(person) &&
         JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("options").EnumerateArray().Select(x => x.GetString()).SequenceEqual(options));
 
-    private List<string> Selected(string person) => _ctx.HaContext.ReceivedCalls()
-        .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[1]! == "select_option" &&
-                    ((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single() == SpotifyChoice.AccountHelper(person))
-        .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("option").GetString()!).ToList();
+    private List<string> Selected(string person) =>
+    [
+        .. _ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[1]! == "select_option" &&
+                        ((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single() ==
+                        SpotifyChoice.AccountHelper(person))
+            .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("option").GetString()!)
+    ];
 
-    private List<(string Helper, string Value)> Filled() => _ctx.HaContext.ReceivedCalls()
-        .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "input_text" && (string)c.GetArguments()[1]! == "set_value")
-        .Select(c => (((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single(), JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("value").GetString()!)).ToList();
+    private List<(string Helper, string Value)> Filled() =>
+    [
+        .. _ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "input_text" &&
+                        (string)c.GetArguments()[1]! == "set_value")
+            .Select(c => (((ServiceTarget)c.GetArguments()[2]!).EntityIds!.Single(),
+                JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("value").GetString()!))
+    ];
 
     [Fact]
     public void AtStartup_TheChoicesAreTheDefaultAccountPlusEveryAccountOfTheThreeIntegrations_WithWhereItIsLinked()
@@ -163,7 +172,7 @@ public class SpotifyAccountsTests
     public void AnUnknownPlaylist_IsFilledWithTheOneInConfigJson_ForBothPersons()
     {
         foreach (var person in SpotifyChoice.People)
-            foreach (var room in System.Enum.GetValues<SpotifyRoom>())
+            foreach (var room in Enum.GetValues<SpotifyRoom>())
                 SetState(SpotifyChoice.PlaylistHelper(room, person), "unknown");
 
         Start(config: WithPlaylists());

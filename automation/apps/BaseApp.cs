@@ -145,8 +145,8 @@ public class BaseApp
     {
         // Everything the app does in Home Assistant goes through this wrapper, which also writes it to the activity log
         var people = new Dictionary<string, string>();
-        if (config.Value.Whatsapp?.Vincent is { Length: > 0 } vincentJid) people[vincentJid] = "vincent";
-        if (config.Value.Whatsapp?.Carleen is { Length: > 0 } carleenJid) people[carleenJid] = "carleen";
+        if (config.Value.Whatsapp.Vincent is { Length: > 0 } vincentJid) people[vincentJid] = "vincent";
+        if (config.Value.Whatsapp.Carleen is { Length: > 0 } carleenJid) people[carleenJid] = "carleen";
         haContext = new ActivityHaContext(haContext, GetType().Name, people, ActivityLog.RoomOfApp(GetType()));
 
         HaContext = haContext;

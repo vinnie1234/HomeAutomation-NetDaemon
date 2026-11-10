@@ -9,7 +9,7 @@ namespace Automation.Helpers;
 /// cameras. Jams are matched to the route by road, by where they are and by the direction they go in; speed cameras have no
 /// direction we can compare, so they are shown with the direction the ANWB gives.
 /// </summary>
-public static class CommuteMessage
+public static partial class CommuteMessage
 {
     /// <summary>How far outside the straight line between start and end a jam or camera may be and still count as on the route, in degrees (~3 km).</summary>
     private const double Margin = 0.03;
@@ -24,22 +24,26 @@ public static class CommuteMessage
     public static CommuteDirection? DirectionOfName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var work = System.Text.RegularExpressions.Regex.Match(name, "werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        var home = System.Text.RegularExpressions.Regex.Match(name, "thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var work = WorkRegex().Match(name);
+        var home = HomeRegex().Match(name);
         if (!work.Success || !home.Success) return null;
         return work.Index < home.Index ? CommuteDirection.ToHome : CommuteDirection.ToWork;
     }
 
     /// <summary>The jams on the route: on one of its roads, inside its area and going the same way.</summary>
     public static IReadOnlyList<TrafficIncident> JamsOnRoute(RouteSnapshot route, IEnumerable<TrafficIncident> jams) =>
-        jams.Where(jam => OnRoad(route, jam) && (jam.Path.Count > 0 ? jam.Path.Any(p => InArea(route, p)) : InArea(route, jam.Position))
-                          && SameDirection(route, jam))
+    [
+        .. jams.Where(jam =>
+                OnRoad(route, jam) && (jam.Path.Count > 0
+                                       ? jam.Path.Any(p => InArea(route, p))
+                                       : InArea(route, jam.Position))
+                                   && SameDirection(route, jam))
             .OrderByDescending(jam => jam.DelayMin ?? 0)
-            .ToList();
+    ];
 
     /// <summary>The speed cameras on one of the roads of the route, inside its area.</summary>
     public static IReadOnlyList<TrafficIncident> RadarsOnRoute(RouteSnapshot route, IEnumerable<TrafficIncident> radars) =>
-        radars.Where(radar => OnRoad(route, radar) && InArea(route, radar.Position)).ToList();
+        [.. radars.Where(radar => OnRoad(route, radar) && InArea(route, radar.Position))];
 
     /// <summary>The WhatsApp message for one commute.</summary>
     /// <param name="direction">Whether he goes to the office or home.</param>
@@ -187,7 +191,7 @@ public static class CommuteMessage
             if (between > 0) lines.Add($"   … {between} {(between == 1 ? "halte" : "haltes")}");
             lines.Add($"   ➜ {Clock(arrival)}{Delay(leg.To)} {leg.To?.Name}{Platform(leg.To, leg.Mode)}");
             if (leg.Cancelled) lines.Add("   ❌ Deze rit vervalt");
-            foreach (var message in leg.Disruptions.Take(2)) lines.Add($"   ⚠️ {message}");
+            lines.AddRange(leg.Disruptions.Take(2).Select(message => $"   ⚠️ {message}"));
             previousRide = leg;
         }
 
@@ -289,4 +293,8 @@ public static class CommuteMessage
     private static string Minutes(double minutes) => $"{Math.Round(minutes).ToString("0", Dutch)} min";
 
     private static string Clock(DateTimeOffset time) => Extensions.SchedulerExtensions.ToDutchTime(time).ToString("HH:mm", Dutch);
+    [System.Text.RegularExpressions.GeneratedRegex("werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "nl-NL")]
+    private static partial System.Text.RegularExpressions.Regex WorkRegex();
+    [System.Text.RegularExpressions.GeneratedRegex("thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "nl-NL")]
+    private static partial System.Text.RegularExpressions.Regex HomeRegex();
 }

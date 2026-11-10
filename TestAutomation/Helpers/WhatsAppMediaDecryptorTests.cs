@@ -39,7 +39,7 @@ public class WhatsAppMediaDecryptorTests
     {
         var mediaKey = RandomNumberGenerator.GetBytes(32);
         var mediaKeyBase64 = Convert.ToBase64String(mediaKey);
-        var encrypted = WhatsAppMediaTestEncryptor.Encrypt("Audio bytes"u8.ToArray(), mediaKey, WhatsAppMediaDecryptor.MediaKind.Audio);
+        var encrypted = WhatsAppMediaTestEncryptor.Encrypt([.. "Audio bytes"u8], mediaKey, WhatsAppMediaDecryptor.MediaKind.Audio);
         encrypted[0] ^= 0xFF;
 
         var act = () => WhatsAppMediaDecryptor.Decrypt(encrypted, mediaKeyBase64, WhatsAppMediaDecryptor.MediaKind.Audio);

@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Assistants;
 
 /// <summary>
 /// Represents an application that translates Google Assistant button presses to other actions.

@@ -1,4 +1,3 @@
-using Automation.apps.General;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;
@@ -6,6 +5,7 @@ using NSubstitute;
 using TestAutomation.Helpers;
 using Xunit;
 using System.Text.Json;
+using Automation.apps.General.System;
 
 namespace TestAutomation.Apps.General;
 

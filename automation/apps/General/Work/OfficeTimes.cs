@@ -4,7 +4,7 @@ using Automation.Configuration;
 using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Keeps two entities per person up to date for their next office day: <c>input_datetime.kantoor_aankomst_{person}</c>, when they

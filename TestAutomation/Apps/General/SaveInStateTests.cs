@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Interfaces;
 using Automation.Models;
 using NetDaemon.HassModel.Entities;
@@ -48,7 +48,7 @@ public class SaveInStateTests
         // Arrange - the bureau light was saved as on, and is now unavailable (e.g. Home Assistant restarting)
         using var ctx = AppTestContext.NewWithScheduler();
         var storage = Substitute.For<IDataRepository>();
-        storage.Get<List<LightStateModel>>("LightState").Returns(_ => [new("light.bureau", null, 100, 3000, true, null)]);
+        storage.Get<List<LightStateModel>>("LightState").Returns(_ => [new LightStateModel("light.bureau", null, 100, 3000, true, null)]);
         ctx.HaContext.GetState("light.bureau").Returns(new EntityState { EntityId = "light.bureau", State = "unavailable" });
         await ctx.InitAppAsync<SaveInState>(storage);
 
@@ -60,6 +60,9 @@ public class SaveInStateTests
         storage.Received(1).Save("LightState", Arg.Is<List<LightStateModel>>(x => x.Single(l => l.EntityId == "light.bureau").IsOn));
     }
 
+    private static readonly string[] Value = ["xy"];
+    private static readonly double[] value = new[] { 255.0, 128.0, 64.0 };
+
     [Fact]
     public async Task InitializeAsync_ShouldSaveAlarmStates()
     {
@@ -69,8 +72,8 @@ public class SaveInStateTests
         
         var attributes = new Dictionary<string, object>
         {
-            { "supported_color_modes", new[] { "xy" } },
-            { "rgb_color", new[] { 255.0, 128.0, 64.0 } },
+            { "supported_color_modes", Value },
+            { "rgb_color", value },
             { "brightness", 100.0 }
         };
         

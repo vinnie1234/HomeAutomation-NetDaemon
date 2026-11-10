@@ -4,7 +4,7 @@ using Automation.Configuration;
 using Automation.Models.Pixel;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Pets;
 
 /// <summary>
 /// Keeps track of Pixel's medicines, prednison (a quarter pill every evening) and antibraak (half a pill when needed).
@@ -39,7 +39,6 @@ public class PixelMedication : BaseApp
     private static readonly TimeSpan DefaultReminder = new(20, 0, 0);
     private static readonly TimeSpan PhoneReminderDelay = TimeSpan.FromHours(1);
     private static readonly TimeSpan ForgottenNotificationAt = new(8, 0, 0);
-    private const string UndoButton = "input_button.pixel_medicijn_ongedaan";
 
     /// <summary>Per medicine: the stock helper, the button, the dose in pills and the stock below which it is almost gone.</summary>
     private static readonly IReadOnlyDictionary<string, (string Stock, string Button, double Dose, double Low)> Medicines =
@@ -114,7 +113,7 @@ public class PixelMedication : BaseApp
         try
         {
             if (!_entityManager.EntityExists(SensorId))
-                await _entityManager.Create(SensorId, new EntityCreationOptions { Name = "Pixel medicijnen", Icon = "mdi:pill" });
+                await _entityManager.CreateAsync(SensorId, new EntityCreationOptions { Name = "Pixel medicijnen", Icon = "mdi:pill" });
             Publish();
         }
         catch (Exception ex)

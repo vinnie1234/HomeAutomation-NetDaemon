@@ -34,11 +34,13 @@ public class TabletScreenTests
 
     /// <summary>The service calls to the Fully Kiosk entities of the tablet, as "domain.service", in order.</summary>
     private List<string> Commands() =>
-        _ctx.HaContext.ReceivedCalls()
+    [
+        .. _ctx.HaContext.ReceivedCalls()
             .Where(c => c.GetMethodInfo().Name == "CallService" &&
-                        (c.GetArguments()[2] as ServiceTarget)?.EntityIds?.Any(e => e.Contains("tab_s6_van_vincent")) == true)
+                        (c.GetArguments()[2] as ServiceTarget)?.EntityIds?.Any(e => e.Contains("tab_s6_van_vincent")) ==
+                        true)
             .Select(c => $"{c.GetArguments()[0]}.{c.GetArguments()[1]}")
-            .ToList();
+    ];
 
     [Fact]
     public void MotionInTheLivingRoom_OnlyTurnsTheScreenOn_WithoutLoadingTheDashboardAgain()

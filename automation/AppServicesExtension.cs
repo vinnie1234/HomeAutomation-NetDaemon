@@ -21,7 +21,7 @@ internal static class AppServicesExtension
         return hostBuilder.ConfigureServices((_, services) =>
         {
             // The actions from the first moments, kept for the ActivityRecorder (see ActivityLog.Backlog)
-            services.AddSingleton(Core.ActivityLog.Backlog);
+            services.AddSingleton(ActivityLog.Backlog);
             services.AddSingleton<IDataRepository>(provider => new DataRepository(
                     Path.Combine(
                         Directory.GetCurrentDirectory(),
@@ -65,4 +65,4 @@ internal static class AppServicesExtension
                         provider.GetRequiredService<IOptions<AppConfig>>()));
         });
     }
-}
+}

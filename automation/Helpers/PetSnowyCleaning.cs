@@ -1,9 +1,12 @@
 
+using Automation.apps.General.Household;
+using Automation.apps.General.Presence;
+
 namespace Automation.Helpers;
 
 /// <summary>
-/// Whether the PetSnowy litter box has cleaned "today", for the checks in <see cref="apps.General.Alarm"/> (22:00) and
-/// <see cref="apps.General.SleepManager"/> (bedtime). The day does not start at midnight but at 06:00: we go to bed after
+/// Whether the PetSnowy litter box has cleaned "today", for the checks in <see cref="Alarm"/> (22:00) and
+/// <see cref="SleepManager"/> (bedtime). The day does not start at midnight but at 06:00: we go to bed after
 /// midnight, and by the calendar date the box would never have cleaned "today" yet, so every night a message came that
 /// there was something wrong.
 /// </summary>

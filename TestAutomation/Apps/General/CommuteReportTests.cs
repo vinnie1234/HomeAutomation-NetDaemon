@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Assistants;
+using Automation.apps.General.Work;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Traffic;
@@ -24,6 +25,10 @@ public class CommuteReportTests
     private readonly IDataRepository _storage = Substitute.For<IDataRepository>();
     private readonly IHomeAssistantRunner _runner = Substitute.For<IHomeAssistantRunner>();
     private readonly IHomeAssistantConnection _connection = Substitute.For<IHomeAssistantConnection>();
+    private static readonly string[] StringArray = ["A12"];
+    private static readonly double[] doubleArray = new[] { 52.2, 5.2 };
+    private static readonly double[] doubleArray0 = new[] { 52.2, 5.2 };
+    private static readonly string[] stringArray = new[] { "A27" };
 
     private void SetState(string entityId, string state, object? attributes = null) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState
@@ -49,7 +54,7 @@ public class CommuteReportTests
             SetState($"{prefix}_reistijd", "31", new { normal_duration_min = 31 });
             SetState($"{prefix}_vertraging", "0");
             SetState($"{prefix}_aankomsttijd", "2026-10-29T06:21:00+00:00");
-            SetState($"{prefix}_route", "A12", new { person = "person.vincent_maarschalkerweerd", via = new[] { "A12" }, origin = from, destination = to, alternatives = Array.Empty<object>() });
+            SetState($"{prefix}_route", "A12", new { person = "person.vincent_maarschalkerweerd", via = StringArray, origin = from, destination = to, alternatives = Array.Empty<object>() });
             entities.Add(new Entity(_ctx.HaContext, $"{prefix}_route"));
         }
         // Carleen's routes: the name says which way they go, even when the places are the other way around
@@ -58,7 +63,7 @@ public class CommuteReportTests
             SetState($"{prefix}_reistijd", "25", new { normal_duration_min = 25 });
             SetState($"{prefix}_vertraging", "0");
             SetState($"{prefix}_aankomsttijd", "2026-10-29T06:21:00+00:00");
-            SetState($"{prefix}_route", "A27", new { friendly_name = name, person = "person.carleen", via = new[] { "A27" }, origin = new[] { 52.2, 5.2 }, destination = new[] { 52.2, 5.2 }, alternatives = Array.Empty<object>() });
+            SetState($"{prefix}_route", "A27", new { friendly_name = name, person = "person.carleen", via = stringArray, origin = doubleArray, destination = doubleArray0, alternatives = Array.Empty<object>() });
             entities.Add(new Entity(_ctx.HaContext, $"{prefix}_route"));
         }
         configure?.Invoke();
@@ -69,11 +74,12 @@ public class CommuteReportTests
     }
 
     private List<(string To, string Text)> Messages() =>
-        _ctx.HaContext.ReceivedCalls()
+    [
+        .. _ctx.HaContext.ReceivedCalls()
             .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "whatsapp")
             .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]))
             .Select(d => (d.GetProperty("to").GetString()!, d.GetProperty("message").GetProperty("Text").GetString()!))
-            .ToList();
+    ];
 
     private void AdvanceTo(int hour, int minute)
     {
@@ -115,7 +121,8 @@ public class CommuteReportTests
         _ctx.HaContextMock.ProcessPendingOperations();
     }
 
-    private List<(string To, string Text)> WayHome() => Messages().Where(m => m.To == VincentWhatsapp && m.Text.Contains("Naar huis")).ToList();
+    private List<(string To, string Text)> WayHome() =>
+        [.. Messages().Where(m => m.To == VincentWhatsapp && m.Text.Contains("Naar huis"))];
 
     [Fact]
     public void TheLaptopGoesOffAtTheOffice_AfternoonOfAnOfficeDay_SendsTheWayHomeNow()
@@ -518,10 +525,12 @@ public class CommuteReportTests
     private void SetZone(string zone, params string[] persons) => SetState(zone, persons.Length.ToString(), new { persons });
 
     private List<JsonElement> CallsOf(string domain, string service) =>
-        _ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == domain && (string)c.GetArguments()[1]! == service)
+    [
+        .. _ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == domain &&
+                        (string)c.GetArguments()[1]! == service)
             .Select(c => c.GetArguments()[3] == null ? default : JsonSerializer.SerializeToElement(c.GetArguments()[3]))
-            .ToList();
+    ];
 
     [Fact]
     public void LeavingTheStation_AndBeingOnTheTrackWithinFiveMinutes_ChoosesThatTrain()
@@ -725,7 +734,7 @@ public class CommuteReportTests
 
         _ctx.HaContext.Received(1).CallService("input_select", "select_option",
             Arg.Is<ServiceTarget?>(t => t!.EntityIds!.Single() == "input_select.vervoer_vandaag_carleen"),
-            Arg.Is<object?>(d => System.Text.Json.JsonSerializer.SerializeToElement(d).GetProperty("option").GetString() == "Volgens schema"));
+            Arg.Is<object?>(d => JsonSerializer.SerializeToElement(d).GetProperty("option").GetString() == "Volgens schema"));
     }
 
     [Fact]
@@ -791,7 +800,7 @@ public class CommuteReportTests
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received().CallService("input_text", "set_value", Arg.Is<ServiceTarget?>(t => t != null && t.EntityIds!.Contains("input_text.reis_vast_vincent")),
-            Arg.Is<object?>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("\\u0022duration\\u0022:42") && JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("\\u0022delay\\u0022:11")));
+            Arg.Is<object?>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains(@"\u0022duration\u0022:42") && JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains(@"\u0022delay\u0022:11")));
     }
 
     [Fact]

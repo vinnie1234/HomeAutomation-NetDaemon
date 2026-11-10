@@ -4,7 +4,7 @@ using Automation.Configuration;
 using Automation.Models.Parcels;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Lets Vincent and Carleen know when a parcel is announced, when the status of a parcel changes and when

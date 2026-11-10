@@ -10,7 +10,7 @@ namespace TestAutomation.Helpers;
 /// </summary>
 public static class TestDebugHelper
 {
-    private static readonly bool IsDebugEnabled = true; // Always enable for now
+    private const bool IsDebugEnabled = true; // Always enable for now
 
     /// <summary>
     /// Executes an assertion with debug logging for ReceivedCallsException
@@ -46,7 +46,7 @@ public static class TestDebugHelper
                     if (callsList.Any())
                     {
                         debugInfo.AppendLine("Ontvangen calls:");
-                        for (int i = 0; i < callsList.Count; i++)
+                        for (var i = 0; i < callsList.Count; i++)
                         {
                             var call = callsList[i];
                             debugInfo.AppendLine($"  [{i + 1}] Method: {call.GetMethodInfo().Name}");
@@ -55,7 +55,7 @@ public static class TestDebugHelper
                             if (args.Any())
                             {
                                 debugInfo.AppendLine($"      Arguments ({args.Length}):");
-                                for (int j = 0; j < args.Length; j++)
+                                for (var j = 0; j < args.Length; j++)
                                 {
                                     var arg = args[j];
                                     var argValue = arg?.ToString() ?? "null";
@@ -117,14 +117,23 @@ public static class TestDebugHelper
     {
         return haContext =>
         {
-            if (target == null && data == null)
-                haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), Arg.Any<object>());
-            else if (target == null)
-                haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), data);
-            else if (data == null)
-                haContext.Received().CallService(domain, service, target, Arg.Any<object>());
-            else
-                haContext.Received().CallService(domain, service);
+            switch (target)
+            {
+                case null when data == null:
+                    haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), Arg.Any<object>());
+                    break;
+                case null:
+                    haContext.Received().CallService(domain, service, Arg.Any<ServiceTarget>(), data);
+                    break;
+                default:
+                {
+                    if (data == null)
+                        haContext.Received().CallService(domain, service, target, Arg.Any<object>());
+                    else
+                        haContext.Received().CallService(domain, service);
+                    break;
+                }
+            }
         };
     }
 

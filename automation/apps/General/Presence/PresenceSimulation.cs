@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 /// <summary>
 /// Simulates presence against burglars while the house is unattended (on vacation, nobody home and

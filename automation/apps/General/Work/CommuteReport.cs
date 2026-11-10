@@ -1,15 +1,16 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using System.Reactive.Concurrency;
+using System.Text.RegularExpressions;
+using Automation.apps.General.Assistants;
 using Automation.Configuration;
 using Automation.Helpers;
 using Automation.Models.Persons;
-using Automation.Models.WhatsApp;
 using Automation.Models.Traffic;
+using Automation.Models.WhatsApp;
 using Microsoft.Extensions.Options;
 using NetDaemon.Client;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Sends everyone who has a route in the ANWB File integration a WhatsApp message with the traffic on their commute, on their
@@ -81,8 +82,8 @@ public partial class CommuteReport : BaseApp
         _config = config.Value;
         _commuters =
         [
-            new("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
-            new("carleen", Entities.Person.Carleen.EntityId, Carleen, CarleenSchedule, Carleen.Whatsapp)
+            new Commuter("vincent", Entities.Person.VincentMaarschalkerweerd.EntityId, Vincent, VincentSchedule, Vincent.Whatsapp),
+            new Commuter("carleen", Entities.Person.Carleen.EntityId, Carleen, CarleenSchedule, Carleen.Whatsapp)
         ];
 
         foreach (var commuter in _commuters)
@@ -90,9 +91,9 @@ public partial class CommuteReport : BaseApp
             // The fixed times are for the days without a time to be somewhere or to leave; otherwise the message comes ten minutes
             // before leaving (see SendWhenItIsTime). The time is a helper, so a change in the dashboard applies without a restart.
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_heen_{commuter.Id}"), DefaultMorning,
-                () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) _ = Send(commuter, CommuteDirection.ToWork); });
+                () => { if (TargetTime(commuter, CommuteDirection.ToWork) == null) _ = SendAsync(commuter, CommuteDirection.ToWork); });
             Scheduler.RunDailyAt(new InputDatetimeEntity(HaContext, $"input_datetime.verkeer_terug_{commuter.Id}"), DefaultEvening,
-                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null && !SentByLaptopRecently(commuter, CommuteDirection.ToHome)) _ = Send(commuter, CommuteDirection.ToHome); });
+                () => { if (TargetTime(commuter, CommuteDirection.ToHome) == null && !SentByLaptopRecently(commuter, CommuteDirection.ToHome)) _ = SendAsync(commuter, CommuteDirection.ToHome); });
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
         SetUpTrainTracking();
@@ -107,8 +108,8 @@ public partial class CommuteReport : BaseApp
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
         Entities.InputButton.Verkeertestbericht.StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(press =>
         {
-            _ = Send(_commuters[0], CommuteDirection.ToWork, test: true);
-            _ = Send(_commuters[0], CommuteDirection.ToHome, test: true);
+            _ = SendAsync(_commuters[0], CommuteDirection.ToWork, test: true);
+            _ = SendAsync(_commuters[0], CommuteDirection.ToHome, test: true);
         });
 
         // "Stuur door" on the dashboard: sends the other person what is expected for this person's trip (the trip to the office while at home,
@@ -117,12 +118,12 @@ public partial class CommuteReport : BaseApp
         {
             var sender = commuter;
             new Entity(HaContext, $"input_button.reis_doorsturen_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
-                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true,
+                .Subscribe(press => _ = SendAsync(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, forward: true,
                     otherRoute: HaContext.GetState($"input_text.reis_doorsturen_route_{sender.Id}")?.State));
 
             // "Stuur naar ..." for the person themself: the same message, but to their own WhatsApp
             new Entity(HaContext, $"input_button.reis_doorsturen_zelf_{sender.Id}").StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
-                .Subscribe(press => _ = Send(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, toSelf: true,
+                .Subscribe(press => _ = SendAsync(sender, sender.Person.IsHome ? CommuteDirection.ToWork : CommuteDirection.ToHome, toSelf: true,
                     otherRoute: HaContext.GetState($"input_text.reis_doorsturen_route_{sender.Id}")?.State));
         }
     }
@@ -149,7 +150,7 @@ public partial class CommuteReport : BaseApp
                     if (now < sendAt || now >= sendAt + TooLate) continue;
                     _sent.Add(key);
                     if (SentByLaptopRecently(commuter, direction)) continue;
-                    _ = Send(commuter, direction);
+                    _ = SendAsync(commuter, direction);
                 }
         }
         catch (Exception ex)
@@ -178,7 +179,7 @@ public partial class CommuteReport : BaseApp
 
             Logger.LogInformation("The work laptop went off at the office: the message about the way home");
             _laptopSentAt = now;
-            _ = Send(vincent, CommuteDirection.ToHome);
+            _ = SendAsync(vincent, CommuteDirection.ToHome);
         }
         catch (Exception ex)
         {
@@ -232,7 +233,7 @@ public partial class CommuteReport : BaseApp
     /// <param name="forward">The message goes to the other person, as the expected times of this person (the "Stuur door" button).</param>
     /// <param name="toSelf">The message goes to this person themself (the "Stuur naar ..." button), worded like the forwarded one.</param>
     /// <param name="otherRoute">The sensor of a route that is neither to the office nor home, which is forwarded instead of the trip of the day.</param>
-    private async Task Send(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false, string? otherRoute = null, bool toSelf = false)
+    private async Task SendAsync(Commuter commuter, CommuteDirection direction, bool test = false, bool forward = false, string? otherRoute = null, bool toSelf = false)
     {
         try
         {
@@ -316,7 +317,7 @@ public partial class CommuteReport : BaseApp
         var state = HaContext.GetState(entityId);
         if (state?.AttributesJson is not { ValueKind: JsonValueKind.Object } a || Text(a, "person") != commuter.PersonId) return (null, null);
         var name = Text(a, "friendly_name") ?? entityId;
-        title = Regex.Replace(Regex.Replace(Regex.Replace(name, @"^(9292|ANWB Route)\s+", "", RegexOptions.IgnoreCase), @"\s*\([^)]*\)\s*", " "), @"\s+(Lijnen|Route)\s*$", "", RegexOptions.IgnoreCase).Trim();
+        title = TitleRegex().Replace(MyRegex().Replace(MyRegex1().Replace(name, ""), " "), "").Trim();
         if (entityId.StartsWith("sensor.9292_", StringComparison.Ordinal) && entityId.EndsWith("_lijnen", StringComparison.Ordinal)) return (null, entityId[..^"_lijnen".Length]);
         if (entityId.StartsWith("sensor.anwb_route_", StringComparison.Ordinal) && entityId.EndsWith("_route", StringComparison.Ordinal)) return (entityId[..^"_route".Length], null);
         return (null, null);
@@ -398,12 +399,13 @@ public partial class CommuteReport : BaseApp
         if (lines?.State is null or "unavailable" or "unknown" || lines.AttributesJson is not { ValueKind: JsonValueKind.Object } a) return null;
 
         // Trips that have left already are no use; the integration refreshes, but not at the second
-        List<TransitTrip> Read(string name) => TransitTrips(a, name).Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1)).ToList();
+        List<TransitTrip> Read(string name) =>
+            [.. TransitTrips(a, name).Where(t => t.Departure >= Scheduler.Now.AddMinutes(-1))];
         var trips = Read("upcoming");
         var chosen = ChosenDeparture(commuter, direction) is { } stamp
             ? Read("earlier").Concat(trips).FirstOrDefault(t => PlannedStamp(t) == stamp)
             : null;
-        if (chosen != null) trips = trips.Where(t => t != chosen).Prepend(chosen).ToList();
+        if (chosen != null) trips = [.. trips.Where(t => t != chosen).Prepend(chosen)];
         return new TransitRoute(Text(a, "from"), Text(a, "to"), trips, Text(a, "route_id"));
     }
 
@@ -444,7 +446,7 @@ public partial class CommuteReport : BaseApp
         var kind = HaContext.GetState($"input_select.{(direction == CommuteDirection.ToWork ? "reis_ochtend_soort" : "reis_avond_soort")}_{commuter.Id}")?.State;
         var departure = !fromCalendar && direction == CommuteDirection.ToWork && kind == OfficeTravel.MorningDepart;
         var arrivalHome = !fromCalendar && direction == CommuteDirection.ToHome && kind == OfficeTravel.EveningArrive;
-        var entity = direction == CommuteDirection.ToWork ? (departure ? "thuis_vertrek" : "kantoor_aankomst") : (arrivalHome ? "thuis_aankomst" : "kantoor_vertrek");
+        var entity = direction == CommuteDirection.ToWork ? departure ? "thuis_vertrek" : "kantoor_aankomst" : arrivalHome ? "thuis_aankomst" : "kantoor_vertrek";
         if (!DateTime.TryParse(HaContext.GetState($"input_datetime.{entity}_{commuter.Id}")?.State, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
             || local.Date != Scheduler.NowNl().Date) return null;
         var time = new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
@@ -502,12 +504,16 @@ public partial class CommuteReport : BaseApp
 
     private static List<RouteAlternative> Alternatives(JsonElement attributes) =>
         attributes.TryGetProperty("alternatives", out var list) && list.ValueKind == JsonValueKind.Array
-            ? list.EnumerateArray().Select(x => new RouteAlternative(Strings(x, "via"), Number(x, "duration_min") ?? 0, Number(x, "difference_min") ?? 0)).ToList()
+            ?
+            [
+                .. list.EnumerateArray().Select(x => new RouteAlternative(Strings(x, "via"),
+                    Number(x, "duration_min") ?? 0, Number(x, "difference_min") ?? 0))
+            ]
             : [];
 
     private static List<string> Strings(JsonElement element, string name) =>
         element.TryGetProperty(name, out var list) && list.ValueKind == JsonValueKind.Array
-            ? list.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => x.Length > 0).ToList()
+            ? [.. list.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => x.Length > 0)]
             : [];
 
     private static GeoPoint Point(JsonElement element, string name) =>
@@ -520,4 +526,10 @@ public partial class CommuteReport : BaseApp
 
     private static double? Number(JsonElement? element, string name) =>
         element is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
+    [GeneratedRegex(@"\s+(Lijnen|Route)\s*$", RegexOptions.IgnoreCase, "nl-NL")]
+    private static partial Regex TitleRegex();
+    [GeneratedRegex(@"\s*\([^)]*\)\s*")]
+    private static partial Regex MyRegex();
+    [GeneratedRegex(@"^(9292|ANWB Route)\s+", RegexOptions.IgnoreCase, "nl-NL")]
+    private static partial Regex MyRegex1();
 }

@@ -1,7 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Core;
-using Automation.Interfaces;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
@@ -43,7 +42,7 @@ public class ChristmasTree : BaseApp
         // The tree stays on: anything else that switches it off (a scene, a group of lights, a "everything off") is undone, unless he sleeps
         Entities.Light.FestaviaStringLights1.StateChanges()
             .Where(x => x.Old?.State == "on" && x.New?.State == "off")
-            .Subscribe(_ => Scheduler.Schedule(KeepOnDelay, () => KeepOn()));
+            .Subscribe(_ => Scheduler.Schedule(KeepOnDelay, KeepOn));
 
         // An input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press
         Entities.InputButton.StartKerstmuziek.StateChanges()

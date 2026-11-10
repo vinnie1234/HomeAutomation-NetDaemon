@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
@@ -17,6 +17,7 @@ public class TodoZoneRemindersTests
     private const string CarleenWhatsapp = "222@lid";
 
     private readonly AppTestContext _ctx = AppTestContext.NewWithScheduler();
+    private static readonly string[] Second = ["Geen plek", "Boodschappen COOP", "Ouders", "Werk"];
 
     private void SetState(string entityId, string state, object? attributes = null) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState
@@ -65,11 +66,14 @@ public class TodoZoneRemindersTests
     private async Task<List<(string To, string Text)>> MessagesAsync()
     {
         await Task.Delay(100);
-        return _ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "whatsapp")
-            .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]))
-            .Select(d => (d.GetProperty("to").GetString()!, d.GetProperty("message").GetProperty("Text").GetString()!))
-            .ToList();
+        return
+        [
+            .. _ctx.HaContext.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "whatsapp")
+                .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]))
+                .Select(d => (d.GetProperty("to").GetString()!,
+                    d.GetProperty("message").GetProperty("Text").GetString()!))
+        ];
     }
 
     // ---- parsing the place of a task
@@ -186,7 +190,7 @@ public class TodoZoneRemindersTests
         _ctx.HaContext.Received(1).CallService("input_select", "set_options",
             Arg.Is<ServiceTarget?>(t => t!.EntityIds!.Single() == TodoZoneReminders.ZoneHelper),
             Arg.Is<object?>(d => JsonSerializer.SerializeToElement(d).GetProperty("options").EnumerateArray().Select(x => x.GetString())
-                .SequenceEqual(new[] { "Geen plek", "Boodschappen COOP", "Ouders", "Werk" })));
+                .SequenceEqual(Second)));
     }
 
     // ---- the reminder

@@ -1,9 +1,10 @@
+using Automation.apps.General.System;
 using Automation.Enum;
 
 namespace Automation.Models.Persons;
 
 /// <summary>
-/// The work schedule of one person, from their own helpers (created by <see cref="apps.General.HelperManager"/>):
+/// The work schedule of one person, from their own helpers (created by <see cref="HelperManager"/>):
 /// <list type="bullet">
 /// <item><c>input_select.werkdag_{person}_{dag}</c>: per day of the week (weekend included) Vrij, Thuis or Kantoor</item>
 /// <item><c>input_boolean.vrij_{person}</c>: a day off now and then (holiday at home)</item>

@@ -1,10 +1,10 @@
 using System.Reactive.Concurrency;
-using static Automation.Extensions.SchedulerExtensions;
 using Automation.Configuration;
 using Automation.Models.Laundry;
 using Microsoft.Extensions.Options;
+using static Automation.Extensions.SchedulerExtensions;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Manages laundry drying notifications by coupling the washing machine state to weather forecasts.
@@ -136,7 +136,7 @@ public class Laundry : BaseApp
         }
     }
 
-    private DryWindowResult CalculateDryWindow(List<ForecastEntry> forecast, DateTime fromNow)
+    private static DryWindowResult CalculateDryWindow(List<ForecastEntry> forecast, DateTime fromNow)
     {
         var futureForecast = forecast
             .Where(f => ToDutchTime(f.DateTime) >= fromNow.AddMinutes(-30))
@@ -180,11 +180,9 @@ public class Laundry : BaseApp
 
         string? dryUntilDescription = null;
         if (isDryNow)
-        {
             dryUntilDescription = !dryUntil.HasValue
-                    ? "de rest van de dag"
-                    : $"{(int)(dryUntil.Value - fromNow).TotalHours} uur";
-        }
+                ? "de rest van de dag"
+                : $"{(int)(dryUntil.Value - fromNow).TotalHours} uur";
 
         return new DryWindowResult(isDryNow, dryUntil, dryUntilDescription, nextWindowTime);
     }
@@ -226,7 +224,7 @@ public class Laundry : BaseApp
 
             actions =
             [
-                new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen", func: OnLaundryHangingOutside),
+                new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen", func: OnLaundryHangingOutside)
             ];
         }
         else if (result.NextWindowTime.HasValue)
@@ -290,7 +288,7 @@ public class Laundry : BaseApp
                         action:
                         [
                             new ActionModel("HANG_WAS_BUITEN", "✅ Was buiten gehangen",
-                                func: OnLaundryHangingOutside),
+                                func: OnLaundryHangingOutside)
                         ]);
                 }
                 else

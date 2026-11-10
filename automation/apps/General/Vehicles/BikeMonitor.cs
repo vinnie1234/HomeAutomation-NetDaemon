@@ -3,7 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Vehicles;
 
 /// <summary>
 /// Keeps an eye on the Bosch eBike (Bosch eBike integration, entities <c>*_bfe_ah1336572_*</c>):

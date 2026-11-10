@@ -1,6 +1,6 @@
 using System.Reactive.Subjects;
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using FluentAssertions;
 using HomeAssistantGenerated;
@@ -29,10 +29,12 @@ public class ParcelNotificationsTests
         _events.OnNext(new Event { EventType = eventType, DataElement = JsonSerializer.SerializeToElement(data) });
 
     private List<NotifyMobileAppVincentPhoneParameters> VincentNotifications() =>
-        _ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[1]! == "mobile_app_vincent_phone")
+    [
+        .. _ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" &&
+                        (string)c.GetArguments()[1]! == "mobile_app_vincent_phone")
             .Select(c => (NotifyMobileAppVincentPhoneParameters)c.GetArguments()[3]!)
-            .ToList();
+    ];
 
     [Fact]
     public void NewParcel_NotifiesBothPhonesWithCarrierSenderAndDeliveryWindow()

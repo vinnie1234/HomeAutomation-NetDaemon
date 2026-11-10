@@ -1,9 +1,9 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
-using Automation.Configuration;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Represents an application that manages the NetDaemon and handles its restart logic.

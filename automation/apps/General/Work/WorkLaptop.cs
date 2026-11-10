@@ -1,9 +1,10 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
+using Automation.apps.General.Presence;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Vincent's work laptop (entities <c>*.werk_laptop_*</c>; they are unavailable while the laptop is off or not at home). Everything here

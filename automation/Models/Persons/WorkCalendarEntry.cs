@@ -1,7 +1,9 @@
+using Automation.apps.General.Work;
+
 namespace Automation.Models.Persons;
 
 /// <summary>
-/// A work day taken from the calendar (see <see cref="apps.General.WorkFromCalendar"/>): the weekday of the person was set to
+/// A work day taken from the calendar (see <see cref="WorkFromCalendar"/>): the weekday of the person was set to
 /// Kantoor for that date, and is set back to Vrij the night after. The times are those of the event, when it has any.
 /// </summary>
 public class WorkCalendarEntry

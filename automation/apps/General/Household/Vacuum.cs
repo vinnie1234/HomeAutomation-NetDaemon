@@ -1,9 +1,8 @@
 using System.Reactive.Concurrency;
-
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Represents an application that manages the vacuum cleaner and its related actions.

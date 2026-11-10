@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Presence;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -8,7 +8,7 @@ namespace TestAutomation.Apps.General;
 
 public class HouseStateManagerTests
 {
-    private void SetupDefaultStates(AppTestContext ctx)
+    private static void SetupDefaultStates(AppTestContext ctx)
     {
         ctx.HaContext.GetState("sun.sun").Returns(new EntityState { EntityId = "sun.sun", State = "above_horizon" });
         ctx.HaContext.GetState("input_datetime.nighttimeweekdays").Returns(new EntityState { EntityId = "input_datetime.nighttimeweekdays", State = "00:00:00" });
@@ -25,6 +25,58 @@ public class HouseStateManagerTests
         ctx.HaContext.GetState("input_select.housemodeselect").Returns(new EntityState { EntityId = "input_select.housemodeselect", State = "Day" });
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { EntityId = "input_boolean.awaycarleen", State = "off" });
+    }
+
+    [Fact]
+    public void WhenTheAlarmGoesOff_VincentIsNoLongerSleeping()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        // Tuesday 10 November 2026, 06:00 Dutch time; the next alarm is at 07:15
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 5, 0, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
+        ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState { EntityId = "sensor.hub_vincent_alarms", State = "2026-11-10T07:15:00+01:00" });
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(70).Ticks);
+        ctx.VerifyNotCallService("input_boolean.turn_off");
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(10).Ticks);
+        ctx.VerifyCallService("input_boolean", "turn_off", "sleepingvincent", times: 1);
+    }
+
+    [Fact]
+    public void WhenTheAlarmIsMoved_TheWakeUpFollowsTheNewTime()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 5, 0, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "on" });
+        ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState { EntityId = "sensor.hub_vincent_alarms", State = "2026-11-10T07:15:00+01:00" });
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState { EntityId = "sensor.hub_vincent_alarms", State = "2026-11-10T09:00:00+01:00" });
+        ctx.ChangeStateFor("sensor.hub_vincent_alarms").FromState("2026-11-10T07:15:00+01:00").ToState("2026-11-10T09:00:00+01:00");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(100).Ticks);
+        ctx.VerifyNotCallService("input_boolean.turn_off");
+
+        ctx.AdvanceTimeBy(TimeSpan.FromMinutes(90).Ticks);
+        ctx.VerifyCallService("input_boolean", "turn_off", "sleepingvincent", times: 1);
+    }
+
+    [Fact]
+    public void WhenVincentIsAlreadyAwake_TheAlarmChangesNothing()
+    {
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 5, 0, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("sensor.hub_vincent_alarms").Returns(new EntityState { EntityId = "sensor.hub_vincent_alarms", State = "2026-11-10T07:15:00+01:00" });
+        ctx.InitApp<HouseStateManager>();
+
+        ctx.AdvanceTimeBy(TimeSpan.FromHours(3).Ticks);
+
+        ctx.VerifyNotCallService("input_boolean.turn_off");
     }
 
     [Fact]
@@ -473,6 +525,8 @@ public class HouseStateManagerTests
             && (string)c.GetArguments()[0]! == "input_boolean" && (string)c.GetArguments()[1]! == service
             && ((ServiceTarget?)c.GetArguments()[2])?.EntityIds?.Contains(entityId) == true);
 
+    private static readonly string[] StringArray = ["person.carleen"];
+
     private AppTestContext ArriveAtWorkAndLeave(string workingAfter)
     {
         // Monday 3 January 2000, Carleen at the office: at work at 12:00 Dutch time, away from 12:30
@@ -486,7 +540,7 @@ public class HouseStateManagerTests
         Set("input_boolean.workingcarleen", workingAfter);
         ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 8, 0, 0, TimeSpan.Zero).UtcTicks);
         ctx.InitApp<HouseStateManager>();
-        Set("zone.werk_carleen", "1", new { persons = new[] { "person.carleen" } });
+        Set("zone.werk_carleen", "1", new { persons = StringArray });
         ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 11, 30, 0, TimeSpan.Zero).UtcTicks);
         Set("zone.werk_carleen", "0", new { persons = Array.Empty<string>() });
         ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 12, 20, 0, TimeSpan.Zero).UtcTicks);   // 13:20: away for 50 minutes
@@ -512,6 +566,8 @@ public class HouseStateManagerTests
         Assert.Equal(0, Calls(ctx, "turn_off", "input_boolean.workingcarleen"));
     }
 
+    private static readonly string[] Value = ["person.carleen"];
+
     [Fact]
     public void ComingBackToWork_BeforeTheEnd_StartsWorkingAgain()
     {
@@ -519,7 +575,7 @@ public class HouseStateManagerTests
         ctx.HaContext.GetState("zone.werk_carleen").Returns(new EntityState
         {
             EntityId = "zone.werk_carleen", State = "1",
-            AttributesJson = System.Text.Json.JsonSerializer.SerializeToElement(new { persons = new[] { "person.carleen" } })
+            AttributesJson = System.Text.Json.JsonSerializer.SerializeToElement(new { persons = Value })
         });
 
         ctx.AdvanceTimeTo(new DateTimeOffset(2000, 1, 3, 12, 30, 0, TimeSpan.Zero).UtcTicks);

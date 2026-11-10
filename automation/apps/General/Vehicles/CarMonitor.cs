@@ -3,7 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Vehicles;
 
 /// <summary>
 /// Keeps an eye on the Peugeot 2008 (Stellantis integration, entities <c>*_buiten_peugeot_2008_*</c>):

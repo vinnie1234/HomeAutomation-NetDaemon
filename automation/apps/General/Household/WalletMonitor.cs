@@ -3,7 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Keeps an eye on the wallet of Vincent (a tracker in Google Find Hub, entities <c>*_portemonnee_van_vincent_2*</c>):
@@ -97,7 +97,7 @@ public class WalletMonitor : BaseApp
 
     /// <summary>Vincent is home and the wallet is known to be somewhere else.</summary>
     private bool IsMissing() =>
-        !Entities.InputBoolean.Awayvincent.IsOn() && StateOf(Tracker) is { } state && state is not ("unknown" or "unavailable") && !IsAtHome(state);
+        !Entities.InputBoolean.Awayvincent.IsOn() && StateOf(Tracker) is { } state and not ("unknown" or "unavailable") && !IsAtHome(state);
 
     private void SetAlert(bool on)
     {

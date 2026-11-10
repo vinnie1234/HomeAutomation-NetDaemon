@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Fun;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.COC;
@@ -26,7 +26,7 @@ public class CocMonitoringTests
 
         // We assume last run time is empty
         storage.Get<string>("COC_LAST_RUN_TIME").Returns((string?)null);
-        storage.Get<List<CocModel>>("COC_TWEET_ID_LIST").Returns(new List<CocModel>());
+        storage.Get<List<CocModel>>("COC_TWEET_ID_LIST").Returns([]);
 
         ctx.InitApp<CocMonitoring>(storage, config);
 

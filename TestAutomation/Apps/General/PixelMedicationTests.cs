@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Pets;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Pixel;

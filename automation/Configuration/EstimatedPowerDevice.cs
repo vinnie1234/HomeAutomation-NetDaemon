@@ -1,7 +1,9 @@
+using Automation.apps.General.Household;
+
 namespace Automation.Configuration;
 
 /// <summary>
-/// A device that only reports an energy meter (kWh), for which <see cref="apps.General.PowerEstimator"/> estimates the
+/// A device that only reports an energy meter (kWh), for which <see cref="PowerEstimator"/> estimates the
 /// power while it runs.
 /// </summary>
 public class EstimatedPowerDevice

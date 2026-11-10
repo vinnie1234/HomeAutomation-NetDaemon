@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Presence;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;

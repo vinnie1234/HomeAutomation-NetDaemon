@@ -9,98 +9,101 @@ namespace TestAutomation.Helpers;
 
 public static class AppTestContextExtensions
 {
-    public static void VerifyInputSelect_SelectOption(this AppTestContext ctx, string entityId, string option, [CallerMemberName] string testName = "")
+    extension(AppTestContext ctx)
     {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        public void VerifyInputSelect_SelectOption(string entityId, string option, [CallerMemberName] string testName = "")
         {
-            haContext.Received(1).CallService("input_select", "select_option",
-                Arg.Is<ServiceTarget>(x
-                    => x.EntityIds != null && x.EntityIds.First() == entityId),
-                Arg.Is<InputSelectSelectOptionParameters>(x
-                    => Equals(x.Option, option)));
-        }, testName);
-    }
-
-    public static void VerifyInputSelect_SelectOption_NotChangedTo(this AppTestContext ctx, string entityId, string option, [CallerMemberName] string testName = "")
-    {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
-        {
-            haContext.DidNotReceive().CallService("input_select", "select_option",
-                Arg.Is<ServiceTarget>(x
-                    => x.EntityIds != null && x.EntityIds.First() == entityId),
-                Arg.Is<InputSelectSelectOptionParameters>(x
-                    => Equals(x.Option, option)));
-        }, testName);
-    }
-
-    public static void VerifyInputSelect_SelectOption_NotChanged(this AppTestContext ctx, string entityId, [CallerMemberName] string testName = "")
-    {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
-        {
-            haContext.DidNotReceive().CallService("input_select", "select_option",
-                Arg.Is<ServiceTarget>(x
-                    => x.EntityIds != null && x.EntityIds.First() == entityId),
-                Arg.Any<InputSelectSelectOptionParameters>());
-        }, testName);
-    }
-
-    public static void VerifyCallService(this AppTestContext ctx, string domain, string service, string entityId, int times = 1, [CallerMemberName] string testName = "")
-    {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
-        {
-            var allCalls = haContext.ReceivedCalls().ToList();
-            var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
-            var matchedCalls = calls.Where(c => 
-                (string)c.GetArguments()[0]! == domain && 
-                (string)c.GetArguments()[1]! == service &&
-                c.GetArguments()[2] is ServiceTarget { EntityIds: not null } st && 
-                st.EntityIds.Contains($"{domain}.{entityId}")).ToList();
-
-            if (matchedCalls.Count != times)
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
             {
-                var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}, Target: {(c.GetArguments()[2] as ServiceTarget)?.EntityIds?.FirstOrDefault() ?? "null"}, Data: {c.GetArguments()[3]}"));
-                matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service} for {entityId}. Actual calls:\n{debugInfo}");
-            }
-        }, testName);
-    }    
-    
-    public static void VerifyCallNotify(this AppTestContext ctx, string domain, string service, int times = 1, [CallerMemberName] string testName = "")
-    {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
-        {
-            var allCalls = haContext.ReceivedCalls().ToList();
-            var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
-            var matchedCalls = calls.Where(c => 
-                (string)c.GetArguments()[0]! == domain && 
-                (string)c.GetArguments()[1]! == service).ToList();
+                haContext.Received(1).CallService("input_select", "select_option",
+                    Arg.Is<ServiceTarget>(x
+                        => x.EntityIds != null && x.EntityIds.First() == entityId),
+                    Arg.Is<InputSelectSelectOptionParameters>(x
+                        => Equals(x.Option, option)));
+            }, testName);
+        }
 
-            if (matchedCalls.Count != times)
+        public void VerifyInputSelect_SelectOption_NotChangedTo(string entityId, string option, [CallerMemberName] string testName = "")
+        {
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
             {
-                var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}"));
-                matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service}. Actual calls:\n{debugInfo}");
-            }
-        }, testName);
-    }
+                haContext.DidNotReceive().CallService("input_select", "select_option",
+                    Arg.Is<ServiceTarget>(x
+                        => x.EntityIds != null && x.EntityIds.First() == entityId),
+                    Arg.Is<InputSelectSelectOptionParameters>(x
+                        => Equals(x.Option, option)));
+            }, testName);
+        }
 
-    /// <summary>
-    /// Waits until at least <paramref name="times"/> calls to <paramref name="domain"/>.<paramref name="service"/>
-    /// have been recorded, or until <paramref name="timeout"/> elapses.
-    /// </summary>
-    /// <remarks>
-    /// Notify.NotifyDiscord dispatches to the thread pool (fire and forget), so the call is not
-    /// guaranteed to have reached IHaContext by the time the test resumes. Polling instead of
-    /// sleeping a fixed amount keeps the assertion reliable on slower machines such as CI runners.
-    /// </remarks>
-    public static async Task WaitForCallNotifyAsync(this AppTestContext ctx, string domain, string service, int times = 1, TimeSpan? timeout = null)
-    {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
-
-        while (DateTime.UtcNow < deadline)
+        public void VerifyInputSelect_SelectOption_NotChanged(string entityId, [CallerMemberName] string testName = "")
         {
-            if (CountCallServiceCalls(ctx, domain, service) >= times)
-                return;
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+            {
+                haContext.DidNotReceive().CallService("input_select", "select_option",
+                    Arg.Is<ServiceTarget>(x
+                        => x.EntityIds != null && x.EntityIds.First() == entityId),
+                    Arg.Any<InputSelectSelectOptionParameters>());
+            }, testName);
+        }
 
-            await Task.Delay(25);
+        public void VerifyCallService(string domain, string service, string entityId, int times = 1, [CallerMemberName] string testName = "")
+        {
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+            {
+                var allCalls = haContext.ReceivedCalls().ToList();
+                var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
+                var matchedCalls = calls.Where(c => 
+                    (string)c.GetArguments()[0]! == domain && 
+                    (string)c.GetArguments()[1]! == service &&
+                    c.GetArguments()[2] is ServiceTarget { EntityIds: not null } st && 
+                    st.EntityIds.Contains($"{domain}.{entityId}")).ToList();
+
+                if (matchedCalls.Count != times)
+                {
+                    var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}, Target: {(c.GetArguments()[2] as ServiceTarget)?.EntityIds?.FirstOrDefault() ?? "null"}, Data: {c.GetArguments()[3]}"));
+                    matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service} for {entityId}. Actual calls:\n{debugInfo}");
+                }
+            }, testName);
+        }
+
+        public void VerifyCallNotify(string domain, string service, int times = 1, [CallerMemberName] string testName = "")
+        {
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+            {
+                var allCalls = haContext.ReceivedCalls().ToList();
+                var calls = allCalls.Where(c => c.GetMethodInfo().Name.Contains("CallService")).ToList();
+                var matchedCalls = calls.Where(c => 
+                    (string)c.GetArguments()[0]! == domain && 
+                    (string)c.GetArguments()[1]! == service).ToList();
+
+                if (matchedCalls.Count != times)
+                {
+                    var debugInfo = $"Total calls: {allCalls.Count}, CallService calls: {calls.Count}\n" + string.Join("\n", calls.Select(c => $"Domain: {c.GetArguments()[0]}, Service: {c.GetArguments()[1]}"));
+                    matchedCalls.Count.Should().Be(times, $"Expected {times} calls to {domain}.{service}. Actual calls:\n{debugInfo}");
+                }
+            }, testName);
+        }
+
+        /// <summary>
+        /// Waits until at least <paramref name="times"/> calls to <paramref name="domain"/>.<paramref name="service"/>
+        /// have been recorded, or until <paramref name="timeout"/> elapses.
+        /// </summary>
+        /// <remarks>
+        /// Notify.NotifyDiscord dispatches to the thread pool (fire and forget), so the call is not
+        /// guaranteed to have reached IHaContext by the time the test resumes. Polling instead of
+        /// sleeping a fixed amount keeps the assertion reliable on slower machines such as CI runners.
+        /// </remarks>
+        public async Task WaitForCallNotifyAsync(string domain, string service, int times = 1, TimeSpan? timeout = null)
+        {
+            var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+
+            while (DateTime.UtcNow < deadline)
+            {
+                if (CountCallServiceCalls(ctx, domain, service) >= times)
+                    return;
+
+                await Task.Delay(25);
+            }
         }
     }
 
@@ -119,91 +122,94 @@ public static class AppTestContextExtensions
         }
     }
 
-    public static void VerifyNotCallService(this AppTestContext ctx, string serviceCall, [CallerMemberName] string testName = "")
+    extension(AppTestContext ctx)
     {
-        var domain = serviceCall[..serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase)];
-        var service = serviceCall[(serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase) + 1)..];
+        public void VerifyNotCallService(string serviceCall, [CallerMemberName] string testName = "")
+        {
+            var domain = serviceCall[..serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase)];
+            var service = serviceCall[(serviceCall.IndexOf(".", StringComparison.InvariantCultureIgnoreCase) + 1)..];
         
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
-        {
-            haContext.Received(0)
-                .CallService(domain, service, Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
-        }, testName);
-    }
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+            {
+                haContext.Received(0)
+                    .CallService(domain, service, Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+            }, testName);
+        }
 
-    public static void VerifyCallServiceWithData<T>(this AppTestContext ctx, string domain, string service, string? entityId, T? data, int times = 1, [CallerMemberName] string testName = "") where T : class
-    {
-        TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+        public void VerifyCallServiceWithData<T>(string domain, string service, string? entityId, T? data, int times = 1, [CallerMemberName] string testName = "") where T : class
         {
-            haContext.Received(times).CallService(domain, service,
+            TestDebugHelper.AssertCallWithDebug(ctx.HaContext, haContext =>
+            {
+                haContext.Received(times).CallService(domain, service,
                     entityId != null ? Arg.Is<ServiceTarget>(x => x.EntityIds != null && x.EntityIds.FirstOrDefault() == $"{domain}.{entityId}") : null, Arg.Any<T>());
-        }, testName);
+            }, testName);
         
-        T? calledData = null;
-        var sp = ctx.HaContext.ReceivedCalls().Where(x => x.GetMethodInfo().Name == "CallService").ToList();
-        foreach (var s in sp)
-            if (s.GetArguments()[3] is T arg)
-            {
-                calledData = arg;
-                break;
-            }
+            T? calledData = null;
+            var sp = ctx.HaContext.ReceivedCalls().Where(x => x.GetMethodInfo().Name == "CallService").ToList();
+            foreach (var s in sp)
+                if (s.GetArguments()[3] is T arg)
+                {
+                    calledData = arg;
+                    break;
+                }
 
-        calledData.Should().BeEquivalentTo(data);
-    }
+            calledData.Should().BeEquivalentTo(data);
+        }
 
-    public static T? GetEntity<T>(this AppTestContext ctx, string entityId) where T : Entity 
+        public T? GetEntity<T>(string entityId) where T : Entity 
         
-    {
-        return  Activator.CreateInstance(typeof(T), ctx.HaContext, entityId) as T;
-    }    
-    
-    public static T? GetEntity<T>(this AppTestContext ctx, string entityId, string state) where T : Entity 
-        
-    {
-        ctx.HaContext.GetState(entityId).Returns(
-            new EntityState
-            {
-                EntityId = entityId,
-                State = state
-            }
-        );
-        return  Activator.CreateInstance(typeof(T), ctx.HaContext, entityId) as T;
-    }
-
-    public static void ActivateScene(this AppTestContext ctx, string sceneName)
-    {
-        ctx.ChangeStateFor($"scene.{sceneName}")
-            .FromState("off")
-            .ToState("on");
-    }
-
-    public static IFromState ChangeStateFor(this AppTestContext ctx, string entityId)
-    {
-        return new StateChangeContext(ctx, entityId);
-    }
-
-    public static IWithState WithEntityState<T>(this AppTestContext ctx, string entityId, T state)
-    {
-        var stateChangeContext = new StateChangeContext(ctx, entityId);
-        stateChangeContext.WithEntityState(entityId, state);
-        return stateChangeContext;
-    }
-
-    public static void SetAttributesFor(this AppTestContext ctx, string entityId, object attributes)
-    {
-        var entityState = ctx.HaContext.GetState(entityId);
-        if (entityState != null)
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(attributes);
-            var jsonElement = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+            return  Activator.CreateInstance(typeof(T), ctx.HaContext, entityId) as T;
+        }
 
-            var newState = new EntityState
+        public T? GetEntity<T>(string entityId, string state) where T : Entity 
+        
+        {
+            ctx.HaContext.GetState(entityId).Returns(
+                new EntityState
+                {
+                    EntityId = entityId,
+                    State = state
+                }
+            );
+            return  Activator.CreateInstance(typeof(T), ctx.HaContext, entityId) as T;
+        }
+
+        public void ActivateScene(string sceneName)
+        {
+            ctx.ChangeStateFor($"scene.{sceneName}")
+                .FromState("off")
+                .ToState("on");
+        }
+
+        public IFromState ChangeStateFor(string entityId)
+        {
+            return new StateChangeContext(ctx, entityId);
+        }
+
+        public IWithState WithEntityState<T>(string entityId, T state)
+        {
+            var stateChangeContext = new StateChangeContext(ctx, entityId);
+            stateChangeContext.WithEntityState(entityId, state);
+            return stateChangeContext;
+        }
+
+        public void SetAttributesFor(string entityId, object attributes)
+        {
+            var entityState = ctx.HaContext.GetState(entityId);
+            if (entityState != null)
             {
-                EntityId = entityState.EntityId,
-                State = entityState.State,
-                AttributesJson = jsonElement
-            };
-            ctx.HaContext.GetState(entityId).Returns(newState);
+                var json = System.Text.Json.JsonSerializer.Serialize(attributes);
+                var jsonElement = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+
+                var newState = new EntityState
+                {
+                    EntityId = entityState.EntityId,
+                    State = entityState.State,
+                    AttributesJson = jsonElement
+                };
+                ctx.HaContext.GetState(entityId).Returns(newState);
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ using Automation.Enum;
 using Microsoft.Extensions.Options;
 using static Automation.Globals;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 /// <summary>
 /// Manages the welcome-home sequence using a state machine pattern, driven off the house-wide
@@ -76,10 +76,7 @@ public class AwayManager : BaseApp
             var oldState = _currentState;
 
             // Validate state transition
-            if (!IsValidStateTransition(oldState, newState))
-            {
-                return;
-            }
+            if (!IsValidStateTransition(oldState, newState)) return;
 
             _currentState = newState;
             Logger.LogInformation("State transition: {OldState} → {NewState}", oldState, newState);
@@ -143,6 +140,8 @@ public class AwayManager : BaseApp
             case HomePresenceState.Home:
                 Logger.LogInformation("Home, normal automation active");
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
         }
     }
 
@@ -153,26 +152,27 @@ public class AwayManager : BaseApp
     {
         lock (_stateLock)
         {
-            // No welcome (living room scene, announcement) while someone is sleeping, e.g. at night
-            if (_currentState == HomePresenceState.Returning && IsSleepMode)
+            switch (_currentState)
             {
-                Logger.LogInformation("Motion detected while returning, but someone is sleeping: no welcome home");
-                _returningTimeout.Disposable = Disposable.Empty;
-                _currentState = HomePresenceState.Home;
-                return;
-            }
-
-            // Only trigger welcome home if we're in Returning state
-            if (_currentState == HomePresenceState.Returning)
-            {
-                _returningTimeout.Disposable = Disposable.Empty;
-                Logger.LogInformation("Motion detected while returning - starting welcome home sequence");
-                _currentState = HomePresenceState.WelcomingHome;
-                _ = Task.Run(ExecuteWelcomeHomeSequenceAsync);
-            }
-            else
-            {
-                Logger.LogDebug("Motion detected in state {CurrentState} - no action taken", _currentState);
+                // No welcome (living room scene, announcement) while someone is sleeping, e.g. at night
+                case HomePresenceState.Returning when IsSleepMode:
+                    Logger.LogInformation("Motion detected while returning, but someone is sleeping: no welcome home");
+                    _returningTimeout.Disposable = Disposable.Empty;
+                    _currentState = HomePresenceState.Home;
+                    return;
+                // Only trigger welcome home if we're in Returning state
+                case HomePresenceState.Returning:
+                    _returningTimeout.Disposable = Disposable.Empty;
+                    Logger.LogInformation("Motion detected while returning - starting welcome home sequence");
+                    _currentState = HomePresenceState.WelcomingHome;
+                    _ = Task.Run(ExecuteWelcomeHomeSequenceAsync);
+                    break;
+                case HomePresenceState.Away:
+                case HomePresenceState.WelcomingHome:
+                case HomePresenceState.Home:
+                default:
+                    Logger.LogDebug("Motion detected in state {CurrentState} - no action taken", _currentState);
+                    break;
             }
         }
     }

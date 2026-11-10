@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Configuration;
 using Automation.Models.Helpers;
 using FluentAssertions;
@@ -36,13 +36,14 @@ public class HelperManagerTests
     private void Existing(string domain, params string[] ids) =>
         _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(
                 Arg.Is<ListHelpersCommand>(c => c.Type == $"{domain}/list"), Arg.Any<CancellationToken>())
-            .Returns(ids.Select(id => new HelperItem { Id = id, Name = id }).ToList());
+            .Returns([.. ids.Select(id => new HelperItem { Id = id, Name = id })]);
 
     private List<CreateHelperCommand> CreateCommands() =>
-        _connection.ReceivedCalls()
+    [
+        .. _connection.ReceivedCalls()
             .Select(c => c.GetArguments()[0])
             .OfType<CreateHelperCommand>()
-            .ToList();
+    ];
 
     [Fact]
     public async Task MissingHelper_IsCreatedWithItsSettings()

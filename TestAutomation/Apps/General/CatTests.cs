@@ -1,5 +1,5 @@
 using Automation.Interfaces;
-using Automation.apps.General;
+using Automation.apps.General.Pets;
 using Automation.Configuration;
 using HomeAssistantGenerated;
 using Microsoft.Extensions.Logging;
@@ -25,7 +25,7 @@ public class CatTests
         _logger = Substitute.For<ILogger<Cat>>();
         _config = Options.Create(new AppConfig { 
             BaseUrlHomeAssistant = "http://test", 
-            Discord = new DiscordConfig { Pixel = "pixel_channel" },
+            Discord = new DiscordConfig { Pixel = "pixel_channel" }
         });
 
         // Setup feed times

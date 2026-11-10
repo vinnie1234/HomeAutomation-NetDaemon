@@ -91,7 +91,6 @@ public class BathRoomLights : BaseApp
     /// <summary>
     /// Handles the automation when the shower is in use.
     /// </summary>
-    /// <param name="isOn">A value indicating whether the shower is in use.</param>
     /// <summary>Starts the shower playlist (or the radio) of whoever is home, on the account that person chose.</summary>
     private void PlayShowerMusic()
     {

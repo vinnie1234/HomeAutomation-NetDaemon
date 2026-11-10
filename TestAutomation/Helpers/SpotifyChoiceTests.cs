@@ -22,7 +22,7 @@ public class SpotifyChoiceTests
         SpotifyKerstUrl = "config:kerst"
     };
 
-    public SpotifyChoiceTests() => _ha.GetAllEntities().Returns(_ => _entities.ToList());
+    public SpotifyChoiceTests() => _ha.GetAllEntities().Returns(_ => [.. _entities]);
 
     private void SetState(string entityId, string state, object? attributes = null) =>
         _ha.GetState(entityId).Returns(new EntityState

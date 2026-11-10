@@ -64,7 +64,7 @@ public static class WorkTimeReport
         var other = Minutes(day.Other);
         var gross = home + office + other;
         var hadLunch = gross >= BreaksFromGrossMinutes
-                       || (day.First is { } first && day.Last is { } last
+                       || (day is { First: { } first, Last: { } last }
                            && string.CompareOrdinal(first, LunchTime) < 0 && string.CompareOrdinal(last, LunchTime) >= 0);
         var withBreak = hadLunch ? Math.Max(0, gross - LunchBreakMinutes) : gross;
         var smoking = gross >= BreaksFromGrossMinutes ? SmokingMinutes : (int)Math.Round(SmokingMinutes * gross / (double)BreaksFromGrossMinutes, MidpointRounding.AwayFromZero);
@@ -78,28 +78,38 @@ public static class WorkTimeReport
 
     /// <summary>The days of the dictionary as periods, newest first.</summary>
     public static List<WorkPeriod> Days(IReadOnlyDictionary<string, WorkDay> days, int count) =>
-        days.OrderByDescending(d => d.Key, StringComparer.Ordinal).Take(count)
-            .Select(d => new WorkPeriod(d.Key, d.Key, d.Key, Of(d.Value), d.Value.First, d.Value.Last)).ToList();
+    [
+        .. days.OrderByDescending(d => d.Key, StringComparer.Ordinal).Take(count)
+            .Select(d => new WorkPeriod(d.Key, d.Key, d.Key, Of(d.Value), d.Value.First, d.Value.Last))
+    ];
 
     /// <summary>The weeks (Monday to Sunday, numbered as ISO weeks), newest first.</summary>
     public static List<WorkPeriod> Weeks(IReadOnlyDictionary<string, WorkDay> days, int count) =>
-        days.GroupBy(d => ISOWeek.GetYear(Parse(d.Key)) * 100 + ISOWeek.GetWeekOfYear(Parse(d.Key)))
+    [
+        .. days.GroupBy(d => ISOWeek.GetYear(Parse(d.Key)) * 100 + ISOWeek.GetWeekOfYear(Parse(d.Key)))
             .OrderByDescending(g => g.Key).Take(count)
             .Select(g =>
             {
                 var monday = ISOWeek.ToDateTime(g.Key / 100, g.Key % 100, DayOfWeek.Monday);
-                return new WorkPeriod($"{g.Key / 100}-W{g.Key % 100:00}", monday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    monday.AddDays(6).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Select(d => Of(d.Value)).Aggregate(WorkTotals.Zero, (a, b) => a + b));
-            }).ToList();
+                return new WorkPeriod($"{g.Key / 100}-W{g.Key % 100:00}",
+                    monday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    monday.AddDays(6).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    g.Select(d => Of(d.Value)).Aggregate(WorkTotals.Zero, (a, b) => a + b));
+            })
+    ];
 
     /// <summary>The calendar months (November, October, ...; not the last 30 days), newest first.</summary>
     public static List<WorkPeriod> Months(IReadOnlyDictionary<string, WorkDay> days, int count) =>
-        days.GroupBy(d => d.Key[..7])
+    [
+        .. days.GroupBy(d => d.Key[..7])
             .OrderByDescending(g => g.Key, StringComparer.Ordinal).Take(count)
             .Select(g =>
             {
-                var first = new DateTime(int.Parse(g.Key[..4], CultureInfo.InvariantCulture), int.Parse(g.Key[5..], CultureInfo.InvariantCulture), 1);
+                var first = new DateTime(int.Parse(g.Key[..4], CultureInfo.InvariantCulture),
+                    int.Parse(g.Key[5..], CultureInfo.InvariantCulture), 1);
                 return new WorkPeriod(g.Key, first.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    first.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Select(d => Of(d.Value)).Aggregate(WorkTotals.Zero, (a, b) => a + b));
-            }).ToList();
+                    first.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    g.Select(d => Of(d.Value)).Aggregate(WorkTotals.Zero, (a, b) => a + b));
+            })
+    ];
 }

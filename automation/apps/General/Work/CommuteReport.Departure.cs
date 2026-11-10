@@ -2,7 +2,7 @@ using System.Globalization;
 using Automation.Core;
 using Automation.Models.Traffic;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Whoever leaves the place of work keeps the route home as it was at that moment: the ANWB recalculates its route sensors all the time
@@ -34,7 +34,6 @@ public partial class CommuteReport
         try
         {
             foreach (var commuter in _commuters)
-            {
                 if (InZone(WorkZone, commuter.PersonId))
                 {
                     // Back at work: the route home is live again
@@ -44,7 +43,6 @@ public partial class CommuteReport
                 {
                     FreezeRouteHome(commuter);
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -91,10 +89,10 @@ public partial class CommuteReport
 
     /// <summary>The route home at the moment of leaving. The names are short because an input_text holds 255 characters.</summary>
     private sealed record FrozenRoute(
-        [property: System.Text.Json.Serialization.JsonPropertyName("date")] string Date,
-        [property: System.Text.Json.Serialization.JsonPropertyName("left")] DateTimeOffset Left,
-        [property: System.Text.Json.Serialization.JsonPropertyName("duration")] double Duration,
-        [property: System.Text.Json.Serialization.JsonPropertyName("normal")] double Normal,
-        [property: System.Text.Json.Serialization.JsonPropertyName("delay")] double Delay,
-        [property: System.Text.Json.Serialization.JsonPropertyName("arrival")] DateTimeOffset Arrival);
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("date")] string Date,
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("left")] DateTimeOffset Left,
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("duration")] double Duration,
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("normal")] double Normal,
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("delay")] double Delay,
+        [property: global::System.Text.Json.Serialization.JsonPropertyName("arrival")] DateTimeOffset Arrival);
 }

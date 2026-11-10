@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using Automation.Models.Traffic;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Follows who is in the train, from the zones around the stations. Leaving a station zone and then, within a few minutes, being in the
@@ -54,31 +54,35 @@ public partial class CommuteReport
     {
         // Who is at a station already (also after a restart) has not just arrived there
         foreach (var commuter in _commuters)
-            foreach (var link in StationLinks)
-                if (InZone(link.Station, commuter.PersonId)) _atStation.Add($"{commuter.Id}|{link.Station}");
+        foreach (var link in StationLinks)
+            if (InZone(link.Station, commuter.PersonId))
+                _atStation.Add($"{commuter.Id}|{link.Station}");
         foreach (var link in StationLinks)
         {
             new Entity(HaContext, link.Station).StateChanges().Subscribe(_ => FollowTrains());
             new Entity(HaContext, link.Track).StateChanges().Subscribe(_ => FollowTrains());
         }
+
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), FollowTrains);
         // Every night the routes are needed again
         Scheduler.ScheduleCronNl("0 4 * * *", () =>
         {
             foreach (var commuter in _commuters)
-                foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
-                    SetRouteNotNeeded(commuter, direction, false);
+            foreach (var direction in new[] { CommuteDirection.ToWork, CommuteDirection.ToHome })
+                SetRouteNotNeeded(commuter, direction, false);
             // The choice of today (the car instead of public transport) is over: back to the weekday settings
             foreach (var commuter in _commuters)
             {
                 var today = $"input_select.vervoer_vandaag_{commuter.Id}";
-                if (HaContext.GetState(today)?.State is { } chosen && chosen != Models.Persons.WorkSchedule.FollowSchedule && chosen is not ("unknown" or "unavailable"))
+                if (HaContext.GetState(today)?.State is { } chosen &&
+                    chosen != Models.Persons.WorkSchedule.FollowSchedule && chosen is not ("unknown" or "unavailable"))
                     new InputSelectEntity(HaContext, today).SelectOption(Models.Persons.WorkSchedule.FollowSchedule);
             }
+
             foreach (var commuter in _commuters)
-                foreach (var helper in new[] { "afspraak_route", "afspraak_aangekomen" })
-                    if (HaContext.GetState($"input_boolean.{helper}_{commuter.Id}")?.State == "on")
-                        new InputBooleanEntity(HaContext, $"input_boolean.{helper}_{commuter.Id}").TurnOff();
+            foreach (var helper in new[] { "afspraak_route", "afspraak_aangekomen" })
+                if (HaContext.GetState($"input_boolean.{helper}_{commuter.Id}")?.State == "on")
+                    new InputBooleanEntity(HaContext, $"input_boolean.{helper}_{commuter.Id}").TurnOff();
         });
     }
 
@@ -92,39 +96,43 @@ public partial class CommuteReport
                 FollowAppointment(commuter);
                 FollowEde(commuter, now);
             }
-            foreach (var commuter in _commuters)
-                foreach (var link in StationLinks)
-                {
-                    var key = $"{commuter.Id}|{link.Station}";
-                    if (InZone(link.Station, commuter.PersonId))
-                    {
-                        // At the station: remember the trips (the one they take has gone from the sensor by the time they are on the track)
-                        var justArrived = _atStation.Add(key);
-                        _departures.Remove(key);
-                        _tripsAtStation[key] = AllTrips(commuter, link.Direction);
-                        // Only on arriving: someone who stays in the zone (an office next to the station) keeps the choice "does not come home"
-                        if (justArrived) SetRouteNotNeeded(commuter, link.Direction, false);
-                    }
-                    else if (_atStation.Remove(key) && IsTimeForTrip(link.Direction))
-                    {
-                        _departures[key] = new Departure(now, ClosestTrip(_tripsAtStation.GetValueOrDefault(key), now));
-                    }
 
-                    if (!_departures.TryGetValue(key, out var departure)) continue;
-                    if (InZone(link.Track, commuter.PersonId))
-                    {
-                        _departures.Remove(key);
-                        if (departure.Trip != null) ChooseTrip(commuter, link.Direction, departure.Trip);
-                        SetRouteNotNeeded(commuter, link.Direction, false);
-                        Logger.LogInformation("{Person} sits in the train of {Departure}", commuter.Id, departure.Trip?.Departure);
-                    }
-                    else if (now - departure.Left > InTrainWithin)
-                    {
-                        _departures.Remove(key);
-                        SetRouteNotNeeded(commuter, link.Direction, true);
-                        Logger.LogInformation("{Person} did not get into the train within {Minutes} minutes, the {Direction} route is not needed", commuter.Id, InTrainWithin.TotalMinutes, link.Direction);
-                    }
+            foreach (var commuter in _commuters)
+            foreach (var link in StationLinks)
+            {
+                var key = $"{commuter.Id}|{link.Station}";
+                if (InZone(link.Station, commuter.PersonId))
+                {
+                    // At the station: remember the trips (the one they take has gone from the sensor by the time they are on the track)
+                    var justArrived = _atStation.Add(key);
+                    _departures.Remove(key);
+                    _tripsAtStation[key] = AllTrips(commuter, link.Direction);
+                    // Only on arriving: someone who stays in the zone (an office next to the station) keeps the choice "does not come home"
+                    if (justArrived) SetRouteNotNeeded(commuter, link.Direction, false);
                 }
+                else if (_atStation.Remove(key) && IsTimeForTrip(link.Direction))
+                {
+                    _departures[key] = new Departure(now, ClosestTrip(_tripsAtStation.GetValueOrDefault(key), now));
+                }
+
+                if (!_departures.TryGetValue(key, out var departure)) continue;
+                if (InZone(link.Track, commuter.PersonId))
+                {
+                    _departures.Remove(key);
+                    if (departure.Trip != null) ChooseTrip(commuter, link.Direction, departure.Trip);
+                    SetRouteNotNeeded(commuter, link.Direction, false);
+                    Logger.LogInformation("{Person} sits in the train of {Departure}", commuter.Id,
+                        departure.Trip?.Departure);
+                }
+                else if (now - departure.Left > InTrainWithin)
+                {
+                    _departures.Remove(key);
+                    SetRouteNotNeeded(commuter, link.Direction, true);
+                    Logger.LogInformation(
+                        "{Person} did not get into the train within {Minutes} minutes, the {Direction} route is not needed",
+                        commuter.Id, InTrainWithin.TotalMinutes, link.Direction);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -139,15 +147,19 @@ public partial class CommuteReport
     private void FollowEde(Commuter commuter, DateTimeOffset now)
     {
         var known = _knownTrips.TryGetValue(commuter.Id, out var existing) ? existing : _knownTrips[commuter.Id] = [];
-        foreach (var trip in AllTrips(commuter, CommuteDirection.ToWork).Where(t => t.Id != null)) known[trip.Id!] = trip;
-        foreach (var old in known.Where(k => k.Value.Departure < now - RememberTrips).Select(k => k.Key).ToList()) known.Remove(old);
+        foreach (var trip in AllTrips(commuter, CommuteDirection.ToWork).Where(t => t.Id != null))
+            known[trip.Id!] = trip;
+        foreach (var old in known.Where(k => k.Value.Departure < now - RememberTrips).Select(k => k.Key).ToList())
+            known.Remove(old);
 
         if (!InZone(EdeTrack, commuter.PersonId))
         {
             _onEdeTrack.Remove(commuter.Id);
             return;
         }
-        if (!_onEdeTrack.Add(commuter.Id) || !IsTimeForTrip(CommuteDirection.ToWork) || ChosenDeparture(commuter, CommuteDirection.ToWork) != null) return;
+
+        if (!_onEdeTrack.Add(commuter.Id) || !IsTimeForTrip(CommuteDirection.ToWork) ||
+            ChosenDeparture(commuter, CommuteDirection.ToWork) != null) return;
         var candidates = known.Values.Where(t => t.Departure <= now && !t.Cancelled).ToList();
         if (candidates.Count > 0) _ = ChooseTripAtEdeAsync(commuter, candidates, now);
     }
@@ -158,24 +170,27 @@ public partial class CommuteReport
         try
         {
             var routeId = FindTransitPrefix(commuter.PersonId, CommuteDirection.ToWork) is { } prefix
-                && HaContext.GetState($"{prefix}_lijnen")?.AttributesJson is { ValueKind: JsonValueKind.Object } a ? Text(a, "route_id") : null;
+                          && HaContext.GetState($"{prefix}_lijnen")?.AttributesJson is
+                              { ValueKind: JsonValueKind.Object } a
+                ? Text(a, "route_id")
+                : null;
             TransitTrip? best = null;
             var bestGap = TimeSpan.MaxValue;
             foreach (var trip in candidates)
             {
                 var detail = await GetJourneyAsync(trip.Id!, routeId);
-                foreach (var leg in detail?.Legs ?? [])
+                foreach (var stop in (detail?.Legs ?? [])
+                         .Where(leg => leg.Mode is not (null or "Walking" or "Bus" or "Tram" or "Metro" or "Ferry"))
+                         .SelectMany(leg => new[] { leg.From }.Concat(leg.Stops).Concat([leg.To])))
                 {
-                    if (leg.Mode is null or "Walking" or "Bus" or "Tram" or "Metro" or "Ferry") continue;
-                    foreach (var stop in new[] { leg.From }.Concat(leg.Stops).Concat([leg.To]))
-                    {
-                        if (stop?.Name?.Contains("Ede", StringComparison.OrdinalIgnoreCase) != true
-                            || !DateTimeOffset.TryParse(stop.Real ?? stop.Time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var at)) continue;
-                        var gap = (at - now).Duration();
-                        if (gap <= SameTrain && gap < bestGap) (best, bestGap) = (trip, gap);
-                    }
+                    if (stop?.Name?.Contains("Ede", StringComparison.OrdinalIgnoreCase) != true
+                        || !DateTimeOffset.TryParse(stop.Real ?? stop.Time, CultureInfo.InvariantCulture,
+                            DateTimeStyles.None, out var at)) continue;
+                    var gap = (at - now).Duration();
+                    if (gap <= SameTrain && gap < bestGap) (best, bestGap) = (trip, gap);
                 }
             }
+
             if (best == null) return;
             ChooseTrip(commuter, CommuteDirection.ToWork, best);
             Logger.LogInformation("{Person} sits in the train from Ede of {Departure}", commuter.Id, best.Departure);
@@ -207,6 +222,7 @@ public partial class CommuteReport
             _appointments[commuter.Id] = appointment;
             return;
         }
+
         _appointments[commuter.Id] = appointment;
         if (!AppointmentIsNear(appointment)) return;
         if (!shown && commuter.Person.IsHome)
@@ -221,16 +237,20 @@ public partial class CommuteReport
         var parts = appointment.Split('|');
         if (parts.Length < 2
             || !DateTime.TryParse(parts[0], CultureInfo.InvariantCulture, DateTimeStyles.None, out var start)
-            || !DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out var end)) return false;
+            || !DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out var end))
+            return false;
+
         // The times are Dutch clock times: not the clock of the machine this runs on
-        DateTimeOffset InDutchTime(DateTime clock) => new(clock, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(clock));
+        DateTimeOffset InDutchTime(DateTime clock) =>
+            new(clock, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(clock));
+
         var now = Scheduler.NowNl();
         return InDutchTime(start) - now <= TimeSpan.FromHours(6) && now < InDutchTime(end);
     }
 
     /// <summary>The trip to the office starts in the morning, the trip home in the afternoon: leaving a station at the other time of day (arriving) is no departure.</summary>
     private bool IsTimeForTrip(CommuteDirection direction) =>
-        (Scheduler.NowNl().Hour < 12) == (direction == CommuteDirection.ToWork);
+        Scheduler.NowNl().Hour < 12 == (direction == CommuteDirection.ToWork);
 
     private bool InZone(string zone, string personId) =>
         HaContext.GetState(zone)?.AttributesJson is { ValueKind: JsonValueKind.Object } a
@@ -241,21 +261,23 @@ public partial class CommuteReport
     private IReadOnlyList<TransitTrip> AllTrips(Commuter commuter, CommuteDirection direction)
     {
         var prefix = FindTransitPrefix(commuter.PersonId, direction);
-        if (prefix == null || HaContext.GetState($"{prefix}_lijnen")?.AttributesJson is not { ValueKind: JsonValueKind.Object } a) return [];
-        return TransitTrips(a, "earlier").Concat(TransitTrips(a, "upcoming")).ToList();
+        if (prefix == null || HaContext.GetState($"{prefix}_lijnen")?.AttributesJson is not
+                { ValueKind: JsonValueKind.Object } a) return [];
+        return [.. TransitTrips(a, "earlier"), .. TransitTrips(a, "upcoming")];
     }
 
     private static TransitTrip? ClosestTrip(IReadOnlyList<TransitTrip>? trips, DateTimeOffset left) =>
         trips?.Where(t => (t.Departure - left).Duration() <= SameTrain).MinBy(t => (t.Departure - left).Duration());
 
     private void ChooseTrip(Commuter commuter, CommuteDirection direction, TransitTrip trip) =>
-        HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity($"input_text.reis_keuze_{commuter.Id}_{Side(direction)}"),
+        HaContext.CallService("input_text", "set_value",
+            ServiceTarget.FromEntity($"input_text.reis_keuze_{commuter.Id}_{Side(direction)}"),
             new { value = PlannedStamp(trip) });
 
     private void SetRouteNotNeeded(Commuter commuter, CommuteDirection direction, bool notNeeded)
     {
         var entityId = $"input_boolean.reis_niet_{commuter.Id}_{Side(direction)}";
-        if ((HaContext.GetState(entityId)?.State == "on") == notNeeded) return;
+        if (HaContext.GetState(entityId)?.State == "on" == notNeeded) return;
         var helper = new InputBooleanEntity(HaContext, entityId);
         if (notNeeded) helper.TurnOn();
         else helper.TurnOff();

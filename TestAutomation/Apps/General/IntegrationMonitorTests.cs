@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.DiscordNotificationModels;
@@ -181,7 +181,7 @@ public class IntegrationMonitorTests : IDisposable
     [Fact]
     public void MoreThanFiveFailingIntegrations_ReloadsNothing()
     {
-        _entries = Enumerable.Range(1, 6).Select(i => Failing($"entry{i}")).ToList();
+        _entries = [.. Enumerable.Range(1, 6).Select(i => Failing($"entry{i}"))];
         CreateApp();
 
         AdvanceToFirstCheck();
@@ -193,7 +193,7 @@ public class IntegrationMonitorTests : IDisposable
     [Fact]
     public void FiveFailingIntegrations_AreAllReloaded()
     {
-        _entries = Enumerable.Range(1, 5).Select(i => Failing($"entry{i}")).ToList();
+        _entries = [.. Enumerable.Range(1, 5).Select(i => Failing($"entry{i}"))];
         CreateApp();
 
         AdvanceToFirstCheck();

@@ -1,9 +1,9 @@
 using System.Reactive.Concurrency;
+using Automation.Configuration;
 using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
-using Automation.Configuration;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Represents an application that handles automatic updates and notifications.
@@ -35,13 +35,13 @@ public class AutoUpdateApp : BaseApp
     {
         _config = config.Value;
         _updates = Entities.Update;
-        scheduler.ScheduleCronNl("0 11 30 * *", () => _ = AutoUpdate());
+        scheduler.ScheduleCronNl("0 11 30 * *", () => _ = AutoUpdateAsync());
     }
 
     /// <summary>
     /// Automatically updates the entities that need updates and sends notifications.
     /// </summary>
-    private async Task AutoUpdate()
+    private async Task AutoUpdateAsync()
     {
         try
         {
@@ -64,7 +64,7 @@ public class AutoUpdateApp : BaseApp
                 updateEntity.Install();
 
                 // Install only starts the update: wait until the entity reports it is up to date
-                if (await WaitUntilInstalled(updateEntity))
+                if (await WaitUntilInstalledAsync(updateEntity))
                 {
                     Logger.LogInformation("Ready updating {name}", name);
                     NotifyMeOnDiscord("Updates is geinstaleerd", $"Geinstalleerde update voor {name}");
@@ -90,7 +90,7 @@ public class AutoUpdateApp : BaseApp
     /// </summary>
     /// <param name="updateEntity">The update being installed.</param>
     /// <returns><c>true</c> when the update was installed in time; otherwise <c>false</c>.</returns>
-    private async Task<bool> WaitUntilInstalled(UpdateEntity updateEntity)
+    private async Task<bool> WaitUntilInstalledAsync(UpdateEntity updateEntity)
     {
         for (var waited = TimeSpan.Zero; waited < InstallTimeout; waited += TimeSpan.FromMinutes(1))
         {

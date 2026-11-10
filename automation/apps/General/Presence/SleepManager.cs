@@ -4,7 +4,7 @@ using Automation.Core;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 public static class TestExceptionCatcher { public static Exception? CaughtException; }
 

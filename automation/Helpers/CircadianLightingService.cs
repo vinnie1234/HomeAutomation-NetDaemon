@@ -171,9 +171,7 @@ public class CircadianLightingService : ICircadianLightingService
         }
 
         var span = _config.DayElevation - _config.NightElevation;
-        if (span <= 0) return 1.0;
-
-        return Math.Clamp((elevation.Value - _config.NightElevation) / span, 0.0, 1.0);
+        return span <= 0 ? 1.0 : Math.Clamp((elevation.Value - _config.NightElevation) / span, 0.0, 1.0);
     }
 
     /// <summary>

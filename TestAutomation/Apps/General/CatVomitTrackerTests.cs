@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Pets;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Repository;
@@ -35,7 +35,7 @@ public class CatVomitTrackerTests : IDisposable
     {
         var call = _entityManager.ReceivedCalls().Last(c => c.GetMethodInfo().Name == nameof(IEntityManager.SetState));
         var attributes = JsonSerializer.SerializeToElement(call.GetArguments()[2]);
-        return attributes.GetProperty("momenten").EnumerateArray().Select(x => x.GetString()!).ToList();
+        return [.. attributes.GetProperty("momenten").EnumerateArray().Select(x => x.GetString()!)];
     }
 
     [Fact]

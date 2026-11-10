@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 
 namespace Automation.Core;
 
@@ -95,7 +94,7 @@ public sealed class ActivityTrigger
     public static ActivityTrigger FromState(StateChange change) =>
         new("entiteit", () => Describe(change), IdOf(change));
 
-    private static string? IdOf(StateChange change) => change.Entity?.EntityId ?? change.New?.EntityId ?? change.Old?.EntityId;
+    private static string? IdOf(StateChange change) => change.Entity.EntityId;
 
     /// <summary>An event on the bus (not the high-volume ones, see <see cref="ActivityContext.IgnoredEvents"/>).</summary>
     public static ActivityTrigger FromEvent(Event e) => new("event", () => Describe(e));
@@ -103,7 +102,7 @@ public sealed class ActivityTrigger
     /// <summary>A schedule or timer that ran: at a time, or after a wait that something else started.</summary>
     public static ActivityTrigger FromTime(ActivityTrigger? startedBy, TimeSpan? wait, DateTimeOffset? at) =>
         new("tijd", () => startedBy == null
-            ? (at is { } due ? $"Tijd: gepland om {Extensions.SchedulerExtensions.ToDutchTime(due):HH:mm:ss}" : $"Timer van {Wait(wait ?? TimeSpan.Zero)} afgelopen")
+            ? at is { } due ? $"Tijd: gepland om {Extensions.SchedulerExtensions.ToDutchTime(due):HH:mm:ss}" : $"Timer van {Wait(wait ?? TimeSpan.Zero)} afgelopen"
             : $"{Wait(wait ?? TimeSpan.Zero)} later", parent: startedBy);
 
     // ---- the words
@@ -112,9 +111,12 @@ public sealed class ActivityTrigger
     {
         var name = FriendlyName(change.New) ?? FriendlyName(change.Old) ?? IdOf(change) ?? "onbekend";
         var motion = Attribute(change.New, "device_class") is "motion" or "occupancy" or "presence";
-        if (motion && change.New?.State == "on") return $"Beweging: {name}";
-        if (motion && change.New?.State == "off") return $"Geen beweging meer: {name}";
-        return $"{name}: {State(change.Old?.State)} → {State(change.New?.State)}";
+        return motion switch
+        {
+            true when (change.New?.State == "on") => $"Beweging: {name}",
+            true when (change.New?.State == "off") => $"Geen beweging meer: {name}",
+            _ => $"{name}: {State(change.Old?.State)} → {State(change.New?.State)}"
+        };
     }
 
     private static string Describe(Event e) => e.EventType switch

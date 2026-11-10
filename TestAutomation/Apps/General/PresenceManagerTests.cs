@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Presence;
 using FluentAssertions;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -153,10 +153,14 @@ public class PresenceManagerTests
     }
 
     private static List<string> LightsTurnedOff(AppTestContext ctx) =>
-        ctx.HaContext.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "light" && (string)c.GetArguments()[1]! == "turn_off")
+    [
+        .. ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "light" &&
+                        (string)c.GetArguments()[1]! == "turn_off")
             .SelectMany(c => ((NetDaemon.HassModel.Entities.ServiceTarget?)c.GetArguments()[2])?.EntityIds ?? [])
-            .ToList();
+    ];
+
+    private static readonly string[] SourceArray = ["light.bureau", "light.plafond_woonkamer"];
 
     [Theory]
     [InlineData("Thuis", false)]
@@ -166,8 +170,7 @@ public class PresenceManagerTests
         var ctx = AppTestContext.NewWithScheduler();
         ctx.HaContext.GetState("input_select.werkdag_vincent_zaterdag").Returns(
             new NetDaemon.HassModel.Entities.EntityState { EntityId = "input_select.werkdag_vincent_zaterdag", State = saturday });
-        var lights = new[] { "light.bureau", "light.plafond_woonkamer" }
-            .Select(id => new NetDaemon.HassModel.Entities.Entity(ctx.HaContext, id)).ToList();
+        var lights = SourceArray.Select(id => new NetDaemon.HassModel.Entities.Entity(ctx.HaContext, id)).ToList();
         ctx.HaContext.GetAllEntities().Returns(lights);
         foreach (var (id, state) in new[] { ("input_boolean.awayvincent", "off"), ("input_boolean.awaycarleen", "on"), ("input_boolean.away", "off"), ("input_boolean.sleepingcarleen", "off"), ("input_boolean.vrij_vincent", "off") })
             ctx.HaContext.GetState(id).Returns(new NetDaemon.HassModel.Entities.EntityState { EntityId = id, State = state });
@@ -178,6 +181,6 @@ public class PresenceManagerTests
 
         var off = LightsTurnedOff(ctx);
         off.Should().Contain("light.plafond_woonkamer");
-        (off.Contains("light.bureau")).Should().Be(deskGoesOff);
+        off.Contains("light.bureau").Should().Be(deskGoesOff);
     }
 }

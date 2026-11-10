@@ -4,7 +4,7 @@ using Automation.Configuration;
 using Automation.Models.WhatsApp;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Todo items with a place. A task gets the line <c>📍 Boodschappen AH</c> in its description (shown under the task in the
@@ -86,13 +86,14 @@ public partial class TodoZoneReminders : BaseApp
 
     /// <summary>The names of the zones as the person entity reports them while someone is in one (trimmed).</summary>
     private List<string> ZoneNames() =>
-        Entities.Zone.EnumerateAll()
+    [
+        .. Entities.Zone.EnumerateAll()
             .Select(z => z.Attributes?.FriendlyName?.Trim())
             .Where(n => !string.IsNullOrEmpty(n))
             .Select(n => n!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+    ];
 
     private void SyncZoneOptions()
     {
@@ -102,7 +103,7 @@ public partial class TodoZoneReminders : BaseApp
             var current = new List<string>();
             if (HaContext.GetState(ZoneHelper)?.AttributesJson is { } attributes &&
                 attributes.TryGetProperty("options", out var existing) && existing.ValueKind == JsonValueKind.Array)
-                current = existing.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+                current = [.. existing.EnumerateArray().Select(x => x.GetString() ?? "")];
 
             if (current.SequenceEqual(options)) return;
             Entities.InputSelect.TodoZone.SetOptions(options);
@@ -157,8 +158,9 @@ public partial class TodoZoneReminders : BaseApp
     private string? EnteredZone(string? state)
     {
         if (string.IsNullOrWhiteSpace(state)) return null;
-        if (state == "home") return HomeZoneName;
-        return ZoneNames().FirstOrDefault(n => string.Equals(n, state.Trim(), StringComparison.OrdinalIgnoreCase));
+        return state == "home"
+            ? HomeZoneName
+            : ZoneNames().FirstOrDefault(n => string.Equals(n, state.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task RemindAsync(string person, string whatsapp, string ownList, string? newState)
@@ -172,9 +174,9 @@ public partial class TodoZoneReminders : BaseApp
 
             var tasks = new List<string>();
             foreach (var list in new[] { ownList, SharedList })
-                foreach (var (summary, description) in await OpenItemsAsync(list))
-                    if (ParsePlace(description) is { Message: true } place && SameZone(place.Zone, zone))
-                        tasks.Add(list == SharedList ? $"{summary} (samen)" : summary);
+            foreach (var (summary, description) in await OpenItemsAsync(list))
+                if (ParsePlace(description) is { Message: true } place && SameZone(place.Zone, zone))
+                    tasks.Add(list == SharedList ? $"{summary} (samen)" : summary);
 
             // At the supermarket the whole shopping list is sent, whether or not the items have a place or a bell
             var groceries = SameZone(zone, GroceryZone)
@@ -191,12 +193,14 @@ public partial class TodoZoneReminders : BaseApp
             _lastReminder[(person, zone)] = Scheduler.Now;
             var parts = new List<string>();
             if (groceries.Count > 0)
-                parts.Add($"{Cart} Je bent bij {zone}. Dit staat op de boodschappenlijst:\n{string.Join("\n", groceries.Select(t => $"• {t}"))}");
+                parts.Add(
+                    $"{Cart} Je bent bij {zone}. Dit staat op de boodschappenlijst:\n{string.Join("\n", groceries.Select(t => $"• {t}"))}");
             if (tasks.Count > 0)
                 parts.Add($"{Pin} Je bent bij {zone}. Dit moet nog:\n{string.Join("\n", tasks.Select(t => $"• {t}"))}");
             var text = string.Join("\n\n", parts);
             Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, message: WhatsAppMessage.Text(text));
-            Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s) and {Groceries} grocery item(s)", person, zone, tasks.Count, groceries.Count);
+            Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s) and {Groceries} grocery item(s)",
+                person, zone, tasks.Count, groceries.Count);
         }
         catch (Exception ex)
         {
@@ -210,14 +214,15 @@ public partial class TodoZoneReminders : BaseApp
         var response = await HaContext.CallServiceWithResponseAsync("todo", "get_items", ServiceTarget.FromEntity(list),
             new Dictionary<string, object> { ["status"] = "needs_action" });
         var items = new List<(string, string?)>();
-        if (response is { } root && root.TryGetProperty(list, out var entity) && entity.TryGetProperty("items", out var array))
-            foreach (var item in array.EnumerateArray())
-                items.Add((item.GetProperty("summary").GetString() ?? "",
-                    item.TryGetProperty("description", out var d) ? d.GetString() : null));
+        if (response is { } root && root.TryGetProperty(list, out var entity) &&
+            entity.TryGetProperty("items", out var array))
+            items.AddRange(array.EnumerateArray().Select(item => (item.GetProperty("summary").GetString() ?? "",
+                item.TryGetProperty("description", out var d) ? d.GetString() : null)));
         return items;
     }
 
-    private static bool SameZone(string a, string b) => string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
+    private static bool SameZone(string a, string b) =>
+        string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The place in the description of a task (<c>📍 Zone</c>, with <c>🔔</c> after it when a message is wanted), or null.</summary>
     public static (string Zone, bool Message)? ParsePlace(string? description)

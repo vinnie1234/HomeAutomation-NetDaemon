@@ -1,10 +1,10 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
-using Automation.Models.Persons;
 using Automation.Enum;
+using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 /// <summary>
 /// Manages per-person presence for Vincent and Carleen and derives the house-wide
@@ -118,10 +118,15 @@ public class PresenceManager : BaseApp
     {
         var bothAway = Entities.InputBoolean.Awayvincent.IsOn() && Entities.InputBoolean.Awaycarleen.IsOn();
 
-        if (bothAway && Entities.InputBoolean.Away.IsOff())
-            Entities.InputBoolean.Away.TurnOn();
-        else if (!bothAway && Entities.InputBoolean.Away.IsOn())
-            Entities.InputBoolean.Away.TurnOff();
+        switch (bothAway)
+        {
+            case true when Entities.InputBoolean.Away.IsOff():
+                Entities.InputBoolean.Away.TurnOn();
+                break;
+            case false when Entities.InputBoolean.Away.IsOn():
+                Entities.InputBoolean.Away.TurnOff();
+                break;
+        }
     }
 
     /// <summary>

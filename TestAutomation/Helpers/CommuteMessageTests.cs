@@ -165,7 +165,7 @@ public class CommuteMessageTests
 
     private static TransitTrip Trip(int departMinutes, int duration, double delay = 0, bool cancelled = false, params (string Mode, string Line)[] legs) =>
         new(Now.AddMinutes(departMinutes), Now.AddMinutes(departMinutes + duration), duration, delay, 2,
-            legs.Select(l => new TransitLeg(l.Mode, l.Line)).ToList(), cancelled);
+            [.. legs.Select(l => new TransitLeg(l.Mode, l.Line))], cancelled);
 
     [Fact]
     public void Transit_ShowsTheNextTripWithLinesAndTheOnesAfterIt()

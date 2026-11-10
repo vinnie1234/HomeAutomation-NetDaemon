@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Work;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Persons;
@@ -37,11 +37,13 @@ public class OfficeTimesTests
 
     /// <summary>The <c>datetime</c> values the app set on an entity, in order.</summary>
     private List<string> SetTo(string entityId) =>
-        _ctx.HaContext.ReceivedCalls()
+    [
+        .. _ctx.HaContext.ReceivedCalls()
             .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[1]! == "set_datetime"
-                        && (c.GetArguments()[2] as ServiceTarget)?.EntityIds?.Contains(entityId) == true)
+                                                                && (c.GetArguments()[2] as ServiceTarget)?.EntityIds
+                                                                ?.Contains(entityId) == true)
             .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]).GetProperty("datetime").GetString()!)
-            .ToList();
+    ];
 
     [Fact]
     public void OfficeDay_SetsTenMinutesBeforeTheStart_AndTenMinutesAfterTheEnd()

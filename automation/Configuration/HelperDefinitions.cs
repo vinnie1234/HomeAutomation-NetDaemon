@@ -1,9 +1,11 @@
+using Automation.apps.General.System;
+using Automation.apps.General.Work;
 using Automation.Models.Helpers;
 
 namespace Automation.Configuration;
 
 /// <summary>
-/// The helpers (input_boolean, input_number, counter, ...) the automations need. <see cref="apps.General.HelperManager"/>
+/// The helpers (input_boolean, input_number, counter, ...) the automations need. <see cref="HelperManager"/>
 /// creates the ones that are missing in Home Assistant when NetDaemon starts; existing helpers are left as they are, so
 /// changes made in the Home Assistant UI stay. Home Assistant derives the id from the name when it creates a helper.
 /// </summary>
@@ -220,7 +222,7 @@ public static class HelperDefinitions
     ];
 
     /// <summary>
-    /// What <see cref="apps.General.OfficeTimes"/> keeps up to date for a person: the time to be at the office (ten minutes before the
+    /// What <see cref="OfficeTimes"/> keeps up to date for a person: the time to be at the office (ten minutes before the
     /// start) and the time to leave the office (ten minutes after the end), for the next office day. A 9292 route can use them as
     /// its arrival or departure time. Besides these, a choice of car or public transport for every day of the week.
     /// </summary>
@@ -236,7 +238,7 @@ public static class HelperDefinitions
         Boolean($"spotify_auto_radio_{person}", $"Spotify auto radio {name}", icon: "mdi:radio", start: true),
         // De keuzes komen van SpotifyAccounts (de accounts die Spotcast heeft); zonder account speelt Spotcast op zijn standaardaccount
         Select($"spotify_account_{person}", $"Spotify account {name}", [Helpers.SpotifyChoice.NoAccount], icon: "mdi:account-music"),
-        Button($"spotify_koppelen_{person}", $"Spotify koppelen {name}", icon: "mdi:link-variant-plus"),
+        Button($"spotify_koppelen_{person}", $"Spotify koppelen {name}", icon: "mdi:link-variant-plus")
     ];
 
     private static IEnumerable<HelperDefinition> OfficeHelpers(string person, string name) =>

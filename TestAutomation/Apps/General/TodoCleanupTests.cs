@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;
@@ -14,7 +14,7 @@ public class TodoCleanupTests
 
     private void Start(params string[] lists)
     {
-        _ctx.HaContext.GetAllEntities().Returns(lists.Select(l => new Entity(_ctx.HaContext, l)).ToList());
+        _ctx.HaContext.GetAllEntities().Returns([.. lists.Select(l => new Entity(_ctx.HaContext, l))]);
         // 2026-11-05 22:00 UTC is 23:00 Dutch time, an hour before midnight
         _ctx.SetCurrentTime(new DateTime(2026, 11, 5, 22, 0, 0, DateTimeKind.Utc));
         _ctx.InitApp<TodoCleanup>(Options.Create(new AppConfig()));

@@ -5,7 +5,7 @@ using Automation.Configuration;
 using Automation.Models.Persons;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Work;
 
 /// <summary>
 /// Puts work days in the work schedule from the calendar, for everyone who switched <c>werk_uit_agenda_{person}</c> on (Carleen from the

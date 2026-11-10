@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Presence;
 
 /// <summary>
 /// Represents an application that manages holiday states and notifications.

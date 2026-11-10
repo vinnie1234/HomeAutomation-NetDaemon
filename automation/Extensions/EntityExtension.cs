@@ -7,60 +7,54 @@ namespace Automation.Extensions;
 /// </summary>
 public static class EntityExtensions
 {
-    /// <summary>
-    /// Subscribes to state changes when the entity turns on.
-    /// </summary>
+    /// <param name="entity">The entity to observe.</param>
     /// <typeparam name="T">The type of the entity.</typeparam>
     /// <typeparam name="TAttributes">The type of the entity's attributes.</typeparam>
-    /// <param name="entity">The entity to observe.</param>
-    /// <param name="observer">The action to perform when the entity turns on.</param>
-    /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
-    /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
-    public static void WhenTurnsOn<T, TAttributes>(this Entity<T, EntityState<TAttributes>, TAttributes> entity,
-        Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
-        where TAttributes : class
-        where T : Entity<T, EntityState<TAttributes>, TAttributes>
+    extension<T, TAttributes>(Entity<T, EntityState<TAttributes>, TAttributes> entity) where T : Entity<T, EntityState<TAttributes>, TAttributes> where TAttributes : class
     {
-        var changes = entity.StateChanges()
-            .Where(c => c.Old?.IsOff() == true
-                     && (c.New?.IsOn() ?? false)
-                     && c.Old?.State is not (null or "unknown" or "unavailable"));
+        /// <summary>
+        /// Subscribes to state changes when the entity turns on.
+        /// </summary>
+        /// <param name="observer">The action to perform when the entity turns on.</param>
+        /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
+        /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
+        public void WhenTurnsOn(Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
+        {
+            var changes = entity.StateChanges()
+                .Where(c => c.Old?.IsOff() == true
+                            && (c.New?.IsOn() ?? false)
+                            && c.Old?.State is not (null or "unknown" or "unavailable"));
                      
-        // After the waiting time, only act when the entity is still on (it may have turned off again meanwhile)
-        if (throttleInSeconds > 0)
-            changes = changes
-                .Throttle(TimeSpan.FromSeconds(throttleInSeconds), scheduler ?? DefaultScheduler.Instance)
-                .Where(_ => entity.IsOn());
+            // After the waiting time, only act when the entity is still on (it may have turned off again meanwhile)
+            if (throttleInSeconds > 0)
+                changes = changes
+                    .Throttle(TimeSpan.FromSeconds(throttleInSeconds), scheduler ?? DefaultScheduler.Instance)
+                    .Where(_ => entity.IsOn());
 
-        changes.Subscribe(observer);
-    }
+            changes.Subscribe(observer);
+        }
 
-    /// <summary>
-    /// Subscribes to state changes when the entity turns off.
-    /// </summary>
-    /// <typeparam name="T">The type of the entity.</typeparam>
-    /// <typeparam name="TAttributes">The type of the entity's attributes.</typeparam>
-    /// <param name="entity">The entity to observe.</param>
-    /// <param name="observer">The action to perform when the entity turns off.</param>
-    /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
-    /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
-    public static void WhenTurnsOff<T, TAttributes>(this Entity<T, EntityState<TAttributes>, TAttributes> entity,
-        Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
-        where TAttributes : class
-        where T : Entity<T, EntityState<TAttributes>, TAttributes>
-    {
-        var changes = entity.StateChanges()
-            .Where(c => c.Old?.IsOn() == true
-                     && (c.New?.IsOff() ?? false)
-                     && c.Old?.State is not (null or "unknown" or "unavailable"));
+        /// <summary>
+        /// Subscribes to state changes when the entity turns off.
+        /// </summary>
+        /// <param name="observer">The action to perform when the entity turns off.</param>
+        /// <param name="throttleInSeconds">The throttle duration in seconds.</param>
+        /// <param name="scheduler">The scheduler for the throttle; the default scheduler when null.</param>
+        public void WhenTurnsOff(Action<StateChange<T, EntityState<TAttributes>>> observer, int throttleInSeconds = 0, IScheduler? scheduler = null)
+        {
+            var changes = entity.StateChanges()
+                .Where(c => c.Old?.IsOn() == true
+                            && (c.New?.IsOff() ?? false)
+                            && c.Old?.State is not (null or "unknown" or "unavailable"));
                      
-        // After the waiting time, only act when the entity is still off (it may have turned on again meanwhile)
-        if (throttleInSeconds > 0)
-            changes = changes
-                .Throttle(TimeSpan.FromSeconds(throttleInSeconds), scheduler ?? DefaultScheduler.Instance)
-                .Where(_ => entity.IsOff());
+            // After the waiting time, only act when the entity is still off (it may have turned on again meanwhile)
+            if (throttleInSeconds > 0)
+                changes = changes
+                    .Throttle(TimeSpan.FromSeconds(throttleInSeconds), scheduler ?? DefaultScheduler.Instance)
+                    .Where(_ => entity.IsOff());
 
-        changes.Subscribe(observer);
+            changes.Subscribe(observer);
+        }
     }
 
     /// <summary>

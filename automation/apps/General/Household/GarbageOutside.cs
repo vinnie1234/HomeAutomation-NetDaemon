@@ -3,7 +3,7 @@ using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using EntityCreationOptions = Automation.Interfaces.EntityCreationOptions;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// What has to be put outside tonight, for the dashboard: <c>sensor.afval_buiten_zetten</c> has the garbage of tomorrow (PMD, Papier, ...) from
@@ -41,7 +41,7 @@ public class GarbageOutside : BaseApp
         try
         {
             if (!_entityManager.EntityExists(Sensor))
-                await _entityManager.Create(Sensor, new EntityCreationOptions { Name = "Afval buiten zetten", Icon = "mdi:trash-can-outline" });
+                await _entityManager.CreateAsync(Sensor, new EntityCreationOptions { Name = "Afval buiten zetten", Icon = "mdi:trash-can-outline" });
             Publish();
         }
         catch (Exception ex)

@@ -3,7 +3,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// Estimates the power of devices that only report an energy meter (kWh), such as the washing machine, which counts in
@@ -40,8 +40,15 @@ public class PowerEstimator : BaseApp
                 .Subscribe(change =>
                 {
                     var running = IsRunning(device, change.New?.State);
-                    if (running && !IsRunning(device, change.Old?.State)) StartMeasuring(device);
-                    else if (!running && IsRunning(device, change.Old?.State)) StopMeasuring(device);
+                    switch (running)
+                    {
+                        case true when !IsRunning(device, change.Old?.State):
+                            StartMeasuring(device);
+                            break;
+                        case false when IsRunning(device, change.Old?.State):
+                            StopMeasuring(device);
+                            break;
+                    }
                 });
 
             new Entity(HaContext, device.EnergySensor).StateChanges()
@@ -54,7 +61,7 @@ public class PowerEstimator : BaseApp
         try
         {
             if (!_entityManager.EntityExists(device.PowerSensor))
-                await _entityManager.Create(device.PowerSensor, new EntityCreationOptions
+                await _entityManager.CreateAsync(device.PowerSensor, new EntityCreationOptions
                 {
                     Name = device.Name,
                     DeviceClass = "power",

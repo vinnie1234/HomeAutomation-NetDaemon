@@ -4,7 +4,7 @@ using Automation.Models.Helpers;
 using Microsoft.Extensions.Options;
 using NetDaemon.Client;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.System;
 
 /// <summary>
 /// Makes sure the helpers in <see cref="HelperDefinitions"/> exist in Home Assistant. When NetDaemon starts it lists the
@@ -64,7 +64,6 @@ public class HelperManager : BaseApp
             foreach (var item in existing) await UpdateExistingAsync(connection, domain.FirstOrDefault(x => x.Id == item.Id), item);
 
             foreach (var helper in domain.Where(x => !ids.Contains(x.Id)))
-            {
                 try
                 {
                     var item = await connection.SendCommandAndReturnResponseAsync<CreateHelperCommand, HelperItem>(
@@ -84,7 +83,6 @@ public class HelperManager : BaseApp
                 {
                     Logger.LogError(ex, "Could not create {Domain}.{Id}", helper.Domain, helper.Id);
                 }
-            }
         }
 
         return created;

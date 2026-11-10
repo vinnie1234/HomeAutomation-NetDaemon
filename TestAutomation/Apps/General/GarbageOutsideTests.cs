@@ -1,4 +1,4 @@
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using FluentAssertions;
 using Xunit;
 

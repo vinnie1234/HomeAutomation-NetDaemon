@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Work;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Work;
@@ -23,6 +23,7 @@ public class WorkTimeTrackerTests
     private readonly IEntityManager _entityManager = Substitute.For<IEntityManager>();
     private Dictionary<string, WorkDay> _saved = [];
     private object? _published;
+    private static readonly string[] StringArray = ["person.vincent_maarschalkerweerd"];
 
     public WorkTimeTrackerTests()
     {
@@ -46,7 +47,7 @@ public class WorkTimeTrackerTests
         SetState("input_boolean.vrij_vincent", "off");
         SetState("input_boolean.onvacation", vacation ? "on" : "off");
         SetState("input_boolean.awayvincent", place == "home" ? "off" : "on");
-        SetState("zone.werk", place == "office" ? "1" : "0", new { persons = place == "office" ? new[] { "person.vincent_maarschalkerweerd" } : [] });
+        SetState("zone.werk", place == "office" ? "1" : "0", new { persons = place == "office" ? StringArray : [] });
         SetState("input_datetime.werk_start_vincent", "08:30:00");
         SetState("input_datetime.werk_eind_vincent", end);
         SetState(WorkLaptop.Uptime, laptopOn ? "3600" : "unavailable");

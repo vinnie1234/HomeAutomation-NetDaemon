@@ -1,8 +1,10 @@
+using Automation.apps.General.Presence;
+
 namespace Automation.Enum;
 
 /// <summary>
 /// Represents the combined presence of Vincent and Carleen.
-/// Used by the <see cref="Automation.apps.General.PresenceManager"/> to decide which
+/// Used by the <see cref="PresenceManager"/> to decide which
 /// actions to execute when presence changes.
 /// </summary>
 public enum PresenceScenario

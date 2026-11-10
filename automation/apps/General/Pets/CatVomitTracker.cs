@@ -2,7 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Pets;
 
 /// <summary>
 /// Remembers when Pixel threw up, forever: these moments are important. Every increase of <c>counter.pixel_gekotst</c> is
@@ -53,7 +53,7 @@ public class CatVomitTracker : BaseApp
         try
         {
             if (!_entityManager.EntityExists(SensorId))
-                await _entityManager.Create(SensorId, new EntityCreationOptions
+                await _entityManager.CreateAsync(SensorId, new EntityCreationOptions
                 {
                     Name = "Pixel gekotst (2 weken)",
                     Icon = "mdi:cat",
@@ -80,11 +80,17 @@ public class CatVomitTracker : BaseApp
             var moments = _storage.Get<List<DateTimeOffset>>(StorageKey) ?? [];
 
             for (var i = 0; i < difference; i++) moments.Add(now);
-            if (difference == -1 && moments.Count > 0) moments.RemoveAt(moments.Count - 1);
-            else if (difference < -1)
-                Logger.LogWarning("counter.pixel_gekotst dropped by {Drop} (reset?); the saved moments are kept", -difference);
+            switch (difference)
+            {
+                case -1 when moments.Count > 0:
+                    moments.RemoveAt(moments.Count - 1);
+                    break;
+                case < -1:
+                    Logger.LogWarning("counter.pixel_gekotst dropped by {Drop} (reset?); the saved moments are kept", -difference);
+                    break;
+            }
 
-            moments = moments.Order().ToList();
+            moments = [.. moments.Order()];
             _storage.Save(StorageKey, moments);
 
             var recent = moments.Count(x => x > now - Recent);

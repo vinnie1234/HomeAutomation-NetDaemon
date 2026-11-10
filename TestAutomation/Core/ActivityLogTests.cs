@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Automation.apps.General.Household;
 using Automation.Core;
 using FluentAssertions;
 using NetDaemon.HassModel;
@@ -131,7 +132,7 @@ public class ActivityLogTests
         ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.Kitchen.KitchenMusicOnMotion)).Should().Be("Keuken");
         ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.BathRoom.BathRoomLights)).Should().Be("Badkamer");
         ActivityLog.RoomOfApp(typeof(Automation.apps.Rooms.Hall.HallLightOnMovement)).Should().Be("Gang");
-        ActivityLog.RoomOfApp(typeof(Automation.apps.General.Alarm)).Should().BeNull();
+        ActivityLog.RoomOfApp(typeof(Alarm)).Should().BeNull();
 
         new ActivityHaContext(_inner, "KitchenMusicOnMotion", null, "Keuken").CallService("spotcast", "play_media", null, new { spotify_uri = "x" });
 

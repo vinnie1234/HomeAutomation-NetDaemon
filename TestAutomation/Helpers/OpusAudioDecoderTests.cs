@@ -42,8 +42,8 @@ public class OpusAudioDecoderTests
 
         // Opus is lossy and the exact sample count can differ slightly (frame boundaries, pre-skip rounding),
         // so compare duration and signal energy rather than requiring a bit-exact match.
-        var expectedSamples = (int)(inputRate * durationSeconds);
-        decoded.Length.Should().BeCloseTo(expectedSamples, (inputRate / 10));
+        const int expectedSamples = (int)(inputRate * durationSeconds);
+        decoded.Length.Should().BeCloseTo(expectedSamples, inputRate / 10);
 
         var originalRms = Rms(original);
         var decodedRms = Rms(decoded);

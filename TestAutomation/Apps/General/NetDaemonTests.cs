@@ -32,12 +32,12 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
 
         // Act
-        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.System.NetDaemon>(storage, CreateConfig());
         await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
         ctx.VerifyCallService("light", "turn_on", "koelkast", times: 1);
-        storage.Received().Save("NetDaemonRestart", (IReadOnlyList<double>?)null);
+        storage.Received().Save<IReadOnlyList<double>?>("NetDaemonRestart", null);
         
         // TODO: temporarily disabled along with the speaker announcement itself, see NetDaemon.cs - re-enable together
         // ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new HomeAssistantGenerated.TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Het huis is opnieuw opgestart" });
@@ -56,7 +56,7 @@ public class NetDaemonTests
         storage.Get<IReadOnlyList<double>>("NetDaemonRestart").Returns((IReadOnlyList<double>?)null);
 
         // Act
-        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.System.NetDaemon>(storage, CreateConfig());
         await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
 
         // Assert
@@ -74,7 +74,7 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "off" });
 
-        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.System.NetDaemon>(storage, CreateConfig());
 
         ctx.HaContext.GetState("input_button.restartnetdaemon").Returns(new EntityState { EntityId = "input_button.restartnetdaemon", State = "unknown" });
 
@@ -102,7 +102,7 @@ public class NetDaemonTests
         // Arrange
         using var ctx = AppTestContext.NewWithScheduler();
         ctx.HaContext.GetState("input_boolean.awayvincent").Returns(new EntityState { EntityId = "input_boolean.awayvincent", State = "on" });
-        await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(Substitute.For<IDataRepository>(), CreateConfig());
+        await ctx.InitAppAsync<Automation.apps.General.System.NetDaemon>(Substitute.For<IDataRepository>(), CreateConfig());
         ctx.HaContext.ClearReceivedCalls();
 
         // Act
@@ -125,7 +125,7 @@ public class NetDaemonTests
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { EntityId = "input_boolean.sleepingcarleen", State = "off" });
 
-        var app = await ctx.InitAppAsync<Automation.apps.General.NetDaemon>(storage, CreateConfig());
+        var app = await ctx.InitAppAsync<Automation.apps.General.System.NetDaemon>(storage, CreateConfig());
         // The Discord message from init is sent in the background: wait for it before clearing, so it can't arrive later
         await ctx.WaitForCallNotifyAsync("notify", "discord_homeassistant");
         ctx.HaContext.ClearReceivedCalls();

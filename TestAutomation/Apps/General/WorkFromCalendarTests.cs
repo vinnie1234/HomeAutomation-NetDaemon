@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Work;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models.Persons;

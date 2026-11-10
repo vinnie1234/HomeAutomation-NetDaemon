@@ -8,7 +8,7 @@ namespace TestAutomation.Apps.Rooms;
 
 public class HallLightOnMovementTests
 {
-    private void SetupDefaultStates(AppTestContext ctx)
+    private static void SetupDefaultStates(AppTestContext ctx)
     {
         ctx.HaContext.GetState("input_boolean.disablelightautomationhall").Returns(new EntityState { EntityId = "input_boolean.disablelightautomationhall", State = "off" });
         ctx.HaContext.GetState("input_boolean.sleepingvincent").Returns(new EntityState { EntityId = "input_boolean.sleepingvincent", State = "off" });

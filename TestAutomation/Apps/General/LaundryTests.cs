@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.Household;
 using Automation.Configuration;
 using Automation.Interfaces;
 using Automation.Models;
@@ -267,8 +267,7 @@ public class LaundryTests
         _ctx.Scheduler.AdvanceTo(echtNu.Ticks);
 
         // 3 wet hours (08:00-11:00), then 4 dry hours (11:00+)
-        var forecastStart = echtNu;
-        var entries = BuildForecast(forecastStart, dryHours: 0, wetHoursAfter: 3, dryHoursAfter: 5);
+        var entries = BuildForecast(echtNu, dryHours: 0, wetHoursAfter: 3, dryHoursAfter: 5);
         SetupForecast(entries);
 
         CreateApp();

@@ -189,15 +189,19 @@ public class CircadianLightingServiceTests
         ctx.CircadianLightingService.GetColorTemperature().Should().Be(4250);
     }
 
+    private static readonly string[] attributes1 = ["hs", "xy"];
+
     [Fact]
     public void GetColorTemperature_ForLight_IsSkipped_WhenLightHasNoColorTempMode()
     {
         var ctx = ArrangeWithSunElevation(45.0);
         var light = ctx.GetEntity<LightEntity>("light.gang_sigaret", "on")!;
-        ctx.SetAttributesFor("light.gang_sigaret", new { supported_color_modes = new[] { "hs", "xy" } });
+        ctx.SetAttributesFor("light.gang_sigaret", new { supported_color_modes = attributes1 });
 
         ctx.CircadianLightingService.GetColorTemperature(light).Should().BeNull();
     }
+
+    private static readonly string[] attributes2 = ["color_temp"];
 
     [Fact]
     public void GetColorTemperature_ForLight_IsClampedToWhatTheLightSupports()
@@ -206,7 +210,7 @@ public class CircadianLightingServiceTests
         var light = ctx.GetEntity<LightEntity>("light.hal_2", "on")!;
         ctx.SetAttributesFor("light.hal_2", new
         {
-            supported_color_modes = new[] { "color_temp" },
+            supported_color_modes = attributes2,
             min_color_temp_kelvin = 2202,
             max_color_temp_kelvin = 4000
         });
@@ -215,6 +219,8 @@ public class CircadianLightingServiceTests
         ctx.CircadianLightingService.GetColorTemperature(light).Should().Be(4000);
     }
 
+    private static readonly string[] attributes3 = ["color_temp", "xy"];
+
     [Fact]
     public void GetColorTemperature_ForLight_IsUsed_WhenLightSupportsColorTemp()
     {
@@ -222,7 +228,7 @@ public class CircadianLightingServiceTests
         var light = ctx.GetEntity<LightEntity>("light.hal_2", "on")!;
         ctx.SetAttributesFor("light.hal_2", new
         {
-            supported_color_modes = new[] { "color_temp", "xy" },
+            supported_color_modes = attributes3,
             min_color_temp_kelvin = 2000,
             max_color_temp_kelvin = 6535
         });

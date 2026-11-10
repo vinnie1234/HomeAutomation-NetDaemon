@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Household;
 
 /// <summary>
 /// The shopping list (<c>todo.boodschappen</c>): ticks off everything on it when "Alles gehaald" (on the list) or
@@ -70,7 +70,7 @@ public partial class GroceryList : BaseApp
             .Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(i => i.Trim(' ', '.', '!'))
             .Where(i => i.Length > 0)
-            .Select(i => char.ToUpper(i[0], System.Globalization.CultureInfo.GetCultureInfo("nl-NL")) + i[1..])
+            .Select(i => char.ToUpper(i[0], global::System.Globalization.CultureInfo.GetCultureInfo("nl-NL")) + i[1..])
             .ToList();
         return items.Count == 0 || items.Any(i => i.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > MaxWordsPerItem) ? null : items;
     }
@@ -132,7 +132,7 @@ public partial class GroceryList : BaseApp
     /// <summary>The ids (or the names when there is no id) of the items not done yet.</summary>
     private async Task<List<string>> OpenItemsAsync()
     {
-        var list = TodoZoneReminders.GroceryList;
+        const string list = TodoZoneReminders.GroceryList;
         var response = await HaContext.CallServiceWithResponseAsync("todo", "get_items", ServiceTarget.FromEntity(list),
             new Dictionary<string, object> { ["status"] = "needs_action" });
         var items = new List<string>();

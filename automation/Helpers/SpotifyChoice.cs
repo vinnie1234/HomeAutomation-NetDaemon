@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Automation.Configuration;
 
@@ -26,7 +25,7 @@ public enum SpotifyRoom
 /// (<c>input_text.spotify_{room}_{person}</c> and <c>input_select.spotify_account_{person}</c>); whose settings count depends on who is home,
 /// and when both are home on <see cref="DefaultPersonHelper"/>. What nobody has set falls back to config.json.
 /// </summary>
-public static class SpotifyChoice
+public static partial class SpotifyChoice
 {
     /// <summary>The choice for an account that was not linked: Spotcast then takes its default account.</summary>
     public const string NoAccount = "Standaard account";
@@ -36,8 +35,8 @@ public static class SpotifyChoice
 
     public static readonly string[] People = ["vincent", "carleen"];
 
-    private static readonly Regex ProfileSensor = new(@"^sensor\.spotcast_[^_]+_spotify_profile$", RegexOptions.Compiled);
-    private static readonly Regex Brackets = new(@"\s*\([^()]*\)\s*$", RegexOptions.Compiled);
+    private static readonly Regex ProfileSensor = ProfileSensorRegex();
+    private static readonly Regex Brackets = BracketsRegex();
 
     public static string PlaylistHelper(SpotifyRoom room, string person) => $"input_text.spotify_{room.ToString().ToLowerInvariant()}_{person}";
 
@@ -78,7 +77,7 @@ public static class SpotifyChoice
         var spotcast = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var spotify = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var spotifyPlus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entity in ha.GetAllEntities() ?? [])
+        foreach (var entity in ha.GetAllEntities())
         {
             if (entity.EntityState?.AttributesJson is not { ValueKind: JsonValueKind.Object } a) continue;
             if (ProfileSensor.IsMatch(entity.EntityId))
@@ -93,10 +92,13 @@ public static class SpotifyChoice
                 AddName(spotify, Text(a, "friendly_name"), "Spotify ");
         }
 
-        return spotcast.Keys.Concat(spotify).Concat(spotifyPlus).Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .Select(n => new Account(n, spotcast.GetValueOrDefault(n), spotify.Contains(n), spotifyPlus.Contains(n)))
-            .ToList();
+        return
+        [
+            .. spotcast.Keys.Concat(spotify).Concat(spotifyPlus).Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Select(n =>
+                    new Account(n, spotcast.GetValueOrDefault(n), spotify.Contains(n), spotifyPlus.Contains(n)))
+        ];
     }
 
     private static void AddName(HashSet<string> names, string? friendlyName, string prefix)
@@ -117,7 +119,7 @@ public static class SpotifyChoice
         var person = PersonFor(ha, vincentHome, carleenHome);
         var url = Value(ha, PlaylistHelper(room, person)) ?? Fallback(config, room, carleenHome);
         var chosen = Value(ha, AccountHelper(person));
-        var account = chosen is null || chosen == NoAccount
+        var account = chosen is null or NoAccount
             ? null
             : Accounts(ha).FirstOrDefault(x => string.Equals(x.Name, NameOf(chosen), StringComparison.OrdinalIgnoreCase))?.SpotcastEntryId;
         return (url, account);
@@ -146,4 +148,9 @@ public static class SpotifyChoice
         var state = ha.GetState(entityId)?.State?.Trim();
         return string.IsNullOrEmpty(state) || state is "unknown" or "unavailable" ? null : state;
     }
+
+    [GeneratedRegex(@"^sensor\.spotcast_[^_]+_spotify_profile$", RegexOptions.Compiled)]
+    private static partial Regex ProfileSensorRegex();
+    [GeneratedRegex(@"\s*\([^()]*\)\s*$", RegexOptions.Compiled)]
+    private static partial Regex BracketsRegex();
 }

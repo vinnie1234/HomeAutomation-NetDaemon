@@ -46,10 +46,8 @@ public class NotifyTests
         // Assert
         Assert.True(pressed);
         foreach (var phone in new[] { "mobile_app_vincent_phone", "mobile_app_carleen_mobiel" })
-        {
             ha.Received(1).CallService("notify", phone, null,
                 Arg.Is<object?>(d => IsClearNotification(d, tag)));
-        }
     }
 
     [Theory]

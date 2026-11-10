@@ -18,9 +18,6 @@ namespace Automation.apps.Rooms.LivingRoom;
 [NetDaemonApp(Id = nameof(TabletScreen))]
 public class TabletScreen : BaseApp
 {
-    private const string Screen = "switch.tab_s6_van_vincent_scherm";
-    /// <summary>Loads the start URL of Fully: Home on the dashboard.</summary>
-    private const string LoadStartUrl = "button.tab_s6_van_vincent_start_url_laden";
     private const string ScreenOffTimer = "number.tab_s6_van_vincent_scherm_uit_timer";
     /// <summary>How long the screen stays on without anyone touching it, in seconds (the screen off timer of Fully).</summary>
     private const int AwakeTimeoutSeconds = 5 * 60;

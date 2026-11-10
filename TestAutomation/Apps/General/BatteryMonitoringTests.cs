@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Automation.apps.General;
+using Automation.apps.General.System;
 using Automation.Configuration;
 using Microsoft.Extensions.Options;
 using NetDaemon.HassModel.Entities;

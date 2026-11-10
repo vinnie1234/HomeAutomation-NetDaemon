@@ -1,10 +1,9 @@
 using System.Reactive.Concurrency;
-
-using Automation.Models.DiscordNotificationModels;
 using Automation.Configuration;
+using Automation.Models.DiscordNotificationModels;
 using Microsoft.Extensions.Options;
 
-namespace Automation.apps.General;
+namespace Automation.apps.General.Pets;
 
 /// <summary>
 /// Represents an application that manages various cat-related automations and notifications.

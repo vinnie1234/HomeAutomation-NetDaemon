@@ -17,7 +17,9 @@ namespace Automation.Core;
 /// HTTP 401 on the connect itself once Home Assistant's own connection had been open for a while, while
 /// that one long-lived connection kept working fine throughout. A dead connection is replaced on the next run.
 /// </summary>
-public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions<HomeAssistantConnectionOptions> options)
+public class AssistPipelineClient(
+    ILogger<AssistPipelineClient> logger,
+    IOptions<HomeAssistantConnectionOptions> options)
     : IAssistPipelineClient, IDisposable
 {
     /// <summary>How long to wait for a whole pipeline run (connect if needed, stt, intent) before giving up.</summary>
@@ -32,7 +34,8 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
     private ClientWebSocket? _socket;
     private int _nextId;
 
-    public async Task<AssistPipelineResult> RunSpeechToIntentAsync(string pipelineName, byte[] pcm16, int sampleRate, CancellationToken cancellationToken)
+    public async Task<AssistPipelineResult> RunSpeechToIntentAsync(string pipelineName, byte[] pcm16, int sampleRate,
+        CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(RunTimeout);
@@ -45,7 +48,8 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
 
             var pipelineId = await GetPipelineIdAsync(socket, pipelineName, ct);
             if (pipelineId is null)
-                return new AssistPipelineResult { Success = false, Error = $"No Assist pipeline named '{pipelineName}' was found" };
+                return new AssistPipelineResult
+                    { Success = false, Error = $"No Assist pipeline named '{pipelineName}' was found" };
 
             return await RunPipelineAsync(socket, pipelineId, pcm16, sampleRate, ct);
         }
@@ -79,7 +83,8 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
     {
         var connection = options.Value;
         var scheme = connection.Ssl ? "wss" : "ws";
-        var uri = new Uri($"{scheme}://{connection.Host}:{connection.EffectivePort}/{connection.EffectiveWebsocketPath}");
+        var uri = new Uri(
+            $"{scheme}://{connection.Host}:{connection.EffectivePort}/{connection.EffectiveWebsocketPath}");
 
         await socket.ConnectAsync(uri, ct);
         await ReceiveJsonAsync(socket, ct); // auth_required, no action needed
@@ -87,7 +92,8 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
         await SendJsonAsync(socket, new { type = "auth", access_token = connection.Token }, ct);
         var auth = await ReceiveJsonAsync(socket, ct);
         if (auth.RootElement.GetProperty("type").GetString() != "auth_ok")
-            throw new InvalidOperationException("Home Assistant rejected the long-lived access token for the Assist pipeline connection");
+            throw new InvalidOperationException(
+                "Home Assistant rejected the long-lived access token for the Assist pipeline connection");
     }
 
     /// <summary>Looks up a pipeline's id by name; pipeline ids are opaque and not safe to hardcode or cache across runs.</summary>
@@ -96,15 +102,15 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
         await SendJsonAsync(socket, new { id = NextId(), type = "assist_pipeline/pipeline/list" }, ct);
         using var response = await ReceiveJsonAsync(socket, ct);
 
-        foreach (var pipeline in response.RootElement.GetProperty("result").GetProperty("pipelines").EnumerateArray())
-            if (string.Equals(pipeline.GetProperty("name").GetString(), pipelineName, StringComparison.OrdinalIgnoreCase))
-                return pipeline.GetProperty("id").GetString();
-
-        return null;
+        return (from pipeline in response.RootElement.GetProperty("result").GetProperty("pipelines").EnumerateArray()
+            where string.Equals(pipeline.GetProperty("name").GetString(), pipelineName,
+                StringComparison.OrdinalIgnoreCase)
+            select pipeline.GetProperty("id").GetString()).FirstOrDefault();
     }
 
     /// <summary>Starts the pipeline run, streams the audio, and collects the transcript and the assistant's reply.</summary>
-    private async Task<AssistPipelineResult> RunPipelineAsync(ClientWebSocket socket, string pipelineId, byte[] pcm16, int sampleRate, CancellationToken ct)
+    private async Task<AssistPipelineResult> RunPipelineAsync(ClientWebSocket socket, string pipelineId, byte[] pcm16,
+        int sampleRate, CancellationToken ct)
     {
         var runCommandId = NextId();
         await SendJsonAsync(socket, new
@@ -129,18 +135,22 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
 
             if (root.TryGetProperty("success", out var success) && !success.GetBoolean())
             {
-                var commandError = root.TryGetProperty("error", out var errorElement) ? errorElement.GetProperty("message").GetString() : "unknown error";
+                var commandError = root.TryGetProperty("error", out var errorElement)
+                    ? errorElement.GetProperty("message").GetString()
+                    : "unknown error";
                 return new AssistPipelineResult { Success = false, Error = commandError };
             }
 
-            if (!root.TryGetProperty("event", out var @event)) continue; // the initial {"type":"result","success":true} ack
+            if (!root.TryGetProperty("event", out var @event))
+                continue; // the initial {"type":"result","success":true} ack
             var eventType = @event.GetProperty("type").GetString();
             var data = @event.GetProperty("data");
 
             switch (eventType)
             {
                 case "run-start" when !audioSent:
-                    var handlerId = (byte)data.GetProperty("runner_data").GetProperty("stt_binary_handler_id").GetInt32();
+                    var handlerId = (byte)data.GetProperty("runner_data").GetProperty("stt_binary_handler_id")
+                        .GetInt32();
                     await SendAudioAsync(socket, handlerId, pcm16, ct);
                     audioSent = true;
                     break;
@@ -164,7 +174,8 @@ public class AssistPipelineClient(ILogger<AssistPipelineClient> logger, IOptions
 
                 case "run-end":
                     return error is null
-                        ? new AssistPipelineResult { Success = true, Transcript = transcript, ResponseText = responseText }
+                        ? new AssistPipelineResult
+                            { Success = true, Transcript = transcript, ResponseText = responseText }
                         : new AssistPipelineResult { Success = false, Transcript = transcript, Error = error };
             }
         }

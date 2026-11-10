@@ -36,7 +36,8 @@ public class ActivityTriggerTests
             new EntityState { EntityId = entityId, State = to, AttributesJson = JsonSerializer.SerializeToElement(attributes ?? new { friendly_name = "Sensor" }) });
 
     private static string Text(JsonElement e, string name) => e.GetProperty(name).GetString()!;
-    private static string[] Chain(JsonElement e) => e.GetProperty("causeChain").EnumerateArray().Select(x => x.GetString()!).ToArray();
+    private static string[] Chain(JsonElement e) =>
+        [.. e.GetProperty("causeChain").EnumerateArray().Select(x => x.GetString()!)];
 
     [Fact]
     public void WhatAnAppDoesWhileHandlingAMotionSensor_IsCausedByThatMotion()
@@ -52,7 +53,8 @@ public class ActivityTriggerTests
         Text(e, "cause").Should().Be("Beweging: Beweging Woonkamer");
     }
 
-    private static string[] Conditions(JsonElement e) => e.GetProperty("conditions").EnumerateArray().Select(x => x.GetString()!).ToArray();
+    private static string[] Conditions(JsonElement e) =>
+        [.. e.GetProperty("conditions").EnumerateArray().Select(x => x.GetString()!)];
 
     [Fact]
     public void TheStatesAnAppLooksAtBeforeActing_AreTheConditionsOfTheAction()
