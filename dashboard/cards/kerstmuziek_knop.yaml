@@ -1,4 +1,4 @@
-# Knop op Home: Kerstmuziek (de kerstplaylist op de keuken-speaker, NetDaemon ChristmasTree). Alleen zichtbaar zolang de kerstlampjes
+# Knop op Home: Kerst (de woonkamerscene Kerst en de kerstplaylist op de keuken-speaker, NetDaemon ChristmasTree). Alleen zichtbaar zolang de kerstlampjes
 # er zijn (light.festavia_string_lights_1 bestaat en is aan of uit); na het weghalen van de lampjes (na 6 januari) verdwijnt hij vanzelf.
 type: conditional
 conditions:
@@ -10,8 +10,8 @@ conditions:
 card:
   type: custom:button-card
   template: action
-  name: Kerstmuziek
-  icon: mdi:music-note
+  name: Kerst
+  icon: mdi:pine-tree
   tap_action:
     action: perform-action
     perform_action: input_button.press

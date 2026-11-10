@@ -100,6 +100,26 @@ public class ChristmasTreeTests
     }
 
     [Fact]
+    public void TheChristmasButton_StartsTheChristmasSceneOfTheLivingRoom()
+    {
+        Start();
+
+        Change(ChristmasTree.MusicButton, "unknown", "2026-11-09T10:00:00+00:00");
+
+        _ctx.VerifyCallService("scene", "turn_on", "woonkamer_woonkamer_sneeuwschittering", times: 1);
+    }
+
+    [Fact]
+    public void TheChristmasButton_WithoutAPlaylist_StillStartsTheScene()
+    {
+        Start(playlist: "");
+
+        Change(ChristmasTree.MusicButton, "unknown", "2026-11-09T10:00:00+00:00");
+
+        _ctx.VerifyCallService("scene", "turn_on", "woonkamer_woonkamer_sneeuwschittering", times: 1);
+    }
+
+    [Fact]
     public void TheMusicButton_WithoutAPlaylistInTheConfig_PlaysNothing()
     {
         Start(playlist: "");

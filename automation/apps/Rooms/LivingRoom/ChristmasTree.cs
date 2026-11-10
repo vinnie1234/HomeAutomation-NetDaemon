@@ -8,7 +8,7 @@ namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
 /// The Christmas tree (a Hue Festavia string): it is on all day, so it goes on when Vincent gets up (the sleeping switch goes off) and
-/// off when he goes to sleep (only while the lamps are there: they are taken away after the holidays). The button "Kerstmuziek" plays the Christmas playlist on the kitchen speaker.
+/// off when he goes to sleep (only while the lamps are there: they are taken away after the holidays). The button "Kerst" starts the living room scene Kerst and plays the Christmas playlist on the kitchen speaker.
 /// </summary>
 [NetDaemonApp(Id = nameof(ChristmasTree))]
 public class ChristmasTree : BaseApp
@@ -47,7 +47,7 @@ public class ChristmasTree : BaseApp
         // An input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press
         Entities.InputButton.StartKerstmuziek.StateChanges()
             .Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
-            .Subscribe(_ => PlayMusic());
+            .Subscribe(_ => StartChristmas());
     }
 
     /// <summary>A short wait, so a group that switches its lights off one by one is done before the tree goes on again.</summary>
@@ -72,6 +72,14 @@ public class ChristmasTree : BaseApp
         if (on) Entities.Light.FestaviaStringLights1.TurnOn();
         else Entities.Light.FestaviaStringLights1.TurnOff();
         Logger.LogInformation("Christmas tree {State}", on ? "on" : "off");
+    }
+
+    /// <summary>The tile Kerst on the dashboard: the living room scene "Kerst" (the Hue scene Sneeuwschittering) and the Christmas music.</summary>
+    private void StartChristmas()
+    {
+        Entities.Scene.WoonkamerWoonkamerSneeuwschittering.TurnOn();
+        Logger.LogInformation("Christmas scene started");
+        PlayMusic();
     }
 
     private void PlayMusic()
