@@ -1,12 +1,11 @@
 // Huis-dashboard: de muziekspeler. Opent bij een tik op de muziektegel (template music_now_card) als venster of schermvullend:
 // bedienen (hoes, balk, volume, shuffle, herhalen), bladeren en zoeken (playlists, albums, artiesten), het apparaat kiezen waarop
-// Spotify speelt, en een QR-code voor een Spotify Jam. Elk Spotify-account (media_player.spotify_*) is te kiezen.
+// Spotify speelt, en een QR-code om te delen wat speelt. Elk Spotify-account (media_player.spotify_*) is te kiezen.
 // Wordt door de kaart geladen met import('/local/huis/muziek-speler.js?v=N'); N ophogen na een wijziging.
 // Terwijl de speler open staat (#huis-speler) gaat idle-home.js niet terug naar Home.
 import qrcode from './qrcode.js';
 
 const ID = 'huis-speler';
-const JAM_LINK = 'input_text.spotify_jam_link';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const hass = () => document.querySelector('home-assistant').hass;
@@ -130,7 +129,7 @@ function build() {
       <button class="ib" data-a="full" title="Schermvullend">${icon(full ? 'mdi:fullscreen-exit' : 'mdi:fullscreen')}</button>
     </header>
     ${all.length > 1 ? `<div class="chips">${all.map(id => `<button class="chip ${id === entity ? 'on' : ''}" data-a="account" data-id="${id}">${esc(nameOf(id))}</button>`).join('')}</div>` : ''}
-    <nav>${[['nu', 'Speler', 'mdi:music'], ['bladeren', 'Bladeren', 'mdi:folder-music'], ['apparaten', 'Apparaten', 'mdi:speaker'], ['jam', 'Jam', 'mdi:qrcode']]
+    <nav>${[['nu', 'Speler', 'mdi:music'], ['bladeren', 'Bladeren', 'mdi:folder-music'], ['apparaten', 'Apparaten', 'mdi:speaker'], ['delen', 'Delen', 'mdi:qrcode']]
       .map(([k, label, ic]) => `<button class="tab ${k === tab ? 'on' : ''}" data-a="tab" data-k="${k}">${label}</button>`).join('')}</nav>
     <main id="sp-main"></main>`;
   box.onclick = onClick;
@@ -154,12 +153,11 @@ function onClick(e) {
   else if (a === 'repeat') call('media_player', 'repeat_set', { repeat: { off: 'all', all: 'one', one: 'off' }[s?.attributes.repeat ?? 'off'] });
   else if (a === 'mute') call('media_player', 'volume_mute', { is_volume_muted: !s?.attributes.is_volume_muted });
   else if (a === 'source') { call('media_player', 'select_source', { source: t.dataset.s }); toast(`Speelt op ${t.dataset.s}`); setTimeout(render, 600); }
+  else if (a === 'cast') transferTo(t.dataset.id, t.dataset.n);
   else if (a === 'open') openItem(browse.results ?? browse.items, +t.dataset.i);
   else if (a === 'playitem') { e.stopPropagation(); playItem(currentList()[+t.dataset.i]); }
   else if (a === 'back') { browse.stack.pop(); browse.results = null; browse.items = null; loadCurrent(); }
   else if (a === 'dosearch') search();
-  else if (a === 'savejam') { const v = root.querySelector('#sp-jam')?.value.trim() ?? ''; hass().callService('input_text', 'set_value', { entity_id: JAM_LINK, value: v }); setTimeout(render, 400); }
-  else if (a === 'clearjam') { hass().callService('input_text', 'set_value', { entity_id: JAM_LINK, value: '' }); setTimeout(render, 400); }
 }
 
 // ---- tabs
@@ -171,7 +169,7 @@ function render() {
   if (tab === 'nu') renderNow(main);
   else if (tab === 'bladeren') renderBrowse(main);
   else if (tab === 'apparaten') renderDevices(main);
-  else renderJam(main);
+  else renderShare(main);
   update();
 }
 
@@ -298,28 +296,52 @@ function playItem(it) {
   setTimeout(() => { tab = 'nu'; root?.querySelectorAll('nav .tab').forEach(x => x.classList.toggle('on', x.dataset.k === tab)); if (root) render(); }, 700);
 }
 
-// ---- apparaten en jam
+// ---- apparaten
+
+// De Spotcast-account van het gekozen Spotify-account: het profiel met dezelfde naam (voor het verplaatsen naar een Cast-speaker)
+function spotcastAccount() {
+  const name = String(state()?.attributes.friendly_name ?? '').replace(/^Spotify\s+/i, '').trim().toLowerCase();
+  return Object.values(hass().states).find(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && String(s.attributes.display_name ?? '').toLowerCase() === name)?.attributes.entry_id;
+}
+
+// Alle speakers van Google Cast die er nu zijn (Spotify kent ze pas na een eerste keer spelen), zonder wat al bij Spotify in de lijst staat
+function castSpeakers(known) {
+  return Object.values(hass().states)
+    .filter(s => s.entity_id.startsWith('media_player.') && s.attributes.device_class === 'speaker' && s.state !== 'unavailable' && s.state !== 'unknown')
+    .map(s => ({ id: s.entity_id, name: String(s.attributes.friendly_name ?? s.entity_id), playing: s.state === 'playing' }))
+    .filter(s => !known.includes(s.name.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+}
+
+function transferTo(id, name) {
+  const account = spotcastAccount();
+  hass().callService('spotcast', 'transfer_playback', { media_player: { entity_id: id }, ...(account ? { account } : {}) })
+    .then(() => toast(`Verplaatst naar ${name}`))
+    .catch(e => toast(`Verplaatsen lukte niet: ${e?.message ?? 'onbekende fout'}. Start eerst muziek, dan kan het.`));
+  setTimeout(() => { if (root && tab === 'apparaten') render(); }, 2500);
+}
 
 function renderDevices(main) {
   const a = state()?.attributes ?? {};
   const sources = a.source_list ?? [];
-  main.innerHTML = sources.length
-    ? `<div class="hint" style="margin-bottom:10px">Waar moet ${esc(nameOf(entity))} spelen? Een apparaat staat hier zodra Spotify het kent (open Spotify er een keer op).</div>
-       ${sources.map(s => `<button class="row ${s === a.source ? 'on' : ''}" data-a="source" data-s="${esc(s)}">${icon(s === a.source ? 'mdi:volume-high' : 'mdi:speaker')}<span>${esc(s)}</span></button>`).join('')}`
-    : '<div class="hint">Spotify kent nu geen apparaten. Open Spotify op een telefoon of speaker, dan staat die hier.</div>';
+  const cast = castSpeakers(sources.map(s => s.toLowerCase()));
+  main.innerHTML = `<div class="hint" style="margin-bottom:10px">Waar moet ${esc(nameOf(entity))} spelen? Tik een apparaat: de muziek die nu speelt gaat erheen.</div>
+    ${sources.length ? `<div class="hint" style="margin:6px 0">Spotify</div>${sources.map(s => `<button class="row ${s === a.source ? 'on' : ''}" data-a="source" data-s="${esc(s)}">${icon(s === a.source ? 'mdi:volume-high' : 'mdi:speaker')}<span>${esc(s)}</span></button>`).join('')}` : ''}
+    ${cast.length ? `<div class="hint" style="margin:14px 0 6px">Google Cast</div>${cast.map(c => `<button class="row ${c.playing ? 'on' : ''}" data-a="cast" data-id="${esc(c.id)}" data-n="${esc(c.name)}">${icon(c.playing ? 'mdi:volume-high' : 'mdi:cast-audio')}<span>${esc(c.name)}</span></button>`).join('')}` : ''}
+    ${sources.length || cast.length ? '' : '<div class="hint">Er zijn nu geen apparaten gevonden. Open Spotify op een telefoon of speaker.</div>'}`;
 }
 
-function renderJam(main) {
-  const link = String(hass().states[JAM_LINK]?.state ?? '');
-  const has = /^https?:\/\//.test(link);
+// Delen: een QR-code van wat nu speelt (spotify:track:ID wordt open.spotify.com/track/ID). Een Jam kan Spotify niet aan Home Assistant doorgeven.
+function renderShare(main) {
+  const uri = String(state()?.attributes.media_content_id ?? '');
+  const m = uri.match(/^spotify:(track|album|playlist|episode):(\w+)$/);
+  const link = m ? `https://open.spotify.com/${m[1]}/${m[2]}` : '';
   let svg = '';
-  if (has) {
+  if (link) {
     try { const q = qrcode(0, 'M'); q.addData(link); q.make(); svg = q.createSvgTag(4, 0).replace(/width="[^"]*"/, '').replace(/height="[^"]*"/, ''); }
     catch (e) { svg = ''; }
   }
-  main.innerHTML = `
-    ${has ? `<div class="hint" style="text-align:center">Laat anderen deze code scannen om de Jam te joinen.</div><div class="qr">${svg || 'De link is te lang voor een code.'}</div>` : ''}
-    <div class="hint">${has ? 'Een andere Jam? Plak de nieuwe link.' : 'Start in de Spotify-app een Jam (de speler → Jam starten), kopieer de link en plak hem hier. Dan komt er een QR-code om te delen.'}</div>
-    <div class="search" style="margin-top:12px"><input type="text" id="sp-jam" placeholder="https://spotify.link/…" value="${esc(link === 'unknown' ? '' : link)}">
-      <button class="ib" data-a="savejam" title="Bewaren">${icon('mdi:check')}</button>${has ? `<button class="ib" data-a="clearjam" title="Wissen">${icon('mdi:delete-outline')}</button>` : ''}</div>`;
+  main.innerHTML = svg
+    ? `<div class="hint" style="text-align:center">Scan om dit te openen in Spotify:<br><b>${esc(state()?.attributes.media_title ?? '')}</b></div><div class="qr">${svg}</div>`
+    : '<div class="hint">Er speelt nu niets om te delen.</div>';
 }

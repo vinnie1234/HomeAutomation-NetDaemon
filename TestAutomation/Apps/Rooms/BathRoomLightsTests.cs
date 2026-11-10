@@ -109,6 +109,27 @@ public class BathRoomLightsTests
     }
 
     [Fact]
+    public void HomeWorkDay_LightsWorkAsDuringTheDay_WhileCarleenStillSleeps()
+    {
+        // Tuesday 10 November 2026, 09:50 (UTC+1): Vincent works at home and is up (wake-up 08:15); Carleen sleeps
+        var ctx = AppTestContext.NewWithScheduler();
+        SetupDefaultStates(ctx);
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 8, 50, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_boolean.sleepingcarleen").Returns(new EntityState { State = "on" });
+        ctx.HaContext.GetState("input_select.werkdag_vincent_dinsdag").Returns(new EntityState { State = "Thuis" });
+        ctx.HaContext.GetState("input_datetime.opstaan_thuiswerk_vincent").Returns(new EntityState { State = "08:15:00" });
+        ctx.HaContext.GetState("input_boolean.onvacation").Returns(new EntityState { State = "off" });
+        ctx.InitApp<BathRoomLights>(Substitute.For<ISpotcast>(), Options.Create(new AppConfig()));
+
+        ctx.ChangeStateFor("binary_sensor.badkamer_motion").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // Not the night brightness (the default of the circadian service for night mode is lower than 20%)
+        ctx.HaContext.DidNotReceive().CallService("light", "turn_on", Arg.Any<ServiceTarget?>(),
+            Arg.Is<object>(d => System.Text.Json.JsonSerializer.Serialize(d, (System.Text.Json.JsonSerializerOptions?)null).Contains("\"brightness_pct\":5,")));
+    }
+
+    [Fact]
     public void BeforeTheWakeUpTime_ItIsStillNight_EvenOnAnOfficeDay()
     {
         // Friday 07:00, wake-up time 07:15: Vincent is already up, but Carleen still sleeps, so night times still apply

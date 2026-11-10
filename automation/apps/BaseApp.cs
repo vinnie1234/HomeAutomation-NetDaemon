@@ -75,7 +75,36 @@ public class BaseApp
     /// <see cref="IsSleepMode"/> for the lights: dimmed and off quickly while someone sleeps, except on an
     /// <see cref="IsOfficeMorning"/>.
     /// </summary>
-    protected bool IsLightSleepMode => IsSleepMode && !IsOfficeMorning;
+    protected bool IsLightSleepMode
+    {
+        get
+        {
+            var sleep = IsSleepMode;
+            var office = IsOfficeMorning;
+            var homeWork = IsHomeWorkDaytime;
+            var night = sleep && !office && !homeWork;
+            // The activity log shows these as the conditions of the lights: why it is dim, or why it is not
+            ActivityContext.Note(sleep
+                ? $"Iemand slaapt ({(Vincent.IsSleeping ? "Vincent" : "Carleen")}), dus de nachtstand, tenzij: kantoorochtend {(office ? "ja" : "nee")}, thuiswerkdag overdag {(homeWork ? "ja" : "nee")} → {(night ? "nachtstand" : "dagstand")}"
+                : "Niemand slaapt: dagstand");
+            return night;
+        }
+    }
+
+    /// <summary>
+    /// A day Vincent works at home, from his wake-up time (<c>opstaan_thuiswerk</c>, 08:00 while it has no value) until 18:00, while he is
+    /// home and awake: he is up and working, so the lights work as usual, also when Carleen still sleeps.
+    /// </summary>
+    protected bool IsHomeWorkDaytime
+    {
+        get
+        {
+            var now = Scheduler.NowNl();
+            var from = Extensions.SchedulerExtensions.ParseTimeOfDay(VincentSchedule.WakeUpHomeWork.State) ?? new TimeSpan(8, 0, 0);
+            return Vincent is { IsHome: true, IsSleeping: false } && VincentSchedule.IsHomeWorkDay(now.DayOfWeek)
+                   && now.TimeOfDay >= from && now.TimeOfDay < new TimeSpan(18, 0, 0);
+        }
+    }
 
     private bool IsOfficeMorningOf(IPerson person, WorkSchedule schedule)
     {

@@ -64,8 +64,6 @@ public static class HelperDefinitions
         // Muziek per persoon (SpotifyChoice, SpotifyAccounts): de playlist per ruimte en het Spotify-account; Spotcast speelt af
         .. SpotifyHelpers("vincent", "Vincent"),
         .. SpotifyHelpers("carleen", "Carleen"),
-        // De link van de Jam die op dit moment loopt (in de muziekspeler van het dashboard geplakt): daar komt de QR-code van
-        Text("spotify_jam_link", "Spotify jam link", min: 0, max: 255, mode: "text", icon: "mdi:qrcode"),
         Select("spotify_standaard_persoon", "Spotify standaard persoon", ["Vincent", "Carleen"], icon: "mdi:account-switch"),
 
         // Kantoortijden en vervoer per persoon (OfficeTimes, CommuteReport)

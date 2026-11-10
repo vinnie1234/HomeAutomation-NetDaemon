@@ -67,7 +67,13 @@ public class HallLightOnMovement : BaseApp
     /// <summary>
     /// The brightness for the time of day: dimmed while someone sleeps, except on the morning of an office day.
     /// </summary>
-    private int GetBrightness() => _circadianLightingService.GetBrightness(IsLightSleepMode);
+    private int GetBrightness()
+    {
+        var night = IsLightSleepMode;
+        var brightness = _circadianLightingService.GetBrightness(night);
+        Core.ActivityContext.Note($"Helderheid {brightness}% ({(night ? "nachtstand" : "dagstand, volgens de zon")})");
+        return brightness;
+    }
 
     /// <summary>
     /// How long the lights stay on after the last motion: the night time while someone sleeps, otherwise
