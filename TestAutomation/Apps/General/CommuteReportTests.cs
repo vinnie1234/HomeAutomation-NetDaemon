@@ -72,7 +72,7 @@ public class CommuteReportTests
         _ctx.HaContext.ReceivedCalls()
             .Where(c => c.GetMethodInfo().Name == "CallService" && (string)c.GetArguments()[0]! == "whatsapp")
             .Select(c => JsonSerializer.SerializeToElement(c.GetArguments()[3]))
-            .Select(d => (d.GetProperty("to").GetString()!, d.GetProperty("message").GetProperty("text").GetString()!))
+            .Select(d => (d.GetProperty("to").GetString()!, d.GetProperty("message").GetProperty("Text").GetString()!))
             .ToList();
 
     private void AdvanceTo(int hour, int minute)

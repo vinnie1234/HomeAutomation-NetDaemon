@@ -286,7 +286,7 @@ public partial class CommuteReport : BaseApp
             }
             var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
             var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : toSelf ? $"↪️ Dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
-            Services.Whatsapp.SendMessage(clientId: "default", to: recipient, message: new { text });
+            Services.Whatsapp.SendMessage(clientId: "default", to: recipient, message: WhatsAppMessage.Text(text));
             // The message is also the last reply in the WhatsApp conversation, so "Stuur door" forwards it to the other person
             if (transitPrefix != null && !forward && !toSelf) RememberAsLastReply(commuter.Whatsapp, text);
             Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);

@@ -1,6 +1,7 @@
 using System.Reactive.Concurrency;
 using System.Text.RegularExpressions;
 using Automation.Configuration;
+using Automation.Models.WhatsApp;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General;
@@ -194,7 +195,7 @@ public partial class TodoZoneReminders : BaseApp
             if (tasks.Count > 0)
                 parts.Add($"{Pin} Je bent bij {zone}. Dit moet nog:\n{string.Join("\n", tasks.Select(t => $"• {t}"))}");
             var text = string.Join("\n\n", parts);
-            Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, message: new { text });
+            Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, message: WhatsAppMessage.Text(text));
             Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s) and {Groceries} grocery item(s)", person, zone, tasks.Count, groceries.Count);
         }
         catch (Exception ex)

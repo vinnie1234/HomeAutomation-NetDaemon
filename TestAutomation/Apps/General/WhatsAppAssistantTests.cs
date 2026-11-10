@@ -93,7 +93,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "text") == "De woonkamerlamp staat aan"));
+            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "Text") == "De woonkamerlamp staat aan"));
         _ctx.HaContext.DidNotReceive().CallServiceWithResponseAsync("conversation", "process", null,
             Arg.Is<object>(d => GetProperty(d, "agent_id") == HomeAssistantCloudAgentId));
     }
@@ -111,7 +111,7 @@ public class WhatsAppAssistantTests : IDisposable
             _ctx.HaContext.Received(1).CallService("todo", "add_item",
                 Arg.Is<ServiceTarget?>(t => t!.EntityIds!.Single() == "todo.boodschappen"), Arg.Is<object?>(d => GetProperty(d, "item") == item));
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(d, "to") == Carleen && GetProperty(GetValue(d, "message"), "text")!.Contains("Melk, Brood")));
+            Arg.Is<object>(d => GetProperty(d, "to") == Carleen && GetProperty(GetValue(d, "message"), "Text")!.Contains("Melk, Brood")));
         _ctx.HaContext.DidNotReceive().CallServiceWithResponseAsync("conversation", "process", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
     }
 
@@ -140,7 +140,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "De woonkamerlamp staat aan"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "De woonkamerlamp staat aan"));
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "De woonkamerlamp staat aan"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "De woonkamerlamp staat aan"));
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Sorry, ik snap het niet"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Sorry, ik snap het niet"));
         _ctx.HaContext.DidNotReceive().CallServiceWithResponseAsync("conversation", "process", null,
             Arg.Is<object>(d => GetProperty(d, "agent_id") == HomeAssistantCloudAgentId));
     }
@@ -187,7 +187,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Sorry, ik kreeg geen antwoord van de assistent."));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Sorry, ik kreeg geen antwoord van de assistent."));
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class WhatsAppAssistantTests : IDisposable
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
             Arg.Is<object>(d => GetProperty(d, "to") == Vincent &&
-                                 GetProperty(GetValue(d, "message"), "text") == "Jij zei: \"doe de woonkamerlamp aan\"\n\nDe woonkamerlamp staat aan"));
+                                 GetProperty(GetValue(d, "message"), "Text") == "Jij zei: \"doe de woonkamerlamp aan\"\n\nDe woonkamerlamp staat aan"));
         // The decoded audio actually reached the pipeline at the expected sample rate, decrypted and decoded correctly
         _assistPipeline.Received(1).RunSpeechToIntentAsync("Gemini", Arg.Is<byte[]>(pcm => pcm.Length > 0), 16000, Arg.Any<CancellationToken>());
         _assistPipeline.DidNotReceive().RunSpeechToIntentAsync("Home Assistant Cloud", Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
@@ -272,7 +272,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Jij zei: \"hoe laat is het\"\n\nHet is 14:00"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Jij zei: \"hoe laat is het\"\n\nHet is 14:00"));
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Ik kon je spraakbericht niet verstaan."));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Ik kon je spraakbericht niet verstaan."));
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Er is iets misgegaan bij het verwerken van je bericht."));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Er is iets misgegaan bij het verwerken van je bericht."));
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContext.Received(1).CallServiceWithResponseAsync("conversation", "process", null,
             Arg.Is<object>(d => GetProperty(d, "agent_id") == HomeAssistantCloudAgentId && GetProperty(d, "text") == "zet de woonkamerlamp weer uit"));
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "De woonkamerlamp staat nu uit"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "De woonkamerlamp staat nu uit"));
     }
 
     [Fact]
@@ -434,9 +434,9 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(d, "to") == Carleen && GetProperty(GetValue(d, "message"), "text")!.Contains("De woonkamerlamp staat aan")));
+            Arg.Is<object>(d => GetProperty(d, "to") == Carleen && GetProperty(GetValue(d, "message"), "Text")!.Contains("De woonkamerlamp staat aan")));
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "text") == "Ik heb het laatste antwoord doorgestuurd naar Carleen."));
+            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "Text") == "Ik heb het laatste antwoord doorgestuurd naar Carleen."));
         // The forward request itself was never sent to the conversation agent as a normal question
         _ctx.HaContext.DidNotReceive().CallServiceWithResponseAsync("conversation", "process", null,
             Arg.Is<object>(d => GetProperty(d, "text") == "stuur dit antwoord ook naar carleen"));
@@ -453,7 +453,7 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "text") == "Er is nog geen eerder antwoord dat ik kan doorsturen."));
+            Arg.Is<object>(d => GetProperty(d, "to") == Vincent && GetProperty(GetValue(d, "message"), "Text") == "Er is nog geen eerder antwoord dat ik kan doorsturen."));
         _ctx.HaContext.DidNotReceive().CallService("whatsapp", "send_message", null, Arg.Is<object>(d => GetProperty(d, "to") == Carleen));
     }
 
@@ -478,8 +478,8 @@ public class WhatsAppAssistantTests : IDisposable
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
             Arg.Is<object>(d => GetProperty(d, "to") == Vincent &&
-                                 GetValue(GetValue(d, "message"), "audio")!.Value.GetProperty("url").GetString() == "https://ha.example/tts_proxy/abc.mp3" &&
-                                 GetValue(d, "message")!.Value.GetProperty("ptt").GetBoolean()));
+                                 GetValue(GetValue(d, "message"), "Audio")!.Value.GetProperty("url").GetString() == "https://ha.example/tts_proxy/abc.mp3" &&
+                                 GetValue(GetValue(d, "message"), "Audio")!.Value.GetProperty("ptt").GetBoolean()));
     }
 
     [Fact]
@@ -503,11 +503,11 @@ public class WhatsAppAssistantTests : IDisposable
         _ctx.HaContextMock.ProcessPendingOperations();
 
         _ctx.HaContext.Received(1).CallService("whatsapp", "send_message", null,
-            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "text") == "Jij zei: \"hoe laat is het\"\n\nHet is 14:00"));
+            Arg.Is<object>(d => GetProperty(GetValue(d, "message"), "Text") == "Jij zei: \"hoe laat is het\"\n\nHet is 14:00"));
         _ctx.HaContext.DidNotReceive().CallService("whatsapp", "send_message", null, Arg.Is<object>(d => HasAudioBody(d)));
     }
 
-    private static bool HasAudioBody(object d) => GetValue(d, "message")!.Value.TryGetProperty("audio", out _);
+    private static bool HasAudioBody(object d) => GetValue(d, "message")!.Value.TryGetProperty("Audio", out _);
 
     /// <summary>Builds a short, real Ogg Opus voice note, encrypted the same way WhatsApp encrypts media.</summary>
     private static byte[] BuildEncryptedVoiceNote(byte[] mediaKey)
