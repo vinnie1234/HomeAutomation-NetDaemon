@@ -3343,13 +3343,13 @@ commute_card:
               return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
             };
             // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
-            const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
+            /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
             const dirOrder = { work: 0, home: 1, other: 2 };
             const candidates = Object.values(states)
               .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
               .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) ?? 'other', kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
               .filter(s => variables.mode === 'all' || isAsked(s)
-                || (s.dir === 'other' ? appointmentSoon(personKey(s)) : wanted(s)))
+                || (s.dir === 'other' ? appointmentSoon(personKey(s)) && s.kind === otherKind(s) : wanted(s)))
               .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.dir === 'other' || s.kind === chosenKind(s)
                 || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
               .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || dirOrder[a.dir] - dirOrder[b.dir] || (a.kind === 'car' ? -1 : 1));
@@ -3425,13 +3425,13 @@ commute_card:
           return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
         };
         // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
-        const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
+        /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
         const dirOrder = { work: 0, home: 1, other: 2 };
         const candidates = Object.values(states)
           .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
           .map(s => ({ entity_id: s.entity_id, attributes: s.attributes, dir: directionOf(s) ?? 'other', kind: s.entity_id.startsWith('sensor.9292_') ? 'ov' : 'car' }))
           .filter(s => variables.mode === 'all' || isAsked(s)
-            || (s.dir === 'other' ? appointmentSoon(personKey(s)) : wanted(s)))
+            || (s.dir === 'other' ? appointmentSoon(personKey(s)) && s.kind === otherKind(s) : wanted(s)))
           .filter((s, i, all) => variables.mode === 'all' || isAsked(s) || s.dir === 'other' || s.kind === chosenKind(s)
             || !all.some(o => o.attributes.person === s.attributes.person && o.dir === s.dir && o.kind === chosenKind(s)))
           .sort((a, b) => String(a.attributes.person).localeCompare(String(b.attributes.person)) || dirOrder[a.dir] - dirOrder[b.dir] || (a.kind === 'car' ? -1 : 1));
@@ -3693,16 +3693,18 @@ commute_card:
           const owner = states[s.attributes.person];
           const ownerName = (owner?.attributes.friendly_name ?? '').split(' ')[0];
           const picture = owner?.attributes.entity_picture;
-          const duration = parseFloat(states[`${prefix}_reistijd`]?.state);
+          // Na het verlaten van het werk blijft de route naar huis staan zoals hij toen was (NetDaemon, CommuteReport): reistijd, vertraging en aankomst veranderen onderweg niet meer
+          const frozen = (() => { if (s.dir !== 'home') return null; try { const f = JSON.parse(states[`input_text.reis_vast_${personKey(s)}`]?.state ?? ''); return f?.date === todayText ? f : null; } catch (e) { return null; } })();
+          const duration = frozen ? frozen.duration : parseFloat(states[`${prefix}_reistijd`]?.state);
           const route = s.attributes;
           const badge = color => badgeOf(s, color);
           if (isNaN(duration)) {
             return `<div style="display:flex;align-items:center;gap:14px;text-align:left">${badge('#94a3b8')}
               <div><div style="font-size:12px;opacity:.65">${ownerName} · ${title.toLowerCase()}</div><div style="font-size:14px;opacity:.8">Verkeersinformatie niet beschikbaar</div></div></div>`;
           }
-          const normal = parseFloat(states[`${prefix}_reistijd`].attributes.normal_duration_min) || duration;
-          const delay = parseFloat(states[`${prefix}_vertraging`]?.state) || Math.max(0, duration - normal);
-          const arrival = new Date(states[`${prefix}_aankomsttijd`]?.state);
+          const normal = frozen ? frozen.normal : parseFloat(states[`${prefix}_reistijd`].attributes.normal_duration_min) || duration;
+          const delay = frozen ? frozen.delay : parseFloat(states[`${prefix}_vertraging`]?.state) || Math.max(0, duration - normal);
+          const arrival = frozen ? new Date(frozen.arrival) : new Date(states[`${prefix}_aankomsttijd`]?.state);
           const via = route.via ?? [], o = route.origin ?? [0, 0], d = route.destination ?? [0, 0];
           const inArea = (lat, lon) => lat >= Math.min(o[0], d[0]) - margin && lat <= Math.max(o[0], d[0]) + margin
             && lon >= Math.min(o[1], d[1]) - margin && lon <= Math.max(o[1], d[1]) + margin;
@@ -3745,7 +3747,7 @@ commute_card:
                       ${endpointsOf(s)}
                       <div style="font-size:18px;font-weight:700">${span(duration)}
                         <span style="font-size:13px;font-weight:500;color:${color}">${delay >= 1 ? `+${Math.round(delay)} min` : 'geen vertraging'}</span></div>
-                      <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}</div>
+                      <div style="font-size:13px;opacity:.85">${status}${isNaN(arrival) ? '' : ` · aankomst ${clock(arrival)}`}${frozen ? ` · vertrokken om ${clock(new Date(frozen.left))}` : ''}</div>
                       ${advice}
                       ${jamLines}${radarLine}
                     </div>
@@ -3792,12 +3794,12 @@ commute_card:
           const skipText = s.dir === 'home' ? `${name} komt niet thuis` : `${name} gaat niet`;
           // Hoe de persoon vandaag komt: de kaart van het OV heeft "komt met de auto" (dan komt de ANWB-kaart in beeld), en terug naar het schema
           const today = states[`input_select.vervoer_vandaag_${person}`]?.state;
-          const hasOv = Object.values(states).some(x => /^sensor\.9292_.*_lijnen$/.test(x.entity_id) && x.attributes.person === s.attributes.person && directionOf(x) === s.dir);
+          const hasOv = Object.values(states).some(x => /^sensor\.9292_.*_lijnen$/.test(x.entity_id) && x.attributes.person === s.attributes.person && (directionOf(x) ?? 'other') === s.dir);
           const chip = (text, option, active) => `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
               color:${active ? '#4ade80' : 'rgba(255,255,255,0.75)'};border:1px solid ${active ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.2)'}"
               onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisReisVervoer('${person}','${option}')"
               onclick="event.stopPropagation();window.huisReisVervoer('${person}','${option}')">${text}</span>`;
-          const vervoer = s.dir === 'other' ? '' : [
+          const vervoer = [
             s.kind === 'ov' && today !== 'OV' ? chip(`${name} komt met de auto`, 'Auto') : '',
             s.kind === 'ov' && today === 'OV' ? chip(`✓ komt met het OV · terug naar schema`, 'Volgens schema', true) + chip(`${name} komt met de auto`, 'Auto') : '',
             s.kind === 'car' && today === 'Auto' ? chip(`✓ komt met de auto · terug naar schema`, 'Volgens schema', true) : '',

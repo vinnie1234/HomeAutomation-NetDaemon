@@ -173,6 +173,48 @@ public class SleepManagerTests
         ctx.VerifyCallNotify("notify", "mobile_app_vincent_phone", times: 0);
     }
 
+    [Fact]
+    public void VincentSleepingAfterMidnight_DoesNotRemindOfTheGarbageOfTomorrow()
+    {
+        // 00:59 Dutch time: the garbage of "tomorrow" is the day after today, the reminder for it comes at 22:00 tonight
+        var ctx = SetupContext();
+        ctx.SetCurrentTime(new DateTime(2026, 11, 9, 23, 59, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("sensor.afval_morgen").Returns(new EntityState { State = "PMD" });
+        ctx.HaContext.GetState("sensor.afval_vandaag").Returns(new EntityState { State = "Geen" });
+        ctx.InitApp<SleepManager>(StorageCleanedAt(new DateTime(2026, 11, 10, 0, 30, 0)));
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+
+        ctx.HaContext.DidNotReceive().CallService("notify", "mobile_app_vincent_phone", null,
+            Arg.Is<object>(d => System.Text.Json.JsonSerializer.Serialize(d, (System.Text.Json.JsonSerializerOptions?)null).Contains("Vergeet het afval niet")));
+    }
+
+    [Fact]
+    public void VincentWakeUp_OnADayWorkingAtHome_TurnsOnTheDeskLight()
+    {
+        var ctx = SetupContext();
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 6, 0, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_select.werkdag_vincent_dinsdag").Returns(new EntityState { State = "Thuis" });
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+
+        ctx.VerifyCallService("light", "turn_on", "bureau", times: 1);
+    }
+
+    [Fact]
+    public void VincentWakeUp_OnAnOfficeDay_DoesNotTurnOnTheDeskLight()
+    {
+        var ctx = SetupContext();
+        ctx.SetCurrentTime(new DateTime(2026, 11, 10, 6, 0, 0, DateTimeKind.Utc));
+        ctx.HaContext.GetState("input_select.werkdag_vincent_dinsdag").Returns(new EntityState { State = "Kantoor" });
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+
+        ctx.VerifyNotCallService("light.turn_on");
+    }
+
     /// <summary>Storage that says the PetSnowy last cleaned at this Dutch moment.</summary>
     private static IDataRepository StorageCleanedAt(DateTime dutchMoment)
     {

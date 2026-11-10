@@ -1,3 +1,4 @@
+using Automation.apps.Rooms.LivingRoom;
 using Automation.Enum;
 using Automation.Configuration;
 using static Automation.Globals;
@@ -19,7 +20,8 @@ public static class LightExtension
     {
         config ??= new AppConfiguration();
         lightEntities.EnumerateAll()
-            .Where(x => x.EntityId is not "light.rt_ax88u_led" and not "light.tradfri_driver" && !keepOn.Contains(x.EntityId))
+            // The Christmas tree only goes off when Vincent goes to sleep (ChristmasTree does that itself)
+            .Where(x => x.EntityId is not "light.rt_ax88u_led" and not "light.tradfri_driver" and not ChristmasTree.Tree && !keepOn.Contains(x.EntityId))
             .TurnOff(transition: config.Lights.DefaultTransitionSeconds);
     }
 

@@ -50,6 +50,32 @@ public class ChristmasTreeTests
         _ctx.VerifyCallService("light", "turn_off", "festavia_string_lights_1", times: 1);
     }
 
+    [Fact]
+    public void WhenSomethingElseSwitchesTheTreeOff_AndVincentIsAwake_ItGoesOnAgain()
+    {
+        SetState("input_boolean.sleepingvincent", "off");
+        Start(tree: "on");
+
+        SetState(ChristmasTree.Tree, "off");
+        Change(ChristmasTree.Tree, "on", "off");
+        _ctx.AdvanceTimeBy(TimeSpan.FromSeconds(3).Ticks);
+
+        _ctx.VerifyCallService("light", "turn_on", "festavia_string_lights_1", times: 1);
+    }
+
+    [Fact]
+    public void WhenTheTreeGoesOff_WhileVincentSleeps_ItStaysOff()
+    {
+        SetState("input_boolean.sleepingvincent", "on");
+        Start(tree: "on");
+
+        SetState(ChristmasTree.Tree, "off");
+        Change(ChristmasTree.Tree, "on", "off");
+        _ctx.AdvanceTimeBy(TimeSpan.FromSeconds(3).Ticks);
+
+        _ctx.HaContext.DidNotReceive().CallService("light", "turn_on", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+    }
+
     [Theory]
     [InlineData("unavailable")]
     [InlineData("unknown")]

@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Core;
 using Automation.Interfaces;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
@@ -39,10 +40,25 @@ public class ChristmasTree : BaseApp
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOff(_ => SetTree(on: true));
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => SetTree(on: false));
 
+        // The tree stays on: anything else that switches it off (a scene, a group of lights, a "everything off") is undone, unless he sleeps
+        new Entity(HaContext, Tree).StateChanges()
+            .Where(x => x.Old?.State == "on" && x.New?.State == "off")
+            .Subscribe(_ => Scheduler.Schedule(KeepOnDelay, () => KeepOn()));
+
         // An input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press
         new Entity(HaContext, MusicButton).StateChanges()
             .Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
             .Subscribe(_ => PlayMusic());
+    }
+
+    /// <summary>A short wait, so a group that switches its lights off one by one is done before the tree goes on again.</summary>
+    private static readonly TimeSpan KeepOnDelay = TimeSpan.FromSeconds(2);
+
+    private void KeepOn()
+    {
+        if (Vincent.IsSleeping || HaContext.GetState(Tree)?.State != "off") return;
+        ActivityContext.Note("De kerstboom blijft aan, behalve als Vincent slaapt");
+        SetTree(on: true);
     }
 
     private void SetTree(bool on)

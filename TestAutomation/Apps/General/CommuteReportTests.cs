@@ -754,6 +754,46 @@ public class CommuteReportTests
         message.Text.Should().Contain("Doorgestuurd door Vincent: dit zijn de tijden die verwacht worden voor Vincent").And.Contain("Op kantoor om 08:20");
     }
 
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData("unavailable")]
+    [InlineData("")]
+    public void TheForwardButton_WithAHelperThatWasNeverFilledIn_SendsTheRouteOfTheDay(string helper)
+    {
+        // A helper nobody filled in says "unknown": that is not the name of a route
+        Start("Kantoor", configure: () =>
+        {
+            SetState("input_datetime.kantoor_aankomst_vincent", "2026-10-29 08:20:00");
+            SetState("input_text.reis_doorsturen_route_vincent", helper);
+        });
+        _ctx.HaContext.ClearReceivedCalls();
+
+        _ctx.ChangeStateFor("input_button.reis_doorsturen_vincent").FromState("unknown").ToState("2026-10-29T06:30:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+        Thread.Sleep(100);
+
+        Messages().Should().ContainSingle().Which.To.Should().Be(CarleenWhatsapp);
+    }
+
+    [Fact]
+    public void LeavingTheWork_KeepsTheRouteHomeAsItWasAtThatMoment()
+    {
+        Start("Kantoor", vincentHome: false, configure: () =>
+        {
+            SetState("zone.werk", "1", new { persons = new[] { "person.vincent_maarschalkerweerd" } });
+            SetState("sensor.anwb_route_werk_huis_reistijd", "42", new { normal_duration_min = 31 });
+            SetState("sensor.anwb_route_werk_huis_vertraging", "11");
+        });
+        _ctx.HaContext.ClearReceivedCalls();
+
+        SetState("zone.werk", "0", new { persons = Array.Empty<string>() });
+        _ctx.ChangeStateFor("zone.werk").FromState("1").ToState("0");
+        _ctx.HaContextMock.ProcessPendingOperations();
+
+        _ctx.HaContext.Received().CallService("input_text", "set_value", Arg.Is<ServiceTarget?>(t => t != null && t.EntityIds!.Contains("input_text.reis_vast_vincent")),
+            Arg.Is<object?>(d => JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("\\u0022duration\\u0022:42") && JsonSerializer.Serialize(d, (JsonSerializerOptions?)null).Contains("\\u0022delay\\u0022:11")));
+    }
+
     [Fact]
     public void TheSendToSelfButton_SendsThePersonThemselfTheExpectedTimes()
     {

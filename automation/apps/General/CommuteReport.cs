@@ -96,6 +96,7 @@ public partial class CommuteReport : BaseApp
         }
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), SendWhenItIsTime);
         SetUpTrainTracking();
+        SetUpDepartureTracking();
 
         // The work laptop goes off while Vincent is at the office: the message about the way home comes now, besides the fixed time
         new Entity(HaContext, WorkLaptop.Uptime).StateChanges()
@@ -235,6 +236,8 @@ public partial class CommuteReport : BaseApp
     {
         try
         {
+            // A helper that was never filled in says "unknown": that is no route, it means the route of the day
+            if (string.IsNullOrWhiteSpace(otherRoute) || otherRoute is "unknown" or "unavailable") otherRoute = null;
             if (!test && !forward && !toSelf)
             {
                 // Switched off by the person, or not an office day
@@ -266,7 +269,7 @@ public partial class CommuteReport : BaseApp
 
             var parts = new List<string>();
             if (carPrefix != null)
-                parts.Add(ReadRoute(carPrefix) is { } route
+                parts.Add(ReadRouteForMessage(commuter, direction, carPrefix, title) is { } route
                     ? CommuteMessage.Build(direction, route, Incidents("jams"), Incidents("radars"), Scheduler.Now, target, title)
                     : "⚠️ Ik kan de verkeersinformatie nu niet ophalen (de ANWB-route is niet beschikbaar).");
             if (carPrefix != null) parts[^1] += DashboardLink(commuter, side, "car");
@@ -447,6 +450,14 @@ public partial class CommuteReport : BaseApp
         var time = new DateTimeOffset(local, Extensions.SchedulerExtensions.DutchTimeZone.GetUtcOffset(local));
         // To work, a time at the office is an arrival and a time to leave home is a departure; back home it is the other way around
         return new CommuteTarget(time, IsArrival: direction == CommuteDirection.ToWork ? !departure : arrivalHome);
+    }
+
+    /// <summary>The route for a message: after leaving work the route home as it was when the person left (as on the dashboard), otherwise the live one.</summary>
+    private RouteSnapshot? ReadRouteForMessage(Commuter commuter, CommuteDirection direction, string prefix, string? title)
+    {
+        var route = ReadRoute(prefix);
+        if (route == null || title != null || direction != CommuteDirection.ToHome || FrozenToday(commuter) is not { } frozen) return route;
+        return route with { DurationMin = frozen.Duration, NormalMin = frozen.Normal, DelayMin = frozen.Delay, Arrival = frozen.Arrival };
     }
 
     /// <summary>The fastest route, or null while its sensors have no value.</summary>

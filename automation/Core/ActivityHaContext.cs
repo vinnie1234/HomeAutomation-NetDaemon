@@ -12,7 +12,13 @@ public sealed class ActivityHaContext(IHaContext inner, string app, IReadOnlyDic
 {
     public IHaContext Inner => inner;
 
-    public EntityState? GetState(string entityId) => inner.GetState(entityId);
+    /// <summary>The state as before; while an app handles a trigger every state it looks at is a condition of what it does next.</summary>
+    public EntityState? GetState(string entityId)
+    {
+        var state = inner.GetState(entityId);
+        ActivityContext.Current?.Read(entityId, state?.State);
+        return state;
+    }
 
     public IReadOnlyList<Entity> GetAllEntities() => inner.GetAllEntities();
 

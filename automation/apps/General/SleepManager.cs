@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using Automation.Configuration;
+using Automation.Core;
 using Automation.Helpers;
 using Microsoft.Extensions.Options;
 
@@ -66,6 +67,10 @@ public class SleepManager : BaseApp
             if (!carleenStillSleeping)
                 OpenRollerblind();
 
+            // A day working at home: the desk light is on as soon as he is awake
+            if (Vincent.IsHome && VincentSchedule.IsHomeWorkDay(Scheduler.NowNl().DayOfWeek))
+                Entities.Light.Bureau.TurnOn();
+
             SendBatteryWarning();
         } catch (Exception ex) {
             Logger.LogError(ex, "Error in the wake-up routine");
@@ -114,9 +119,14 @@ public class SleepManager : BaseApp
             Entities.MediaPlayer.Tv.TurnOff();
             Entities.Cover.Rollerblind0003.SetCoverPosition(0);
             var now = Scheduler.NowNl();
+            // Going to bed after midnight still belongs to the evening before: then "tomorrow" is the day after today, and the garbage of
+            // that day is for the reminder of tonight (Alarm.GarbageCheck, 22:00). Only today's garbage can still be forgotten.
             var message = Entities.Sensor.AfvalMorgen.State;
-            if (now.Hour is >= 05 and < 07)
+            if (now.Hour < 07)
+            {
+                ActivityContext.Note("Na middernacht: alleen het afval van vandaag telt");
                 message = Entities.Sensor.AfvalVandaag.State;
+            }
 
             // Like Alarm's garbage check: no reminder when there's no garbage or the sensor has no value
             if (message is not (null or "" or "Geen" or "unknown" or "unavailable"))

@@ -29,6 +29,19 @@ public static class ActivityLog
     /// <summary>The last status written down per entity: NetDaemon sets some sensors again and again with the same value.</summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastStatus = new();
 
+    /// <summary>When the status of an entity was last written down.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffset> LastStatusAt = new();
+
+    /// <summary>How long a status that is a number is left alone after it was written down.</summary>
+    private static readonly TimeSpan NumberInterval = TimeSpan.FromMinutes(30);
+
+    /// <summary>The conditions of an action, one line each: what the app wrote down, then the states it looked at.</summary>
+    private static string[] ConditionsOf(IHaContext inner, ActivityTrigger? cause) =>
+        cause == null
+            ? []
+            : [.. cause.Notes, .. cause.Conditions.Where(c => !Ignored.Contains(c.Entity))
+                .Select(c => $"{NameOf(inner, c.Entity)}: {ActivityTrigger.StateText(c.State)}")];
+
     /// <summary>
     /// The actions from the first moments after NetDaemon started, before <see cref="Automation.apps.General.ActivityRecorder"/> was
     /// listening: the apps wake up in no fixed order and many of them act at once. The recorder takes them over when it starts.
@@ -104,6 +117,7 @@ public static class ActivityLog
                 causeKind = cause?.RootKind ?? "geen",
                 causeEntity = cause?.RootEntity ?? "",
                 causeChain = cause?.Chain ?? [],
+                conditions = ConditionsOf(inner, cause),
                 data = DataText(json),
                 text,
                 room = string.Join(", ", RoomsFor(inner, entities, entities.Concat(names).Append(text)) is { Count: > 0 } rooms ? rooms : appRoom is null ? [] : [appRoom]),
@@ -124,7 +138,13 @@ public static class ActivityLog
             if (Ignored.Contains(entityId)) return;
             // Only a status that changed is news: the same value again is not written down
             if (LastStatus.TryGetValue(entityId, out var last) && last == state) return;
+            // A number that counts along (the cost of working at home, the working time) changes every minute: once in a while is enough,
+            // Home Assistant has the history of the sensor itself. A status in words, or a number that was not written down yet, always counts.
+            var now = DateTimeOffset.UtcNow;
+            var isNumber = double.TryParse(state, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+            if (isNumber && LastStatusAt.TryGetValue(entityId, out var writtenAt) && now - writtenAt < NumberInterval) return;
             LastStatus[entityId] = state;
+            LastStatusAt[entityId] = now;
             var text = $"{NameOf(inner, entityId)} wordt {Trim(state, 80)}";
             var people = People.Where(p => entityId.Contains(p, StringComparison.OrdinalIgnoreCase)).ToList();
             var cause = ActivityContext.Current;
@@ -140,6 +160,7 @@ public static class ActivityLog
                 causeKind = cause?.RootKind ?? "geen",
                 causeEntity = cause?.RootEntity ?? "",
                 causeChain = cause?.Chain ?? [],
+                conditions = ConditionsOf(inner, cause),
                 data = "",
                 text,
                 room = string.Join(", ", RoomsFor(inner, [entityId], [entityId])),

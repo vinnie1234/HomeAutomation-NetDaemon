@@ -52,6 +52,52 @@ public class ActivityTriggerTests
         Text(e, "cause").Should().Be("Beweging: Beweging Woonkamer");
     }
 
+    private static string[] Conditions(JsonElement e) => e.GetProperty("conditions").EnumerateArray().Select(x => x.GetString()!).ToArray();
+
+    [Fact]
+    public void TheStatesAnAppLooksAtBeforeActing_AreTheConditionsOfTheAction()
+    {
+        _inner.GetState("sensor.afval_morgen").Returns(new EntityState { EntityId = "sensor.afval_morgen", State = "PMD", AttributesJson = JsonSerializer.SerializeToElement(new { friendly_name = "Afval morgen" }) });
+        var ha = Ha();
+        ha.StateAllChanges().Subscribe(_ =>
+        {
+            ha.GetState("sensor.afval_morgen");
+            ActivityContext.Note("Na middernacht");
+            ha.CallService("notify", "mobile_app_x", data: new { message = "hoi" });
+        });
+
+        _changes.OnNext(Change("input_boolean.sleepingvincent", "off", "on"));
+
+        Conditions(_events.Should().ContainSingle().Subject).Should().Equal("Na middernacht", "Afval morgen: PMD");
+    }
+
+    [Fact]
+    public void TheEntityThatStartedIt_IsNotAlsoACondition()
+    {
+        var ha = Ha();
+        ha.StateAllChanges().Subscribe(_ =>
+        {
+            ha.GetState("input_boolean.sleepingvincent");
+            ha.CallService("light", "turn_off", ServiceTarget.FromEntity("light.x"));
+        });
+
+        _changes.OnNext(Change("input_boolean.sleepingvincent", "off", "on"));
+
+        Conditions(_events.Should().ContainSingle().Subject).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ANumberThatCountsAlong_IsWrittenDownOnceInAWhile_ButAStatusInWordsAlways()
+    {
+        ActivityLog.Status(_inner, "TestApp", "sensor.test_teller_a", "0.1");
+        ActivityLog.Status(_inner, "TestApp", "sensor.test_teller_a", "0.2");
+        ActivityLog.Status(_inner, "TestApp", "sensor.test_teller_a", "0.3");
+        ActivityLog.Status(_inner, "TestApp", "sensor.test_tekst_a", "thuis");
+        ActivityLog.Status(_inner, "TestApp", "sensor.test_tekst_a", "weg");
+
+        _events.Select(e => Text(e, "entity")).Should().Equal("sensor.test_teller_a", "sensor.test_tekst_a", "sensor.test_tekst_a");
+    }
+
     [Fact]
     public void AnOrdinaryStateChange_IsDescribedWithTheOldAndTheNewState()
     {

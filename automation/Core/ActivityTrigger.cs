@@ -32,6 +32,57 @@ public sealed class ActivityTrigger
     /// <summary>The cause first and then what followed from it: ["Beweging Woonkamer: uit → aan", "5 min later"].</summary>
     public IReadOnlyList<string> Chain => [.. Parent?.Chain ?? [], Text];
 
+    /// <summary>How many conditions one trigger keeps: an app that reads a lot of states would otherwise bury the one that mattered.</summary>
+    private const int MaxConditions = 12;
+
+    private readonly object _lock = new();
+    private readonly List<(string Entity, string? State)> _read = [];
+    private readonly List<string> _notes = [];
+
+    /// <summary>
+    /// The states the app looked at while handling this trigger, before it acted: those are the conditions (the garbage of tomorrow is
+    /// PMD, Carleen is home, ...). Each entity once, with the state it had when it was read; what started the timer comes first.
+    /// </summary>
+    public IReadOnlyList<(string Entity, string? State)> Conditions
+    {
+        get
+        {
+            lock (_lock) return [.. Parent?.Conditions ?? [], .. _read];
+        }
+    }
+
+    /// <summary>Conditions an app wrote down itself, for what is not a state (the time of day, a count).</summary>
+    public IReadOnlyList<string> Notes
+    {
+        get
+        {
+            lock (_lock) return [.. Parent?.Notes ?? [], .. _notes];
+        }
+    }
+
+    /// <summary>An app looked at the state of an entity. The entity that started it is already the cause, so it is not a condition as well.</summary>
+    public void Read(string entityId, string? state)
+    {
+        if (entityId == Entity) return;
+        lock (_lock)
+        {
+            if (_read.Count >= MaxConditions || _read.Exists(r => r.Entity == entityId)) return;
+            _read.Add((entityId, state));
+        }
+    }
+
+    /// <summary>An app wrote down a condition in words.</summary>
+    public void Note(string text)
+    {
+        lock (_lock)
+        {
+            if (_notes.Count < MaxConditions && !_notes.Contains(text)) _notes.Add(text);
+        }
+    }
+
+    /// <summary>A state in words, as the page shows it ("aan", "thuis", "PMD").</summary>
+    public static string StateText(string? state) => State(state);
+
     /// <summary>The entity of the first cause in the chain (the one that really started it), if there is one.</summary>
     public string? RootEntity => Parent?.RootEntity ?? Entity;
 
@@ -116,6 +167,9 @@ public static class ActivityContext
     private static readonly AsyncLocal<ActivityTrigger?> Local = new();
 
     public static ActivityTrigger? Current => Local.Value;
+
+    /// <summary>Writes down a condition in words for what the app does now (nothing when no trigger is running).</summary>
+    public static void Note(string text) => Local.Value?.Note(text);
 
     /// <summary>Makes <paramref name="trigger"/> the current one until the scope is disposed.</summary>
     public static IDisposable Begin(ActivityTrigger trigger)

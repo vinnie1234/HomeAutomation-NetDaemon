@@ -177,8 +177,12 @@
       const when = e._t ? new Date(e._t).toLocaleString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
       const kv = (k, v, code) => v ? `<div class="kv"><span>${k}</span>${code ? `<code>${esc(v)}</code>` : `<b>${esc(v)}</b>`}</div>` : '';
       const btn = (label, entity) => entity ? `<span class="btn" data-more="${esc(entity)}">${esc(label)}</span>` : '';
+      // Voorwaarden: wat de app bekeek (of opschreef) voordat hij dit deed, bijvoorbeeld "Afval morgen: PMD"
+      const conditions = Array.isArray(e.conditions) ? e.conditions : [];
+      const checks = conditions.length
+        ? `<div class="dt">Voorwaarden</div><ul class="why">${conditions.map(c => `<li><ha-icon icon="mdi:check-circle-outline"></ha-icon><span>${esc(c)}</span></li>`).join('')}</ul>` : '';
       return `<div class="detail">
-          <div class="dt">Waarom?</div><ol class="why">${why}</ol>
+          <div class="dt">Waarom?</div><ol class="why">${why}</ol>${checks}
           <div class="dt">Wat</div>
           ${kv('Wanneer', when)}${kv('App', e.app)}${kv('Dienst', e.service, true)}${kv('Lamp of entiteit', e.entity, true)}${kv('Gestuurd', e.data, true)}
           ${kv('Ruimte', e.room)}${kv('Persoon', e.person)}

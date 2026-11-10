@@ -259,7 +259,9 @@ public static class HelperDefinitions
         Text($"afspraak_{person}", $"Afspraak {name}", min: 0, max: 100, mode: "text", icon: "mdi:calendar-clock"),
         // Welke overige route "Stuur door" doorstuurt (de sensor); leeg is de route van de dag
         Text($"reis_doorsturen_route_{person}", $"Reis doorsturen route {name}", min: 0, max: 100, mode: "text", icon: "mdi:share-variant"),
-        Text($"reis_keuze_{person}_work", $"Reis keuze {name} work", min: 0, max: 40, mode: "text", icon: "mdi:train"),
+        // De route naar huis zoals hij was toen de persoon de zone van het werk verliet (CommuteReport): reistijd, vertraging en aankomst blijven dan staan
+        Text($"reis_vast_{person}", $"Reis vast {name}", min: 0, max: 255, mode: "text", icon: "mdi:pin-outline"),
+        Text($"reis_keuze_{person}_work",$"Reis keuze {name} work", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Text($"reis_keuze_{person}_home", $"Reis keuze {name} home", min: 0, max: 40, mode: "text", icon: "mdi:train"),
         Button($"reis_doorsturen_{person}", $"Reis doorsturen {name}", icon: "mdi:share-variant"),
         Button($"reis_doorsturen_zelf_{person}", $"Reis doorsturen zelf {name}", icon: "mdi:send"),
