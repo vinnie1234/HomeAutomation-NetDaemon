@@ -1216,9 +1216,9 @@ weather_hero:
                 filter:drop-shadow(0 0 0.6px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(0,0,0,0.35))">${n}</text>`;
           });
           // ---- Stroom: zonnepanelen op het dak, elektriciteitspalen met de draad naar het huis, en waar de stroom nu vandaan komt ----
-          // Net: sensor van de P1-meter (plus = van het net, min = terug naar het net). Zon: de schatting van Forecast.Solar (er is geen omvormer-sensor).
+          // Net: sensor van de P1-meter (plus = van het net, min = terug naar het net). Zon: de meter van de zonnepanelen (sensor.p1_meter_vermogen, geeft min bij opwek).
           const gridW = parseFloat(states['sensor.p1_meter_3c39e72a64e8_active_power']?.state);
-          const sunW = parseFloat(states['sensor.power_production_now']?.state);
+          const sunW = Math.abs(parseFloat(states['sensor.p1_meter_vermogen']?.state));
           const gridKnown = !isNaN(gridW), sunning = !isNaN(sunW) && sunW >= 20;
           const importing = gridKnown && gridW > 15, exporting = gridKnown && gridW < -15;
           const watts = w => Math.abs(w) >= 1000 ? `${(Math.abs(w) / 1000).toFixed(1).replace('.', ',')} kW` : `${Math.round(Math.abs(w))} W`;
