@@ -54,7 +54,59 @@ public class WorkTimeTracker : BaseApp
         _lastCounted = DateTimeOffset.TryParse(storage.Get<string>(LastCountedKey), CultureInfo.InvariantCulture, DateTimeStyles.None, out var stored) ? stored : null;
 
         _ = CreateSensorAsync();
+        new Entity(HaContext, AddButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(_ => AddByHand());
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), Tick);
+    }
+
+    // The helpers of the form in the window Werktijd (they exist once HelperManager has created them, so no typed entities yet)
+    public const string AddButton = "input_button.werktijd_extra_toevoegen";
+    private const string AddMinutes = "input_number.werktijd_extra_minuten";
+    private const string AddPlaceHelper = "input_select.werktijd_extra_plek";
+    private const string AddDate = "input_datetime.werktijd_extra_datum";
+
+    /// <summary>The furthest back a day can be added to by hand.</summary>
+    private const int MaxDaysBack = 62;
+
+    /// <summary>The most that can be added or taken off in one go, in minutes.</summary>
+    public const int MaxManualMinutes = 720;
+
+    /// <summary>
+    /// Adds the minutes of the form to the day of the form, at the place of the form (or takes them off again when negative), and resets the form.
+    /// </summary>
+    private void AddByHand()
+    {
+        try
+        {
+            var minutes = double.TryParse(HaContext.GetState(AddMinutes)?.State, NumberStyles.Float, CultureInfo.InvariantCulture, out var m) ? Math.Round(m) : 0;
+            var today = Scheduler.NowNl().Date;
+            var day = DateTime.TryParse(HaContext.GetState(AddDate)?.State, CultureInfo.InvariantCulture, DateTimeStyles.None, out var chosen) ? chosen.Date : today;
+            if (minutes == 0 || Math.Abs(minutes) > MaxManualMinutes || day > today || day < today.AddDays(-MaxDaysBack))
+            {
+                Logger.LogInformation("Work time by hand not added: {Minutes} minutes on {Day}", minutes, day);
+                return;
+            }
+
+            var key = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (!_days.TryGetValue(key, out var entry)) _days[key] = entry = new WorkDay();
+            var seconds = minutes * 60;
+            switch (HaContext.GetState(AddPlaceHelper)?.State)
+            {
+                case "Kantoor": entry.ManualOffice += seconds; break;
+                case "Elders": entry.ManualOther += seconds; break;
+                default: entry.ManualHome += seconds; break;
+            }
+
+            _storage.Save(StorageKey, _days);
+            Core.ActivityContext.Note($"Handmatig {minutes:+0;-0} minuten op {key}");
+            Logger.LogInformation("Work time by hand: {Minutes} minutes on {Day}", minutes, key);
+            Publish();
+            new InputNumberEntity(HaContext, AddMinutes).SetValue(0);
+            new InputDatetimeEntity(HaContext, AddDate).SetDatetime(new InputDatetimeSetDatetimeParameters { Date = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not add work time by hand");
+        }
     }
 
     private async Task CreateSensorAsync()
@@ -148,12 +200,12 @@ public class WorkTimeTracker : BaseApp
         _storage.Save(StorageKey, _days);
     }
 
-    private static object Minutes(WorkTotals t) => new { b = t.Gross, p = t.WithBreak, n = t.Net, th = t.Home, ko = t.Office, ov = t.Other };
+    private static object Minutes(WorkTotals t) => new { b = t.Gross, p = t.WithBreak, n = t.Net, th = t.Home, ko = t.Office, ov = t.Other, m = t.Manual };
 
     private static object Row(WorkPeriod p) => new
     {
         k = p.Key, van = p.From, tot = p.To, b = p.Totals.Gross, p = p.Totals.WithBreak, n = p.Totals.Net,
-        th = p.Totals.Home, ko = p.Totals.Office, ov = p.Totals.Other, first = p.First, last = p.Last
+        th = p.Totals.Home, ko = p.Totals.Office, ov = p.Totals.Other, m = p.Totals.Manual, first = p.First, last = p.Last
     };
 
     /// <summary>Writes the figures to the sensor: the state is the gross hours of today, the attributes have everything else.</summary>

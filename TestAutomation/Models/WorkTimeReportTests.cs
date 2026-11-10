@@ -57,6 +57,61 @@ public class WorkTimeReportTests
     }
 
     [Fact]
+    public void HoursAddedByHand_ComeOnTopOfTheDay_WithoutBreaksTakenOff()
+    {
+        var day = Day(homeHours: 8);
+        day.ManualHome = 2 * 3600;
+        day.ManualOffice = 30 * 60;
+
+        var totals = WorkTimeReport.Of(day);
+
+        totals.Manual.Should().Be(150);
+        totals.Gross.Should().Be(480 + 150);
+        totals.WithBreak.Should().Be(450 + 150);
+        totals.Net.Should().Be(430 + 150);
+        totals.Home.Should().Be(480 + 120);
+        totals.Office.Should().Be(30);
+    }
+
+    [Fact]
+    public void ADayWithOnlyHoursAddedByHand_HasNoBreakAtAll()
+    {
+        var day = new WorkDay { ManualOther = 3 * 3600 };
+
+        var totals = WorkTimeReport.Of(day);
+
+        totals.Gross.Should().Be(180);
+        totals.Net.Should().Be(180);
+        totals.Other.Should().Be(180);
+    }
+
+    [Fact]
+    public void MinutesTakenOffByHand_NeverMakeADayNegative()
+    {
+        var day = Day(homeHours: 1);
+        day.ManualHome = -2 * 3600;
+
+        var totals = WorkTimeReport.Of(day);
+
+        totals.Gross.Should().Be(0);
+        totals.Net.Should().Be(0);
+        totals.Manual.Should().Be(-120);
+    }
+
+    [Fact]
+    public void WeeksAndMonths_CountTheHoursAddedByHand()
+    {
+        var monday = Day(homeHours: 8);
+        monday.ManualHome = 60 * 60;
+        var days = new Dictionary<string, WorkDay> { ["2026-11-09"] = monday, ["2026-11-10"] = new WorkDay { ManualOffice = 2 * 3600 } };
+
+        var week = WorkTimeReport.Weeks(days, 1).Single();
+
+        week.Totals.Manual.Should().Be(180);
+        week.Totals.Gross.Should().Be(480 + 60 + 120);
+    }
+
+    [Fact]
     public void TheHoursAreDividedOverTheUsualPlaces_AtOfficeAndAtHome()
     {
         var totals = WorkTimeReport.Of(Day(homeHours: 1.5, officeHours: 6.5));

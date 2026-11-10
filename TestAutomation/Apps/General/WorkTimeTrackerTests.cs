@@ -82,6 +82,52 @@ public class WorkTimeTrackerTests
         Today().First.Should().NotBeNull();
     }
 
+    private void Press(string minutes, string place = "Thuis", string date = "2026-11-09")
+    {
+        SetState("input_number.werktijd_extra_minuten", minutes);
+        SetState("input_select.werktijd_extra_plek", place);
+        SetState("input_datetime.werktijd_extra_datum", date);
+        _ctx.ChangeStateFor(WorkTimeTracker.AddButton).FromState("unknown").ToState("2026-11-10T20:00:00+00:00");
+        _ctx.HaContextMock.ProcessPendingOperations();
+    }
+
+    [Fact]
+    public void HoursAddedByHand_AreCountedOnTheDayAndPlaceOfTheForm_AndTheFormIsReset()
+    {
+        Start(20, 0, laptopOn: false);
+
+        Press("90", "Kantoor");
+
+        _saved["2026-11-09"].ManualOffice.Should().Be(90 * 60);
+        _saved["2026-11-09"].ManualHome.Should().Be(0);
+        _ctx.HaContext.Received().CallService("input_number", "set_value", Arg.Any<ServiceTarget?>(), Arg.Any<object?>());
+    }
+
+    [Fact]
+    public void MinutesWithAMinus_TakeTimeOffAgain()
+    {
+        Start(20, 0, laptopOn: false);
+
+        Press("60");
+        Press("-30");
+
+        _saved["2026-11-09"].ManualHome.Should().Be(30 * 60);
+    }
+
+    [Theory]
+    [InlineData("0", "2026-11-09")]
+    [InlineData("800", "2026-11-09")]
+    [InlineData("60", "2026-11-11")]   // tomorrow
+    [InlineData("60", "2026-01-01")]   // too long ago
+    public void AnAmountOrDayThatIsNotAllowed_AddsNothing(string minutes, string date)
+    {
+        Start(20, 0, laptopOn: false);
+
+        Press(minutes, date: date);
+
+        _saved.Should().BeEmpty();
+    }
+
     [Fact]
     public void ARestartOfNetDaemon_WhileTheLaptopStaysOn_IsCountedToo()
     {

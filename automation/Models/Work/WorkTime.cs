@@ -14,6 +14,16 @@ public sealed class WorkDay
     /// <summary>Anywhere else (on the way, at a customer).</summary>
     public double Other { get; set; }
 
+    /// <summary>
+    /// Hours added by hand (work outside the usual hours, the laptop did not count it), per place, in seconds. A negative amount takes time
+    /// off again. The breaks are not calculated over these: they are exactly what was typed.
+    /// </summary>
+    public double ManualHome { get; set; }
+
+    public double ManualOffice { get; set; }
+
+    public double ManualOther { get; set; }
+
     /// <summary>When the laptop was first counted today, "HH:mm".</summary>
     public string? First { get; set; }
 
@@ -26,12 +36,12 @@ public sealed class WorkDay
 /// has the lunch break taken off and <see cref="Net"/> the smoking breaks too (<see cref="WorkTimeReport"/>). <see cref="Home"/>,
 /// <see cref="Office"/> and <see cref="Other"/> divide the gross time over the places.
 /// </summary>
-public sealed record WorkTotals(int Gross, int WithBreak, int Net, int Home, int Office, int Other)
+public sealed record WorkTotals(int Gross, int WithBreak, int Net, int Home, int Office, int Other, int Manual = 0)
 {
     public static readonly WorkTotals Zero = new(0, 0, 0, 0, 0, 0);
 
     public static WorkTotals operator +(WorkTotals a, WorkTotals b) =>
-        new(a.Gross + b.Gross, a.WithBreak + b.WithBreak, a.Net + b.Net, a.Home + b.Home, a.Office + b.Office, a.Other + b.Other);
+        new(a.Gross + b.Gross, a.WithBreak + b.WithBreak, a.Net + b.Net, a.Home + b.Home, a.Office + b.Office, a.Other + b.Other, a.Manual + b.Manual);
 }
 
 /// <summary>A summary for the dashboard: the totals plus what they are about.</summary>
@@ -69,7 +79,14 @@ public static class WorkTimeReport
         var withBreak = hadLunch ? Math.Max(0, gross - LunchBreakMinutes) : gross;
         var smoking = gross >= BreaksFromGrossMinutes ? SmokingMinutes : (int)Math.Round(SmokingMinutes * gross / (double)BreaksFromGrossMinutes, MidpointRounding.AwayFromZero);
         var net = Math.Max(0, withBreak - smoking);
-        return new WorkTotals(gross, withBreak, net, home, office, other);
+
+        // What was added by hand comes on top of the day, without breaks taken off
+        var manualHome = Minutes(day.ManualHome);
+        var manualOffice = Minutes(day.ManualOffice);
+        var manualOther = Minutes(day.ManualOther);
+        var manual = manualHome + manualOffice + manualOther;
+        return new WorkTotals(Math.Max(0, gross + manual), Math.Max(0, withBreak + manual), Math.Max(0, net + manual),
+            home + manualHome, office + manualOffice, other + manualOther, manual);
     }
 
     private static int Minutes(double seconds) => (int)Math.Round(seconds / 60, MidpointRounding.AwayFromZero);

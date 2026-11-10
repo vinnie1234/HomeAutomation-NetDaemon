@@ -66,6 +66,11 @@ public static class HelperDefinitions
         // Muziek per persoon (SpotifyChoice, SpotifyAccounts): de playlist per ruimte en het Spotify-account; Spotcast speelt af
         .. SpotifyHelpers("vincent", "Vincent"),
         .. SpotifyHelpers("carleen", "Carleen"),
+        // Uren die Vincent zelf toevoegt aan zijn werktijd (WorkTimeTracker, het venster Werktijd op zijn pagina)
+        Number("werktijd_extra_minuten", "Werktijd extra minuten", min: -720, max: 720, step: 5, mode: "box", unit: "min", icon: "mdi:timer-plus-outline", start: 0),
+        Select("werktijd_extra_plek", "Werktijd extra plek", ["Thuis", "Kantoor", "Elders"], icon: "mdi:map-marker-outline"),
+        DateTime("werktijd_extra_datum", "Werktijd extra datum", hasDate: true, hasTime: false, icon: "mdi:calendar"),
+        Button("werktijd_extra_toevoegen", "Werktijd extra toevoegen", icon: "mdi:plus-circle-outline"),
         Select("spotify_standaard_persoon", "Spotify standaard persoon", ["Vincent", "Carleen"], icon: "mdi:account-switch"),
 
         // Kantoortijden en vervoer per persoon (OfficeTimes, CommuteReport)
