@@ -7,7 +7,7 @@
   let timer;
 
   const somethingOpen = () => document.fullscreenElement
-    || document.querySelector('#huis-jelly, #huis-jelly-detail, #huis-medlog, #huis-timeline, #huis-datum');
+    || document.querySelector('#huis-jelly, #huis-jelly-detail, #huis-medlog, #huis-timeline, #huis-datum, #huis-speler');
 
   const goHome = () => {
     const { pathname, hash } = window.location;

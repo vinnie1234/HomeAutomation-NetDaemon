@@ -29,7 +29,8 @@ Highlights:
 - **The tablet** — the living room tablet (Fully Kiosk) wakes up on motion, wake-up times, coming home and important
   alerts, and goes off when the TV turns on or everyone sleeps
 - **Music** — Spotify per person: playlist and account per room, a switch per room to let the automations (shower, kitchen)
-  start it by themselves, and on Home a row for everything that plays, a tap opens its controls
+  start it by themselves, and on Home a row for everything that plays; a tap opens the music player (window or full
+  screen): controls, browsing and searching playlists and albums, choosing the device, and a QR code to join a Jam
 - **Notifications** — Discord, the mobile app, text-to-speech and a WhatsApp assistant (text and voice notes)
 - **Activity log** — every action of NetDaemon is written down with why it happened (what triggered it) and under which
   conditions (the states it looked at); numbers that count along are logged at most every 30 minutes
