@@ -38,10 +38,10 @@ const CSS = `
   #${ID} nav .tab { flex: 1; padding: 10px 6px; border-radius: 14px; border: 0; cursor: pointer; font-weight: 600; font-size: 14px; color: rgba(255,255,255,0.7); background: transparent; }
   #${ID} nav .tab.on { background: rgba(255,255,255,0.1); color: #fff; }
   #${ID} main { flex: 1; min-height: 0; overflow: auto; padding: 14px; }
-  #${ID} .now { display: grid; gap: 16px; justify-items: center; align-content: start; }
-  #${ID} .cover { width: min(100%, 24vh); aspect-ratio: 1; border-radius: 20px; object-fit: cover; background: rgba(255,255,255,0.08); box-shadow: 0 14px 40px rgba(0,0,0,0.5); }
+  #${ID} .now { display: flex; flex-direction: column; align-items: center; gap: 12px; height: 100%; min-height: 0; }
+  #${ID} .cover { flex: 1 1 0; min-height: 60px; width: auto; max-width: 100%; aspect-ratio: 1; border-radius: 20px; object-fit: cover; background: rgba(255,255,255,0.08); box-shadow: 0 14px 40px rgba(0,0,0,0.5); }
   #${ID} .meta { width: 100%; text-align: left; }
-  #${ID}.full .cover { width: min(100%, 46vh); }
+  #${ID} .side { width: 100%; display: grid; gap: 10px; flex: 0 0 auto; }
   #${ID} .meta .t { font-size: 22px; font-weight: 800; line-height: 1.2; }
   #${ID} .meta .a { font-size: 16px; opacity: .75; margin-top: 2px; }
   #${ID} .meta .d { font-size: 13px; color: #1db954; margin-top: 6px; font-weight: 600; }
@@ -69,10 +69,9 @@ const CSS = `
   #${ID} .qr svg { width: 100%; height: auto; display: block; }
   #${ID} .toast { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 10px 18px; border-radius: 16px; background: rgba(0,0,0,0.85); font-size: 14px; max-width: 90%; }
   @media (min-width: 900px) and (orientation: landscape) {
-    #${ID}.full .now { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 40px; align-items: center; justify-items: stretch; height: 100%; }
-    #${ID}.full .now .cover { width: min(100%, 70vh); justify-self: center; }
-    #${ID}.full .now { padding: 0 2vw; }
-    #${ID}.full .now .side { display: grid; gap: 18px; }
+    #${ID}.full .now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 40px; align-items: center; padding: 0 2vw; }
+    #${ID}.full .now .cover { flex: none; height: min(100%, 80vh); width: auto; max-width: 100%; justify-self: center; }
+    #${ID}.full .now .side { gap: 18px; }
   }
 `;
 
@@ -167,6 +166,8 @@ function onClick(e) {
 
 function render() {
   const main = root.querySelector('#sp-main');
+  // De speler past op het scherm zonder scrollen: de hoes krijgt de ruimte die overblijft
+  main.style.overflow = tab === 'nu' ? 'hidden' : 'auto';
   if (tab === 'nu') renderNow(main);
   else if (tab === 'bladeren') renderBrowse(main);
   else if (tab === 'apparaten') renderDevices(main);
@@ -177,7 +178,7 @@ function render() {
 function renderNow(main) {
   main.innerHTML = `<div class="now">
       <img class="cover" id="sp-cover" alt="">
-      <div class="side" style="width:100%;display:grid;gap:16px">
+      <div class="side">
         <div class="meta"><div class="t" id="sp-t"></div><div class="a" id="sp-a"></div><div class="d" id="sp-d"></div></div>
         <div class="bar"><input type="range" id="sp-pos" min="0" max="1000" value="0"><div class="times"><span id="sp-p"></span><span id="sp-l"></span></div></div>
         <div class="ctl">

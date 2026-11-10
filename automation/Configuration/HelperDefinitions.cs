@@ -263,6 +263,8 @@ public static class HelperDefinitions
         Boolean($"afspraak_route_{person}", $"Afspraak route {name}", icon: "mdi:map-marker-path"),
         Boolean($"afspraak_aangekomen_{person}", $"Afspraak aangekomen {name}", icon: "mdi:map-marker-check"),
         Text($"afspraak_{person}", $"Afspraak {name}", min: 0, max: 100, mode: "text", icon: "mdi:calendar-clock"),
+        // De afspraak waarvoor de overige routes met "Niet tonen" zijn verborgen: een andere afspraak toont ze weer
+        Text($"afspraak_verborgen_{person}", $"Afspraak verborgen {name}", min: 0, max: 100, mode: "text", icon: "mdi:eye-off-outline"),
         // Welke overige route "Stuur door" doorstuurt (de sensor); leeg is de route van de dag
         Text($"reis_doorsturen_route_{person}", $"Reis doorsturen route {name}", min: 0, max: 100, mode: "text", icon: "mdi:share-variant"),
         // De route naar huis zoals hij was toen de persoon de zone van het werk verliet (CommuteReport): reistijd, vertraging en aankomst blijven dan staan

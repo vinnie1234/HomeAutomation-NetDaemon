@@ -3153,7 +3153,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=3').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=4').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {
@@ -3401,7 +3401,7 @@ commute_card:
               return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
             };
             // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
-            /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; /* Een route van thuis naar de ander staat er alleen als de persoon thuis is, een route naar thuis alleen als de persoon weg is */ const otherPlace = s => { const parts = String(s.attributes.friendly_name ?? '').replace(/^(9292|ANWB Route)\s+/i, '').split(/->|=>|→/).map(x => x.trim()); if (parts.length < 2) return true; const away = states[`input_boolean.away${personKey(s)}`]?.state === 'on'; if (/^(thuis|huis)$/i.test(parts[0])) return !away; if (/^(thuis|huis)\b/i.test(parts[1])) return away; return true; }; const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
+            /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; /* Een route van thuis naar de ander staat er alleen als de persoon thuis is, een route naar thuis alleen als de persoon weg is */ const otherPlace = s => { const parts = String(s.attributes.friendly_name ?? '').replace(/^(9292|ANWB Route)\s+/i, '').split(/->|=>|→/).map(x => x.trim()); if (parts.length < 2) return true; const away = states[`input_boolean.away${personKey(s)}`]?.state === 'on'; if (/^(thuis|huis)$/i.test(parts[0])) return !away; if (/^(thuis|huis)\b/i.test(parts[1])) return away; return true; }; /* "Niet tonen" bij een overige route geldt voor de afspraak waarvoor hij kwam: een andere afspraak laat hem weer zien */ const hiddenFor = key => { const h = String(states[`input_text.afspraak_verborgen_${key}`]?.state ?? ''); return h !== '' && h !== 'unknown' && h === String(states[`input_text.afspraak_${key}`]?.state ?? ''); }; const flagged = s => s.dir === 'other' ? hiddenFor(personKey(s)) : states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
             const dirOrder = { work: 0, home: 1, other: 2 };
             const candidates = Object.values(states)
               .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
@@ -3483,7 +3483,7 @@ commute_card:
           return nowDate < new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
         };
         // Een route met alleen een werk- of thuisnaam (dir 'other') is geen werkroute: die is er voor als je een afspraak hebt
-        /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; /* Een route van thuis naar de ander staat er alleen als de persoon thuis is, een route naar thuis alleen als de persoon weg is */ const otherPlace = s => { const parts = String(s.attributes.friendly_name ?? '').replace(/^(9292|ANWB Route)\s+/i, '').split(/->|=>|→/).map(x => x.trim()); if (parts.length < 2) return true; const away = states[`input_boolean.away${personKey(s)}`]?.state === 'on'; if (/^(thuis|huis)$/i.test(parts[0])) return !away; if (/^(thuis|huis)\b/i.test(parts[1])) return away; return true; }; const flagged = s => states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
+        /* Een overige route (bijvoorbeeld bij een afspraak) is standaard met het OV: de auto komt pas in beeld als voor vandaag de auto is gekozen */ const otherKind = s => states[`input_select.vervoer_vandaag_${personKey(s)}`]?.state === 'Auto' ? 'car' : 'ov'; /* Een route van thuis naar de ander staat er alleen als de persoon thuis is, een route naar thuis alleen als de persoon weg is */ const otherPlace = s => { const parts = String(s.attributes.friendly_name ?? '').replace(/^(9292|ANWB Route)\s+/i, '').split(/->|=>|→/).map(x => x.trim()); if (parts.length < 2) return true; const away = states[`input_boolean.away${personKey(s)}`]?.state === 'on'; if (/^(thuis|huis)$/i.test(parts[0])) return !away; if (/^(thuis|huis)\b/i.test(parts[1])) return away; return true; }; /* "Niet tonen" bij een overige route geldt voor de afspraak waarvoor hij kwam: een andere afspraak laat hem weer zien */ const hiddenFor = key => { const h = String(states[`input_text.afspraak_verborgen_${key}`]?.state ?? ''); return h !== '' && h !== 'unknown' && h === String(states[`input_text.afspraak_${key}`]?.state ?? ''); }; const flagged = s => s.dir === 'other' ? hiddenFor(personKey(s)) : states[`input_boolean.reis_niet_${personKey(s)}_${s.dir}`]?.state === 'on';
         const dirOrder = { work: 0, home: 1, other: 2 };
         const candidates = Object.values(states)
           .filter(s => /^sensor\.(anwb_route_.*_route|9292_.*_lijnen)$/.test(s.entity_id) && s.attributes.person)
@@ -3829,6 +3829,15 @@ commute_card:
         };
         // De routes als blokken naast elkaar (op een smal scherm onder elkaar); een blok opent bij een tik zijn venster
         // "Komt niet thuis" / "Gaat niet": de route is dan voor vandaag niet nodig en verdwijnt (NetDaemon zet hem 's nachts weer terug)
+        // "Niet tonen" bij een overige route: onthoudt de afspraak waarvoor hij kwam (input_text.afspraak_verborgen_{persoon}); nog eens tikken zet het terug
+        window.huisReisHide = person => {
+          if (Date.now() - (window.huisReisHideAt ?? 0) < 600) return;
+          window.huisReisHideAt = Date.now();
+          const st = document.querySelector('home-assistant').hass.states;
+          const current = String(st[`input_text.afspraak_${person}`]?.state ?? '');
+          const hidden = String(st[`input_text.afspraak_verborgen_${person}`]?.state ?? '');
+          document.querySelector('home-assistant').hass.callService('input_text', 'set_value', { entity_id: `input_text.afspraak_verborgen_${person}`, value: hidden === current ? '' : current });
+        };
         window.huisReisSkip = entityId => {
           if (Date.now() - (window.huisReisSkipAt ?? 0) < 600) return;
           window.huisReisSkipAt = Date.now();
@@ -3847,7 +3856,7 @@ commute_card:
         const toolbar = s => {
           if (s.kind === 'missing') return '';
           const k = kindStyle(s), person = personKey(s);
-          const skipped = s.dir !== 'other' && flagged(s);
+          const skipped = flagged(s);
           const name = (states[s.attributes.person]?.attributes.friendly_name ?? '').split(' ')[0];
           const skipText = s.dir === 'home' ? `${name} komt niet thuis` : `${name} gaat niet`;
           // Hoe de persoon vandaag komt: de kaart van het OV heeft "komt met de auto" (dan komt de ANWB-kaart in beeld), en terug naar het schema
@@ -3866,16 +3875,16 @@ commute_card:
             s.kind === 'car' && today === 'Auto' ? chip(`✓ ${verb} met de auto · terug naar schema`, 'Volgens schema', true) : '',
             s.kind === 'car' && today !== 'Auto' && hasOv ? chip(`${name} ${verb} met het OV`, 'OV') : ''
           ].join('');
-          const skip = s.dir === 'other' ? '' : `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
+          const skip = `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
               color:${skipped ? '#ffb060' : 'rgba(255,255,255,0.75)'};border:1px solid ${skipped ? 'rgba(255,176,96,0.6)' : 'rgba(255,255,255,0.2)'}"
-              onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')"
-              onclick="event.stopPropagation();window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')">${skipped ? `✓ ${skipText} · ongedaan maken` : skipText}</span>`;
+              onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();${s.dir === 'other' ? `window.huisReisHide('${person}')` : `window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')`}"
+              onclick="event.stopPropagation();${s.dir === 'other' ? `window.huisReisHide('${person}')` : `window.huisReisSkip('input_boolean.reis_niet_${person}_${s.dir}')`}">${skipped ? `✓ ${s.dir === 'other' ? 'verborgen' : skipText} · ongedaan maken` : (s.dir === 'other' ? 'Niet tonen' : skipText)}</span>`;
           return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
             <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:rgb(${k.rgb})">
               <ha-icon icon="${k.icon}" style="--mdc-icon-size:16px"></ha-icon>${k.label}</span><span style="display:flex;flex-wrap:wrap;gap:6px">${vervoer}${skip}</span></div>`;
         };
         // Een route met zijn knoppen; gedempt als hij vandaag niet doorgaat
-        const rowOf = s => `<div style="opacity:${s.dir !== 'other' && flagged(s) ? 0.45 : 1}">${toolbar(s)}${card(s)}${forwardButton(s)}</div>`;
+        const rowOf = s => `<div style="opacity:${flagged(s) ? 0.45 : 1}">${toolbar(s)}${card(s)}${forwardButton(s)}</div>`;
         // Op Home elke route in een eigen blok, gekleurd naar het soort route (blauw naar kantoor, groen naar huis, grijs gestippeld overig)
         const blockOf = s => {
           const k = kindStyle(s);
