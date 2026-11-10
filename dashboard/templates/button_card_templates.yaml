@@ -1224,12 +1224,18 @@ weather_hero:
           const watts = w => Math.abs(w) >= 1000 ? `${(Math.abs(w) / 1000).toFixed(1).replace('.', ',')} kW` : `${Math.round(Math.abs(w))} W`;
           const flowColor = importing ? '#ffb060' : '#4ade80';
           // De palen staan links van het huis (in de maat van het huis: 24 breed), de draad loopt van de verste paal over de palen naar de dakrand
-          const wire = 'M-62 -3.5 Q-53 0 -44 -5.2 Q-36 -1.5 -29 -6.2 Q-12 -3 2.3 10.7';
-          const pole = (px, ph) => `<rect x="${px - 0.45}" y="${ph}" width="0.9" height="${24 - ph}" fill="${night('rgb(110,84,62)')}"/>
-              <rect x="${px - 2.4}" y="${ph + 0.2}" width="4.8" height="0.7" fill="${night('rgb(96,72,52)')}"/>
-              <rect x="${px - 2.4}" y="${ph - 0.3}" width="0.5" height="0.6" fill="${night('rgb(190,200,214)')}"/><rect x="${px + 1.9}" y="${ph - 0.3}" width="0.5" height="0.6" fill="${night('rgb(190,200,214)')}"/>`;
-          const dotCount = gridKnown ? Math.min(5, 1 + Math.round(Math.abs(gridW) / 400)) : 0;
-          const dotSeconds = Math.max(1.6, 4.5 - Math.abs(gridW || 0) / 1200).toFixed(1);
+          // De palen staan op de achtergrond (verder weg, wat hoger op de heuvel, doorzichtig) en lopen door tot buiten de kaart: elke 24 eenheden een
+          // paal, de draad hangt tussen de toppen door tot aan de dakrand van het huis
+          const poleXs = Array.from({ length: 10 }, (_, k) => -29 - k * 24);
+          const poleTop = k => -4.8 - (k % 2) * 0.6;
+          const pole = (px, ph) => `<rect x="${px - 0.35}" y="${ph}" width="0.7" height="${19 - ph}" fill="${night('rgb(128,112,98)')}"/>
+              <rect x="${px - 2}" y="${ph + 0.2}" width="4" height="0.55" fill="${night('rgb(118,102,88)')}"/>`;
+          const wire = `M${poleXs[poleXs.length - 1] - 24} ${poleTop(poleXs.length)} ` + [...poleXs].reverse().map((px, n, all) => {
+            const k = poleXs.length - 1 - n, prev = n === 0 ? poleXs[poleXs.length - 1] - 24 : all[n - 1];
+            return `Q${((px + prev) / 2).toFixed(1)} ${(poleTop(k) + 2.2).toFixed(1)} ${px} ${poleTop(k)}`;
+          }).join(' ') + ' Q-12 -3 2.3 10.7';
+          const dotCount = gridKnown ? Math.min(16, 3 + Math.round(Math.abs(gridW) / 150)) : 0;
+          const dotSeconds = Math.max(5, 14 - Math.abs(gridW || 0) / 300).toFixed(1);
           let dots = '';
           if (importing || exporting) for (let i = 0; i < dotCount; i++)
             dots += `<circle r="0.55" fill="${flowColor}" style="filter:drop-shadow(0 0 0.7px ${flowColor})"><animateMotion dur="${dotSeconds}s" begin="${(-i * dotSeconds / dotCount).toFixed(2)}s"
@@ -1237,9 +1243,9 @@ weather_hero:
           const label = (lx, ly, text, color) => `<text x="${lx}" y="${ly}" font-size="3.3" font-weight="700" text-anchor="middle" fill="${color}"
               stroke="rgba(10,14,24,0.7)" stroke-width="0.55" paint-order="stroke" stroke-linejoin="round">${text}</text>`;
           const gridText = !gridKnown ? '' : importing ? `⚡ Net ${watts(gridW)}` : exporting ? `⚡ Terug ${watts(gridW)}` : '⚡ Net 0 W';
-          const poles = `${pole(-44, -5.6)}${pole(-29, -6.6)}
-              <path id="hero-stroomdraad" d="${wire}" fill="none" stroke="${night('rgb(40,44,56)')}" stroke-width="0.28"/>${dots}
-              ${gridText ? label(-36, -9.6, gridText, importing ? '#ffb060' : exporting ? '#4ade80' : '#cbd5e1') : ''}`;
+          const poles = `<g opacity="0.55">${poleXs.map((px, k) => pole(px, poleTop(k))).join('')}</g>
+              <path id="hero-stroomdraad" d="${wire}" fill="none" stroke="${night('rgb(60,64,76)')}" stroke-width="0.25" stroke-opacity="0.7"/>${dots}
+              ${gridText ? label(-12, -7.6, gridText, importing ? '#ffb060' : exporting ? '#4ade80' : '#cbd5e1') : ''}`;
           // Zonnepanelen op de linker dakhelft (rechts staat de schoorsteen): donkerblauw met raster, lichter en met glans als de zon schijnt
           const panelColor = sunning ? 'rgb(52,100,190)' : 'rgb(28,44,84)';
           const panels = `<polygon points="3.6,9.72 10.6,4.12 9.86,3.18 2.86,8.78" fill="${night(panelColor)}" stroke="${night('rgb(188,200,222)')}" stroke-width="0.18"/>
