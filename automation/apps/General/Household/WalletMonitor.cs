@@ -11,10 +11,11 @@ namespace Automation.apps.General;
 /// <item>Vincent leaves home while the wallet stays: a few minutes after he left the wallet is asked where it is, and when it was seen
 /// at home after he left, he gets a message ("Portemonnee vergeten?"). A wallet that was not seen since he left, is not reported:
 /// it can be in his pocket.</item>
-/// <item>The wallet leaves home while Vincent is home: a message to Vincent.</item>
+/// <item>The wallet leaves home while Vincent is home: a message to Vincent, but only when it has been away for half an hour
+/// (<see cref="NotHomeFor"/>); a wallet that is back sooner is nothing to report.</item>
 /// <item>Vincent comes home (or the wallet leaves while he is home) and the wallet is not at home: the tracker often lags, so the wallet
-/// is asked where it is, a minute later again, and only when it is still not at home a minute after that the alert on the dashboard
-/// shows (<see cref="AlertHelper"/>).</item>
+/// is asked where it is, a minute later again, and when it is still not at home the alert on the dashboard shows
+/// (<see cref="AlertHelper"/>), as soon as the wallet has been away for half an hour (<see cref="NotHomeFor"/>) and Vincent is home.</item>
 /// <item>The tracker warns that an unknown tracker follows him (unwanted tracking): a message.</item>
 /// </list>
 /// Google calls a place that has a label ("Huis") a semantic location: the tracker has no coordinates then and its state is the name of
@@ -43,7 +44,11 @@ public class WalletMonitor : BaseApp
     public static readonly TimeSpan AskAfter = TimeSpan.FromMinutes(4);
     public static readonly TimeSpan ReadAfter = TimeSpan.FromMinutes(7);
 
-    private static readonly TimeSpan LeavingCheckDelay = TimeSpan.FromMinutes(2);
+    /// <summary>How long the wallet has to be away from home, while Vincent is home, before the alert and the message come.</summary>
+    public static readonly TimeSpan NotHomeFor = TimeSpan.FromMinutes(30);
+
+    /// <summary>Since when the wallet is not at home (null while it is, or when that is not known).</summary>
+    private DateTimeOffset? _awaySince;
 
     public WalletMonitor(
         IHaContext ha,
@@ -60,16 +65,24 @@ public class WalletMonitor : BaseApp
         });
         Entities.InputBoolean.Awayvincent.WhenTurnsOff(_ => StartSearch());
 
+        // After a restart: since when the wallet is away, as far as Home Assistant knows
+        if (HaContext.GetState(Tracker) is { State: { } current } known && !IsAtHome(current) && current is not ("unknown" or "unavailable"))
+            _awaySince = known.LastChanged ?? Scheduler.Now;
+
         Entities.DeviceTracker.PortemonneeVanVincent2.StateChanges()
             .Where(x => IsAtHome(x.Old?.State) && !IsAtHome(x.New?.State) && x.New?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ =>
             {
-                Scheduler.Schedule(LeavingCheckDelay, CheckLeftWhileVincentIsHome);
-                StartSearch();
+                _awaySince = Scheduler.Now;
+                StartSearch(leftWhileVincentIsHome: true);
             });
 
         // Found: the alert goes away
-        Entities.DeviceTracker.PortemonneeVanVincent2.StateChanges().Where(x => IsAtHome(x.New?.State)).Subscribe(_ => StopSearch());
+        Entities.DeviceTracker.PortemonneeVanVincent2.StateChanges().Where(x => IsAtHome(x.New?.State)).Subscribe(_ =>
+        {
+            _awaySince = null;
+            StopSearch();
+        });
 
         Entities.BinarySensor.PortemonneeVanVincent2OngewensteTrackingmodus.StateChanges()
             .Where(x => x.New?.State == "on" && x.Old?.State != "on")
@@ -103,9 +116,10 @@ public class WalletMonitor : BaseApp
 
     /// <summary>
     /// The wallet is asked where it is right away and after a minute again; when it is still not at home a minute after the second time,
-    /// the alert shows. The tracker lags behind, so the first answer is often too old.
+    /// the alert shows, once the wallet has been away for <see cref="NotHomeFor"/>. The tracker lags behind, so the first answer is often too old.
     /// </summary>
-    private void StartSearch()
+    /// <param name="leftWhileVincentIsHome">The wallet left while Vincent is home: he also gets a message when the alert comes.</param>
+    private void StartSearch(bool leftWhileVincentIsHome = false)
     {
         var id = ++_searchId;
         SetAlert(false);
@@ -116,11 +130,24 @@ public class WalletMonitor : BaseApp
         {
             if (id != _searchId || !IsMissing()) return;
             Locate();
-            Scheduler.Schedule(RescanAfter, () =>
-            {
-                if (id == _searchId && IsMissing()) SetAlert(true);
-            });
+            Scheduler.Schedule(RescanAfter, () => AlertWhenAwayLongEnough(id, leftWhileVincentIsHome));
         });
+    }
+
+    /// <summary>The alert (and the message) come as soon as the wallet has been away for <see cref="NotHomeFor"/>; sooner it may still turn up.</summary>
+    private void AlertWhenAwayLongEnough(int id, bool message)
+    {
+        if (id != _searchId || !IsMissing()) return;
+        var wait = NotHomeFor - (Scheduler.Now - (_awaySince ?? Scheduler.Now));
+        if (wait > TimeSpan.Zero)
+        {
+            Scheduler.Schedule(wait, () => AlertWhenAwayLongEnough(id, message));
+            return;
+        }
+
+        Core.ActivityContext.Note($"De portemonnee is al {NotHomeFor.TotalMinutes:0} minuten niet thuis en Vincent is thuis");
+        SetAlert(true);
+        if (message) Notify.NotifyPhoneVincent("Portemonnee weg", $"Je portemonnee is al een half uur van huis weg: {StateOf(Tracker)}", false, 60);
     }
 
     private string? StateOf(string entityId) => HaContext.GetState(entityId)?.State;
@@ -146,12 +173,5 @@ public class WalletMonitor : BaseApp
         var at = Extensions.SchedulerExtensions.ToDutchTime(seen).ToString("HH:mm", CultureInfo.InvariantCulture);
         Notify.NotifyPhoneVincent("Portemonnee vergeten?", $"Je portemonnee ligt nog thuis (gezien om {at})", false, 60,
             [new ActionModel("WALLET_SOUND", "🔔 Laat piepen", func: () => Entities.Button.PortemonneeVanVincent2GeluidAfspelen.Press())]);
-    }
-
-    private void CheckLeftWhileVincentIsHome()
-    {
-        // Only when it is still away after a moment, and while Vincent is home to notice
-        if (IsAtHome(StateOf(Tracker)) || !Vincent.IsHome) return;
-        Notify.NotifyPhoneVincent("Portemonnee weg", $"Je portemonnee is van huis weggegaan: {StateOf(Tracker)}", false, 60);
     }
 }

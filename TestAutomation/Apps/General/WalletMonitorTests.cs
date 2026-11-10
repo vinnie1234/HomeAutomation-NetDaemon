@@ -111,9 +111,25 @@ public class WalletMonitorTests
         Start();
 
         Change(WalletMonitor.Tracker, "Huis Vincent", "Werk");
-        Wait(TimeSpan.FromMinutes(3));
+        Wait(TimeSpan.FromMinutes(20));
+        VerifyVincent("Portemonnee weg", 0);
 
+        Wait(TimeSpan.FromMinutes(11));
         VerifyVincent("Portemonnee weg");
+    }
+
+    [Fact]
+    public void TheWalletLeaves_AndIsBackWithinHalfAnHour_WarnsNobody()
+    {
+        Start();
+
+        Change(WalletMonitor.Tracker, "Huis Vincent", "Werk");
+        Wait(TimeSpan.FromMinutes(20));
+        Change(WalletMonitor.Tracker, "Werk", "Huis Vincent");
+        Wait(TimeSpan.FromMinutes(30));
+
+        VerifyVincent("Portemonnee weg", 0);
+        AlertsOn().Should().Be(0);
     }
 
     [Fact]
@@ -147,7 +163,7 @@ public class WalletMonitorTests
     private int AlertsOn() => Calls("input_boolean", "turn_on", WalletMonitor.AlertHelper);
 
     [Fact]
-    public void ComingHome_WithTheWalletNotAtHome_ScansNow_ScansAgainAMinuteLater_AndAlertsAMinuteAfterThat()
+    public void ComingHome_WithTheWalletNotAtHome_ScansNow_ScansAgainAMinuteLater_AndAlertsOnceItHasBeenAwayHalfAnHour()
     {
         Start(vincentAway: "on", tracker: "Werk");
 
@@ -167,6 +183,9 @@ public class WalletMonitorTests
         AlertsOn().Should().Be(0);
 
         Wait(TimeSpan.FromSeconds(30));
+        AlertsOn().Should().Be(0, "the wallet has not been away for half an hour yet");
+
+        Wait(TimeSpan.FromMinutes(29));
         AlertsOn().Should().Be(1);
         Scans().Should().Be(2);
     }
@@ -228,7 +247,7 @@ public class WalletMonitorTests
     {
         Start(vincentAway: "on", tracker: "Werk");
         Change("input_boolean.awayvincent", "on", "off");
-        Wait(TimeSpan.FromMinutes(3));
+        Wait(TimeSpan.FromMinutes(31));
         AlertsOn().Should().Be(1);
 
         Change(WalletMonitor.Tracker, "Werk", "Huis Vincent");
@@ -242,7 +261,7 @@ public class WalletMonitorTests
         Start();
 
         Change(WalletMonitor.Tracker, "Huis Vincent", "Werk");
-        Wait(TimeSpan.FromMinutes(3));
+        Wait(TimeSpan.FromMinutes(31));
 
         Scans().Should().Be(2);
         AlertsOn().Should().Be(1);
