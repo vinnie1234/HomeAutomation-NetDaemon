@@ -144,4 +144,30 @@ public class SpotifyChoiceTests
 
         SpotifyChoice.Resolve(_ha, _config, SpotifyRoom.Keuken, true, false).Account.Should().BeNull();
     }
+
+    [Fact]
+    public void Autoplay_IsOnUntilTheSwitchOfThePersonWhoseSettingsCountIsOff()
+    {
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Keuken, true, false).Should().BeTrue();
+
+        SetState(SpotifyChoice.AutoplayHelper(SpotifyRoom.Keuken, "vincent"), "off");
+        SetState(SpotifyChoice.AutoplayHelper(SpotifyRoom.Keuken, "carleen"), "on");
+
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Keuken, true, false).Should().BeFalse("only Vincent is home");
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Keuken, false, true).Should().BeTrue("only Carleen is home");
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Douche, true, false).Should().BeTrue("another room has its own switch");
+    }
+
+    [Fact]
+    public void Autoplay_WhenBothAreHome_FollowsTheDefaultPerson()
+    {
+        SetState(SpotifyChoice.AutoplayHelper(SpotifyRoom.Keuken, "vincent"), "off");
+        SetState(SpotifyChoice.AutoplayHelper(SpotifyRoom.Keuken, "carleen"), "on");
+
+        SetState(SpotifyChoice.DefaultPersonHelper, "Vincent");
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Keuken, true, true).Should().BeFalse();
+
+        SetState(SpotifyChoice.DefaultPersonHelper, "Carleen");
+        SpotifyChoice.Autoplay(_ha, SpotifyRoom.Keuken, true, true).Should().BeTrue();
+    }
 }

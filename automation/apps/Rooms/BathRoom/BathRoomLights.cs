@@ -96,6 +96,11 @@ public class BathRoomLights : BaseApp
     private void PlayShowerMusic()
     {
         var room = Carleen.IsHome ? SpotifyRoom.Douche : SpotifyRoom.Radio;
+        if (!SpotifyChoice.Autoplay(HaContext, room, Vincent.IsHome, Carleen.IsHome))
+        {
+            Logger.LogInformation("Shower music is off for this person ({Room}), nothing starts", room);
+            return;
+        }
         var (url, account) = SpotifyChoice.Resolve(HaContext, _config, room, Vincent.IsHome, Carleen.IsHome);
         if (!string.IsNullOrEmpty(url)) _spotcast.PlaySpotify(Entities.MediaPlayer.Googlehome0351, url, account);
     }

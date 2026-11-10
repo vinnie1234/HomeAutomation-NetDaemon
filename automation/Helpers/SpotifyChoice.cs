@@ -41,6 +41,16 @@ public static class SpotifyChoice
 
     public static string PlaylistHelper(SpotifyRoom room, string person) => $"input_text.spotify_{room.ToString().ToLowerInvariant()}_{person}";
 
+    /// <summary>The switch of a person for a room: whether the automations (shower, kitchen) may start music with that person's settings.</summary>
+    public static string AutoplayHelper(SpotifyRoom room, string person) => $"input_boolean.spotify_auto_{room.ToString().ToLowerInvariant()}_{person}";
+
+    /// <summary>
+    /// Whether an automation may start the music of a room: the switch of the person whose settings count (see <see cref="PersonFor"/>) for that
+    /// room is not off. A switch that does not exist yet counts as on.
+    /// </summary>
+    public static bool Autoplay(IHaContext ha, SpotifyRoom room, bool vincentHome, bool carleenHome) =>
+        Value(ha, AutoplayHelper(room, PersonFor(ha, vincentHome, carleenHome))) != "off";
+
     public static string AccountHelper(string person) => $"input_select.spotify_account_{person}";
 
     /// <summary>

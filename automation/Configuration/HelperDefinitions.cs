@@ -231,6 +231,10 @@ public static class HelperDefinitions
         Text($"spotify_keuken_{person}", $"Spotify keuken {name}", min: 0, max: 255, mode: "text", icon: "mdi:silverware-fork-knife"),
         Text($"spotify_radio_{person}", $"Spotify radio {name}", min: 0, max: 255, mode: "text", icon: "mdi:radio"),
         Text($"spotify_kerst_{person}", $"Spotify kerst {name}", min: 0, max: 255, mode: "text", icon: "mdi:pine-tree"),
+        // Of de automatiseringen de muziek van deze ruimte zelf starten (douche bij het douchen, keuken bij beweging); aan als er niets is ingesteld
+        Boolean($"spotify_auto_douche_{person}", $"Spotify automatisch douche {name}", icon: "mdi:shower", start: true),
+        Boolean($"spotify_auto_keuken_{person}", $"Spotify automatisch keuken {name}", icon: "mdi:silverware-fork-knife", start: true),
+        Boolean($"spotify_auto_radio_{person}", $"Spotify automatisch radio {name}", icon: "mdi:radio", start: true),
         // De keuzes komen van SpotifyAccounts (de accounts die Spotcast heeft); zonder account speelt Spotcast op zijn standaardaccount
         Select($"spotify_account_{person}", $"Spotify account {name}", [Helpers.SpotifyChoice.NoAccount], icon: "mdi:account-music"),
         Button($"spotify_koppelen_{person}", $"Spotify koppelen {name}", icon: "mdi:link-variant-plus"),

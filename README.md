@@ -28,6 +28,8 @@ Highlights:
   (for an appointment) show public transport unless the car is chosen, and only the one that fits where the person is
 - **The tablet** — the living room tablet (Fully Kiosk) wakes up on motion, wake-up times, coming home and important
   alerts, and goes off when the TV turns on or everyone sleeps
+- **Music** — Spotify per person: playlist and account per room, a switch per room to let the automations (shower, kitchen)
+  start it by themselves, and on Home a row for everything that plays, a tap opens its controls
 - **Notifications** — Discord, the mobile app, text-to-speech and a WhatsApp assistant (text and voice notes)
 - **Activity log** — every action of NetDaemon is written down with why it happened (what triggered it) and under which
   conditions (the states it looked at); numbers that count along are logged at most every 30 minutes
@@ -214,7 +216,7 @@ Code inspections run with the shared Rider settings in `HomeAutomation.sln.DotSe
 ```
 automation/
 ├── apps/                  # All automation apps
-│   ├── General/           # General automations
+│   ├── General/           # General automations, in folders: Presence, Work, Pets, Vehicles, Household, Assistants, System, Fun
 │   └── Rooms/             # Room-specific automations
 ├── Configuration/         # Configuration classes and the helper definitions
 ├── Core/                  # Core services (entity manager, assistant clients)

@@ -30,6 +30,14 @@ cards:
         name: Kerst
         icon: mdi:pine-tree
       - type: section
+        label: Zelf starten (douche bij het douchen, keuken bij beweging) als Vincent thuis is
+      - entity: input_boolean.spotify_auto_douche_vincent
+        name: Douche
+      - entity: input_boolean.spotify_auto_keuken_vincent
+        name: Keuken
+      - entity: input_boolean.spotify_auto_radio_vincent
+        name: Radio (badkamer)
+      - type: section
         label: Als jullie allebei thuis zijn
       - entity: input_select.spotify_standaard_persoon
         name: Wiens muziek telt dan

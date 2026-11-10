@@ -3070,43 +3070,88 @@ hero_tablet:
 music_now:
   triggers_update: all
   variables:
+    all: |
+      [[[
+        window.huisMuziekLijst = window.huisMuziekLijst ?? (states => {
+          const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
+            ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
+            ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
+          const from = (s, room, app, kind) => ({ entity: s.entity_id, room, title: s.attributes.media_title, picture: s.attributes.entity_picture, kind,
+            artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
+          const items = [];
+          for (const [id, room] of speakers) if (states[id]?.state === 'playing') items.push(from(states[id], room, undefined, 'speaker'));
+          // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
+          for (const s of Object.values(states))
+            if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing')
+              items.push(from(s, s.attributes.source, 'Spotify · ' + String(s.attributes.friendly_name ?? '').replace(/^Spotify\s+/i, '').split(' ')[0], 'spotify'));
+          // Dezelfde muziek op een speaker en in een account is een keer: de speaker zegt waar, het account van wie, en het account is wat je bedient
+          const groups = new Map();
+          for (const it of items) {
+            const key = `${it.title}|${it.artist}`;
+            const g = groups.get(key);
+            if (!g) { groups.set(key, { ...it, rooms: it.kind === 'speaker' ? [it.room] : [], device: it.kind === 'spotify' ? it.room : null }); continue; }
+            if (it.kind === 'speaker' && !g.rooms.includes(it.room)) g.rooms.push(it.room);
+            if (it.kind === 'spotify') { g.entity = it.entity; g.app = it.app; g.device = it.room; }
+            g.picture = g.picture ?? it.picture;
+          }
+          return [...groups.values()].map(g => ({ ...g, room: g.rooms.length ? g.rooms.join(' + ') : g.device }));
+        });
+        return window.huisMuziekLijst(states);
+      ]]]
     now: |
       [[[
-        const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
-          ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
-          ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
-        const speaker = speakers.find(([id]) => states[id]?.state === 'playing');
-        const spotify = states['media_player.spotify_vincent_maarschalkerweerd'];
-        const from = (s, room, app) => ({ entity: s.entity_id, room, title: s.attributes.media_title, picture: s.attributes.entity_picture,
-          artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
-        if (speaker) return from(states[speaker[0]], speaker[1]);
-        if (spotify?.state === 'playing') return from(spotify, spotify.attributes.source, 'Spotify');
-        return null;
+        window.huisMuziekLijst = window.huisMuziekLijst ?? (states => {
+          const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
+            ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
+            ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
+          const from = (s, room, app, kind) => ({ entity: s.entity_id, room, title: s.attributes.media_title, picture: s.attributes.entity_picture, kind,
+            artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
+          const items = [];
+          for (const [id, room] of speakers) if (states[id]?.state === 'playing') items.push(from(states[id], room, undefined, 'speaker'));
+          // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
+          for (const s of Object.values(states))
+            if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing')
+              items.push(from(s, s.attributes.source, 'Spotify · ' + String(s.attributes.friendly_name ?? '').replace(/^Spotify\s+/i, '').split(' ')[0], 'spotify'));
+          // Dezelfde muziek op een speaker en in een account is een keer: de speaker zegt waar, het account van wie, en het account is wat je bedient
+          const groups = new Map();
+          for (const it of items) {
+            const key = `${it.title}|${it.artist}`;
+            const g = groups.get(key);
+            if (!g) { groups.set(key, { ...it, rooms: it.kind === 'speaker' ? [it.room] : [], device: it.kind === 'spotify' ? it.room : null }); continue; }
+            if (it.kind === 'speaker' && !g.rooms.includes(it.room)) g.rooms.push(it.room);
+            if (it.kind === 'spotify') { g.entity = it.entity; g.app = it.app; g.device = it.room; }
+            g.picture = g.picture ?? it.picture;
+          }
+          return [...groups.values()].map(g => ({ ...g, room: g.rooms.length ? g.rooms.join(' + ') : g.device }));
+        });
+        return window.huisMuziekLijst(states)[0] ?? null;
       ]]]
 
-# De kaart "wat speelt er nu": hoes, titel en artiest, in welke kamer en met welke app. Tik = pauze / verder, lang
-# drukken = de speaker. Zonder muziek "Stil" (op Home en Media staat hij in een conditional en is hij dan weg).
+# De kaart "wat speelt er nu": voor alles wat speelt een rij met hoes, titel en artiest, in welke kamer en met welk account of welke app.
+# Dezelfde muziek op een speaker en in een Spotify-account is een rij. Tik = het scherm van die speler om alles te bedienen (volume,
+# wachtrij, bladeren, speaker kiezen), de knop rechts = pauze / verder. Zonder muziek "Stil", of de kaart is weg met hide_when_silent
+# (op Home en Media).
 music_now_card:
   template: [glass, music_now]
   show_icon: false
   show_name: false
+  variables:
+    hide_when_silent: false
   tap_action:
-    action: javascript
-    javascript: "[[[ if (variables.now) hass.callService('media_player', 'media_play_pause', { entity_id: variables.now.entity }); ]]]"
-  hold_action:
-    action: javascript
-    javascript: |
-      [[[
-        if (variables.now) this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: variables.now.entity } }));
-      ]]]
+    action: none
   custom_fields:
     body: |
       [[[
-        const n = variables.now;
-        if (!n) return `<div style="display:flex;align-items:center;gap:12px;text-align:left;opacity:0.7">
+        const list = variables.all;
+        if (!list.length) return `<div style="display:flex;align-items:center;gap:12px;text-align:left;opacity:0.7">
             <ha-icon icon="mdi:music-off" style="--mdc-icon-size:28px"></ha-icon><div><div style="font-weight:600">Stil</div>
             <div style="font-size:12px">Er speelt nergens muziek</div></div></div>`;
-        return `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px">
+        window.huisMuziek = window.huisMuziek ?? {
+          open: id => { const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } }); document.querySelector('home-assistant').dispatchEvent(ev); },
+          toggle: id => document.querySelector('home-assistant').hass.callService('media_player', 'media_play_pause', { entity_id: id })
+        };
+        return `<div style="display:flex;flex-direction:column;gap:10px">${list.map(n => `<div style="position:relative;display:flex;align-items:center;gap:14px;text-align:left;min-height:72px;cursor:pointer"
+              onclick="window.huisMuziek.open('${n.entity}')">
             ${n.picture ? `<img src="${n.picture}" style="width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.35)">`
               : `<div style="width:72px;height:72px;border-radius:14px;background:rgba(74,222,128,0.18);display:flex;align-items:center;justify-content:center">
                    <ha-icon icon="mdi:music" style="--mdc-icon-size:30px;color:#4ade80"></ha-icon></div>`}
@@ -3115,14 +3160,15 @@ music_now_card:
               <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title ?? 'Muziek'}</div>
               <div style="font-size:13px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.artist ?? ''}</div>
             </div>
-            <ha-icon icon="mdi:pause-circle-outline" style="--mdc-icon-size:30px;opacity:0.8"></ha-icon></div>`;
+            <span style="padding:6px" onclick="event.stopPropagation();window.huisMuziek.toggle('${n.entity}')"><ha-icon icon="mdi:pause-circle-outline" style="--mdc-icon-size:30px;opacity:0.8"></ha-icon></span></div>`).join('')}</div>`;
       ]]]
   styles:
     grid:
       - grid-template-areas: '"body"'
     card:
       - padding: 12px 14px
-      - cursor: pointer
+      - display: |
+          [[[ return variables.hide_when_silent && !variables.all.length ? 'none' : 'block'; ]]]
     custom_fields:
       body:
         - width: 100%
@@ -3799,11 +3845,14 @@ commute_card:
               color:${active ? '#4ade80' : 'rgba(255,255,255,0.75)'};border:1px solid ${active ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.2)'}"
               onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation();window.huisReisVervoer('${person}','${option}')"
               onclick="event.stopPropagation();window.huisReisVervoer('${person}','${option}')">${text}</span>`;
+          // Een route die thuis begint ("Thuis -> ...", of naar kantoor) gaat de persoon met de auto of het OV; een route naar thuis komt hij
+          const first = String(s.attributes.friendly_name ?? '').replace(/^(9292|ANWB Route)\s+/i, '').split(/->|=>|→/)[0].trim();
+          const verb = s.dir === 'work' || /^(thuis|huis)$/i.test(first) ? 'gaat' : 'komt';
           const vervoer = [
-            s.kind === 'ov' && today !== 'OV' ? chip(`${name} komt met de auto`, 'Auto') : '',
-            s.kind === 'ov' && today === 'OV' ? chip(`✓ komt met het OV · terug naar schema`, 'Volgens schema', true) + chip(`${name} komt met de auto`, 'Auto') : '',
-            s.kind === 'car' && today === 'Auto' ? chip(`✓ komt met de auto · terug naar schema`, 'Volgens schema', true) : '',
-            s.kind === 'car' && today !== 'Auto' && hasOv ? chip(`${name} komt met het OV`, 'OV') : ''
+            s.kind === 'ov' && today !== 'OV' ? chip(`${name} ${verb} met de auto`, 'Auto') : '',
+            s.kind === 'ov' && today === 'OV' ? chip(`✓ ${verb} met het OV · terug naar schema`, 'Volgens schema', true) + chip(`${name} ${verb} met de auto`, 'Auto') : '',
+            s.kind === 'car' && today === 'Auto' ? chip(`✓ ${verb} met de auto · terug naar schema`, 'Volgens schema', true) : '',
+            s.kind === 'car' && today !== 'Auto' && hasOv ? chip(`${name} ${verb} met het OV`, 'OV') : ''
           ].join('');
           const skip = s.dir === 'other' ? '' : `<span style="cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px;
               color:${skipped ? '#ffb060' : 'rgba(255,255,255,0.75)'};border:1px solid ${skipped ? 'rgba(255,176,96,0.6)' : 'rgba(255,255,255,0.2)'}"

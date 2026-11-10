@@ -28,7 +28,7 @@ This is a NetDaemon-based home automation system that manages various aspects of
 - `automation/` - Main NetDaemon application
   - `apps/` - All automation apps organized by category
     - `BaseApp.cs` - Base class for all apps providing common services
-    - `General/` - General purpose automation apps (including BatteryTrendAnalyzer)
+    - `General/` - General purpose automation apps in folders by theme: `Presence/`, `Work/` (including CommuteReport), `Pets/`, `Vehicles/`, `Household/`, `Assistants/` (WhatsApp, Spotify accounts), `System/` and `Fun/` (the namespace stays `Automation.apps.General`)
     - `Rooms/` - Room-specific automation apps
     - `Notify.cs` - Notification service implementation with resilience patterns
   - `Models/` - Data models and DTOs

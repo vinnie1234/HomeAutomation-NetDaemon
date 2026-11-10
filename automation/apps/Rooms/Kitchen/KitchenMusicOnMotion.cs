@@ -140,6 +140,12 @@ public class KitchenMusicOnMotion : BaseApp
             return;
         }
 
+        if (!SpotifyChoice.Autoplay(HaContext, SpotifyRoom.Keuken, Vincent.IsHome, Carleen.IsHome))
+        {
+            Logger.LogInformation("Kitchen music is off for this person, nothing starts");
+            return;
+        }
+
         Logger.LogInformation("Starting kitchen music on nestmini9818");
         var (url, account) = SpotifyChoice.Resolve(HaContext, _config, SpotifyRoom.Keuken, Vincent.IsHome, Carleen.IsHome);
         if (!string.IsNullOrEmpty(url)) _spotcast.PlaySpotify(Entities.MediaPlayer.Nestmini9818, url, account);
