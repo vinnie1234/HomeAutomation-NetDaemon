@@ -36,11 +36,11 @@ public class BikeMonitor : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        new Entity(HaContext, Charging).StateChanges()
+        Entities.BinarySensor.BfeAh1336572BatteryCharging.StateChanges()
             .Where(x => x.Old?.State == "on" && x.New?.State == "off")
             .Subscribe(_ => CheckFull());
 
-        new Entity(HaContext, Tracker).StateChanges()
+        Entities.DeviceTracker.BfeAh1336572Location.StateChanges()
             .Where(x => x.Old?.State == "home" && x.New?.State != "home")
             .Subscribe(_ => Scheduler.Schedule(LeavingCheckDelay, CheckLeftWhileWeAreHome));
     }

@@ -34,7 +34,7 @@ public partial class GroceryList : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        new Entity(HaContext, DoneButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
+        Entities.InputButton.BoodschappenAllesGehaald.StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
             .Subscribe(press => _ = CompleteAllAsync());
 
         foreach (var person in People)
@@ -44,8 +44,8 @@ public partial class GroceryList : BaseApp
         }
 
         // Nothing left to do: the button goes away by itself
-        new Entity(HaContext, TodoZoneReminders.GroceryList).StateChanges().Where(x => x.New?.State == "0")
-            .Subscribe(_ => HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(AskHelper)));
+        Entities.Todo.Boodschappen.StateChanges().Where(x => x.New?.State == "0")
+            .Subscribe(_ => Entities.InputBoolean.BoodschappenAfvinken.TurnOff());
     }
 
     /// <summary>The words that start a WhatsApp message for the shopping list: "Boodschappen melk", "AH: melk, brood".</summary>
@@ -103,7 +103,7 @@ public partial class GroceryList : BaseApp
         {
             _waiting.Remove(person);
             if ((await OpenItemsAsync()).Count == 0) return;
-            HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(AskHelper));
+            Entities.InputBoolean.BoodschappenAfvinken.TurnOn();
             Logger.LogInformation("An hour after the supermarket ({Person}): the button for the shopping list is shown", person);
         }
         catch (Exception ex)
@@ -120,7 +120,7 @@ public partial class GroceryList : BaseApp
             foreach (var item in items)
                 HaContext.CallService("todo", "update_item", ServiceTarget.FromEntity(TodoZoneReminders.GroceryList),
                     new Dictionary<string, object> { ["item"] = item, ["status"] = "completed" });
-            HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(AskHelper));
+            Entities.InputBoolean.BoodschappenAfvinken.TurnOff();
             Logger.LogInformation("Shopping list: {Count} item(s) ticked off", items.Count);
         }
         catch (Exception ex)

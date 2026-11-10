@@ -70,7 +70,7 @@ public partial class TodoZoneReminders : BaseApp
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(15), SyncZoneOptions);
 
         // A text field is only saved when you leave it, which is the same tap that presses the button: give that a moment
-        new Entity(HaContext, AddButton).StateChanges().Subscribe(_ => Scheduler.Schedule(ButtonDelay, AddItem));
+        Entities.InputButton.TodoToevoegen.StateChanges().Subscribe(_ => Scheduler.Schedule(ButtonDelay, AddItem));
 
         (string Name, string PersonId, string Whatsapp, string List)[] people =
         [
@@ -104,7 +104,7 @@ public partial class TodoZoneReminders : BaseApp
                 current = existing.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
 
             if (current.SequenceEqual(options)) return;
-            HaContext.CallService("input_select", "set_options", ServiceTarget.FromEntity(ZoneHelper), new { options });
+            Entities.InputSelect.TodoZone.SetOptions(options);
             Logger.LogInformation("Zone choices for tasks: {Zones}", string.Join(", ", options));
         }
         catch (Exception ex)
@@ -142,9 +142,9 @@ public partial class TodoZoneReminders : BaseApp
             Logger.LogInformation("Task '{Text}' added to {List}{Place}", text, list,
                 data.TryGetValue("description", out var d) ? $" ({d})" : "");
 
-            HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(TextHelper), new { value = "" });
-            HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(ZoneHelper), new { option = NoZone });
-            HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(MessageHelper));
+            Entities.InputText.TodoTekst.SetValue("");
+            Entities.InputSelect.TodoZone.SelectOption(NoZone);
+            Entities.InputBoolean.TodoStuurBericht.TurnOff();
         }
         catch (Exception ex)
         {
@@ -194,7 +194,7 @@ public partial class TodoZoneReminders : BaseApp
             if (tasks.Count > 0)
                 parts.Add($"{Pin} Je bent bij {zone}. Dit moet nog:\n{string.Join("\n", tasks.Select(t => $"• {t}"))}");
             var text = string.Join("\n\n", parts);
-            Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, body: new { text });
+            Services.Whatsapp.SendMessage(clientId: "default", to: whatsapp, message: new { text });
             Logger.LogInformation("Reminded {Person} at {Zone} of {Count} task(s) and {Groceries} grocery item(s)", person, zone, tasks.Count, groceries.Count);
         }
         catch (Exception ex)

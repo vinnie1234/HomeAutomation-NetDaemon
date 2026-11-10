@@ -60,7 +60,7 @@ public class WalletMonitor : BaseApp
         });
         Entities.InputBoolean.Awayvincent.WhenTurnsOff(_ => StartSearch());
 
-        new Entity(HaContext, Tracker).StateChanges()
+        Entities.DeviceTracker.PortemonneeVanVincent2.StateChanges()
             .Where(x => IsAtHome(x.Old?.State) && !IsAtHome(x.New?.State) && x.New?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ =>
             {
@@ -69,9 +69,9 @@ public class WalletMonitor : BaseApp
             });
 
         // Found: the alert goes away
-        new Entity(HaContext, Tracker).StateChanges().Where(x => IsAtHome(x.New?.State)).Subscribe(_ => StopSearch());
+        Entities.DeviceTracker.PortemonneeVanVincent2.StateChanges().Where(x => IsAtHome(x.New?.State)).Subscribe(_ => StopSearch());
 
-        new Entity(HaContext, UnwantedTracking).StateChanges()
+        Entities.BinarySensor.PortemonneeVanVincent2OngewensteTrackingmodus.StateChanges()
             .Where(x => x.New?.State == "on" && x.Old?.State != "on")
             .Subscribe(_ => Notify.NotifyPhoneVincent("Portemonnee: ongewenste tracking", "De portemonnee-tracker meldt dat een onbekende tracker je volgt", true, 60));
     }
@@ -86,10 +86,14 @@ public class WalletMonitor : BaseApp
     private bool IsMissing() =>
         !Entities.InputBoolean.Awayvincent.IsOn() && StateOf(Tracker) is { } state && state is not ("unknown" or "unavailable") && !IsAtHome(state);
 
-    private void SetAlert(bool on) =>
-        HaContext.CallService("input_boolean", on ? "turn_on" : "turn_off", ServiceTarget.FromEntity(AlertHelper));
+    private void SetAlert(bool on)
+    {
+        var alert = new InputBooleanEntity(HaContext, AlertHelper);
+        if (on) alert.TurnOn();
+        else alert.TurnOff();
+    }
 
-    private void Locate() => HaContext.CallService("button", "press", ServiceTarget.FromEntity(LocateButton));
+    private void Locate() => Entities.Button.PortemonneeVanVincent2NuLokaliseren.Press();
 
     private void StopSearch()
     {
@@ -130,7 +134,7 @@ public class WalletMonitor : BaseApp
     private void VincentLeft(DateTimeOffset left)
     {
         // The wallet only knows where it is when another device has seen it: ask it to look, then read what it says
-        Scheduler.Schedule(AskAfter, () => HaContext.CallService("button", "press", ServiceTarget.FromEntity(LocateButton)));
+        Scheduler.Schedule(AskAfter, () => Entities.Button.PortemonneeVanVincent2NuLokaliseren.Press());
         Scheduler.Schedule(ReadAfter, () => CheckLeftWithoutWallet(left));
     }
 
@@ -141,7 +145,7 @@ public class WalletMonitor : BaseApp
         if (LastSeen() is not { } seen || seen < left + TimeSpan.FromMinutes(2)) return;
         var at = Extensions.SchedulerExtensions.ToDutchTime(seen).ToString("HH:mm", CultureInfo.InvariantCulture);
         Notify.NotifyPhoneVincent("Portemonnee vergeten?", $"Je portemonnee ligt nog thuis (gezien om {at})", false, 60,
-            [new ActionModel("WALLET_SOUND", "🔔 Laat piepen", func: () => HaContext.CallService("button", "press", ServiceTarget.FromEntity(SoundButton)))]);
+            [new ActionModel("WALLET_SOUND", "🔔 Laat piepen", func: () => Entities.Button.PortemonneeVanVincent2GeluidAfspelen.Press())]);
     }
 
     private void CheckLeftWhileVincentIsHome()

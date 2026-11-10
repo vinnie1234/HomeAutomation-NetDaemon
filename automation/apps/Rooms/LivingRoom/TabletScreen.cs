@@ -80,10 +80,10 @@ public class TabletScreen : BaseApp
     /// <summary>The alerts that also get a card on Home: when one starts, the tablet comes on to show it.</summary>
     private void WakeOnImportantAlerts()
     {
-        new Entity(HaContext, "sensor.pixel_medicijnen").StateChanges()
+        Entities.Sensor.PixelMedicijnen.StateChanges()
             .Where(x => x.New?.State is "nodig" or "vergeten" && x.Old?.State != x.New?.State)
             .Subscribe(x => Wake($"Pixel: prednison {x.New?.State}", force: true));
-        new Entity(HaContext, General.Alarm.HighUsageSensor).StateChanges()
+        Entities.Sensor.HoogStroomverbruik.StateChanges()
             .Where(x => x.New?.State == "on" && x.Old?.State != "on")
             .Subscribe(_ => Wake("hoog stroomverbruik", force: true));
         Entities.BinarySensor.WeerThuisWaarschuwingActief.StateChanges()
@@ -122,9 +122,9 @@ public class TabletScreen : BaseApp
         // The timer is set once: it stays at this value, so setting it at every wake-up was the same call again and again
         if (!double.TryParse(HaContext.GetState(ScreenOffTimer)?.State, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var timer)
             || Math.Abs(timer - AwakeTimeoutSeconds) > 0.5)
-            HaContext.CallService("number", "set_value", ServiceTarget.FromEntity(ScreenOffTimer), new { value = AwakeTimeoutSeconds });
-        HaContext.CallService("switch", "turn_on", ServiceTarget.FromEntity(Screen));
-        if (force) HaContext.CallService("button", "press", ServiceTarget.FromEntity(LoadStartUrl));
+            Entities.Number.TabS6VanVincentSchermUitTimer.SetValue(new NumberSetValueParameters { Value = AwakeTimeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        Entities.Switch.TabS6VanVincentScherm.TurnOn();
+        if (force) Entities.Button.TabS6VanVincentStartUrlLaden.Press();
     }
 
     private void ScreenOffIfAllAsleep()
@@ -136,6 +136,6 @@ public class TabletScreen : BaseApp
     {
         Logger.LogInformation("Tablet uit: {Reason}", reason);
         _lastWake = DateTimeOffset.MinValue;
-        HaContext.CallService("switch", "turn_off", ServiceTarget.FromEntity(Screen));
+        Entities.Switch.TabS6VanVincentScherm.TurnOff();
     }
 }

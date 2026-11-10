@@ -57,9 +57,9 @@ public class CarMonitor : BaseApp
         : base(ha, logger, notify, scheduler, config)
     {
         // Reminders
-        new Entity(HaContext, FuelRange).StateChanges().Subscribe(_ => CheckFuel());
-        new Entity(HaContext, DaysToService).StateChanges().Subscribe(_ => CheckService());
-        new Entity(HaContext, KmToService).StateChanges().Subscribe(_ => CheckService());
+        Entities.Sensor.BuitenPeugeot2008BrandstofBereik.StateChanges().Subscribe(_ => CheckFuel());
+        Entities.Sensor.BuitenPeugeot2008DaysBeforeMaintenance.StateChanges().Subscribe(_ => CheckService());
+        Entities.Sensor.BuitenPeugeot2008MileageBeforeMaintenance.StateChanges().Subscribe(_ => CheckService());
         Scheduler.ScheduleCronNl("00 09 * * *", () =>
         {
             CheckFuel();
@@ -76,15 +76,15 @@ public class CarMonitor : BaseApp
                     CheckAtNight($"Auto: {name} open", $"De {name} van de auto gaat open terwijl iedereen slaapt");
                     Scheduler.Schedule(LeftOpenAfter, () => CheckStillOpen(id, name));
                 });
-        new Entity(HaContext, Unlocked).StateChanges()
+        Entities.BinarySensor.BuitenPeugeot2008Deuren.StateChanges()
             .Where(x => x.New?.State == "on" && x.Old?.State == "off")
             .Subscribe(_ => CheckAtNight("Auto: ontgrendeld", "De auto is ontgrendeld terwijl iedereen slaapt"));
-        new Entity(HaContext, Alarm).StateChanges()
+        Entities.BinarySensor.BuitenPeugeot2008Alarm.StateChanges()
             .Where(x => x.New?.State == "off" && x.Old?.State == "on")
             .Subscribe(_ => CheckAtNight("Auto: alarm uitgeschakeld", "Het alarm van de auto is uitgeschakeld terwijl iedereen slaapt"));
 
         // Security
-        new Entity(HaContext, Tracker).StateChanges()
+        Entities.DeviceTracker.BuitenPeugeot2008Voertuig.StateChanges()
             .Where(x => x.Old?.State == "home" && x.New?.State != "home")
             .Subscribe(_ => Scheduler.Schedule(LeavingCheckDelay, CheckLeftWhileWeAreHome));
     }
@@ -135,7 +135,7 @@ public class CarMonitor : BaseApp
             [new ActionModel("LOCK_CAR", "🔒 Vergrendel", func: LockCar)]);
     }
 
-    private void LockCar() => HaContext.CallService("button", "press", ServiceTarget.FromEntity(LockButton));
+    private void LockCar() => Entities.Button.BuitenPeugeot2008DeurenVergrendelen.Press();
 
     private void CheckStillOpen(string id, string name)
     {

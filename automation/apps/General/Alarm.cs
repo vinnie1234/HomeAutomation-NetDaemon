@@ -269,7 +269,7 @@ public class Alarm : BaseApp
     /// mentions a problem word also goes to the phones. Refine <see cref="ProblemWords"/> when real notifications are known.
     /// </summary>
     private void PetSnowyDeviceNotifications() =>
-        new Entity(HaContext, PetSnowyEvent).StateChanges()
+        Entities.Event.SnowSelfCleaningLitterBoxDeviceNotifications.StateChanges()
             .Where(x => x.New?.State is not (null or "unknown" or "unavailable") && x.Old?.State != x.New?.State)
             .Subscribe(x => ReportPetSnowyNotification(x.New!));
 

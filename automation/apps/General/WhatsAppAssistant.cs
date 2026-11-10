@@ -166,7 +166,7 @@ public class WhatsAppAssistant : BaseApp
         if (GroceryList.ParseMessage(userText) is { } groceries)
         {
             foreach (var item in groceries)
-                HaContext.CallService("todo", "add_item", ServiceTarget.FromEntity(TodoZoneReminders.GroceryList), new { item });
+                Entities.Todo.Boodschappen.AddItem(item);
             Logger.LogInformation("Added {Count} item(s) to the shopping list from WhatsApp", groceries.Count);
             Reply(sender, $"🛒 Op de boodschappenlijst gezet: {string.Join(", ", groceries)}");
             return;
@@ -221,7 +221,7 @@ public class WhatsAppAssistant : BaseApp
         }
 
         var (senderName, otherName, otherJid) = GetPersons(sender);
-        Services.Whatsapp.SendMessage(clientId: "default", to: otherJid, body: new { text = $"Doorgestuurd van {senderName}:\n\n{lastReply}" });
+        Services.Whatsapp.SendMessage(clientId: "default", to: otherJid, message: new { text = $"Doorgestuurd van {senderName}:\n\n{lastReply}" });
         Reply(sender, $"Ik heb het laatste antwoord doorgestuurd naar {otherName}.");
         return true;
     }
@@ -294,7 +294,7 @@ public class WhatsAppAssistant : BaseApp
         try
         {
             var url = await _textToSpeech.GetSpeechUrlAsync(answer, TtsLanguage, CancellationToken.None);
-            Services.Whatsapp.SendMessage(clientId: "default", to: sender, body: new { audio = new { url }, ptt = true });
+            Services.Whatsapp.SendMessage(clientId: "default", to: sender, message: new { audio = new { url }, ptt = true });
         }
         catch (Exception ex)
         {
@@ -303,7 +303,7 @@ public class WhatsAppAssistant : BaseApp
     }
 
     private void Reply(string to, string text) =>
-        Services.Whatsapp.SendMessage(clientId: "default", to: to, body: new { text });
+        Services.Whatsapp.SendMessage(clientId: "default", to: to, message: new { text });
 
     /// <summary>Extracts the plain-text reply from a <c>conversation.process</c> response, and whether the agent reported an error.</summary>
     private static (string? Speech, bool IsError) ExtractResult(JsonElement? response)

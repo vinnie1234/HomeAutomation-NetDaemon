@@ -138,7 +138,7 @@ public class WorkFromCalendar : BaseApp
         var setting = schedule.WorkDaySetting(date.DayOfWeek);
         if (setting.State != WorkSchedule.Office)
         {
-            HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Office });
+            new InputSelectEntity(HaContext, setting.EntityId).SelectOption(WorkSchedule.Office);
             Logger.LogInformation("{Person} works on {Date} according to the calendar: {Day} is Kantoor", person, dateText, WorkSchedule.DayNames[date.DayOfWeek]);
         }
     }
@@ -156,7 +156,7 @@ public class WorkFromCalendar : BaseApp
         store.Entries.RemoveAll(e => e.Person == person && e.Date == dateText);
         store.Entries.Add(new WorkCalendarEntry { Person = person, Date = dateText, Kind = WorkCalendarEntry.DayOffKind, Previous = setting.State });
         _storage.Save(StoreKey, store);
-        HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Off });
+        new InputSelectEntity(HaContext, setting.EntityId).SelectOption(WorkSchedule.Off);
         Logger.LogInformation("{Person} is off on {Date} according to the calendar: {Day} is Vrij", person, dateText, WorkSchedule.DayNames[date.DayOfWeek]);
     }
 
@@ -178,7 +178,7 @@ public class WorkFromCalendar : BaseApp
             : "";
         var entityId = $"input_text.afspraak_{person}";
         if ((HaContext.GetState(entityId)?.State ?? "") == value) return;
-        HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(entityId), new { value = value.Length > 100 ? value[..100] : value });
+        new InputTextEntity(HaContext, entityId).SetValue(value.Length > 100 ? value[..100] : value);
     }
 
     /// <summary>The start or end of an event with a time; null for an all-day event.</summary>
@@ -234,10 +234,10 @@ public class WorkFromCalendar : BaseApp
                 if (entry.Kind == WorkCalendarEntry.DayOffKind)
                 {
                     if (setting.State == WorkSchedule.Off && entry.Previous is { Length: > 0 } previous)
-                        HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = previous });
+                        new InputSelectEntity(HaContext, setting.EntityId).SelectOption(previous);
                 }
                 else if (setting.State == WorkSchedule.Office)
-                    HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(setting.EntityId), new { option = WorkSchedule.Off });
+                    new InputSelectEntity(HaContext, setting.EntityId).SelectOption(WorkSchedule.Off);
                 store.Entries.Remove(entry);
             }
             if (over.Count > 0) _storage.Save(StoreKey, store);

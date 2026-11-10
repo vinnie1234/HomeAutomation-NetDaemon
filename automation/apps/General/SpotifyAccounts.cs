@@ -77,7 +77,7 @@ public class SpotifyAccounts : BaseApp
 
                     var fallback = DefaultFor(room);
                     if (string.IsNullOrEmpty(fallback)) continue;
-                    HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(helper), new { value = fallback });
+                    new InputTextEntity(HaContext, helper).SetValue(fallback);
                     Logger.LogInformation("Playlist {Helper} set to the one in config.json", helper);
                 }
         }
@@ -113,7 +113,7 @@ public class SpotifyAccounts : BaseApp
 
                 if (!current.SequenceEqual(options))
                 {
-                    HaContext.CallService("input_select", "set_options", ServiceTarget.FromEntity(helper), new { options });
+                    new InputSelectEntity(HaContext, helper).SetOptions(options);
                     Logger.LogInformation("Spotify accounts for {Person}: {Accounts}", person, string.Join(", ", options));
                 }
 
@@ -123,7 +123,7 @@ public class SpotifyAccounts : BaseApp
                 {
                     var name = SpotifyChoice.NameOf(chosen);
                     var renamed = options.FirstOrDefault(o => o != SpotifyChoice.NoAccount && string.Equals(SpotifyChoice.NameOf(o), name, StringComparison.OrdinalIgnoreCase));
-                    HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(helper), new { option = renamed ?? SpotifyChoice.NoAccount });
+                    new InputSelectEntity(HaContext, helper).SelectOption(renamed ?? SpotifyChoice.NoAccount);
                 }
             }
         }
@@ -151,7 +151,7 @@ public class SpotifyAccounts : BaseApp
                 if (added != null)
                 {
                     SyncChoices();
-                    HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(SpotifyChoice.AccountHelper(person)), new { option = added.Label });
+                    new InputSelectEntity(HaContext, SpotifyChoice.AccountHelper(person)).SelectOption(added.Label);
                     Logger.LogInformation("Linked Spotify account {Name} for {Person}", added.Label, person);
                     Stop(person);
                 }

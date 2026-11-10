@@ -73,12 +73,12 @@ public partial class CommuteReport
             {
                 var today = $"input_select.vervoer_vandaag_{commuter.Id}";
                 if (HaContext.GetState(today)?.State is { } chosen && chosen != Models.Persons.WorkSchedule.FollowSchedule && chosen is not ("unknown" or "unavailable"))
-                    HaContext.CallService("input_select", "select_option", ServiceTarget.FromEntity(today), new { option = Models.Persons.WorkSchedule.FollowSchedule });
+                    new InputSelectEntity(HaContext, today).SelectOption(Models.Persons.WorkSchedule.FollowSchedule);
             }
             foreach (var commuter in _commuters)
                 foreach (var helper in new[] { "afspraak_route", "afspraak_aangekomen" })
                     if (HaContext.GetState($"input_boolean.{helper}_{commuter.Id}")?.State == "on")
-                        HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity($"input_boolean.{helper}_{commuter.Id}"));
+                        new InputBooleanEntity(HaContext, $"input_boolean.{helper}_{commuter.Id}").TurnOff();
         });
     }
 
@@ -202,17 +202,17 @@ public partial class CommuteReport
         // A new appointment starts afresh; after a restart the one that was there is still the same, so what was on stays on
         if (_appointments.TryGetValue(commuter.Id, out var known) && known != appointment)
         {
-            if (shown) HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(shownId));
-            if (arrived) HaContext.CallService("input_boolean", "turn_off", ServiceTarget.FromEntity(arrivedId));
+            if (shown) new InputBooleanEntity(HaContext, shownId).TurnOff();
+            if (arrived) new InputBooleanEntity(HaContext, arrivedId).TurnOff();
             _appointments[commuter.Id] = appointment;
             return;
         }
         _appointments[commuter.Id] = appointment;
         if (!AppointmentIsNear(appointment)) return;
         if (!shown && commuter.Person.IsHome)
-            HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(shownId));
+            new InputBooleanEntity(HaContext, shownId).TurnOn();
         if (!arrived && InZone(AppointmentStation, commuter.PersonId))
-            HaContext.CallService("input_boolean", "turn_on", ServiceTarget.FromEntity(arrivedId));
+            new InputBooleanEntity(HaContext, arrivedId).TurnOn();
     }
 
     /// <summary>Whether the appointment ("start|end|title") begins within six hours (the dashboard shows the other routes from then) and is not over.</summary>
@@ -256,7 +256,9 @@ public partial class CommuteReport
     {
         var entityId = $"input_boolean.reis_niet_{commuter.Id}_{Side(direction)}";
         if ((HaContext.GetState(entityId)?.State == "on") == notNeeded) return;
-        HaContext.CallService("input_boolean", notNeeded ? "turn_on" : "turn_off", ServiceTarget.FromEntity(entityId));
+        var helper = new InputBooleanEntity(HaContext, entityId);
+        if (notNeeded) helper.TurnOn();
+        else helper.TurnOff();
     }
 
     private static string Side(CommuteDirection direction) => direction == CommuteDirection.ToWork ? "work" : "home";

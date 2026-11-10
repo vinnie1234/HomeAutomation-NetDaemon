@@ -99,13 +99,13 @@ public partial class CommuteReport : BaseApp
         SetUpDepartureTracking();
 
         // The work laptop goes off while Vincent is at the office: the message about the way home comes now, besides the fixed time
-        new Entity(HaContext, WorkLaptop.Uptime).StateChanges()
+        Entities.Sensor.WerkLaptopUptime.StateChanges()
             .Where(x => WorkLaptop.IsAvailable(x.Old?.State) && !WorkLaptop.IsAvailable(x.New?.State))
             .Subscribe(_ => LaptopSwitchedOff());
 
         // A test: the button sends Vincent both messages now, on any day
         // (an input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press)
-        new Entity(HaContext, TestButton).StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(press =>
+        Entities.InputButton.Verkeertestbericht.StateChanges().Where(x => DateTimeOffset.TryParse(x.New?.State, out _)).Subscribe(press =>
         {
             _ = Send(_commuters[0], CommuteDirection.ToWork, test: true);
             _ = Send(_commuters[0], CommuteDirection.ToHome, test: true);
@@ -286,7 +286,7 @@ public partial class CommuteReport : BaseApp
             }
             var name = commuter.Id == "vincent" ? "Vincent" : "Carleen";
             var text = (test ? "🧪 Test\n" : "") + (forward ? $"↪️ Doorgestuurd door {name}: dit zijn de tijden die verwacht worden voor {name}\n\n" : toSelf ? $"↪️ Dit zijn de tijden die verwacht worden voor {name}\n\n" : "") + string.Join("\n\n", parts);
-            Services.Whatsapp.SendMessage(clientId: "default", to: recipient, body: new { text });
+            Services.Whatsapp.SendMessage(clientId: "default", to: recipient, message: new { text });
             // The message is also the last reply in the WhatsApp conversation, so "Stuur door" forwards it to the other person
             if (transitPrefix != null && !forward && !toSelf) RememberAsLastReply(commuter.Whatsapp, text);
             Logger.LogInformation("Sent the {Direction} commute message to {Person}", direction, commuter.Id);

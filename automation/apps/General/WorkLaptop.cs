@@ -47,7 +47,8 @@ public class WorkLaptop : BaseApp
         IOptions<AppConfig> config)
         : base(ha, logger, notify, scheduler, config)
     {
-        new Entity(HaContext, Uptime).StateChanges()
+        
+        Entities.Sensor.WerkLaptopUptime.StateChanges()
             .Where(x => IsAvailable(x.Old?.State) != IsAvailable(x.New?.State))
             .Subscribe(x =>
             {
@@ -58,8 +59,8 @@ public class WorkLaptop : BaseApp
         Entities.InputBoolean.Awayvincent.StateChanges().Where(x => x.Old.IsOff() && x.New.IsOn()).Subscribe(_ => VincentLeft());
         Entities.InputBoolean.Sleepingvincent.StateChanges().Where(x => x.Old.IsOff() && x.New.IsOn()).Subscribe(_ => VincentSleeps());
 
-        new Entity(HaContext, Battery).StateChanges().Subscribe(_ => CheckBattery());
-        new Entity(HaContext, PluggedIn).StateChanges().Subscribe(_ => CheckBattery());
+        Entities.Sensor.WerkLaptopBattery.StateChanges().Subscribe(_ => CheckBattery());
+        Entities.BinarySensor.WerkLaptopPluggedIn.StateChanges().Subscribe(_ => CheckBattery());
 
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), CheckWork);
     }
@@ -67,6 +68,8 @@ public class WorkLaptop : BaseApp
     // ---- the laptop and the working hours
 
     /// <summary>Whether a state of the uptime sensor means the laptop is there: it is unavailable while the laptop is off or not at home.</summary>
+    public static bool IsAvailable(double? state) => state != null;
+
     public static bool IsAvailable(string? state) => state is not (null or "" or "unavailable" or "unknown");
 
     public static bool IsOnline(IHaContext ha) => IsAvailable(ha.GetState(Uptime)?.State);
@@ -115,8 +118,8 @@ public class WorkLaptop : BaseApp
                     _reminderDay = today;
                     Notify.NotifyPhoneVincent("Werklaptop", "Het is tijd om af te sluiten", false, 60,
                     [
-                        new ActionModel("LAPTOP_LOCK", "🔒 Vergrendel", func: () => HaContext.CallService("button", "press", ServiceTarget.FromEntity(LockButton))),
-                        new ActionModel("LAPTOP_SHUTDOWN", "⏻ Afsluiten", func: () => HaContext.CallService("button", "press", ServiceTarget.FromEntity(ShutdownButton)))
+                        new ActionModel("LAPTOP_LOCK", "🔒 Vergrendel", func: () => Entities.Button.WerkLaptopLock.Press()),
+                        new ActionModel("LAPTOP_SHUTDOWN", "⏻ Afsluiten", func: () => Entities.Button.WerkLaptopShutdown.Press())
                     ]);
                 }
             }
@@ -162,14 +165,14 @@ public class WorkLaptop : BaseApp
     {
         if (!IsOnline(HaContext)) return;
         Logger.LogInformation("Vincent left: locking the work laptop");
-        HaContext.CallService("button", "press", ServiceTarget.FromEntity(LockButton));
+        Entities.Button.WerkLaptopLock.Press();
     }
 
     private void VincentSleeps()
     {
         if (!IsOnline(HaContext)) return;
         Logger.LogInformation("Vincent goes to sleep: shutting down the work laptop");
-        HaContext.CallService("button", "press", ServiceTarget.FromEntity(ShutdownButton));
+        Entities.Button.WerkLaptopShutdown.Press();
     }
 
     private void CheckBattery()

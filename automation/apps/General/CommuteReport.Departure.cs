@@ -26,7 +26,7 @@ public partial class CommuteReport
         // Who is at work already (also after a restart) has not just arrived there
         foreach (var commuter in _commuters)
             if (InZone(WorkZone, commuter.PersonId)) _atWork.Add(commuter.Id);
-        new Entity(HaContext, WorkZone).StateChanges().Subscribe(_ => FollowWorkZone());
+        Entities.Zone.Werk.StateChanges().Subscribe(_ => FollowWorkZone());
     }
 
     private void FollowWorkZone()
@@ -87,7 +87,7 @@ public partial class CommuteReport
     private string? FrozenText(Commuter commuter) => HaContext.GetState(FrozenHelper(commuter.Id))?.State;
 
     private void SetFrozen(Commuter commuter, string value) =>
-        HaContext.CallService("input_text", "set_value", ServiceTarget.FromEntity(FrozenHelper(commuter.Id)), new { value });
+        new InputTextEntity(HaContext, FrozenHelper(commuter.Id)).SetValue(value);
 
     /// <summary>The route home at the moment of leaving. The names are short because an input_text holds 255 characters.</summary>
     private sealed record FrozenRoute(

@@ -94,7 +94,7 @@ public class PixelMedication : BaseApp
             new Entity(HaContext, $"input_number.pixel_{medicine}_doosgrootte").StateChanges().Subscribe(_ => Publish());
         }
 
-        new Entity(HaContext, UndoButton).StateChanges()
+        Entities.InputButton.PixelMedicijnOngedaan.StateChanges()
             .Where(x => x.Old?.State is not (null or "unavailable") && x.New?.State is not (null or "unknown" or "unavailable"))
             .Subscribe(_ => UndoLastDose());
 
@@ -147,7 +147,7 @@ public class PixelMedication : BaseApp
             var m = Medicines[medicine];
             var stock = Math.Max(0, Stock(medicine) - m.Dose);
             _expectedStock[medicine] = stock;
-            HaContext.CallService("input_number", "set_value", ServiceTarget.FromEntity(m.Stock), new { value = stock });
+            new InputNumberEntity(HaContext, m.Stock).SetValue(stock);
 
             Add(new MedicationEvent { Time = Scheduler.NowNl(), Medicine = medicine, Kind = "gegeven", Amount = -m.Dose, Stock = stock });
             Logger.LogInformation("Pixel kreeg {Dose} {Medicine}, nog {Stock}", m.Dose, medicine, stock);
@@ -255,7 +255,7 @@ public class PixelMedication : BaseApp
             var amount = -dose.Amount;
             var stock = Stock(dose.Medicine) + amount;
             _expectedStock[dose.Medicine] = stock;
-            HaContext.CallService("input_number", "set_value", ServiceTarget.FromEntity(m.Stock), new { value = stock });
+            new InputNumberEntity(HaContext, m.Stock).SetValue(stock);
 
             Add(new MedicationEvent
             {
