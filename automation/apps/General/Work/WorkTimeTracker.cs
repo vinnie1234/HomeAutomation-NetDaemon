@@ -22,8 +22,15 @@ public class WorkTimeTracker : BaseApp
     /// <summary>The days kept in the storage.</summary>
     private const int KeepDays = 400;
 
-    /// <summary>How long between two counts at most: a longer gap (NetDaemon was down) is not counted.</summary>
-    private static readonly TimeSpan MaxGap = TimeSpan.FromSeconds(90);
+    /// <summary>
+    /// How long between two counts at most. A restart of NetDaemon (a deployment, an update) leaves a gap of a minute or two while the laptop
+    /// stayed on: that time is counted, because the laptop was on before and after it. A longer gap (the evening, the laptop that was off)
+    /// is not: the laptop going off or to sleep ends the stretch anyway (see <see cref="Tick"/>).
+    /// </summary>
+    private static readonly TimeSpan MaxGap = TimeSpan.FromMinutes(15);
+
+    /// <summary>When the laptop was counted last, kept over restarts (see <see cref="MaxGap"/>).</summary>
+    private const string LastCountedKey = "WorkTimeLastCounted";
 
     private readonly IDataRepository _storage;
     private readonly IEntityManager _entityManager;
@@ -44,6 +51,7 @@ public class WorkTimeTracker : BaseApp
         _storage = storage;
         _entityManager = entityManager;
         _days = storage.Get<Dictionary<string, WorkDay>>(StorageKey) ?? [];
+        _lastCounted = DateTimeOffset.TryParse(storage.Get<string>(LastCountedKey), CultureInfo.InvariantCulture, DateTimeStyles.None, out var stored) ? stored : null;
 
         _ = CreateSensorAsync();
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(1), Tick);
@@ -82,7 +90,11 @@ public class WorkTimeTracker : BaseApp
             if (!counting)
             {
                 // The edge of the end of a stretch: the figures are published once more
-                if (_lastCounted != null) Publish();
+                if (_lastCounted != null)
+                {
+                    Publish();
+                    _storage.Save(LastCountedKey, "");
+                }
                 _lastCounted = null;
                 return;
             }
@@ -95,6 +107,7 @@ public class WorkTimeTracker : BaseApp
             }
             else Add(now, 0);
             _lastCounted = now;
+            _storage.Save(LastCountedKey, now.ToString("o", CultureInfo.InvariantCulture));
 
             // Every five minutes is enough for the dashboard; the history of Home Assistant would grow with every minute
             if (now.Minute % 5 == 0 || _lastPublishedMinute < 0) Publish();

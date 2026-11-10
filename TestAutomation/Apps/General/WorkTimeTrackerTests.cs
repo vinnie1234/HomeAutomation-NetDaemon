@@ -40,7 +40,7 @@ public class WorkTimeTrackerTests
         });
 
     private void Start(int hour, int minute, bool laptopOn = true, string place = "home", string workday = "Thuis",
-        Dictionary<string, WorkDay>? before = null, bool vacation = false, string end = "17:00:00")
+        Dictionary<string, WorkDay>? before = null, bool vacation = false, string end = "17:00:00", string? lastCounted = null)
     {
         SetState("input_select.werkdag_vincent_dinsdag", workday);
         SetState("input_boolean.vrij_vincent", "off");
@@ -51,6 +51,7 @@ public class WorkTimeTrackerTests
         SetState("input_datetime.werk_eind_vincent", end);
         SetState(WorkLaptop.Uptime, laptopOn ? "3600" : "unavailable");
         _storage.Get<Dictionary<string, WorkDay>>(WorkTimeTracker.StorageKey).Returns(before);
+        _storage.Get<string>("WorkTimeLastCounted").Returns(lastCounted);
         _entityManager.EntityExists(WorkTimeTracker.Sensor).Returns(true);
         _ctx.SetCurrentTime(Utc(hour, minute));
         _ = new WorkTimeTracker(_ctx.HaContext, Substitute.For<ILogger<WorkTimeTracker>>(), Substitute.For<INotify>(), _ctx.Scheduler,
@@ -78,6 +79,28 @@ public class WorkTimeTrackerTests
         Today().Home.Should().BeInRange(520, 700);
         Today().Office.Should().Be(0);
         Today().First.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ARestartOfNetDaemon_WhileTheLaptopStaysOn_IsCountedToo()
+    {
+        // NetDaemon was down from 08:58 to 09:01 (a deployment); the laptop was on before and is on after it
+        Start(9, 0, lastCounted: "2026-11-10T08:58:00+01:00");
+
+        Tick(1);
+
+        Today().Home.Should().BeInRange(170, 190);
+    }
+
+    [Fact]
+    public void ALongGapSinceTheLastCount_IsNotCounted()
+    {
+        // The last count was yesterday evening: the night in between is no work time
+        Start(9, 0, lastCounted: "2026-11-09T17:00:00+01:00");
+
+        Tick(1);
+
+        Today().Home.Should().BeLessThan(5);
     }
 
     [Fact]
