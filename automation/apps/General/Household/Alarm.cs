@@ -51,6 +51,8 @@ public class Alarm : BaseApp
         _config = config.Value;
         _entityManager = entityManager;
         _storage = storage;
+        _notifiedExpensiveFrom = Stored(storage.Get<string>(ExpensiveFromKey));
+        _lastUnknownPeriodAt = Stored(storage.Get<string>(ExpensiveUnknownKey));
         InitializeGarbageCounterEntities();
         
         TemperatureCheck();
@@ -369,9 +371,14 @@ public class Alarm : BaseApp
                 {
                     if (_notifiedExpensiveFrom == p.Start) return;
                     _notifiedExpensiveFrom = p.Start;
+                    _storage.Save(ExpensiveFromKey, p.Start.ToString("o", CultureInfo.InvariantCulture));
                 }
                 else if (_notifiedExpensiveFrom is null && _lastUnknownPeriodAt is { } last && Scheduler.Now - last < TimeSpan.FromHours(6)) return;
-                else _lastUnknownPeriodAt = Scheduler.Now;
+                else
+                {
+                    _lastUnknownPeriodAt = Scheduler.Now;
+                    _storage.Save(ExpensiveUnknownKey, Scheduler.Now.ToString("o", CultureInfo.InvariantCulture));
+                }
 
                 ActivityContext.Note(period is { } q
                     ? $"Een duur stuk van {Hm(q.Start)} tot {Hm(q.End)}: een melding per stuk"
@@ -387,10 +394,16 @@ public class Alarm : BaseApp
     /// <summary>The price per kWh above which the energy is very expensive.</summary>
     private const double HighPriceLimit = 0.55;
 
-    /// <summary>The start of the stretch of expensive hours that was reported last.</summary>
+    /// <summary>The start of the stretch of expensive hours that was reported last (kept over restarts: a restart is not a reason for a new message).</summary>
     private DateTimeOffset? _notifiedExpensiveFrom;
 
     private DateTimeOffset? _lastUnknownPeriodAt;
+
+    private const string ExpensiveFromKey = "ExpensiveEnergyFrom";
+    private const string ExpensiveUnknownKey = "ExpensiveEnergyUnknownAt";
+
+    private static DateTimeOffset? Stored(string? text) =>
+        DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : null;
 
     private static string Hm(DateTimeOffset time) => Extensions.SchedulerExtensions.ToDutchTime(time).ToString("HH:mm", CultureInfo.InvariantCulture);
 
