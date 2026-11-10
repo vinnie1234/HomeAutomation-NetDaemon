@@ -5387,7 +5387,7 @@ laptop_status:
 # Werktijd van Vincent (sensor.werktijd_vincent, NetDaemon WorkTimeTracker): hoe lang de werklaptop aan staat binnen de werktijd. De tegel toont
 # vandaag; een tik opent een venster met per dag, week en kalendermaand: zonder pauze (de laptop aan), met pauze (30 minuten eraf) en met
 # pauze en roken (nog eens 20 minuten eraf), en hoeveel uur op kantoor en thuis. De pauzes gaan per dag eraf, en alleen van een dag van
-# vier uur of meer.
+# vier uur of meer; een kortere dag krijgt de lunch eraf zodra hij voorbij 12:30 is, en het roken naar rato. Week en maand zijn de som van de dagen.
 werktijd_status:
   template: glass
   entity: sensor.werktijd_vincent
@@ -5415,8 +5415,8 @@ werktijd_status:
         };
         const figures = row => `<div style="display:grid;grid-template-columns:1fr auto;gap:4px 14px;font-size:14px;margin:8px 0 4px">
             <span style="opacity:.75">Zonder pauze (laptop aan)</span><b>${fmt(row.b)}</b>
-            <span style="opacity:.75">Met pauze (30 min eraf)</span><b>${fmt(row.p)}</b>
-            <span style="opacity:.75">Met pauze en roken (nog 20 min eraf)</span><b style="color:#4ade80">${fmt(row.n)}</b></div>`;
+            <span style="opacity:.75">Met pauze (30 min eraf, vanaf de lunch)</span><b>${fmt(row.p)}</b>
+            <span style="opacity:.75">Met pauze en roken (nog tot 20 min eraf)</span><b style="color:#4ade80">${fmt(row.n)}</b></div>`;
         const empty = { b: 0, p: 0, n: 0, th: 0, ko: 0, ov: 0 };
         const titles = { dag: 'Vandaag', week: 'Deze week', maand: 'Deze maand' };
         const current = { dag: 'vandaag', week: 'week', maand: 'maand' };

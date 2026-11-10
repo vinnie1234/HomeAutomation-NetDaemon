@@ -20,13 +20,40 @@ public class WorkTimeReportTests
     }
 
     [Fact]
-    public void AShortDay_HasNoBreaksTakenOff()
+    public void AShortDayBeforeLunch_HasNoLunchTakenOff_ButAShareOfTheSmokingBreaks()
     {
-        var totals = WorkTimeReport.Of(Day(homeHours: 3));
+        var day = Day(homeHours: 2);
+        day.First = "08:24";
+        day.Last = "10:30";
 
-        totals.Gross.Should().Be(180);
-        totals.WithBreak.Should().Be(180);
-        totals.Net.Should().Be(180);
+        var totals = WorkTimeReport.Of(day);
+
+        totals.Gross.Should().Be(120);
+        totals.WithBreak.Should().Be(120);
+        totals.Net.Should().Be(110, "10 of the 20 minutes: half of the four hours");
+    }
+
+    [Fact]
+    public void ADayThatHasGonePastLunchTime_HasTheLunchTakenOff_EvenUnderFourHours()
+    {
+        var day = Day(homeHours: 3.5);
+        day.First = "08:30";
+        day.Last = "13:00";
+
+        var totals = WorkTimeReport.Of(day);
+
+        totals.WithBreak.Should().Be(210 - 30);
+        totals.Net.Should().Be(180 - 18);
+    }
+
+    [Fact]
+    public void AnEveningAfterLunchTime_HasNoLunchTakenOff()
+    {
+        var day = Day(officeHours: 0.5);
+        day.First = "17:10";
+        day.Last = "17:40";
+
+        WorkTimeReport.Of(day).WithBreak.Should().Be(30);
     }
 
     [Fact]

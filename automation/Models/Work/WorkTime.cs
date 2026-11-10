@@ -46,18 +46,29 @@ public static class WorkTimeReport
     /// <summary>The smoking breaks together, about.</summary>
     public const int SmokingMinutes = 20;
 
-    /// <summary>A day shorter than this has no lunch break and no smoking breaks to take off.</summary>
+    /// <summary>
+    /// From this much time worked the day has had its lunch and all of its smoking breaks. Before that the lunch is taken off once the day
+    /// has gone past <see cref="LunchTime"/> (it started before it and the laptop was counted after it), and the smoking breaks are taken off
+    /// in proportion to the time worked, so a day that is still running already shows what it will come to.
+    /// </summary>
     public const int BreaksFromGrossMinutes = 4 * 60;
 
-    /// <summary>The totals of one day, with the breaks taken off.</summary>
+    /// <summary>The moment the lunch break lies at ("HH:mm"): a day that spans it has had its lunch.</summary>
+    public const string LunchTime = "12:30";
+
+    /// <summary>The totals of one day, with the breaks taken off. The breaks always go per day, also in the sums of weeks and months.</summary>
     public static WorkTotals Of(WorkDay day)
     {
         var home = Minutes(day.Home);
         var office = Minutes(day.Office);
         var other = Minutes(day.Other);
         var gross = home + office + other;
-        var withBreak = gross >= BreaksFromGrossMinutes ? gross - LunchBreakMinutes : gross;
-        var net = gross >= BreaksFromGrossMinutes ? Math.Max(0, withBreak - SmokingMinutes) : withBreak;
+        var hadLunch = gross >= BreaksFromGrossMinutes
+                       || (day.First is { } first && day.Last is { } last
+                           && string.CompareOrdinal(first, LunchTime) < 0 && string.CompareOrdinal(last, LunchTime) >= 0);
+        var withBreak = hadLunch ? Math.Max(0, gross - LunchBreakMinutes) : gross;
+        var smoking = gross >= BreaksFromGrossMinutes ? SmokingMinutes : (int)Math.Round(SmokingMinutes * gross / (double)BreaksFromGrossMinutes, MidpointRounding.AwayFromZero);
+        var net = Math.Max(0, withBreak - smoking);
         return new WorkTotals(gross, withBreak, net, home, office, other);
     }
 
