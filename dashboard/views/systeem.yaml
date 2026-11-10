@@ -215,7 +215,7 @@ sections:
           action: javascript
           javascript: |
             [[[
-              import('/local/huis/marketplace-links.js?v=1').then(m => m.install());
+              import('/local/huis/marketplace-links.js?v=3').then(m => m.install());
               history.pushState(null, '', location.pathname + '#componenten');
               window.dispatchEvent(new CustomEvent('location-changed'));
             ]]]
