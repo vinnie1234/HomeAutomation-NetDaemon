@@ -38,7 +38,6 @@ sections:
           name: Nu aan het spelen
           show_state: false
           show_name: true
-      - !include ../cards/bron_ps5.yaml
       - type: custom:button-card
         template: stat
         entity: sensor.gaming_status_players_online

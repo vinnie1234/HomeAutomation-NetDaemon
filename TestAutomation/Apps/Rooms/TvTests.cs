@@ -245,24 +245,7 @@ public class TvTests
         ctx.VerifyCallService("media_player", "turn_off", "av_soundbar", times: 1);
     }
 
-    [Fact]
-    public void TvTurnsOff_TurnsPs5Off()
-    {
-        // Arrange
-        var ctx = AppTestContext.NewWithScheduler();
-        SetupDefaultStates(ctx);
-        ctx.InitApp<Tv>();
-
-        // Act
-        ctx.ChangeStateFor("media_player.tv").FromState("on").ToState("off");
-        ctx.HaContextMock.ProcessPendingOperations();
-        Thread.Sleep(50);
-
-        // Assert
-        ctx.VerifyCallService("switch", "turn_off", "ps5_vincent_power", times: 1);
-    }
-
-    [Fact]
+        [Fact]
     public void TvTurnsOff_TurnsPlafondOn_WhenWorking()
     {
         // Arrange

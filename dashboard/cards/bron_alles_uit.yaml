@@ -1,4 +1,4 @@
-# TV uit: de Tv-app zet daarna zelf de soundbar en PS5 uit
+# TV uit: de Tv-app zet daarna zelf de soundbar uit
 type: custom:button-card
 template: action
 entity: media_player.tv

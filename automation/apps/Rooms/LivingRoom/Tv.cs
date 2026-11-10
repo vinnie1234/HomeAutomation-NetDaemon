@@ -91,7 +91,6 @@ public class Tv : BaseApp
         if (DisableLightAutomations) return;
 
         Entities.MediaPlayer.AvSoundbar.TurnOff();
-        Entities.Switch.Ps5VincentPower.TurnOff();
 
         // The TV is also turned off when going to sleep or leaving: don't turn the living room lights back on then
         if (IsSleepMode || Entities.InputBoolean.Away.IsOn()) return;

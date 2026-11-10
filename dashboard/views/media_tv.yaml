@@ -24,7 +24,6 @@ sections:
         heading: TV
         heading_style: title
         icon: mdi:television
-      - !include ../cards/bron_ps5.yaml
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
       # Alleen als de tv aan staat: de aan-knop van deze kaart werkt niet (de Samsung kan niet aan via Home Assistant)

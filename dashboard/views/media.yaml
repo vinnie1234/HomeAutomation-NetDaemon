@@ -35,7 +35,7 @@ sections:
           [[[
             const tv = states['media_player.tv'];
             if (!tv || ['off', 'unavailable', 'unknown'].includes(tv.state)) return 'Uit · afstandsbediening en ambilight';
-            const ps5 = states['switch.ps5_vincent_power']?.state === 'on';
+            const ps5 = !['standby', 'off', 'unavailable', 'unknown'].includes(states['media_player.playstation_5']?.state ?? 'off');
             const google = states['remote.tv_in_woonkamer']?.state === 'on';
             return `Aan · ${ps5 ? 'PlayStation' : google ? 'Google TV' : tv.attributes.source ?? 'Samsung TV'}`;
           ]]]
@@ -70,7 +70,7 @@ sections:
           [[[
             const ps = states['media_player.playstation_5'];
             if (ps && !['off', 'standby', 'unavailable', 'unknown'].includes(ps.state))
-              return `Speelt: ${ps.attributes.media_title ?? states['sensor.ps5_vincent_activity']?.state ?? 'PS5'}`;
+              return `Speelt: ${ps.attributes.media_title ?? 'PS5'}`;
             return 'Gamercard en spellen';
           ]]]
         tap_action:
@@ -103,7 +103,6 @@ sections:
         heading: Snel
         heading_style: title
         icon: mdi:lightning-bolt-outline
-      - !include ../cards/bron_ps5.yaml
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
 
