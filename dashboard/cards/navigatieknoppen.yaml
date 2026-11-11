@@ -1,0 +1,21 @@
+# Tegel Navigatieknoppen (per apparaat): heeft deze telefoon de oude knoppen (terug, home, recent) onderaan en zit de menubalk eronder, tik dan om
+# de balk omhoog te zetten: uit, 48 px of 64 px. Telefoons zonder die knoppen laat je uit. Wordt bewaard op het apparaat (www/idle-home.js).
+type: custom:button-card
+template: beheer_tile
+triggers_update: all
+icon: mdi:android
+name: Navigatieknoppen
+label: |
+  [[[
+    const space = window.huisNavKnoppen?.get?.() ?? 0;
+    return space ? `Menu ${space} px hoger op dit apparaat · tik voor de volgende stand` : 'Uit op dit apparaat · tik als het menu onder de knoppen zit';
+  ]]]
+tap_action:
+  action: javascript
+  javascript: |
+    [[[
+      if (!window.huisNavKnoppen) { window.alert('Ververs de pagina en probeer het nog eens.'); return; }
+      const space = window.huisNavKnoppen.next();
+      this.dispatchEvent(new CustomEvent('hass-notification', { bubbles: true, composed: true, detail: { message: space ? `Menu ${space} px hoger op dit apparaat` : 'Menu weer op de gewone plaats' } }));
+      this.requestUpdate?.();
+    ]]]

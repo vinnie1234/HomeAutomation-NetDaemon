@@ -23,6 +23,23 @@
     timer = setTimeout(goHome, IDLE_MS);
   };
 
+  // Een telefoon met de oude navigatieknoppen (terug, home, recent) onderaan: de app tekent het dashboard dan achter die knoppen en de menubalk
+  // zit eronder. Per apparaat te kiezen (de tegel "Navigatieknoppen" op de eigen pagina): hoeveel ruimte onderaan, 0 = niets. De navbar-kaart
+  // (mobile.safe_area) gebruikt --safe-area-inset-bottom; andere telefoons houden hun eigen waarde.
+  const NAV_KEY = 'huis-navigatieknoppen', NAV_STEPS = [0, 48, 64];
+  const navSpace = () => { const v = parseInt(localStorage.getItem(NAV_KEY) ?? '0', 10); return NAV_STEPS.includes(v) ? v : 0; };
+  const applyNav = () => {
+    const space = navSpace();
+    if (space) document.documentElement.style.setProperty('--safe-area-inset-bottom', `${space}px`);
+    else document.documentElement.style.removeProperty('--safe-area-inset-bottom');
+  };
+  window.huisNavKnoppen = {
+    get: navSpace,
+    // Volgende stand: uit, 48 px (de gewone balk), 64 px (een hogere); daarna weer uit
+    next: () => { localStorage.setItem(NAV_KEY, String(NAV_STEPS[(NAV_STEPS.indexOf(navSpace()) + 1) % NAV_STEPS.length])); applyNav(); return navSpace(); }
+  };
+  applyNav();
+
   for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'])
     window.addEventListener(type, restart, { passive: true, capture: true });
   window.addEventListener('location-changed', restart);

@@ -276,6 +276,15 @@ sections:
       - !include ../cards/mijn_spotify_carleen.yaml
       - !include ../cards/muziek_knop_carleen.yaml
 
+  # Dit apparaat: ruimte voor de navigatieknoppen van Android onder het menu
+  - type: grid
+    cards:
+      - type: heading
+        heading: Dit apparaat
+        heading_style: title
+        icon: mdi:cellphone
+      - !include ../cards/navigatieknoppen.yaml
+
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
   - type: grid
     cards:

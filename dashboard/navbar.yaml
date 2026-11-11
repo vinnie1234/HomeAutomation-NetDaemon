@@ -7,6 +7,8 @@ desktop:
   min_width: 768
 mobile:
   show_labels: true
+  # Ruimte onderaan voor de navigatieknoppen van Android (per apparaat, zie www/idle-home.js en de tegel Navigatieknoppen)
+  safe_area: true
 routes:
   - url: /dashboard-huis/home
     label: Home
