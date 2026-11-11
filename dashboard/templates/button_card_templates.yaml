@@ -2485,7 +2485,7 @@ weather_hero:
         // zou de pil vervangen en zijn animaties opnieuw laten beginnen (flikkeren). Pas als de timer verandert komt er een nieuwe.
         window.huisTimerHtml = window.huisTimerHtml ?? {};
         const seen = new Set();
-        const html = timers.map(({ id, name, timer, end }) => {
+        const markup = timers.map(({ id, name, timer, end }) => {
           let total = seconds(timer.duration);
           if (isNaN(total)) {
             // Geen duur bekend: rekenen vanaf het moment dat deze timer voor het eerst op het scherm stond
@@ -2513,7 +2513,7 @@ weather_hero:
                   </div>`;
         }).join('');
         for (const key of Object.keys(window.huisTimerHtml)) if (!seen.has(key)) delete window.huisTimerHtml[key];
-        return html;
+        return markup;
       ]]]
     temp: |
       [[[
