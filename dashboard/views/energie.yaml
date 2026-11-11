@@ -15,6 +15,9 @@ sections:
       - !include ../navbar.yaml
       - !include ../cards/energie_samenvatting.yaml
       - !include ../cards/energie_tabs.yaml
+      - type: custom:huis-energiestroom
+        grid_options:
+          columns: full
 
   # Nu: verbruik of teruglevering, zon en sluipverbruik
   - type: grid

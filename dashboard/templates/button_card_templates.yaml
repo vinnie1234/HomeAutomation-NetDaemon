@@ -2987,7 +2987,11 @@ tab:
       - height: 62px
       - padding: 8px 4px
       - background: |
-          [[[ return window.location.pathname === variables.path ? 'rgba(255, 176, 96, 0.22)' : 'rgba(255, 255, 255, 0.05)'; ]]]
+          [[[
+            // De energiekaart (www/energiestroom.js) hoort bij de Energie-pagina's, waar altijd tabs staan; ?v= ophogen na een wijziging van dat bestand
+            if (!window.huisEnergiestroom) { window.huisEnergiestroom = import('/local/huis/energiestroom.js?v=3').catch(() => null); }
+            return window.location.pathname === variables.path ? 'rgba(255, 176, 96, 0.22)' : 'rgba(255, 255, 255, 0.05)';
+          ]]]
       - border: |
           [[[ return window.location.pathname === variables.path ? '1px solid rgba(255, 176, 96, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'; ]]]
     icon:
