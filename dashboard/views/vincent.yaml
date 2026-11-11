@@ -351,6 +351,7 @@ sections:
         heading: Muziek
         heading_style: title
         icon: mdi:music
+      - !include ../cards/mijn_spotify_vincent.yaml
       - !include ../cards/muziek_knop_vincent.yaml
 
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)

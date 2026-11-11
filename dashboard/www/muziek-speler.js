@@ -94,10 +94,10 @@ export function close() {
   root = null;
 }
 
-export function open(entityId) {
+export function open(entityId, startTab = 'nu') {
   if (document.getElementById(ID)) close();
   entity = entityId;
-  tab = 'nu';
+  tab = ['nu', 'bladeren', 'apparaten'].includes(startTab) ? startTab : 'nu';
   browse = { stack: [], items: null, loading: false, error: '', query: '', results: null };
   root = document.createElement('div');
   root.id = ID;

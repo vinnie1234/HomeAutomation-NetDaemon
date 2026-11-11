@@ -1,0 +1,5 @@
+# Mijn Spotify van Carleen op de eigen pagina (template mijn_spotify): het eigen account, altijd; speelt er niets dan opent een tik bij Bladeren.
+type: custom:button-card
+template: mijn_spotify
+variables:
+  person: carleen

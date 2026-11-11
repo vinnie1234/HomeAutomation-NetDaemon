@@ -273,6 +273,7 @@ sections:
         heading: Muziek
         heading_style: title
         icon: mdi:music
+      - !include ../cards/mijn_spotify_carleen.yaml
       - !include ../cards/muziek_knop_carleen.yaml
 
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
