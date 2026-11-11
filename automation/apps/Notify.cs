@@ -210,14 +210,15 @@ public class Notify : INotify
         List<ActionModel>? action = null,
         string? image = null,
         string? channel = null,
-        string? vibrationPattern = null)
+        string? vibrationPattern = null,
+        string? clickAction = null)
     {
         var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
 
-        var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern);
+        var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern, clickAction: clickAction);
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
             { Title = title, Message = message, Data = data });
         
@@ -390,7 +391,8 @@ public class Notify : INotify
         string? phoneMessage = null,
         string? image = null,
         string? channel = null,
-        string? vibrationPattern = null)
+        string? vibrationPattern = null,
+        string? clickAction = null)
     {
         //construct the data here
         RecordNotifyData data = new(
@@ -409,6 +411,8 @@ public class Notify : INotify
         // Notifications with a vibration pattern are alarms: show them with a red LED
         data.LedColor = vibrationPattern != null ? "red" : null;
         data.Image = image;
+        data.ClickAction = clickAction;
+        data.Url = clickAction;
 
         if (actions != null)
         {

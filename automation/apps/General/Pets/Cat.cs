@@ -9,9 +9,11 @@ namespace Automation.apps.General.Pets;
 /// Represents an application that manages various cat-related automations and notifications.
 /// </summary>
 [NetDaemonApp(Id = nameof(Cat))]
-public class Cat : BaseApp
+public partial class Cat : BaseApp
 {
     private readonly AppConfig _config;
+    private readonly IDataRepository _storage;
+    private readonly IEntityManager _entityManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Cat"/> class.
@@ -26,10 +28,15 @@ public class Cat : BaseApp
         ILogger<Cat> logger,
         INotify notify,
         IScheduler scheduler,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        IDataRepository storage,
+        IEntityManager entityManager)
         : base(haContext, logger, notify, scheduler, config)
     {
         _config = config.Value;
+        _storage = storage;
+        _entityManager = entityManager;
+        SetUpFeeding();
         ButtonFeedCat();
         PetSnowyStatusMonitoring();
         AutoFeedCat();
@@ -116,14 +123,7 @@ public class Cat : BaseApp
                 try
                 {
                     var amount = Convert.ToInt32(Entities.InputNumber.Pixelnumberofmanualfood.State ?? 0);
-                    FeedCat(amount);
-
-                    // The amount of this (last) manual feed, like GiveNextFeedEarly does
-                    Entities.InputNumber.Pixellastamountmanualfeed.SetValue(amount);
-                    Entities.InputDatetime.Pixellastmanualfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
-                    {
-                        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                    });
+                    FeedByHand(amount, NowLabel(), "handmatig");
                 }
                 catch (Exception ex)
                 {
@@ -131,69 +131,6 @@ public class Cat : BaseApp
                 }
 
             });
-    }
-
-    /// <summary>
-    /// Feeds the cat with the specified amount of food.
-    /// </summary>
-    /// <param name="amount">The amount of food to give to the cat.</param>
-    private void FeedCat(int amount)
-    {
-        // Update counters immediately (local state)
-        var amountToday = Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedday.State ?? 0) + amount);
-        Entities.InputNumber.Pixeltotalamountfeedday.SetValue(amountToday);
-        Entities.InputNumber.Pixeltotalamountfeedalltime.SetValue(
-            Convert.ToInt32((Entities.InputNumber.Pixeltotalamountfeedalltime.State ?? 0) + amount));
-
-        try
-        {
-            FeedCatViaTuya(amount);
-        }catch(Exception ex)
-        {
-            Logger.LogError(ex, "Feeding {Amount}g via Tuya failed", amount);
-            NotifyManualFeedingRequired(amount);
-        }
-    }
-
-    /// <summary>
-    /// Feeds the cat through the Xtend Tuya feeder entity.
-    /// </summary>
-    /// <param name="amount">The amount of food to dispense.</param>
-    /// <returns>A task representing the feeding operation.</returns>
-    private void FeedCatViaTuya(int amount)
-    {
-        Services.Number.SetValue(ServiceTarget.FromEntity(Entities.Number.ZedarA600Voeden.EntityId), amount.ToString());
-        
-        Logger.LogInformation("Successfully fed cat {Amount}g via Zedar feeder", amount);
-    }
-
-    /// <summary>
-    /// Fallback notification when automatic feeding fails.
-    /// </summary>
-    /// <param name="amount">The amount that failed to be dispensed.</param>
-    /// <returns>A task representing the notification operation.</returns>
-    private void NotifyManualFeedingRequired(int amount)
-    {
-        var message = $"Automatische voeding van {amount}g is mislukt. Voer Pixel handmatig of check de Zedar feeder.";
-        
-        // Try to notify via phone first, then Discord as secondary
-        try
-        {
-            Notify.NotifyPhoneVincent(
-                "Kat voeding gefaald", 
-                message,
-                true);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to send phone notification, trying Discord");
-            
-            Notify.NotifyDiscord(
-                $"🐱❌ **Feeding Failed**\n{message}", 
-                [_config.Discord.Pixel]);
-        }
-        
-        Logger.LogWarning("Cat feeding failed - manual intervention required for {Amount}g", amount);
     }
 
     /// <summary>
@@ -259,15 +196,7 @@ public class Cat : BaseApp
             Scheduler.RunDailyAt(autoFeed.Key, fallback: null, () =>
             {
                 if (Entities.InputBoolean.Pixelskipnextautofeed.IsOff())
-                {
-                    FeedCat(Convert.ToInt32(autoFeed.Value.State));
-
-                    Entities.InputNumber.Pixellastamountautomationfeed.SetValue(Convert.ToInt32(autoFeed.Value.State));
-                    Entities.InputDatetime.Pixellastautomatedfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
-                    {
-                        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                    });
-                }
+                    FeedScheduled(Convert.ToInt32(autoFeed.Value.State), TimeLabel(autoFeed.Key.State));
 
                 Entities.InputBoolean.Pixelskipnextautofeed.TurnOff();
             });
@@ -285,15 +214,10 @@ public class Cat : BaseApp
             return;
         }
 
+        // The next scheduled feeding is skipped because this one comes early; when the early one fails the scheduled one has to stay
         Entities.InputBoolean.Pixelskipnextautofeed.TurnOn();
-        FeedCat(Convert.ToInt32(closestFeed.Value.State));
-
-        Entities.InputNumber.Pixellastamountmanualfeed.SetValue(Convert.ToInt32(closestFeed.Value.State));
-
-        Entities.InputDatetime.Pixellastmanualfeed.SetDatetime(new InputDatetimeSetDatetimeParameters
-        {
-            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-        });
+        FeedByHand(Convert.ToInt32(closestFeed.Value.State), TimeLabel(closestFeed.Key.State), "eerder geven",
+            whenFailed: () => Entities.InputBoolean.Pixelskipnextautofeed.TurnOff());
     }
 
     /// <summary>

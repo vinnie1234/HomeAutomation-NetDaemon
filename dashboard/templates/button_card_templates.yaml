@@ -6251,6 +6251,42 @@ pixel_med_alert:
     name:
       - font-size: '[[[ return entity?.state === "vergeten" ? "20px" : "16px"; ]]]'
 
+# Pixel is niet gevoerd: de voeder heeft een voeding niet bevestigd (NetDaemon, Cat; sensor.pixel_gemiste_voeding = het aantal gemiste porties).
+# Staat op Home en op de pagina van Pixel zolang er iets gemist is. Tik = na een bevestiging precies die porties alsnog voeren; lang indrukken
+# opent de pagina van Pixel.
+pixel_voeding_alert:
+  template: alert
+  entity: sensor.pixel_gemiste_voeding
+  triggers_update: all
+  icon: mdi:food-drumstick-off
+  variables:
+    color: 255, 77, 77
+    pulse: true
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        const porties = parseInt(entity?.state) || 0;
+        if (!porties) return;
+        if (!window.confirm(`Pixel nu ${porties} ${porties === 1 ? 'portie' : 'porties'} geven?`)) return;
+        hass.callService('input_button', 'press', { entity_id: 'input_button.pixel_alsnog_voeren' });
+      ]]]
+  hold_action:
+    action: navigate
+    navigation_path: /dashboard-huis/pixel
+  name: Pixel is NIET gevoerd!
+  label: |
+    [[[
+      const porties = parseInt(entity?.state) || 0;
+      const momenten = (entity?.attributes?.momenten ?? []).map(m => m.tijd).join(', ');
+      return `${porties} ${porties === 1 ? 'portie' : 'porties'} gemist (${momenten}) · tik om alsnog te voeren`;
+    ]]]
+  styles:
+    card:
+      - min-height: 104px
+    name:
+      - font-size: 20px
+
 # Medicijnen van Pixel bijna op: prednison onder 2 pillen of antibraak nog maar 1 (of minder). Tik opent de pagina Medicijnen.
 pixel_med_low:
   template: alert

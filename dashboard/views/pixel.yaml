@@ -105,6 +105,17 @@ sections:
                   return s && s !== 'full' ? '#ff6b6b' : 'var(--secondary-text-color)';
                 ]]]
 
+      # Een voeding die de voeder niet bevestigde: met de knop om alsnog te voeren (zelfde kaart als op Home)
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: sensor.pixel_gemiste_voeding
+            above: 0
+        card:
+          type: custom:button-card
+          template: pixel_voeding_alert
+        grid_options:
+          columns: 12
       # Alle voedermomenten gesorteerd op tijd; tik om tijden en porties aan te passen
       - type: custom:button-card
         template: glass
@@ -130,18 +141,24 @@ sections:
                 .sort((a, b) => a.time.localeCompare(b.time));
               const minutes = t => parseInt(t.slice(0, 2)) * 60 + parseInt(t.slice(3));
               const next = feeds.find(f => minutes(f.time) > now) ?? feeds[0];
-              // Gegeten of gemist: de porties van vandaag moeten minstens de som zijn van alle momenten tot en met dit moment
+              // Gegeten of gemist: NetDaemon (Cat) houdt bij welke voedingen de voeder niet bevestigde (sensor.pixel_gemiste_voeding); een moment
+              // dat voorbij is en daar niet bij staat is gegeven. Na "alsnog voeren" staat het moment niet meer in die lijst: groen.
+              const d = new Date(), pad = n => String(n).padStart(2, '0');
+              const todayText = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+              const missedList = states['sensor.pixel_gemiste_voeding']?.attributes?.momenten;
+              const known = Array.isArray(missedList);
+              // (Zonder die sensor: de oude berekening, de porties van vandaag tegenover de som van de momenten tot nu)
               const eaten = parseFloat(states['input_number.pixeltotalamountfeedday']?.state) || 0;
               let planned = 0;
               return feeds.map(f => {
                 const done = minutes(f.time) <= now;
                 if (done) planned += f.amount;
-                const fed = done && eaten >= planned;
-                const missed = done && !fed;
+                const missed = done && (known ? missedList.some(m => m.datum === todayText && m.tijd === f.time) : eaten < planned);
+                const fed = done && !missed;
                 const isNext = f === next;
                 const icon = fed ? 'mdi:check-circle' : missed ? 'mdi:close-circle' : isNext && skip ? 'mdi:skip-next-circle-outline' : 'mdi:clock-outline';
                 const color = fed ? '#4ade80' : missed ? '#ff6b6b' : isNext ? '#ffb060' : 'rgba(242,244,248,0.45)';
-                const note = missed ? 'niet gegeten' : isNext && skip ? 'wordt overgeslagen' : isNext ? 'volgende' : '';
+                const note = missed ? 'NIET gevoerd' : isNext && skip ? 'wordt overgeslagen' : isNext ? 'volgende' : '';
                 return `<div style="display:grid;grid-template-columns:30px 60px 1fr auto;align-items:center;column-gap:10px;
                           padding:10px 2px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
                           <ha-icon icon="${icon}" style="--mdc-icon-size:22px;color:${color};display:flex"></ha-icon>

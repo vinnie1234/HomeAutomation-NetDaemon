@@ -44,7 +44,8 @@ public interface INotify
         List<ActionModel>? action = null,
         string? image = null,
         string? channel = null,
-        string? vibrationPattern = null);
+        string? vibrationPattern = null,
+        string? clickAction = null);
 
 
     // ReSharper disable once UnusedMember.Global

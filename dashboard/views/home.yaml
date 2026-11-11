@@ -400,6 +400,17 @@ sections:
           template: netdaemon_alert
         grid_options:
           columns: 12
+      # Pixel is niet gevoerd: de voeder bevestigde een voeding niet (NetDaemon, Cat); de knop voert precies wat gemist is
+      - type: conditional
+        conditions:
+          - condition: numeric_state
+            entity: sensor.pixel_gemiste_voeding
+            above: 0
+        card:
+          type: custom:button-card
+          template: pixel_voeding_alert
+        grid_options:
+          columns: 12
       # De portemonnee is niet thuis terwijl Vincent thuis is, nadat NetDaemon hem twee keer heeft laten zoeken (WalletMonitor)
       - type: conditional
         conditions:

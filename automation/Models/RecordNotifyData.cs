@@ -45,6 +45,14 @@ public class RecordNotifyData
     [JsonPropertyName("ledColor")]
     public string? LedColor { get; set; }
 
+    /// <summary>Where a tap on the notification goes (Android, a path of Home Assistant such as /dashboard-huis/pixel).</summary>
+    [JsonPropertyName("clickAction")]
+    public string? ClickAction { get; set; }
+
+    /// <summary>The same for iOS.</summary>
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
     [JsonPropertyName("actions")]
     public List<ActionModel>? Actions { get; set; }
 }

@@ -143,6 +143,8 @@ public static class HelperDefinitions
         Button("cleanpetsnowy", "CleanPetSnowy", icon: "mdi:spray-bottle"),
         Button("emptypetsnowy", "EmptyPetSnowy", icon: "mdi:delete-empty-outline"),
         Button("feedcat", "FeedCat", icon: "mdi:cat"),
+        // Voert wat Pixel gemist heeft (een voeding die de voeder niet bevestigde), precies dat aantal porties (Cat)
+        Button("pixel_alsnog_voeren", "Pixel alsnog voeren", icon: "mdi:food-drumstick"),
         Button("restartnetdeamon", "RestartNetDaemon"),
         Button("start_friends", "Start Friends"),
         Button("start_kerstmuziek", "Start Kerstmuziek", icon: "mdi:music-note"),
