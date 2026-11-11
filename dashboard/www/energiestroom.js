@@ -17,18 +17,18 @@ const ROOMS = [
     ['Plafond', 'sensor.plafond_woonkamer_power'], ['Hue Play links', 'sensor.hue_play_links_power'],
     ['Hue Play midden', 'sensor.hue_play_midden_power'], ['Hue Play rechts', 'sensor.hue_play_rechts_power'],
     ['TV kast', 'sensor.tv_kast_power'], ['Woonkamer', 'sensor.woonkamer_power'], ['Soundbar', 'sensor.soundbar_power_meter'],
-    ['Gamehoek', 'sensor.energysocket_5c2faf0d8364_active_power']] },
+    ['Gamehoek', 'sensor.energysocket_5c2faf0d8364_active_power'], ['Koelkast (lamp)', 'sensor.koelkast_power'],
+    ['Buiten deur (lamp)', 'sensor.buiten_deur_power']] },
   { name: 'Keuken', icon: 'mdi:countertop-outline', color: '#4ade80', devices: [
-    ['Keuken', 'sensor.keuken_power'], ['Koelkast', 'sensor.koelkast_power'], ['Nest Mini', 'sensor.nestmini9818_power']] },
+    ['Keuken', 'sensor.keuken_power'], ['Bureau', 'sensor.plug_bureau_device_power'], ['Nest Mini', 'sensor.nestmini9818_power']] },
   { name: 'Slaapkamer', icon: 'mdi:bed-outline', color: '#a78bfa', devices: [
     ['Plafond', 'sensor.plafond_slaapkamer_power'], ['Nachtkastje', 'sensor.nachtkastje_power']] },
-  { name: 'Badkamer', icon: 'mdi:shower-head', color: '#60a5fa', devices: [['Plafond', 'sensor.plafond_badkamer_power']] },
+  { name: 'Badkamer', icon: 'mdi:shower-head', color: '#60a5fa', devices: [
+    ['Plafond', 'sensor.plafond_badkamer_power'], ['Wasmachine', 'sensor.wasmachine_vermogen']] },
   { name: 'Gang en berging', icon: 'mdi:door-open', color: '#f472b6', devices: [
     ['Hal', 'sensor.hal_power'], ['Hal (2)', 'sensor.hal_device_power'], ['Berging', 'sensor.berging_power'],
-    ['Sigaret', 'sensor.sigaret_device_power'], ['Ventilatie', 'sensor.energysocket_5c2faf0c7564_active_power']] },
-  { name: 'Buiten en techniek', icon: 'mdi:home-lightning-bolt-outline', color: '#facc15', devices: [
-    ['Buiten deur', 'sensor.buiten_deur_power'], ['Bureau', 'sensor.plug_bureau_device_power'],
-    ['Warmtepomp', 'sensor.energysocket_5c2faf02a546_active_power'], ['Wasmachine', 'sensor.wasmachine_vermogen']] },
+    ['Sigaret', 'sensor.sigaret_device_power'], ['Ventilatie', 'sensor.energysocket_5c2faf0c7564_active_power'],
+    ['Warmtepomp', 'sensor.energysocket_5c2faf02a546_active_power']] },
 ];
 
 const fmtW = (w) => (w === null ? '–' : Math.abs(w) >= 1000 ? `${(w / 1000).toFixed(2).replace('.', ',')} kW` : `${Math.round(w)} W`);
@@ -88,8 +88,13 @@ class HuisEnergiestroom extends HTMLElement {
         .rechts { display:flex; flex-direction:column; gap:10px; }
         .kamers { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
         .kamer { border-left:4px solid var(--c); }
-        .kamer .kop2 { display:flex; justify-content:space-between; align-items:center; font-weight:600; }
-        .kamer .kop2 span:first-child { display:flex; gap:6px; align-items:center; }
+        .kamer .kop2 { display:flex; align-items:center; gap:10px; font-weight:600; }
+        .kamer .ico { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--c) 22%, transparent); color:var(--c); flex:none; }
+        .kamer .nm { flex:1; min-width:0; display:flex; flex-direction:column; }
+        .kamer .nm small { font-weight:400; font-size:11px; opacity:.6; }
+        .kamer .tw { font-size:18px; }
+        .kamer .balk { height:4px; border-radius:2px; background:rgba(255,255,255,.1); margin-top:10px; overflow:hidden; }
+        .kamer .balk i { display:block; height:100%; background:var(--c); border-radius:2px; transition:width .6s; }
         .kamer ul { list-style:none; margin:8px 0 0; padding:0; font-size:12.5px; }
         .kamer li { display:flex; justify-content:space-between; padding:2px 0; opacity:.85; }
         .tegels { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
@@ -129,8 +134,8 @@ class HuisEnergiestroom extends HTMLElement {
     const zonDeel = huis && huis > 0 ? Math.min(1, (huis - afname) / huis) : 0;
     const eigen = zon > 0 ? Math.min(1, Math.max(0, (zon - uitvoer) / zon)) : 0;
     this._el('pillen').innerHTML =
-      `<span class="pil">Autarkie nu <b>${Math.round(zonDeel * 100)} %</b></span>` +
-      `<span class="pil">Eigen verbruik nu <b>${zon > 0 ? Math.round(eigen * 100) + ' %' : '–'}</b></span>`;
+      `<span class="pil" title="Welk deel van het verbruik nu uit je eigen zonnepanelen komt">Eigen stroom <b>${Math.round(zonDeel * 100)} %</b></span>` +
+      `<span class="pil" title="Welk deel van de opwek je zelf gebruikt in plaats van terug te leveren">Zon zelf gebruikt <b>${zon > 0 ? Math.round(eigen * 100) + ' %' : '–'}</b></span>`;
 
     this._el('zon').innerHTML =
       `<div class="k"><ha-icon icon="mdi:solar-power-variant" style="color:var(--zon)"></ha-icon>Zon</div>` +
@@ -154,7 +159,7 @@ class HuisEnergiestroom extends HTMLElement {
       el.style.setProperty('--d', `${Math.max(0.8, 3.2 - w / 1500)}s`);
     };
     dots('l1', zon, '#ffd166', false);
-    dots('l2', Math.abs(grid || 0), grid !== null && grid < 0 ? '#34d399' : '#60a5fa', grid !== null && grid < 0);
+    dots('l2', Math.abs(grid || 0), grid !== null && grid < 0 ? '#34d399' : '#60a5fa', grid !== null && grid > 0);
 
     // Ring: aandeel zon (geel) en net (blauw) van het verbruik
     const R = 50, C = 2 * Math.PI * R;
@@ -176,8 +181,10 @@ class HuisEnergiestroom extends HTMLElement {
         .sort((a, b) => b[1] - a[1]);
       const totaal = items.reduce((a, [, v]) => a + v, 0);
       const top = items.slice(0, 4);
+      const deel = huis && huis > 0 ? Math.min(100, (totaal / huis) * 100) : 0;
       return `<div class="kaart kamer" style="--c:${room.color}">
-        <div class="kop2"><span><ha-icon icon="${room.icon}" style="color:${room.color}"></ha-icon>${room.name}</span><span>${fmtW(totaal)}</span></div>
+        <div class="kop2"><span class="ico"><ha-icon icon="${room.icon}"></ha-icon></span><span class="nm">${room.name}<small>${Math.round(deel)} % van het huis</small></span><span class="tw">${fmtW(totaal)}</span></div>
+        <div class="balk"><i style="width:${deel}%"></i></div>
         <ul>${top.map(([n, v]) => `<li><span>${n}</span><span>${v < 10 ? v.toFixed(1).replace('.', ',') + ' W' : fmtW(v)}</span></li>`).join('') || '<li>Geen metingen</li>'}</ul>
       </div>`;
     }).join('');
@@ -197,7 +204,7 @@ class HuisEnergiestroom extends HTMLElement {
       t('zon', 'Zon vandaag', fmtKwh(pv), eigenPv !== null ? `${fmtKwh(eigenPv)} zelf gebruikt` : '') +
       t('net', 'Van het net', fmtKwh(imp), 'afgenomen vandaag') +
       t('exp', 'Teruggeleverd', fmtKwh(exp), 'vandaag') +
-      t('', 'Verbruik huis', fmtKwh(huis), autarkie !== null ? `autarkie ${Math.round(autarkie * 100)} %` : '') +
+      t('', 'Verbruik huis', fmtKwh(huis), autarkie !== null ? `${Math.round(autarkie * 100)} % uit eigen zon` : '') +
       t('', 'Kosten vandaag', fmtEur(kosten), 'tot nu toe');
   }
 
