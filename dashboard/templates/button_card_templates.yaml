@@ -590,7 +590,7 @@ weather_hero:
     }
     .hero-countdown::after { content: counter(timer-m) ":" counter(timer-s, decimal-leading-zero); }
     @keyframes hero-timer-color { 0%, 75% { background: rgba(255, 176, 96, 0.92); } 82%, 100% { background: rgba(255, 99, 99, 0.95); } }
-    @keyframes hero-timer-blink { 50% { opacity: 0.35; } }
+    @keyframes hero-timer-blink { 50% { opacity: 0.6; } }
     @keyframes hero-timer-hide { to { opacity: 0; } }
     @keyframes hero-timer-show { to { opacity: 1; } }
     @keyframes hero-petal {
@@ -2449,7 +2449,7 @@ weather_hero:
                 padding: 2px 8px !important;
               }
     # Lopende timers van de speakers: oranje pil met aftellende minuten:seconden die na 75% van de tijd rood wordt,
-    # de laatste 20 seconden knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
+    # de laatste 10 seconden rustig knippert en daarna "klaar!" toont (blijft 5 minuten staan). Alles via CSS-animaties,
     # zodat de kaart niet elke seconde opnieuw getekend hoeft te worden.
     timers: |
       [[[
@@ -2481,7 +2481,11 @@ weather_hero:
             return { id: `${id}:${timer.timer_id ?? i}`, name, timer, end };
           });
         }).filter(t => !isNaN(t.end) && t.end >= now - 300000).sort((x, y) => x.end - y.end);
-        return timers.map(({ id, name, timer, end }) => {
+        // Elke timer krijgt één keer zijn HTML en houdt die: de tekening hangt van "nu" af (de resterende tijd), dus elke nieuwe tekening
+        // zou de pil vervangen en zijn animaties opnieuw laten beginnen (flikkeren). Pas als de timer verandert komt er een nieuwe.
+        window.huisTimerHtml = window.huisTimerHtml ?? {};
+        const seen = new Set();
+        const html = timers.map(({ id, name, timer, end }) => {
           let total = seconds(timer.duration);
           if (isNaN(total)) {
             // Geen duur bekend: rekenen vanaf het moment dat deze timer voor het eerst op het scherm stond
@@ -2492,10 +2496,13 @@ weather_hero:
           const left = Math.max(0, (end - now) / 1000);
           const elapsed = total - left;
           const label = timer.label ? ` (${timer.label})` : '';
-          return `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px;
+          const key = `${id}|${end}|${total}|${label}|${name}`;
+          seen.add(key);
+          if (window.huisTimerHtml[key]) return window.huisTimerHtml[key];
+          return window.huisTimerHtml[key] = `<div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0;padding:7px 14px;
                     border-radius:16px;color:#fff;overflow:hidden;font-size:16px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);
                     animation:hero-timer-color ${total}s linear ${-elapsed}s forwards,
-                              hero-timer-blink 0.6s ease-in-out ${Math.max(0, left - 20)}s infinite">
+                              hero-timer-blink 1.2s ease-in-out ${Math.max(0, left - 10)}s infinite">
                     <ha-icon icon="mdi:timer-outline" style="--mdc-icon-size:20px"></ha-icon>
                     <span style="white-space:nowrap">${name}${label}</span>
                     <span style="position:relative">
@@ -2505,6 +2512,8 @@ weather_hero:
                     </span>
                   </div>`;
         }).join('');
+        for (const key of Object.keys(window.huisTimerHtml)) if (!seen.has(key)) delete window.huisTimerHtml[key];
+        return html;
       ]]]
     temp: |
       [[[
