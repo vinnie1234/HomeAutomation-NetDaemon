@@ -8,7 +8,7 @@ using static Automation.Globals;
 namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
-/// Date night (the switch "Date night"): the living room lights turn romantic, a question on the phones whether the music should change to the date night playlist (living room and kitchen), the
+/// Date night (the switch "Date night"): the living room lights turn romantic, a question on the dashboard whether the music should change to the date night playlist (living room and kitchen), the
 /// vacuum does not run and the other automatic music, the announcements and the ordinary notifications stay quiet (see
 /// <see cref="Helpers.SpotifyChoice.Autoplay"/>, the vacuum and <see cref="Notify"/>). The dashboard turns calm and romantic by itself.
 /// Date night always ends when someone goes to sleep. When it ends, the music stops and the living room lights go back to the scene of the time of day.
@@ -16,8 +16,8 @@ namespace Automation.apps.Rooms.LivingRoom;
 [NetDaemonApp(Id = nameof(DateNight))]
 public class DateNight : BaseApp
 {
-    /// <summary>How long the question about the music stays on the phones, in seconds.</summary>
-    public const int MusicQuestionTimeout = 30;
+    /// <summary>The answer Ja to the question on the dashboard about the music.</summary>
+    public const string MusicButton = "input_button.datenight_muziek";
 
     public const string PlaylistUrl = "https://open.spotify.com/playlist/1HLh1SsPFrBOQLta0y2FFl";
 
@@ -35,6 +35,11 @@ public class DateNight : BaseApp
     {
         _spotcast = spotcast;
         _config = config.Value;
+
+        // An input_button's state is the time of the last press; creating it at startup gives "unknown", which is not a press
+        new Entity(HaContext, MusicButton).StateChanges()
+            .Where(x => DateTimeOffset.TryParse(x.New?.State, out _))
+            .Subscribe(_ => { if (Entities.InputBoolean.Datenight.IsOn()) PlayMusic(); });
 
         Entities.InputBoolean.Datenight.WhenTurnsOn(_ => Start());
         Entities.InputBoolean.Datenight.WhenTurnsOff(_ => End());
@@ -63,14 +68,8 @@ public class DateNight : BaseApp
             Entities.Vacuum.Jaap.ReturnToBase();
         }
 
-        // The music is only changed when someone says so: a question on both phones that goes away by itself
-        Notify.NotifyPhoneVincentCarleen("Date night", "Muziek aanpassen naar de date night playlist?", true,
-            action:
-            [
-                new ActionModel("DATENIGHT_MUSIC_YES", "Ja", func: PlayMusic),
-                new ActionModel("DATENIGHT_MUSIC_NO", "Nee", func: () => Logger.LogInformation("Date night: the music stays as it is"))
-            ],
-            timeoutSeconds: MusicQuestionTimeout);
+        // The music is only changed when someone says so: the dashboard asks (Ja / Nee, gone after 30 seconds, see www/stijl.js) and the
+        // answer Ja presses this button
     }
 
     /// <summary>The date night playlist, on the speakers of the living room and the kitchen.</summary>

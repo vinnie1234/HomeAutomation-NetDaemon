@@ -4,6 +4,7 @@ using Automation.Interfaces;
 using Automation.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using HomeAssistantGenerated;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
 using TestAutomation.Helpers;
@@ -47,16 +48,25 @@ public class DateNightTests
     }
 
     [Fact]
-    public void WhenDateNightStarts_TheMusicIsAskedAbout_AndNotStartedYet()
+    public void WhenDateNightStarts_TheMusicDoesNotStartByItself()
     {
         Start();
 
         Change("input_boolean.datenight", "off", "on");
 
-        _notify.Received(1).NotifyPhoneVincentCarleen("Date night", Arg.Any<string>(), true, Arg.Any<double?>(),
-            Arg.Is<List<ActionModel>>(a => a.Count == 2 && a[0].Title == "Ja" && a[1].Title == "Nee"), Arg.Any<string?>(),
-            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), DateNight.MusicQuestionTimeout);
         _ctx.Spotcast.DidNotReceiveWithAnyArgs().PlaySpotify(default!, default!, default);
+    }
+
+    [Fact]
+    public void WhenTheDashboardAnswersJa_ThePlaylistStartsInTheLivingRoomAndTheKitchen()
+    {
+        Start();
+        _ctx.HaContext.GetState("input_boolean.datenight").Returns(new EntityState { State = "on" });
+
+        Change(DateNight.MusicButton, "unknown", "2026-11-12T20:00:00+00:00");
+
+        _ctx.Spotcast.Received(1).PlaySpotify(Arg.Is<MediaPlayerEntity>(m => m.EntityId == "media_player.woonkamer"), DateNight.PlaylistUrl, Arg.Any<string?>());
+        _ctx.Spotcast.Received(1).PlaySpotify(Arg.Is<MediaPlayerEntity>(m => m.EntityId == "media_player.nestmini9818"), DateNight.PlaylistUrl, Arg.Any<string?>());
     }
 
     [Fact]

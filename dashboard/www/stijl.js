@@ -107,10 +107,63 @@ function datenightOn() {
   return ha?.hass?.states?.['input_boolean.datenight']?.state === 'on';
 }
 
+// De vraag bij het aanzetten van date night: "Muziek aanpassen?" met Ja en Nee, 30 seconden lang. Ja drukt de knop die NetDaemon volgt
+// (input_button.datenight_muziek) en start de playlist; Nee en geen antwoord laten de muziek zoals hij is.
+const VRAAG_SECONDEN = 30;
+let vraag = null;
+
+function sluitVraag() {
+  if (!vraag) return;
+  clearInterval(vraag.timer);
+  vraag.el.remove();
+  vraag = null;
+}
+
+function toonVraag() {
+  sluitVraag();
+  const ha = document.querySelector('home-assistant');
+  const start = ha?.hass?.states?.['input_button.datenight_muziek']?.state;
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;background:rgba(10,3,8,0.6);padding:16px;box-sizing:border-box';
+  el.innerHTML = `<div style="width:min(420px,100%);box-sizing:border-box;background:#121828;border:1px solid rgba(255,122,156,0.45);border-radius:24px;padding:22px;color:#f2f4f8;font-family:inherit;box-shadow:0 0 40px rgba(255,90,140,0.25)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,122,156,0.2);color:#ff7a9c"><ha-icon icon="mdi:heart" style="--mdc-icon-size:24px"></ha-icon></span>
+        <div><div style="font-size:18px;font-weight:700">Date night</div><div style="opacity:.7;font-size:13px">Muziek aanpassen naar de date night playlist?</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+        <span data-ja style="cursor:pointer;text-align:center;padding:14px;border-radius:14px;font-weight:700;background:rgba(255,122,156,0.25);border:1px solid rgba(255,122,156,0.6)">Ja</span>
+        <span data-nee style="cursor:pointer;text-align:center;padding:14px;border-radius:14px;font-weight:700;background:rgba(255,255,255,0.08);border:1px solid transparent">Nee</span></div>
+      <div data-tijd style="margin-top:12px;text-align:center;font-size:12px;opacity:.55"></div></div>`;
+  document.body.appendChild(el);
+  let rest = VRAAG_SECONDEN;
+  const tijd = el.querySelector('[data-tijd]');
+  const toon = () => { tijd.textContent = `Dit verdwijnt over ${rest} seconden`; };
+  toon();
+  const timer = setInterval(() => {
+    rest -= 1;
+    if (rest <= 0) return sluitVraag();
+    toon();
+    // Beantwoord op een ander scherm (de knop is ingedrukt) of date night is alweer uit: dan hoeft het hier niet meer
+    const nu = document.querySelector('home-assistant')?.hass?.states;
+    if (nu?.['input_button.datenight_muziek']?.state !== start || nu?.['input_boolean.datenight']?.state !== 'on') sluitVraag();
+  }, 1000);
+  vraag = { el, timer };
+  el.addEventListener('click', (e) => {
+    if (e.target.closest('[data-ja]')) {
+      document.querySelector('home-assistant')?.hass?.callService('input_button', 'press', { entity_id: 'input_button.datenight_muziek' });
+      sluitVraag();
+    } else if (e.target.closest('[data-nee]')) {
+      sluitVraag();
+    }
+  });
+}
+
 function applyDatenight() {
   const on = datenightOn();
   const root = document.documentElement;
   if (on !== datenightWas) {
+    // Alleen als het net aangezet wordt, niet als de pagina opent terwijl date night al aan staat
+    if (on && datenightWas === false) toonVraag();
+    if (!on) sluitVraag();
     datenightWas = on;
     if (on) {
       root.style.setProperty('--lovelace-background', ROMANTISCH);
