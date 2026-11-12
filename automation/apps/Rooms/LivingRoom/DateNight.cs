@@ -65,12 +65,12 @@ public class DateNight : BaseApp
         Logger.LogInformation("Date night playlist started");
     }
 
-    /// <summary>Warm and dim: the pendant lamp low, the bench and the Hue Play lights in a deep rose, the rest of the room out.</summary>
+    /// <summary>Warm: the pendant lamp at 80 percent (games are played at date night too), the bench and the Hue Play lights in a deep rose, the rest of the room out.</summary>
     private void RomanticLights()
     {
-        Entities.Light.PlafondWoonkamer.TurnOn(brightnessPct: 12, colorTempKelvin: 2200);
-        Entities.Light.HueFilamentBulb1.TurnOn(brightnessPct: 15, colorTempKelvin: 2200);
-        Entities.Light.HueFilamentBulb2.TurnOn(brightnessPct: 15, colorTempKelvin: 2200);
+        Entities.Light.PlafondWoonkamer.TurnOn(brightnessPct: 80, colorTempKelvin: 2200);
+        Entities.Light.HueFilamentBulb1.TurnOn(brightnessPct: 80, colorTempKelvin: 2200);
+        Entities.Light.HueFilamentBulb2.TurnOn(brightnessPct: 80, colorTempKelvin: 2200);
         foreach (var play in new[] { Entities.Light.HuePlayLinks, Entities.Light.HuePlayMidden, Entities.Light.HuePlayRechts })
             play.TurnOn(brightnessPct: 30, rgbColor: [255, 40, 90]);
         Entities.Light.Bank.TurnOn(brightnessPct: 25, rgbColor: [255, 40, 90]);
