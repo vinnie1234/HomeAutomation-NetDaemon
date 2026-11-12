@@ -118,6 +118,17 @@ public class MusicFollowMeTests
     }
 
     [Fact]
+    public void WhenTheLaptopLocks_AndTheMusicComesFromMusicAssistantPlayback_TheMusicGoesOnInTheKitchen()
+    {
+        Start();
+        State(MusicFollowMe.SpotifyState, "playing", "Music Assistant Playback");
+
+        Change("binary_sensor.werk_laptop_session_locked", "off", "on");
+
+        _ctx.VerifyCallService("media_player", "select_source", "spotifyplus_vincent_maarschalkerweerd", times: 1);
+    }
+
+    [Fact]
     public void WhenTheLaptopLocks_AndTheMusicPlaysElsewhere_NothingHappens()
     {
         Start();

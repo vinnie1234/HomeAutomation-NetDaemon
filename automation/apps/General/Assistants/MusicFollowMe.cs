@@ -28,6 +28,9 @@ public class MusicFollowMe : BaseApp
     /// <summary>The name of the laptop as a Spotify device.</summary>
     public const string LaptopDevice = "ADMIN_RISK182";
 
+    /// <summary>The Spotify devices that count as the desk: the laptop, the Music Assistant Playback device and the TV.</summary>
+    public static readonly string[] DeskSources = [LaptopDevice, "Music Assistant Playback", "Tv in Woonkamer", "Soundbar"];
+
     /// <summary>The kitchen as a Spotify device.</summary>
     public const string KitchenDevice = "Keuken";
 
@@ -170,8 +173,15 @@ public class MusicFollowMe : BaseApp
     {
         if (!LaptopMusicMayMove) return;
         var spotify = HaContext.GetState(SpotifyState);
-        var onLaptop = spotify?.State == "playing" && string.Equals(Attribute(spotify, "source"), LaptopDevice, StringComparison.OrdinalIgnoreCase);
-        if (!onLaptop) return;
+        var source = Attribute(spotify, "source");
+        // Music that belongs to the desk: on the laptop itself, or on the Music Assistant Playback device / the TV, where it ends up when the
+        // laptop started it from there. Music that already plays in a room stays where it is.
+        var atTheDesk = spotify?.State == "playing" && DeskSources.Any(x => string.Equals(x, source, StringComparison.OrdinalIgnoreCase));
+        if (!atTheDesk)
+        {
+            Logger.LogDebug("The laptop locked, the music is not at the desk (Spotify: {State}, source {Source})", spotify?.State, source);
+            return;
+        }
 
         Core.ActivityContext.Note("De laptop is vergrendeld: de muziek gaat door in de keuken");
         Logger.LogInformation("The laptop locked while the music plays on it: the music goes on in the kitchen");
