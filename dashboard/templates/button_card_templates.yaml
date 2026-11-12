@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=6').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=7').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             const palet = ['#ffc83d', '#8b8cff', '#4fd1c5', '#f6ad55', '#38bdf8', '#f472b6', '#34d399', '#ff7a8a', '#5b9dff'];
             const dc = entity && entity.attributes && entity.attributes.device_class;
@@ -5944,40 +5944,66 @@ homework_days:
     list: |
       [[[
         const a = entity?.attributes ?? {};
-        const days = (a.dagen ?? []).filter(d => d.minuten > 0);
+        const all = (a.dagen ?? []).filter(d => d.minuten > 0);
         const euro = v => `€ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
         const num = (v, d = 1) => (Number(v) || 0).toFixed(d).replace('.', ',');
         const hours = m => `${Math.floor(m / 60)}u${String(Math.round(m % 60)).padStart(2, '0')}`;
         const stat = (label, value) => `<div style="flex:1;min-width:0;padding:10px;border-radius:14px;background:rgba(255,255,255,0.06)">
             <div style="font-size:11px;opacity:0.65">${label}</div><div style="font-size:18px;font-weight:700">${value}</div></div>`;
-        const month = new Date().toLocaleDateString('nl-NL', { month: 'long' });
-        const average = a.maand_dagen ? a.maand_kosten / a.maand_dagen : 0;
-        let out = `<div style="display:flex;gap:8px;margin-bottom:12px">
-            ${stat(`Kosten ${month}`, euro(a.maand_kosten))}${stat('Stroom', `${num(a.maand_kwh)} kWh`)}
-            ${stat('Dagen', a.maand_dagen ?? 0)}${stat('Per dag', euro(average))}</div>`;
-        if (!days.length) return out + '<div style="opacity:0.6;padding:8px">Nog geen thuiswerkdagen gemeten.</div>';
 
-        const max = Math.max(...days.map(d => Math.abs(d.kosten)), 0.01);
-        for (const d of days) {
-          const date = new Date(`${d.datum}T12:00:00`);
-          const earned = d.kosten < 0;
-          const details = [`↓ ${num(d.afname_kwh)}`];
-          if (d.teruglevering_kwh > 0) details.push(`↑ ${num(d.teruglevering_kwh)}`);
-          if (d.wasmachine_kwh > 0) details.push(`wasmachine −${num(d.wasmachine_kwh)}`);
-          out += `<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 2px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
-              <span style="font-size:13px;font-weight:600">${date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-                <span style="font-weight:400;opacity:0.6"> · ${hours(d.minuten)}</span></span>
-              <span style="font-size:14px;font-weight:700;color:${earned ? '#4ade80' : 'inherit'}">${euro(d.kosten)}</span>
-              <span style="font-size:11px;opacity:0.65">${num(d.verbruik_kwh)} kWh (${details.join(' · ')})</span>
-              <span></span>
-              <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
-                <div style="width:${Math.abs(d.kosten) / max * 100}%;height:100%;border-radius:3px;
-                  background:${earned ? '#4ade80' : 'linear-gradient(90deg,#ffb060,#ff6b6b)'}"></div></div>
-            </div>`;
-        }
-        return out + `<div style="font-size:11px;opacity:0.5;padding-top:8px;text-align:left">
+        // De periode: week, deze maand, vorige maand, laatste 30 dagen of alles; blijft gekozen als de gegevens verversen
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const day = d => new Date(`${d.datum}T12:00:00`);
+        const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        const ago30 = new Date(today); ago30.setDate(today.getDate() - 30);
+        const sameMonth = (d, m) => d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth();
+        const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const periods = [
+          ['week', 'Deze week', d => day(d) >= monday],
+          ['maand', today.toLocaleDateString('nl-NL', { month: 'long' }), d => sameMonth(day(d), today)],
+          ['vorig', prevMonth.toLocaleDateString('nl-NL', { month: 'long' }), d => sameMonth(day(d), prevMonth)],
+          ['30', '30 dagen', d => day(d) >= ago30],
+          ['alles', 'Alles', () => true]
+        ];
+        const chosen = periods.some(p => p[0] === window.huisThuiswerkPeriode) ? window.huisThuiswerkPeriode : 'maand';
+        window.huisKiesPeriode = key => { window.huisThuiswerkPeriode = key; };
+        const on = 'rgba(255,176,96,0.25)', off = 'rgba(255,255,255,0.06)';
+        const tabs = periods.map(([key, label]) => `<span data-tab="${key}" style="cursor:pointer;flex:none;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:600;
+            background:${key === chosen ? on : off}"
+            onclick="event.stopPropagation();window.huisKiesPeriode('${key}');const r=this.closest('.hw');r.querySelectorAll('[data-tab]').forEach(t=>{t.style.background=t.dataset.tab==='${key}'?'${on}':'${off}'});r.querySelectorAll('[data-p]').forEach(e=>{e.style.display=e.dataset.p==='${key}'?'block':'none'})">${label}</span>`).join('');
+
+        const section = ([key, label, filter]) => {
+          const days = all.filter(filter);
+          const cost = days.reduce((t, d) => t + d.kosten, 0), kwh = days.reduce((t, d) => t + d.verbruik_kwh, 0);
+          let out = `<div data-p="${key}" style="display:${key === chosen ? 'block' : 'none'}">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              ${stat(`Kosten ${label.toLowerCase()}`, euro(cost))}${stat('Stroom', `${num(kwh)} kWh`)}
+              ${stat('Dagen', days.length)}${stat('Per dag', euro(days.length ? cost / days.length : 0))}</div>`;
+          if (!days.length) return out + '<div style="opacity:0.6;padding:8px">Geen thuiswerkdagen in deze periode.</div></div>';
+          const max = Math.max(...days.map(d => Math.abs(d.kosten)), 0.01);
+          for (const d of days) {
+            const earned = d.kosten < 0;
+            const details = [`↓ ${num(d.afname_kwh)}`];
+            if (d.teruglevering_kwh > 0) details.push(`↑ ${num(d.teruglevering_kwh)}`);
+            if (d.wasmachine_kwh > 0) details.push(`wasmachine −${num(d.wasmachine_kwh)}`);
+            out += `<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 2px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+                <span style="font-size:13px;font-weight:600">${day(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  <span style="font-weight:400;opacity:0.6"> · ${hours(d.minuten)}</span></span>
+                <span style="font-size:14px;font-weight:700;color:${earned ? '#4ade80' : 'inherit'}">${euro(d.kosten)}</span>
+                <span style="font-size:11px;opacity:0.65">${num(d.verbruik_kwh)} kWh (${details.join(' · ')})</span>
+                <span></span>
+                <div style="grid-column:1 / 3;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
+                  <div style="width:${Math.abs(d.kosten) / max * 100}%;height:100%;border-radius:3px;
+                    background:${earned ? '#4ade80' : 'linear-gradient(90deg,#ffb060,#ff6b6b)'}"></div></div>
+              </div>`;
+          }
+          return out + '</div>';
+        };
+        return `<div class="hw"><div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">${tabs}</div>
+          ${periods.map(section).join('')}
+          <div style="font-size:11px;opacity:0.5;padding-top:8px;text-align:left">
             Op thuiswerkdagen terwijl 'werken' aan staat en je thuis bent. Afname tegen de all-in prijs, teruglevering tegen de
-            beursprijs, de wasmachine telt niet mee.</div>`;
+            beursprijs, de wasmachine telt niet mee.</div></div>`;
       ]]]
   styles:
     grid:

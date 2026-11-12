@@ -5,7 +5,8 @@
 
 const PAD = 16;
 const CSS = `
-  hui-section { position: relative; z-index: 1; }
+  /* Zonder z-index: een sectie als eigen stapel laat kaarten uit een volgende sectie over een geopend venster heen vallen */
+  hui-section { position: relative; }
   .huis-achtergrond {
     position: absolute; z-index: 0; pointer-events: none; box-sizing: border-box;
     border-radius: 24px;
@@ -18,8 +19,8 @@ const CSS = `
 const POPUP_CSS = `
   .bubble-pop-up.is-popup-opened {
     left: 50% !important; top: 50% !important; right: auto !important; bottom: auto !important;
-    transform: translate(-50%, -50%) !important;
-    width: min(540px, calc(100vw - 24px)) !important; height: auto !important; max-height: 88vh !important;
+    transform: translate(-50%, -50%) !important; margin: 0 !important; z-index: 2147483000 !important;
+    width: min(540px, calc(100vw - 24px)) !important; height: auto !important; max-height: 88vh !important; max-height: 88dvh !important;
     display: flex !important; flex-direction: column !important; overflow: hidden !important;
     border-radius: 24px !important; border: 1px solid rgba(255, 255, 255, 0.10) !important;
   }
@@ -31,7 +32,7 @@ const POPUP_CSS = `
   .bubble-pop-up.is-popup-opened .bubble-close-button { border-radius: 14px !important; background: rgba(255, 255, 255, 0.10) !important; }
   .bubble-pop-up.is-popup-opened .bubble-pop-up-container {
     position: relative !important; flex: 0 1 auto !important; height: auto !important; min-height: 0 !important;
-    max-height: calc(88vh - 96px) !important; overflow: auto !important; padding-bottom: 16px !important;
+    max-height: calc(88dvh - 96px) !important; overflow: auto !important; padding-bottom: 16px !important;
   }
 `;
 
