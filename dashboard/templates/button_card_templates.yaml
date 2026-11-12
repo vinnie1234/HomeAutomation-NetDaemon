@@ -2,16 +2,38 @@
 # zodat stijl en gedrag op één plek staan.
 
 # Glazen basiskaart.
+#
+# Ontwerp (zelfde als de kaart Energiestroom): donkere kaart met een zachte tint en een rand in de accentkleur, het icoon in een
+# afgeronde tegel in diezelfde kleur. Het accent is --c: variables.accent, anders afgeleid van het soort entiteit, anders vast per naam.
 glass:
   show_state: false
   styles:
     card:
-      - border-radius: 24px
+      - '--c': |
+          [[[
+            if (variables && variables.accent) return variables.accent;
+            const palet = ['#ffc83d', '#8b8cff', '#4fd1c5', '#f6ad55', '#38bdf8', '#f472b6', '#34d399', '#ff7a8a', '#5b9dff'];
+            const dc = entity && entity.attributes && entity.attributes.device_class;
+            const perSoort = { temperature: '#ff8a4c', humidity: '#38bdf8', battery: '#34d399', power: '#ffc83d', energy: '#ffc83d', monetary: '#5b9dff', motion: '#38bdf8', door: '#f6ad55', window: '#f6ad55', moisture: '#38bdf8', problem: '#ff5d73' };
+            const perDomein = { light: '#ffc83d', climate: '#ff8a4c', media_player: '#8b8cff', person: '#4fd1c5', cover: '#f6ad55', lock: '#f472b6', vacuum: '#4fd1c5', camera: '#8b8cff', switch: '#22d3ee', input_boolean: '#22d3ee', weather: '#38bdf8', scene: '#f472b6', automation: '#8b8cff' };
+            const domein = entity ? entity.entity_id.split('.')[0] : '';
+            if (perSoort[dc]) return perSoort[dc];
+            if (perDomein[domein]) return perDomein[domein];
+            const naam = (entity && entity.attributes && entity.attributes.friendly_name) || (this && this._config && (this._config.name || this._config.icon)) || '';
+            let h = 0; for (const ch of String(naam)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+            return palet[h % palet.length];
+          ]]]
+      - border-radius: 20px
       - padding: 14px
-      - background: rgba(255, 255, 255, 0.06)
-      - border: 1px solid rgba(255, 255, 255, 0.08)
+      - background: linear-gradient(160deg, color-mix(in srgb, var(--c) 9%, rgba(10, 14, 32, 0.88)), rgba(10, 14, 32, 0.88))
+      - border: 1.5px solid color-mix(in srgb, var(--c) 42%, transparent)
       - box-shadow: none
       - transition: all 0.4s ease
+    img_cell:
+      - border-radius: 10px
+      - background: color-mix(in srgb, var(--c) 20%, transparent)
+    icon:
+      - color: var(--c)
     name:
       - justify-self: start
       - font-weight: 600
@@ -147,9 +169,12 @@ action:
     name:
       - justify-self: center
       - font-size: 13px
+    img_cell:
+      - justify-self: center
+      - width: 38px
+      - height: 38px
     icon:
-      - width: 24px
-      - color: var(--accent-color)
+      - width: 22px
 
 # Informatietegel (energie, Pixel). Tik navigeert naar de bijbehorende pagina.
 info:
@@ -166,15 +191,15 @@ info:
       - height: 140px
     img_cell:
       - justify-self: start
-      - width: 36px
-      - height: 36px
-      - border-radius: 50%
-      - background: rgba(255, 255, 255, 0.10)
+      - width: 38px
+      - height: 38px
     icon:
       - width: 20px
     name:
-      - font-size: 13px
-      - opacity: 0.8
+      - font-size: 12px
+      - letter-spacing: 0.1em
+      - text-transform: uppercase
+      - opacity: 0.75
     label:
       - white-space: normal
       - text-align: left
@@ -202,14 +227,14 @@ stat:
       - justify-self: start
       - width: 34px
       - height: 34px
-      - border-radius: 50%
-      - background: rgba(255, 255, 255, 0.10)
     icon:
       - width: 18px
     name:
-      - font-size: 13px
-      - font-weight: 500
-      - opacity: 0.8
+      - font-size: 11.5px
+      - font-weight: 600
+      - letter-spacing: 0.1em
+      - text-transform: uppercase
+      - opacity: 0.75
     state:
       - justify-self: start
       - align-self: end
@@ -2682,8 +2707,11 @@ beheer_tile:
       - grid-template-areas: '"i n" "i l"'
       - grid-template-columns: auto 1fr
       - column-gap: 14px
+    img_cell:
+      - width: 44px
+      - height: 44px
     icon:
-      - width: 28px
+      - width: 24px
     label:
       - white-space: normal
       - text-align: left
@@ -2994,6 +3022,8 @@ tab:
           ]]]
       - border: |
           [[[ return window.location.pathname === variables.path ? '1px solid rgba(255, 176, 96, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'; ]]]
+    img_cell:
+      - background: transparent
     icon:
       - width: 22px
       - color: '[[[ return window.location.pathname === variables.path ? "var(--accent-color)" : "var(--secondary-text-color)"; ]]]'

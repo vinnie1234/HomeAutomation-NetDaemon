@@ -13,7 +13,7 @@ Glass Home:
   state-icon-color: "rgba(242, 244, 248, 0.7)"
   app-header-background-color: "transparent"
   app-header-text-color: "#f2f4f8"
-  lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.22), transparent 60%), #0b0f19 fixed"
+  lovelace-background: "radial-gradient(1200px 700px at 0% 0%, rgba(63, 167, 255, 0.20), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(122, 90, 200, 0.26), transparent 60%), radial-gradient(900px 600px at 50% 50%, rgba(30, 41, 82, 0.45), transparent 70%), #070a15 fixed"
   mdc-theme-surface: "#121828"
   # Uitklapmenu's (keuzelijsten): een dichte achtergrond. Ze namen de doorzichtige kaartkleur en de tekst eronder scheen erdoorheen.
   mdc-menu-surface-fill-color: "#161d2e"
@@ -25,16 +25,16 @@ Glass Home:
   rgb-primary-color: "122, 162, 255"
 
   # Kaarten (glas)
-  card-background-color: "rgba(255, 255, 255, 0.06)"
-  ha-card-background: "rgba(255, 255, 255, 0.06)"
-  ha-card-border-radius: "24px"
-  ha-card-border-width: "1px"
-  ha-card-border-color: "rgba(255, 255, 255, 0.08)"
+  card-background-color: "rgba(12, 17, 38, 0.82)"
+  ha-card-background: "linear-gradient(160deg, rgba(34, 46, 92, 0.55), rgba(10, 14, 32, 0.88))"
+  ha-card-border-radius: "20px"
+  ha-card-border-width: "1.5px"
+  ha-card-border-color: "rgba(122, 162, 255, 0.28)"
   ha-card-box-shadow: "0 8px 32px rgba(0, 0, 0, 0.25)"
   ha-dialog-border-radius: "28px"
 
   # Bubble Card
-  bubble-main-background-color: "rgba(255, 255, 255, 0.06)"
+  bubble-main-background-color: "rgba(14, 20, 44, 0.85)"
   bubble-secondary-background-color: "rgba(255, 255, 255, 0.10)"
   bubble-pop-up-background-color: "rgba(14, 18, 30, 0.88)"
   bubble-accent-color: "#ffb060"
