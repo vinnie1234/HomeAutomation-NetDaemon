@@ -23,10 +23,6 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Verbruik
-        heading_style: title
-        icon: mdi:home-lightning-bolt-outline
       - type: energy-usage-graph
         grid_options:
           columns: full
@@ -141,10 +137,6 @@ sections:
             color: "#4ade80"
         grid_options:
           columns: full
-      - type: heading
-        heading: Per apparaat
-        heading_style: subtitle
-        icon: mdi:devices
       - type: energy-devices-detail-graph
         grid_options:
           columns: full
@@ -152,10 +144,6 @@ sections:
   # Netbalans en bronnen
   - type: grid
     cards:
-      - type: heading
-        heading: Zonneverwachting
-        heading_style: title
-        icon: mdi:solar-power-variant
       - type: custom:button-card
         template: stat
         entity: sensor.energy_production_today
@@ -193,10 +181,6 @@ sections:
         grid_options:
           columns: 6
       # Grootste verbruikers nu: per apparaat een klikbare regel, gesorteerd op vermogen
-      - type: heading
-        heading: Grootste verbruikers nu
-        heading_style: subtitle
-        icon: mdi:flash-alert-outline
       - type: custom:auto-entities
         card:
           type: grid
@@ -211,10 +195,6 @@ sections:
           reverse: true
           count: 8
         show_empty: false
-      - type: heading
-        heading: Stopcontacten
-        heading_style: subtitle
-        icon: mdi:power-socket-eu
       - type: custom:button-card
         template: stat
         entity: sensor.energysocket_5c2faf02a546_active_power
@@ -236,17 +216,9 @@ sections:
         icon: mdi:controller
         grid_options:
           columns: 4
-      - type: heading
-        heading: Netbalans
-        heading_style: title
-        icon: mdi:scale-balance
       - type: energy-grid-neutrality-gauge
       - type: energy-distribution
         link_dashboard: false
-      - type: heading
-        heading: Bronnen
-        heading_style: subtitle
-        icon: mdi:format-list-bulleted
       - type: energy-sources-table
         show_only_totals: true
         types:

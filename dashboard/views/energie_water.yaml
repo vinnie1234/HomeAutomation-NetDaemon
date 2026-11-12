@@ -22,10 +22,6 @@ sections:
   # Water nu
   - type: grid
     cards:
-      - type: heading
-        heading: Water
-        heading_style: title
-        icon: mdi:water-outline
       - type: custom:button-card
         template: stat
         entity: sensor.watermeter_5c2faf0e9b0a_active_water_usage
@@ -60,10 +56,6 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Verbruik
-        heading_style: title
-        icon: mdi:chart-bar
       - type: energy-water-graph
         grid_options:
           columns: full

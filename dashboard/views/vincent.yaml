@@ -43,10 +43,6 @@ sections:
   # Zoeken: de portemonnee (Google Find Hub) en de telefoon, met piepen en lokaliseren
   - type: grid
     cards:
-      - type: heading
-        heading: Waar is...
-        heading_style: title
-        icon: mdi:map-search-outline
       - type: custom:button-card
         template: wallet_status
       - type: custom:button-card
@@ -59,20 +55,12 @@ sections:
   # Agenda en taken, en een taak met een plek toevoegen
   - type: grid
     cards:
-      - type: heading
-        heading: Agenda en taken
-        heading_style: title
-        icon: mdi:calendar-check
       - !include ../cards/taak_knop.yaml
       - !include ../cards/agenda.yaml
 
   # Peuken: hoeveel pakjes er nog zijn, -1 met één tik
   - type: grid
     cards:
-      - type: heading
-        heading: Peuken
-        heading_style: title
-        icon: mdi:smoking
       - type: custom:button-card
         template: peuken
       - type: custom:button-card
@@ -114,10 +102,6 @@ sections:
   # Werk en thuiswerken
   - type: grid
     cards:
-      - type: heading
-        heading: Werk
-        heading_style: title
-        icon: mdi:briefcase-outline
       - type: custom:bubble-card
         card_type: button
         button_type: switch
@@ -131,10 +115,6 @@ sections:
   # Werkrooster: een tegel die het werkrooster in een pop-up opent (dagen, vervoer, tijden, agenda en het verkeersbericht)
   - type: grid
     cards:
-      - type: heading
-        heading: Werkrooster
-        heading_style: title
-        icon: mdi:calendar-week-outline
       - type: custom:button-card
         template: schedule_tile
         variables:
@@ -277,10 +257,6 @@ sections:
             card:
               type: vertical-stack
               cards:
-                - type: heading
-                  heading: Hoe laat naar kantoor en weer naar huis
-                  heading_style: subtitle
-                  icon: mdi:clock-outline
                 - type: tile
                   entity: input_select.reis_ochtend_soort_vincent
                   name: "'s Ochtends"
@@ -329,10 +305,6 @@ sections:
   # Bijzondere dagen: dan viert de weerkaart feest (de datums staan alleen in Home Assistant, niet in de code)
   - type: grid
     cards:
-      - type: heading
-        heading: Bijzondere dagen
-        heading_style: title
-        icon: mdi:party-popper
       - type: custom:button-card
         template: date_input
         entity: input_datetime.verjaardag_vincent
@@ -347,20 +319,12 @@ sections:
   # Muziek: de playlist per ruimte en het Spotify-account
   - type: grid
     cards:
-      - type: heading
-        heading: Muziek
-        heading_style: title
-        icon: mdi:music
       - !include ../cards/mijn_spotify_vincent.yaml
       - !include ../cards/muziek_knop_vincent.yaml
 
   # Dit apparaat: ruimte voor de navigatieknoppen van Android onder het menu
   - type: grid
     cards:
-      - type: heading
-        heading: Dit apparaat
-        heading_style: title
-        icon: mdi:cellphone
       - !include ../cards/navigatieknoppen.yaml
 
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)

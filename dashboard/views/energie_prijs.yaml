@@ -21,10 +21,6 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Stroomprijs
-        heading_style: title
-        icon: mdi:currency-eur
       - type: custom:button-card
         template: price
         entity: sensor.anwb_electricity_all_in_price_current
@@ -119,10 +115,6 @@ sections:
   # Historie
   - type: grid
     cards:
-      - type: heading
-        heading: Afgelopen week
-        heading_style: title
-        icon: mdi:history
       - type: statistics-graph
         entities:
           - sensor.anwb_electricity_all_in_price_current

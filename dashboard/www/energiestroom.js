@@ -16,6 +16,9 @@ const STANDBY = 'sensor.all_standby_power';
 const STAT_IMPORT = 'sensor.p1_meter_3c39e72a64e8_total_power_import';
 const STAT_EXPORT = 'sensor.p1_meter_3c39e72a64e8_total_power_export';
 const STAT_PV = 'sensor.p1_meter_energie_export';
+const WATER_NOW = 'sensor.watermeter_5c2faf0e9b0a_active_water_usage';   // L/min
+const STAT_WATER = 'sensor.watermeter_5c2faf0e9b0a_total_water_usage'; // m³, teller
+const COLOR_WATER = '#38bdf8';
 
 /** Onder deze opwek (W) meet de omvormer alleen ruis: dat telt als 0. */
 const SOLAR_NOISE = 5;
@@ -90,8 +93,7 @@ class HuisEnergiestroom extends HTMLElement {
       <style>
         :host { display:block; color:var(--primary-text-color); }
         * { box-sizing:border-box; }
-        .wrap { position:relative; display:flex; flex-direction:column; gap:22px; padding:22px; border-radius:24px;
-                background:radial-gradient(120% 90% at 50% 35%, rgba(30,41,82,.55), rgba(8,12,28,.55)); border:1px solid rgba(255,255,255,.08); }
+        .wrap { position:relative; display:flex; flex-direction:column; gap:22px; padding:4px; }
         svg.lijnen { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
         svg.lijnen path { fill:none; stroke-linecap:round; stroke-width:3; stroke-dasharray:0.1 10; opacity:.22; }
         svg.lijnen path.aan { opacity:.95; animation:stroom var(--d,2.2s) linear infinite; }
@@ -123,6 +125,7 @@ class HuisEnergiestroom extends HTMLElement {
         .balk { height:7px; border-radius:4px; background:rgba(255,255,255,.12); margin:14px 0 6px; position:relative; }
         .balk i { position:absolute; top:-3px; width:3px; height:13px; border-radius:2px; background:var(--c); box-shadow:0 0 6px var(--c); transform:translateX(-50%); }
         .balk-l { display:flex; justify-content:space-between; font-size:12px; opacity:.7; }
+        .rechts { display:flex; flex-direction:column; gap:22px; }
         .ringkolom { position:relative; width:300px; height:300px; margin:0 auto; }
         .legenda { position:absolute; left:0; right:0; top:-26px; text-align:center; font-size:12.5px; opacity:.85; white-space:nowrap; }
         .legenda span { margin:0 6px; }
@@ -170,7 +173,7 @@ class HuisEnergiestroom extends HTMLElement {
             <svg viewBox="0 0 300 300" id="ring"></svg>
             <div class="mid" id="mid"></div>
           </div>
-          <div class="kaart klik" id="prijs"></div>
+          <div class="rechts"><div class="kaart klik" id="prijs"></div><div class="kaart klik" id="water"></div></div>
         </div>
         <div class="kamers" id="kamers"></div>
         <div class="tegels" id="tegels"></div>
@@ -178,6 +181,7 @@ class HuisEnergiestroom extends HTMLElement {
       </div>`;
     this._el = (id) => this._root.getElementById(id);
     this._el('prijs').addEventListener('click', () => this._go('/dashboard-huis/energie-prijs'));
+    this._el('water').addEventListener('click', () => this._go('/dashboard-huis/energie-water'));
     this._el('tegels').addEventListener('click', (e) => {
       const t = e.target.closest('[data-pad]');
       if (t) this._go(t.dataset.pad);
@@ -252,6 +256,16 @@ class HuisEnergiestroom extends HTMLElement {
       (oordeel ? `<span class="chip">${oordeel}</span>` : '') +
       (pos !== null ? `<div class="balk"><i style="left:${pos}%"></i></div><div class="balk-l"><span>Laagste ${fmtEur(laag)}</span><span>Gem. ${fmtEur(gem)}</span><span>Hoogste ${fmtEur(hoog)}</span></div>` : '') +
       (kostNu !== null ? `<div class="reg">Kost nu <b>${fmtEur(kostNu)}</b> per uur</div>` : '');
+
+    // Water
+    const waterNu = this._num(WATER_NOW);
+    const waterVandaag = this._stats?.water ?? null;
+    this._el('water').style.setProperty('--c', COLOR_WATER);
+    this._el('water').innerHTML =
+      `<div class="kk"><span class="ic"><ha-icon icon="mdi:water-outline"></ha-icon></span><span class="lb">Water</span></div>` +
+      `<div class="gr">${waterNu === null ? '–' : waterNu.toFixed(waterNu < 10 ? 1 : 0).replace('.', ',')}<small>L/min</small></div>` +
+      `<span class="chip">${waterNu === null ? 'Onbekend' : waterNu > 0 ? 'Water loopt' : 'Dicht'}</span>` +
+      (waterVandaag !== null ? `<div class="reg">Vandaag <b>${Math.round(waterVandaag * 1000)} L</b></div>` : '');
 
     // Ring: aandeel zon en net van het verbruik, met kleine tussenruimtes
     const cx = 150, cy = 150, R = 124, C = 2 * Math.PI * R;
@@ -365,11 +379,12 @@ class HuisEnergiestroom extends HTMLElement {
       const start = new Date(); start.setHours(0, 0, 0, 0);
       const r = await this._hass.callWS({
         type: 'recorder/statistics_during_period', start_time: start.toISOString(),
-        statistic_ids: [STAT_IMPORT, STAT_EXPORT, STAT_PV], period: 'hour', types: ['change'],
+        statistic_ids: [STAT_IMPORT, STAT_EXPORT, STAT_PV, STAT_WATER], period: 'hour', types: ['change'],
       });
       const sum = (id) => (r[id] ? r[id].reduce((a, x) => a + (x.change || 0), 0) : null);
-      this._stats = { imp: sum(STAT_IMPORT), exp: sum(STAT_EXPORT), pv: sum(STAT_PV) };
+      this._stats = { imp: sum(STAT_IMPORT), exp: sum(STAT_EXPORT), pv: sum(STAT_PV), water: sum(STAT_WATER) };
       this._renderTiles();
+      this._update();
     } catch (e) {
       console.warn('huis-energiestroom: statistieken niet beschikbaar', e);
     }

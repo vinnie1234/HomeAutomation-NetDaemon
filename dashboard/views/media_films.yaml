@@ -21,10 +21,6 @@ sections:
   # Nu aan het kijken (alleen als Vincent iets aan heeft staan) en nieuw toegevoegd
   - type: grid
     cards:
-      - type: heading
-        heading: Jellyfin
-        heading_style: title
-        icon: mdi:filmstrip-box-multiple
       - type: conditional
         conditions:
           - condition: state
@@ -55,9 +51,5 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Bibliotheek
-        heading_style: title
-        icon: mdi:bookshelf
       - type: custom:button-card
         template: jelly_library

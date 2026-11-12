@@ -20,11 +20,6 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Kies
-        heading_style: title
-        icon: mdi:view-dashboard-outline
-
       - type: custom:button-card
         template: media_tile
         name: TV
@@ -99,10 +94,6 @@ sections:
   # Snel bedienen en wat er nu speelt
   - type: grid
     cards:
-      - type: heading
-        heading: Snel
-        heading_style: title
-        icon: mdi:lightning-bolt-outline
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
 

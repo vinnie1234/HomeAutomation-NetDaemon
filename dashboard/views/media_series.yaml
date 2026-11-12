@@ -19,10 +19,6 @@ sections:
 
   - type: grid
     cards:
-      - type: heading
-        heading: Verder kijken
-        heading_style: title
-        icon: mdi:play-box-multiple-outline
       - type: custom:upcoming-media-card
         entity: sensor.trakt_next_to_watch_only_aired
         title: Volgende aflevering
@@ -32,10 +28,6 @@ sections:
   - type: grid
     column_span: 2
     cards:
-      - type: heading
-        heading: Binnenkort
-        heading_style: title
-        icon: mdi:calendar-star
       - type: custom:upcoming-media-card
         entity: sensor.trakt_upcoming_shows
         title: Nieuwe afleveringen

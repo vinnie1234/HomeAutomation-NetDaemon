@@ -15,6 +15,11 @@ sections:
       - !include ../navbar.yaml
       - !include ../cards/energie_samenvatting.yaml
       - !include ../cards/energie_tabs.yaml
+
+  # De kaart Energiestroom (nu, prijs, water, kamers, totalen, verloop)
+  - type: grid
+    column_span: 3
+    cards:
       - type: custom:huis-energiestroom
         grid_options:
           columns: full

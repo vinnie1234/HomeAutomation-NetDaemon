@@ -52,10 +52,6 @@ sections:
   # Kolom 1: Home Assistant en onderhoud. Wat veel ruimte inneemt staat in een venster: tik op de tegel.
   - type: grid
     cards:
-      - type: heading
-        heading: Home Assistant
-        heading_style: title
-        icon: mdi:home-assistant
       - type: custom:button-card
         template: stat
         entity: sensor.active_issues
@@ -91,10 +87,6 @@ sections:
           navigation_path: "#backup"
         grid_options:
           columns: 6
-      - type: heading
-        heading: Onderhoud
-        heading_style: title
-        icon: mdi:wrench-outline
       - type: custom:button-card
         template: beheer_tile
         triggers_update: all
@@ -223,10 +215,6 @@ sections:
   # Kolom 2: netwerk, Raspberry Pi, NetDaemon en Hue
   - type: grid
     cards:
-      - type: heading
-        heading: Systeem
-        heading_style: title
-        icon: mdi:server
       - type: custom:button-card
         template: beheer_tile
         triggers_update: all
@@ -365,10 +353,6 @@ sections:
   # Kolom 3: afwezigheid, instellingen en het dashboard verversen
   - type: grid
     cards:
-      - type: heading
-        heading: Huis en dashboard
-        heading_style: title
-        icon: mdi:home-edit-outline
       - type: custom:button-card
         template: beheer_tile
         triggers_update: all

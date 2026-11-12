@@ -128,10 +128,6 @@ sections:
   # Buienradar
   - type: grid
     cards:
-      - type: heading
-        heading: Buienradar
-        heading_style: title
-        icon: mdi:radar
       - type: picture-entity
         entity: camera.neerslagradar
         camera_view: auto
@@ -163,10 +159,6 @@ sections:
   # Details
   - type: grid
     cards:
-      - type: heading
-        heading: Details
-        heading_style: title
-        icon: mdi:information-outline
       - type: custom:button-card
         template: stat
         entity: sensor.weer_thuis_windsnelheid
@@ -214,10 +206,6 @@ sections:
         grid_options:
           columns: 6
 
-      - type: heading
-        heading: Zon en maan
-        heading_style: title
-        icon: mdi:weather-sunset
       - type: custom:button-card
         template: sun
       - type: custom:button-card
@@ -259,10 +247,6 @@ sections:
         grid_options:
           columns: 6
 
-      - type: heading
-        heading: Pollen
-        heading_style: title
-        icon: mdi:flower-pollen
       # Samenvatting: algemeen risico en de belangrijkste soorten van vandaag
       - type: custom:button-card
         template: glass
@@ -339,10 +323,6 @@ sections:
   - type: grid
     column_span: 3
     cards:
-      - type: heading
-        heading: Verkeer
-        heading_style: title
-        icon: mdi:car-multiple
       - type: custom:button-card
         template: commute_card
         variables:

@@ -20,10 +20,6 @@ sections:
   # Bron en afstandsbediening
   - type: grid
     cards:
-      - type: heading
-        heading: TV
-        heading_style: title
-        icon: mdi:television
       - !include ../cards/bron_google_tv.yaml
       - !include ../cards/bron_alles_uit.yaml
       # Alleen als de tv aan staat: de aan-knop van deze kaart werkt niet (de Samsung kan niet aan via Home Assistant)
@@ -80,10 +76,6 @@ sections:
   # Ambilight en geluid
   - type: grid
     cards:
-      - type: heading
-        heading: Ambilight
-        heading_style: title
-        icon: mdi:television-ambient-light
       - type: custom:bubble-card
         card_type: button
         button_type: switch
@@ -149,10 +141,6 @@ sections:
   # Geluid
   - type: grid
     cards:
-      - type: heading
-        heading: Geluid
-        heading_style: title
-        icon: mdi:soundbar
       - type: custom:bubble-card
         card_type: media-player
         entity: media_player.soundbar
