@@ -3173,7 +3173,7 @@ music_now:
   variables:
     all: |
       [[[
-        window.huisMuziekLijst = window.huisMuziekLijst ?? (states => {
+        window.huisMuziekLijst3 = window.huisMuziekLijst3 ?? (states => {
           const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
             ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
             ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
@@ -3189,7 +3189,7 @@ music_now:
                   // Speelt de speler iets van buiten de wachtrij van Music Assistant (Spotify op de tv), dan bedien je het apparaat zelf: Music Assistant kan dat niet
                   const extern = !/music assistant/i.test(s.attributes.source ?? '');
                   const alt = extern ? Object.values(states).find(x => x.entity_id !== s.entity_id && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
-                    && x.attributes.friendly_name === s.attributes.friendly_name && x.state === 'playing') : null;
+                    && x.attributes.friendly_name === s.attributes.friendly_name && ['playing', 'paused'].includes(x.state)) : null;
                   items.push({ ...from(s, s.attributes.friendly_name, extern && s.attributes.source ? s.attributes.source : 'Music Assistant', 'speaker'), entity: alt ? alt.entity_id : s.entity_id });
                 }
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
@@ -3210,11 +3210,11 @@ music_now:
           }
           return [...groups.values()].map(g => ({ ...g, room: g.rooms.length ? g.rooms.join(' + ') : g.device }));
         });
-        return window.huisMuziekLijst(states);
+        return window.huisMuziekLijst3(states);
       ]]]
     now: |
       [[[
-        window.huisMuziekLijst = window.huisMuziekLijst ?? (states => {
+        window.huisMuziekLijst3 = window.huisMuziekLijst3 ?? (states => {
           const speakers = [['media_player.hele_huis', 'Hele huis'], ['media_player.friends_speakers', 'Gang'], ['media_player.woonkamer', 'Woonkamer'],
             ['media_player.nestmini9818', 'Keuken'], ['media_player.googlehome0351', 'Badkamer'], ['media_player.hub_vincent', 'Slaapkamer'],
             ['media_player.googlehome7421', 'Gang'], ['media_player.googlehome8627', 'Gang'], ['media_player.soundbar', 'Soundbar']];
@@ -3230,7 +3230,7 @@ music_now:
                   // Speelt de speler iets van buiten de wachtrij van Music Assistant (Spotify op de tv), dan bedien je het apparaat zelf: Music Assistant kan dat niet
                   const extern = !/music assistant/i.test(s.attributes.source ?? '');
                   const alt = extern ? Object.values(states).find(x => x.entity_id !== s.entity_id && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
-                    && x.attributes.friendly_name === s.attributes.friendly_name && x.state === 'playing') : null;
+                    && x.attributes.friendly_name === s.attributes.friendly_name && ['playing', 'paused'].includes(x.state)) : null;
                   items.push({ ...from(s, s.attributes.friendly_name, extern && s.attributes.source ? s.attributes.source : 'Music Assistant', 'speaker'), entity: alt ? alt.entity_id : s.entity_id });
                 }
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
@@ -3251,7 +3251,7 @@ music_now:
           }
           return [...groups.values()].map(g => ({ ...g, room: g.rooms.length ? g.rooms.join(' + ') : g.device }));
         });
-        return window.huisMuziekLijst(states)[0] ?? null;
+        return window.huisMuziekLijst3(states)[0] ?? null;
       ]]]
 
 # De kaart "wat speelt er nu": voor alles wat speelt een rij met hoes, titel en artiest, in welke kamer en met welk account of welke app.
@@ -3280,7 +3280,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=14').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=15').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {
@@ -3341,7 +3341,7 @@ mijn_spotify:
           open: (id, tab) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
             window.huisMijnSpotifyAt = Date.now();
-            import('/local/huis/muziek-speler.js?v=14').then(m => m.open(id, tab));
+            import('/local/huis/muziek-speler.js?v=15').then(m => m.open(id, tab));
           },
           press: (id, service) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;

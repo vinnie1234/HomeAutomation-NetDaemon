@@ -135,7 +135,7 @@ export function open(entityId, startTab = 'nu') {
     const nu = hass().states[entity];
     if (nu && isMA(entity) && !/music assistant/i.test(nu.attributes.source ?? '')) {
       const alt = Object.values(hass().states).find(x => x.entity_id !== entity && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
-        && x.attributes.friendly_name === nu.attributes.friendly_name && x.state === 'playing');
+        && x.attributes.friendly_name === nu.attributes.friendly_name && ['playing', 'paused'].includes(x.state));
       if (alt) entity = alt.entity_id;
     }
   }
