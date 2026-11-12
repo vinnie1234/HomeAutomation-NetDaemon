@@ -320,7 +320,7 @@ class HuisEnergiestroom extends HTMLElement {
       const card = this._el('kamers').children[i];
       if (!card) return;
       const kr = rel(card);
-      const deg = n === 1 ? 90 : 48 + (84 * i) / (n - 1);
+      const deg = n === 1 ? 90 : 132 - (84 * i) / (n - 1); // schermhoek: 90 = onderaan, groter = links
       defs.push({ k: `r${i}`, a: at(deg), b: [kr.cx, kr.t], h: 'v', kleur: room.color, w: totaal, terug: false });
     });
 
