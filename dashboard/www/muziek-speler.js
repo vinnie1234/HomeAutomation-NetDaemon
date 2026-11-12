@@ -129,7 +129,8 @@ export function open(entityId, startTab = 'nu') {
     // Wat nu echt speelt: een Music Assistant-speler, anders het apparaat waar de kaart op tikte (bijvoorbeeld Spotify op de laptop)
     const speelt = maPlayers().find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? ''));
     const gegeven = hass().states[entityId];
-    entity = speelt?.entity_id ?? (gegeven?.state === 'playing' ? entityId : maStandaard() ?? entityId);
+    const viaMa = /music assistant/i.test(gegeven?.attributes.source ?? '');
+    entity = speelt?.entity_id ?? (gegeven?.state === 'playing' && !viaMa && !isMA(entityId) ? entityId : maStandaard() ?? entityId);
   }
   tab = ['nu', 'bladeren', 'apparaten'].includes(startTab) ? startTab : 'nu';
   browse = { stack: [], items: null, loading: false, error: '', query: '', results: null, filter: 'alles' };
