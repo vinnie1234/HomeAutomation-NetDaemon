@@ -20,6 +20,13 @@ const useMA = () => hass().states['input_boolean.gebruik_music_assistant']?.stat
 const maPlayers = () => Object.values(hass().states)
   .filter(s => s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state !== 'unavailable' && s.state !== 'unknown')
   .sort((a, b) => String(a.attributes.friendly_name).localeCompare(String(b.attributes.friendly_name), 'nl'));
+const isMA = id => !!hass().states[id]?.attributes.mass_player_type;
+const maStandaard = () => {
+  const spelers = maPlayers();
+  return (spelers.find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? '')) ?? spelers.find(x => x.entity_id === 'media_player.keuken_keuken') ?? spelers[0])?.entity_id;
+};
+// Bladeren en kiezen gaat altijd via een Music Assistant-speler, ook als hier nu een Spotify-apparaat (de laptop) bediend wordt
+const bladerSpeler = () => (useMA() ? (isMA(entity) ? entity : maStandaard()) : entity);
 const persoon = () => (/carleen/i.test(hass().user?.name ?? '') ? 'carleen' : 'vincent');
 const instantie = (naam, wie) => { const v = hass().states[`input_text.ma_${naam}_${wie}`]?.state; return ['', 'unknown', 'unavailable', undefined].includes(v) ? '' : v; };
 
@@ -95,7 +102,7 @@ const CSS = `
 `;
 
 let root, entity, tab = 'nu', full = false, tick, dragging = false;
-let browse = { stack: [], items: null, loading: false, error: '', query: '', results: null };
+let browse = { stack: [], items: null, loading: false, error: '', query: '', results: null, filter: 'alles' };
 
 const icon = (name, size = 24) => `<ha-icon icon="${name}" style="--mdc-icon-size:${size}px"></ha-icon>`;
 const state = () => hass().states[entity];
@@ -119,11 +126,13 @@ export function open(entityId, startTab = 'nu') {
   if (document.getElementById(ID)) close();
   entity = entityId;
   if (useMA()) {
-    const spelers = maPlayers();
-    entity = (spelers.find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? '')) ?? spelers.find(x => x.entity_id === 'media_player.keuken_keuken') ?? spelers[0])?.entity_id ?? entityId;
+    // Wat nu echt speelt: een Music Assistant-speler, anders het apparaat waar de kaart op tikte (bijvoorbeeld Spotify op de laptop)
+    const speelt = maPlayers().find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? ''));
+    const gegeven = hass().states[entityId];
+    entity = speelt?.entity_id ?? (gegeven?.state === 'playing' ? entityId : maStandaard() ?? entityId);
   }
   tab = ['nu', 'bladeren', 'apparaten'].includes(startTab) ? startTab : 'nu';
-  browse = { stack: [], items: null, loading: false, error: '', query: '', results: null };
+  browse = { stack: [], items: null, loading: false, error: '', query: '', results: null, filter: 'alles' };
   root = document.createElement('div');
   root.id = ID;
   root.className = full ? 'full' : '';
@@ -179,6 +188,13 @@ function onClick(e) {
   else if (a === 'source') { call('media_player', 'select_source', { source: t.dataset.s }); toast(`Speelt op ${t.dataset.s}`); setTimeout(render, 600); }
   else if (a === 'cast') transferTo(t.dataset.id, t.dataset.n);
   else if (a === 'maplayer') kiesSpeler(t.dataset.id, t.dataset.n);
+  else if (a === 'spsource') {
+    hass().callService('media_player', 'select_source', { entity_id: spotifyPlus(), source: t.dataset.s }).catch(e => toast(e?.message ?? 'Dat lukte niet'));
+    toast(`Speelt op ${t.dataset.s}`);
+    setTimeout(() => { entity = spotifyBron(); if (root) build(); }, 1500);
+  }
+  else if (a === 'snel') { browse.stack = [{ id: t.dataset.id, type: 'music_assistant', title: t.dataset.t }]; browse.results = null; browse.items = null; loadCurrent(); }
+  else if (a === 'bron') { browse.filter = t.dataset.k; renderBrowseSoon(); }
   else if (a === 'open') openItem(browse.results ?? browse.items, +t.dataset.i);
   else if (a === 'playitem') { e.stopPropagation(); playItem(currentList()[+t.dataset.i]); }
   else if (a === 'back') { browse.stack.pop(); browse.results = null; browse.items = null; loadCurrent(); }
@@ -223,7 +239,7 @@ function update() {
   const s = state();
   const a = s?.attributes ?? {};
   const title = root.querySelector('#sp-title');
-  if (title) title.textContent = useMA() ? `Music Assistant · ${a.friendly_name ?? entity}` : `${nameOf(entity)} · ${a.source ?? (s?.state === 'playing' ? 'Spotify' : 'Spotify (speelt niet)')}`;
+  if (title) title.textContent = useMA() ? (isMA(entity) ? `Music Assistant · ${a.friendly_name ?? entity}` : `${a.friendly_name ?? entity} · ${a.source ?? 'Spotify'}`) : `${nameOf(entity)} · ${a.source ?? (s?.state === 'playing' ? 'Spotify' : 'Spotify (speelt niet)')}`;
   if (tab !== 'nu') return;
   const set = (id, fn) => { const el = root.querySelector(id); if (el) fn(el); };
   set('#sp-cover', el => { const src = a.entity_picture ?? ''; if (el.getAttribute('src') !== src) el.setAttribute('src', src); el.style.visibility = src ? 'visible' : 'hidden'; });
@@ -246,22 +262,48 @@ function update() {
 
 // ---- bladeren en zoeken
 
-const currentList = () => browse.results ?? browse.items ?? [];
+const currentList = () => {
+  const lijst = browse.results ?? browse.items ?? [];
+  if (!useMA() || browse.filter === 'alles') return lijst;
+  const bron = it => { const m = String(it.media_content_id ?? '').match(/^([a-z_]+)--/); return m ? m[1] : 'bibliotheek'; };
+  return lijst.filter(it => (it.can_expand && !it.can_play) || bron(it) === browse.filter);
+};
+
+// Snelkeuze in Music Assistant: de onderdelen van de bibliotheek en de bron (alles, Spotify, YouTube Music voor Vincent, de bibliotheek zelf)
+const SNEL = [['Playlists', 'playlists'], ['Radio', 'radio'], ['Albums', 'albums'], ['Artiesten', 'artists'], ['Podcasts', 'podcasts']];
+function maBalk() {
+  if (!useMA()) return '';
+  const bronnen = [['alles', 'Alles'], ['spotify', 'Spotify'], ...(persoon() === 'vincent' ? [['ytmusic', 'YouTube Music']] : []), ['bibliotheek', 'Bibliotheek']];
+  return `<div class="chips" style="padding:0 0 10px">${SNEL.map(([t, id]) => `<button class="chip ${browse.stack[0]?.id === id ? 'on' : ''}" data-a="snel" data-id="${id}" data-t="${esc(t)}">${t}</button>`).join('')}</div>
+    <div class="chips" style="padding:0 0 12px">${bronnen.map(([k, t]) => `<button class="chip ${browse.filter === k ? 'on' : ''}" data-a="bron" data-k="${k}">${t}</button>`).join('')}</div>`;
+}
+
+// Thumbnails van Home Assistant zelf (/api/...) hebben een handtekening nodig om in een plaatje te laden
+async function teken(main) {
+  for (const img of main.querySelectorAll('img[data-sign]')) {
+    try {
+      const res = await hass().callWS({ type: 'auth/sign_path', path: img.dataset.sign });
+      img.src = res.path;
+    } catch { img.removeAttribute('data-sign'); }
+  }
+}
 
 function renderBrowse(main) {
-  const supported = ((state()?.attributes.supported_features ?? 0) & 131072) !== 0;
+  const supported = ((hass().states[bladerSpeler()]?.attributes.supported_features ?? 0) & 131072) !== 0;
   if (!supported) { main.innerHTML = `<div class="hint">Deze speler kan niet bladeren. Kies hierboven een Spotify-account.</div>`; return; }
   if (browse.items === null && !browse.loading && !browse.results) { loadCurrent(); return; }
   const top = browse.stack[browse.stack.length - 1];
   const list = currentList();
   main.innerHTML = `
+    ${maBalk()}
     <div class="search"><input type="search" id="sp-q" placeholder="Zoek een nummer, album, artiest of playlist" value="${esc(browse.query)}"><button class="ib" data-a="dosearch" title="Zoeken">${icon('mdi:magnify')}</button></div>
     ${browse.stack.length || browse.results ? `<div class="crumbs"><button class="ib" data-a="back" title="Terug">${icon('mdi:arrow-left')}</button><div class="t">${esc(browse.results ? `Zoeken: ${browse.query}` : top.title)}</div></div>` : ''}
     ${browse.loading ? '<div class="hint">Laden…</div>' : browse.error ? `<div class="hint">${esc(browse.error)}</div>` : `<div class="grid">${list.map((it, i) => `
       <div class="item" data-a="open" data-i="${i}">
-        ${it.thumbnail ? `<img loading="lazy" src="${esc(it.thumbnail)}" alt="">` : `<div class="ph">${icon('mdi:music', 36)}</div>`}
+        ${it.thumbnail ? (String(it.thumbnail).startsWith('/') ? `<img loading="lazy" data-sign="${esc(it.thumbnail)}" alt="">` : `<img loading="lazy" src="${esc(it.thumbnail)}" alt="">`) : `<div class="ph">${icon('mdi:music', 36)}</div>`}
         ${it.can_play ? `<button class="play" data-a="playitem" data-i="${i}" title="Afspelen">${icon('mdi:play', 22)}</button>` : ''}
-        <div class="n">${esc(it.title)}</div><div class="s">${esc(it.media_class === 'directory' ? '' : it.media_class ?? '')}</div></div>`).join('') || '<div class="hint">Niets gevonden.</div>'}</div>`}`;
+        <div class="n">${esc(it.title)}</div><div class="s">${esc(it.media_class === 'directory' ? '' : it.media_class ?? '')}</div></div>`).join('') || `<div class="hint">${useMA() && browse.filter !== 'alles' ? 'Niets van deze bron in dit onderdeel. Kies Alles om alles te zien.' : 'Niets gevonden.'}</div>`}</div>`}`;
+  teken(main);
   const q = main.querySelector('#sp-q');
   q?.addEventListener('keydown', e => { if (e.key === 'Enter') { browse.query = q.value; search(); } });
   q?.addEventListener('input', () => { browse.query = q.value; });
@@ -272,8 +314,8 @@ async function loadCurrent() {
   renderBrowseSoon();
   const top = browse.stack[browse.stack.length - 1];
   try {
-    const res = await hass().callWS({ type: 'media_player/browse_media', entity_id: entity, ...(top ? { media_content_id: top.id, media_content_type: top.type } : {}) });
-    browse.items = (res.children ?? []).filter(it => !useMA() || magZien(it));
+    const res = await hass().callWS({ type: 'media_player/browse_media', entity_id: bladerSpeler(), ...(top ? { media_content_id: top.id, media_content_type: top.type } : {}) });
+    browse.items = (res.children ?? []).filter(it => !useMA() || (magZien(it) && it.media_class !== 'app'));
   } catch (e) {
     browse.items = [];
     browse.error = e?.message ?? 'Bladeren lukte niet';
@@ -293,7 +335,7 @@ async function search() {
   browse.query = q; browse.loading = true; browse.error = ''; browse.results = [];
   renderBrowseSoon();
   try {
-    const res = await hass().callWS({ type: 'media_player/search_media', entity_id: entity, search_query: q });
+    const res = await hass().callWS({ type: 'media_player/search_media', entity_id: bladerSpeler(), search_query: q });
     browse.results = (res.result ?? res.results ?? []).filter(it => !useMA() || magZien(it));
   } catch (e) {
     browse.results = [];
@@ -315,6 +357,8 @@ function openItem(list, i) {
 
 function playItem(it) {
   if (!it) return;
+  // Music Assistant: het speelt op de speler van Music Assistant (hier dan ook bediend), ook als de laptop eerst bediend werd
+  if (useMA() && !isMA(entity)) entity = bladerSpeler();
   call('media_player', 'play_media', { media_content_id: it.media_content_id, media_content_type: it.media_content_type });
   toast(`Speelt: ${it.title}`);
   setTimeout(() => { tab = 'nu'; root?.querySelectorAll('nav .tab').forEach(x => x.classList.toggle('on', x.dataset.k === tab)); if (root) render(); }, 700);
@@ -359,10 +403,19 @@ function kiesSpeler(id, name) {
   setTimeout(() => { if (root && tab === 'apparaten') render(); }, 600);
 }
 
+const spotifyPlus = () => (persoon() === 'carleen' ? 'media_player.spotifyplus_carleentje' : 'media_player.spotifyplus_vincent_maarschalkerweerd');
+const spotifyBron = () => (persoon() === 'carleen' ? 'media_player.spotify_carleentje' : 'media_player.spotify_vincent_maarschalkerweerd');
+// De Spotify Connect-apparaten die geen Music Assistant-speler zijn (de laptop, de telefoon)
+function spotifyApparaten() {
+  const maNamen = maPlayers().map(x => String(x.attributes.friendly_name).toLowerCase());
+  return (hass().states[spotifyBron()]?.attributes.source_list ?? []).filter(n => !maNamen.includes(String(n).toLowerCase()) && !/music assistant/i.test(n));
+}
+
 function renderDevices(main) {
   if (useMA()) {
     const spelers = maPlayers();
     main.innerHTML = `<div class="hint" style="margin-bottom:10px">Waar moet de muziek spelen? Tik een speler: speelt er nu iets, dan gaat het erheen.</div>
+      ${spotifyApparaten().length ? `<div class="hint" style="margin:6px 0">Spotify-apparaten (laptop, telefoon)</div>${spotifyApparaten().map(n => `<button class="row" data-a="spsource" data-s="${esc(n)}">${icon('mdi:laptop')}<span>${esc(n)}</span></button>`).join('')}<div class="hint" style="margin:14px 0 6px">Music Assistant</div>` : ''}
       ${spelers.map(x => `<button class="row ${x.entity_id === entity ? 'on' : ''}" data-a="maplayer" data-id="${esc(x.entity_id)}" data-n="${esc(x.attributes.friendly_name ?? x.entity_id)}">${icon(x.state === 'playing' ? 'mdi:volume-high' : 'mdi:speaker')}<span>${esc(x.attributes.friendly_name ?? x.entity_id)}</span></button>`).join('') || '<div class="hint">Geen Music Assistant-spelers gevonden.</div>'}`;
     return;
   }

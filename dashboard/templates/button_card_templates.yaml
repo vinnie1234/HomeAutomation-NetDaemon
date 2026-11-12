@@ -3264,7 +3264,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=9').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=11').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {
@@ -3325,7 +3325,7 @@ mijn_spotify:
           open: (id, tab) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
             window.huisMijnSpotifyAt = Date.now();
-            import('/local/huis/muziek-speler.js?v=9').then(m => m.open(id, tab));
+            import('/local/huis/muziek-speler.js?v=11').then(m => m.open(id, tab));
           },
           press: (id, service) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
