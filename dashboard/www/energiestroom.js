@@ -62,6 +62,7 @@ class HuisEnergiestroom extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._root) this._build();
+    this._cards?.forEach((c) => { c.hass = hass; });
     this._update();
     if (!this._statsAt || Date.now() - this._statsAt > 300000) this._loadStats();
   }
@@ -147,7 +148,11 @@ class HuisEnergiestroom extends HTMLElement {
         .tegel .t i { width:7px; height:7px; border-radius:50%; background:var(--c); }
         .tegel .w { font-size:22px; font-weight:700; margin-top:4px; }
         .tegel .w small { font-size:12px; font-weight:400; opacity:.65; margin-left:3px; }
+        .kamers { margin-top:38px; }
+        .extra { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; align-items:start; position:relative; }
+        .extra > * { min-width:0; }
         @media (max-width:1100px) {
+          .kamers { margin-top:0; }
           .top { grid-template-columns:1fr; gap:22px; }
           .ringkolom { order:-1; margin-top:22px; }
           svg.lijnen { display:none; }
@@ -169,6 +174,7 @@ class HuisEnergiestroom extends HTMLElement {
         </div>
         <div class="kamers" id="kamers"></div>
         <div class="tegels" id="tegels"></div>
+        <div class="extra" id="extra"></div>
       </div>`;
     this._el = (id) => this._root.getElementById(id);
     this._el('prijs').addEventListener('click', () => this._go('/dashboard-huis/energie-prijs'));
@@ -178,6 +184,25 @@ class HuisEnergiestroom extends HTMLElement {
     });
     this._resize = new ResizeObserver(() => this._drawLines());
     this._resize.observe(this._el('wrap'));
+    this._embed();
+  }
+
+  /** Het verloop van 24 uur, het wasadvies en thuiswerken: bestaande kaarten, hier in het overzicht gezet. */
+  async _embed() {
+    try {
+      const helpers = await window.loadCardHelpers();
+      const configs = [
+        { type: 'custom:mini-graph-card', name: 'Laatste 24 uur', icon: 'mdi:chart-areaspline', hours_to_show: 24, points_per_hour: 4,
+          line_width: 2, smoothing: true, show: { fill: 'fade', labels: false, extrema: true },
+          color_thresholds: [{ value: 0, color: '#4ade80' }, { value: 1500, color: '#ffb060' }, { value: 2500, color: '#ff6b6b' }],
+          entities: [{ entity: GRID, name: 'Verbruik' }] },
+        { type: 'custom:button-card', template: 'wash_advice' },
+        { type: 'custom:button-card', template: 'homework_tile' },
+      ];
+      this._cards = configs.map((c) => { const el = helpers.createCardElement(c); el.hass = this._hass; this._el('extra').appendChild(el); return el; });
+    } catch (e) {
+      console.warn('huis-energiestroom: kaarten niet geladen', e);
+    }
   }
 
   _update() {
@@ -295,7 +320,7 @@ class HuisEnergiestroom extends HTMLElement {
       const card = this._el('kamers').children[i];
       if (!card) return;
       const kr = rel(card);
-      const deg = n === 1 ? 90 : 62 + (56 * i) / (n - 1);
+      const deg = n === 1 ? 90 : 48 + (84 * i) / (n - 1);
       defs.push({ k: `r${i}`, a: at(deg), b: [kr.cx, kr.t], h: 'v', kleur: room.color, w: totaal, terug: false });
     });
 
@@ -305,7 +330,7 @@ class HuisEnergiestroom extends HTMLElement {
       const [x1, y1] = d.a, [x2, y2] = d.b;
       const c = d.h === 'h'
         ? [(x2 - x1) * 0.55, 0, -(x2 - x1) * 0.15, (y2 - y1) * 0.1]
-        : [0, (y2 - y1) * 0.55, 0, -(y2 - y1) * 0.45];
+        : [0, (y2 - y1) * 0.5, 0, -(y2 - y1) * 0.5];
       p.setAttribute('d', `M${x1.toFixed(1)} ${y1.toFixed(1)} C${(x1 + c[0]).toFixed(1)} ${(y1 + c[1]).toFixed(1)} ${(x2 + c[2]).toFixed(1)} ${(y2 + c[3]).toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
       p.setAttribute('stroke', d.kleur);
       p.classList.toggle('aan', d.w >= 1);

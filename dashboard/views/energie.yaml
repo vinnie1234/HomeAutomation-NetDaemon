@@ -1,4 +1,4 @@
-# Energie → Overzicht: samenvatting, de kaart Energiestroom (nu, prijs, kamers, totalen), het verloop van 24 uur en het wasadvies.
+# Energie → Overzicht: samenvatting, de kaart Energiestroom (nu, prijs, kamers, totalen), het verloop van 24 uur, het wasadvies en thuiswerken (die staan in de kaart zelf).
 # Details staan in de tabs Prijs, Verbruik & zon, Kosten en Water.
 title: Energie
 path: energie
@@ -18,42 +18,6 @@ sections:
       - type: custom:huis-energiestroom
         grid_options:
           columns: full
-
-  # Het verloop van vandaag, het wasadvies en thuiswerken. De rest (nu, prijs, kosten, verdeling per kamer) staat in de kaart Energiestroom
-  - type: grid
-    cards:
-      - type: custom:mini-graph-card
-        name: Laatste 24 uur
-        icon: mdi:chart-areaspline
-        hours_to_show: 24
-        points_per_hour: 4
-        line_width: 2
-        smoothing: true
-        show:
-          fill: fade
-          labels: false
-          extrema: true
-        color_thresholds:
-          - value: 0
-            color: "#4ade80"
-          - value: 1500
-            color: "#ffb060"
-          - value: 2500
-            color: "#ff6b6b"
-        entities:
-          - entity: sensor.p1_meter_3c39e72a64e8_active_power
-            name: Verbruik
-        grid_options:
-          columns: 12
-      # Wasadvies: prijs én buiten drogen (zie template wash_advice)
-      - type: custom:button-card
-        template: wash_advice
-        grid_options:
-          columns: 12
-      - type: custom:button-card
-        template: homework_tile
-        grid_options:
-          columns: 12
 
   # Pop-up: thuiswerken per dag (opent via de tegel Thuiswerken)
   - type: grid

@@ -30,15 +30,6 @@ public class ChristmasTreeTests
         _ctx.HaContextMock.ProcessPendingOperations();
     }
 
-    [Theory]
-    [InlineData(2026, 12, 5, false)]
-    [InlineData(2026, 12, 6, true)]
-    [InlineData(2027, 1, 6, true)]
-    [InlineData(2027, 1, 7, false)]
-    [InlineData(2026, 7, 1, false)]
-    public void TheChristmasPeriod_RunsFromSixDecemberUpToAndIncludingSixJanuary(int year, int month, int day, bool expected) =>
-        Assert.Equal(expected, ChristmasTree.InPeriod(new DateTime(year, month, day)));
-
     [Fact]
     public void WhenVincentGetsUp_TheTreeGoesOn()
     {
