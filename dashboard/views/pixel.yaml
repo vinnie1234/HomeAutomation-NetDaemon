@@ -64,7 +64,7 @@ sections:
         name: Vandaag gegeten
         label: |
           [[[
-            const food = { full: 'Voerbak is vol', lack: 'Voer raakt op', empty: 'Voerbak is leeg' };
+            const food = { full: 'Voerbak is vol', less: 'Voer raakt op', lack: 'Voer raakt op', empty: 'Voerbak is leeg' };
             const s = states['sensor.zedar_a600_food_storage_status']?.state;
             return food[s] ?? 'Voerbak: onbekend';
           ]]]
