@@ -8,7 +8,7 @@ using static Automation.Globals;
 namespace Automation.apps.Rooms.LivingRoom;
 
 /// <summary>
-/// Date night (the switch "Date night"): the living room lights turn romantic, the date night playlist plays on the living room speaker, the
+/// Date night (the switch "Date night"): the living room lights turn romantic, a question on the phones whether the music should change to the date night playlist (living room and kitchen), the
 /// vacuum does not run and the other automatic music, the announcements and the ordinary notifications stay quiet (see
 /// <see cref="Helpers.SpotifyChoice.Autoplay"/>, the vacuum and <see cref="Notify"/>). The dashboard turns calm and romantic by itself.
 /// Date night always ends when someone goes to sleep. When it ends, the music stops and the living room lights go back to the scene of the time of day.
@@ -16,6 +16,9 @@ namespace Automation.apps.Rooms.LivingRoom;
 [NetDaemonApp(Id = nameof(DateNight))]
 public class DateNight : BaseApp
 {
+    /// <summary>How long the question about the music stays on the phones, in seconds.</summary>
+    public const int MusicQuestionTimeout = 30;
+
     public const string PlaylistUrl = "https://open.spotify.com/playlist/1HLh1SsPFrBOQLta0y2FFl";
 
     private readonly ISpotcast _spotcast;
@@ -60,9 +63,23 @@ public class DateNight : BaseApp
             Entities.Vacuum.Jaap.ReturnToBase();
         }
 
+        // The music is only changed when someone says so: a question on both phones that goes away by itself
+        Notify.NotifyPhoneVincentCarleen("Date night", "Muziek aanpassen naar de date night playlist?", true,
+            action:
+            [
+                new ActionModel("DATENIGHT_MUSIC_YES", "Ja", func: PlayMusic),
+                new ActionModel("DATENIGHT_MUSIC_NO", "Nee", func: () => Logger.LogInformation("Date night: the music stays as it is"))
+            ],
+            timeoutSeconds: MusicQuestionTimeout);
+    }
+
+    /// <summary>The date night playlist, on the speakers of the living room and the kitchen.</summary>
+    private void PlayMusic()
+    {
         var (_, account) = SpotifyChoice.Resolve(HaContext, _config, SpotifyRoom.Keuken, Vincent.IsHome, Carleen.IsHome);
         _spotcast.PlaySpotify(Entities.MediaPlayer.Woonkamer, PlaylistUrl, account);
-        Logger.LogInformation("Date night playlist started");
+        _spotcast.PlaySpotify(Entities.MediaPlayer.Nestmini9818, PlaylistUrl, account);
+        Logger.LogInformation("Date night playlist started in the living room and the kitchen");
     }
 
     /// <summary>Warm: the pendant lamp at 80 percent (games are played at date night too), the bench and the Hue Play lights in a deep rose, the rest of the room out.</summary>
@@ -81,6 +98,7 @@ public class DateNight : BaseApp
     {
         Logger.LogInformation("Date night ends");
         if (Entities.MediaPlayer.Woonkamer.State == "playing") Entities.MediaPlayer.Woonkamer.MediaPause();
+        if (Entities.MediaPlayer.Nestmini9818.State == "playing") Entities.MediaPlayer.Nestmini9818.MediaPause();
 
         // Asleep or away: the lights are the business of the sleep and leaving routines
         if (IsSleepMode || Entities.InputBoolean.Away.IsOn() || Entities.InputBoolean.Disablelightautomationlivingroom.IsOn()) return;

@@ -211,14 +211,16 @@ public class Notify : INotify
         string? image = null,
         string? channel = null,
         string? vibrationPattern = null,
-        string? clickAction = null)
+        string? clickAction = null,
+        int? timeoutSeconds = null)
     {
         var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
 
-        var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern, clickAction: clickAction);
+        var data = ConstructData(action, image: image, channel: channel, vibrationPattern: vibrationPattern, clickAction: clickAction,
+            timeoutSeconds: timeoutSeconds);
         _services.Notify.MobileAppVincentPhone(new NotifyMobileAppVincentPhoneParameters
             { Title = title, Message = message, Data = data });
         
@@ -394,7 +396,8 @@ public class Notify : INotify
         string? image = null,
         string? channel = null,
         string? vibrationPattern = null,
-        string? clickAction = null)
+        string? clickAction = null,
+        int? timeoutSeconds = null)
     {
         //construct the data here
         RecordNotifyData data = new(
@@ -428,6 +431,18 @@ public class Notify : INotify
             var subscriptions = new CompositeDisposable();
             var handled = 0;
             subscriptions.Add(Observable.Timer(NotificationActionLifetime).Subscribe(_ => subscriptions.Dispose()));
+
+            // A question that is not answered in time goes away: the phone removes it, and the buttons stop working
+            if (timeoutSeconds is { } seconds)
+            {
+                data.Timeout = seconds;
+                subscriptions.Add(Observable.Timer(TimeSpan.FromSeconds(seconds)).Subscribe(_ =>
+                {
+                    if (Interlocked.Exchange(ref handled, 1) == 1) return;
+                    subscriptions.Dispose();
+                    ClearNotification(tag);
+                }));
+            }
 
             foreach (var action in actions.Where(action => action.Func != null))
             {

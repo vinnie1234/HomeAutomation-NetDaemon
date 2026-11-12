@@ -45,7 +45,8 @@ public interface INotify
         string? image = null,
         string? channel = null,
         string? vibrationPattern = null,
-        string? clickAction = null);
+        string? clickAction = null,
+        int? timeoutSeconds = null);
 
 
     // ReSharper disable once UnusedMember.Global

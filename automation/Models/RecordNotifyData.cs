@@ -53,6 +53,11 @@ public class RecordNotifyData
     [JsonPropertyName("url")]
     public string? Url { get; set; }
 
+    /// <summary>Seconds after which the phone removes the notification by itself (Android).</summary>
+    [JsonPropertyName("timeout")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Timeout { get; set; }
+
     [JsonPropertyName("actions")]
     public List<ActionModel>? Actions { get; set; }
 }
