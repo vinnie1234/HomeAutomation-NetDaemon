@@ -98,7 +98,7 @@ function layout(view) {
 const waker = new WeakMap();
 
 // Date night: een rustig, romantisch dashboard. De achtergrond en de accentkleur worden roze/paars; op Home blijft alleen de kop over
-// (de klok en de knop om date night te stoppen) en de chips verdwijnen. Meldingen verbergen zichzelf (zie het alert-template).
+// (de klok en de knop om date night te stoppen), de kamers en de muziek; de chips en de rest verdwijnen. Meldingen verbergen zichzelf (zie het alert-template).
 const ROMANTISCH = 'radial-gradient(1200px 700px at 0% 0%, rgba(255, 90, 140, 0.38), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(170, 70, 210, 0.45), transparent 60%), #1a0814 fixed';
 let datenightWas = null;
 
@@ -127,9 +127,11 @@ function applyDatenight() {
     const shadow = view.shadowRoot;
     if (!shadow) continue;
     // Op Home alleen de eerste sectie (de kop); op de andere pagina's blijft alles staan, maar zonder chips
-    // Op Home alleen de eerste sectie (de kop); de andere secties (met hun omhulsel) gaan weg
+    // Op Home gaan de andere secties (met hun omhulsel) weg
+    // Blijven staan: de kop (0), de kamers om de lampen te bedienen (1), wat er nu speelt om de muziek te bedienen (5) en de pop-ups van de kamers (6)
+    const HOME_BLIJFT = [0, 1, 5, 6];
     [...shadow.querySelectorAll('hui-section')].forEach((section, i) => {
-      if (i === 0) return;
+      if (HOME_BLIJFT.includes(i)) return;
       const wrapper = section.parentElement?.classList.contains('section-container') ? section.parentElement : section;
       wrapper.style.display = on && home ? 'none' : '';
     });
