@@ -2,6 +2,7 @@ using System.Reactive.Concurrency;
 using Automation.Configuration;
 using Automation.Core;
 using Automation.Helpers;
+using Automation.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.Rooms.LivingRoom;
@@ -21,8 +22,12 @@ public class ChristmasTree : BaseApp
     /// <summary>Pressing this button starts the Christmas playlist.</summary>
     public const string MusicButton = "input_button.start_kerstmuziek";
 
+    /// <summary>"ja" from 6 December up to and including 6 January: the dashboard shows the Christmas tile, tree and playlist only then.</summary>
+    public const string PeriodSensor = "sensor.kerstperiode";
+
     private readonly ISpotcast _spotcast;
     private readonly AppConfig _config;
+    private readonly IEntityManager _entityManager;
 
     public ChristmasTree(
         IHaContext ha,
@@ -30,11 +35,16 @@ public class ChristmasTree : BaseApp
         INotify notify,
         IScheduler scheduler,
         ISpotcast spotcast,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        IEntityManager entityManager)
         : base(ha, logger, notify, scheduler, config)
     {
+        _entityManager = entityManager;
         _spotcast = spotcast;
         _config = config.Value;
+
+        _ = PublishPeriodAsync();
+        Scheduler.ScheduleCronNl("5 0 0 * * *", PublishPeriod, hasSeconds: true);
 
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOff(_ => SetTree(on: true));
         Entities.InputBoolean.Sleepingvincent.WhenTurnsOn(_ => SetTree(on: false));
@@ -50,12 +60,33 @@ public class ChristmasTree : BaseApp
             .Subscribe(_ => StartChristmas());
     }
 
+    /// <summary>Whether the day is in the Christmas period: 6 December up to and including 6 January.</summary>
+    public static bool InPeriod(DateTime day) => (day.Month == 12 && day.Day >= 6) || (day.Month == 1 && day.Day <= 6);
+
+    private bool InPeriodNow => InPeriod(Scheduler.NowNl().DateTime);
+
+    private async Task PublishPeriodAsync()
+    {
+        try
+        {
+            if (!_entityManager.EntityExists(PeriodSensor))
+                await _entityManager.CreateAsync(PeriodSensor, new EntityCreationOptions { Name = "Kerstperiode", Icon = "mdi:pine-tree" });
+            PublishPeriod();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not create {Sensor}", PeriodSensor);
+        }
+    }
+
+    private void PublishPeriod() => _entityManager.SetState(PeriodSensor, InPeriodNow ? "ja" : "nee");
+
     /// <summary>A short wait, so a group that switches its lights off one by one is done before the tree goes on again.</summary>
     private static readonly TimeSpan KeepOnDelay = TimeSpan.FromSeconds(2);
 
     private void KeepOn()
     {
-        if (Vincent.IsSleeping || HaContext.GetState(Tree)?.State != "off") return;
+        if (Vincent.IsSleeping || !InPeriodNow || HaContext.GetState(Tree)?.State != "off") return;
         ActivityContext.Note("De kerstboom blijft aan, behalve als Vincent slaapt");
         SetTree(on: true);
     }
@@ -66,6 +97,12 @@ public class ChristmasTree : BaseApp
         if (HaContext.GetState(Tree)?.State is null or "unavailable" or "unknown")
         {
             Logger.LogDebug("The Christmas tree is not there, nothing to switch");
+            return;
+        }
+
+        if (on && !InPeriodNow)
+        {
+            Logger.LogDebug("It is not the Christmas period, the tree stays as it is");
             return;
         }
 

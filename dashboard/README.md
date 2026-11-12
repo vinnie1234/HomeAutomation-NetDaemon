@@ -42,7 +42,7 @@ takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`, 
        # card-mod vóór de kaarten laden, anders waarschuwt hij over prestaties
        - /hacsfiles/lovelace-card-mod/card-mod.js
        # Na 30 seconden niets doen terug naar Home (www/idle-home.js); ?v= ophogen na een wijziging
-       - /local/huis/idle-home.js?v=1
+       - /local/huis/idle-home.js?v=2
        # De kaart NetDaemon activiteit (pagina Activiteit onder Beheer, www/netdaemon-activiteit.js); ?v= ophogen na een wijziging
        - /local/huis/netdaemon-activiteit.js?v=1
 

@@ -53,9 +53,27 @@ public class KitchenMusicOnMotion : BaseApp
         Entities.InputBoolean.Awayvincent.IsOn() &&
         Entities.InputBoolean.Awaycarleen.IsOn();
 
+    /// <summary>
+    /// Vincent is working at home, or about to: the work laptop is on, or it is a working day and the hours (with the margin before them)
+    /// have started. The working switch alone is not enough: it only goes on once the laptop is seen, a minute after the first motion.
+    /// </summary>
+    private bool WorksAtHome
+    {
+        get
+        {
+            if (!Vincent.IsHome) return false;
+            if (Automation.apps.General.Work.WorkLaptop.IsOnline(HaContext)) return true;
+            var now = Scheduler.NowNl().DateTime;
+            if (VincentSchedule.IsDayOff(now.DayOfWeek)) return false;
+            var (start, end) = Models.Persons.WorkHours.Today(HaContext, VincentSchedule, "vincent", now);
+            return now >= start - Automation.apps.General.Work.WorkLaptop.Margin && now < end;
+        }
+    }
+
     private bool CanStartMusic =>
         Vincent.IsHome &&
         Entities.InputBoolean.Working.IsOff() &&
+        !WorksAtHome &&
         !IsSpotifyPlaying &&
         !IsTvOn &&
         !IsSleepMode &&

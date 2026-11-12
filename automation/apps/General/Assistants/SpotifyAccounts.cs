@@ -102,6 +102,8 @@ public class SpotifyAccounts : BaseApp
         try
         {
             var options = Options(SpotifyChoice.Accounts(HaContext));
+            // No account known at all: the integrations are not loaded yet (startup). Nothing is changed, so a choice is not lost
+            if (options.Length <= 1) return;
             foreach (var person in SpotifyChoice.People)
             {
                 var helper = SpotifyChoice.AccountHelper(person);
@@ -111,19 +113,31 @@ public class SpotifyAccounts : BaseApp
                     a.TryGetProperty("options", out var existing) && existing.ValueKind == JsonValueKind.Array)
                     current = [.. existing.EnumerateArray().Select(x => x.GetString() ?? "")];
 
-                if (!current.SequenceEqual(options))
+                // What stays chosen: the same account, or the same account under its new name (it got linked in one more place, or lost one).
+                // An account that is gone goes back to the default account.
+                var chosen = state?.State is { Length: > 0 } c and not ("unknown" or "unavailable") ? c : null;
+                string? keep = null;
+                if (chosen != null && chosen != SpotifyChoice.NoAccount)
+                {
+                    var name = SpotifyChoice.NameOf(chosen);
+                    keep = options.Contains(chosen)
+                        ? chosen
+                        : options.FirstOrDefault(o => o != SpotifyChoice.NoAccount && string.Equals(SpotifyChoice.NameOf(o), name, StringComparison.OrdinalIgnoreCase));
+                }
+
+                var optionsChanged = !current.SequenceEqual(options);
+                if (optionsChanged)
                 {
                     new InputSelectEntity(HaContext, helper).SetOptions(options);
                     Logger.LogInformation("Spotify accounts for {Person}: {Accounts}", person, string.Join(", ", options));
                 }
 
-                // The chosen account is no longer a choice: the same account with other integrations behind it (it got linked in one more
-                // place, or lost one) stays chosen under its new name; an account that is gone goes back to the default account
-                if (state?.State is { Length: > 0 } chosen and not ("unknown" or "unavailable") && !options.Contains(chosen))
+                // Home Assistant resets the choice to the first option when the options are replaced, so the choice is put back after it
+                if (chosen != null && chosen != SpotifyChoice.NoAccount && (optionsChanged || keep != chosen))
                 {
-                    var name = SpotifyChoice.NameOf(chosen);
-                    var renamed = options.FirstOrDefault(o => o != SpotifyChoice.NoAccount && string.Equals(SpotifyChoice.NameOf(o), name, StringComparison.OrdinalIgnoreCase));
-                    new InputSelectEntity(HaContext, helper).SelectOption(renamed ?? SpotifyChoice.NoAccount);
+                    var target = keep ?? SpotifyChoice.NoAccount;
+                    new InputSelectEntity(HaContext, helper).SelectOption(target);
+                    if (target != chosen) Logger.LogInformation("Spotify account of {Person}: {Old} is now {New}", person, chosen, target);
                 }
             }
         }

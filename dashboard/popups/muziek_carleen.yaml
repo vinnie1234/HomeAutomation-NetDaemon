@@ -26,9 +26,15 @@ cards:
       - entity: input_text.spotify_radio_carleen
         name: Radio (badkamer)
         icon: mdi:radio
-      - entity: input_text.spotify_kerst_carleen
-        name: Kerst
-        icon: mdi:pine-tree
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.kerstperiode
+            state: "ja"
+        row:
+          entity: input_text.spotify_kerst_carleen
+          name: Kerst
+          icon: mdi:pine-tree
       - type: section
         label: Zelf starten (douche bij het douchen, keuken bij beweging) als Carleen thuis is
       - entity: input_boolean.spotify_auto_douche_carleen

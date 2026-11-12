@@ -46,6 +46,9 @@ cards:
   - type: conditional
     conditions:
       - condition: state
+        entity: sensor.kerstperiode
+        state: "ja"
+      - condition: state
         entity: light.festavia_string_lights_1
         state:
           - "on"
