@@ -192,6 +192,13 @@ sections:
         entity: input_datetime.pixellastautomatedfeed
         name: Laatst automatisch
         icon: mdi:robot-outline
+        state_display: |
+          [[[
+            const d = new Date(entity.state.replace(' ', 'T'));
+            if (isNaN(d)) return entity.state === 'unknown' || entity.state === 'unavailable' ? '–' : entity.state;
+            const p = n => String(n).padStart(2, '0');
+            return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+          ]]]
         grid_options:
           columns: 6
       - type: custom:button-card
@@ -199,6 +206,13 @@ sections:
         entity: input_datetime.pixellastmanualfeed
         name: Laatst handmatig
         icon: mdi:hand-heart-outline
+        state_display: |
+          [[[
+            const d = new Date(entity.state.replace(' ', 'T'));
+            if (isNaN(d)) return entity.state === 'unknown' || entity.state === 'unavailable' ? '–' : entity.state;
+            const p = n => String(n).padStart(2, '0');
+            return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+          ]]]
         grid_options:
           columns: 6
 
