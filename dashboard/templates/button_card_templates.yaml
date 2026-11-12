@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=4').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=5').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             const palet = ['#ffc83d', '#8b8cff', '#4fd1c5', '#f6ad55', '#38bdf8', '#f472b6', '#34d399', '#ff7a8a', '#5b9dff'];
             const dc = entity && entity.attributes && entity.attributes.device_class;

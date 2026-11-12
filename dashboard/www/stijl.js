@@ -55,13 +55,16 @@ function layout(view) {
   back.style.height = `${bottom - top + 2 * PAD}px`;
 }
 
+const waker = new WeakMap();
+
 function apply() {
   for (const view of views(document)) {
     layout(view);
-    if (!view.dataset.huisWaker) {
-      view.dataset.huisWaker = '1';
-      new ResizeObserver(() => layout(view)).observe(view);
-    }
+    // Kaarten laden later en worden daarna hoger of lager: elke sectie meten, niet alleen de pagina zelf
+    let ro = waker.get(view);
+    if (!ro) { ro = new ResizeObserver(() => layout(view)); waker.set(view, ro); ro.observe(view); }
+    const root = view.shadowRoot;
+    if (root) for (const section of root.querySelectorAll('hui-section')) ro.observe(section);
   }
 }
 
@@ -71,3 +74,5 @@ new MutationObserver(schedule).observe(document.body, { childList: true, subtree
 window.addEventListener('resize', schedule);
 window.addEventListener('location-changed', schedule);
 schedule();
+// Vangnet voor inhoud die zonder meetbare wijziging van een sectie verschuift
+setInterval(apply, 3000);
