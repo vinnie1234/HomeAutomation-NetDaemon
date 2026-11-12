@@ -23,7 +23,7 @@ const maPlayers = () => Object.values(hass().states)
 const isMA = id => !!hass().states[id]?.attributes.mass_player_type;
 const maStandaard = () => {
   const spelers = maPlayers();
-  return (spelers.find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? '')) ?? spelers.find(x => x.entity_id === 'media_player.keuken_keuken') ?? spelers[0])?.entity_id;
+  return (spelers.find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? '')) ?? spelers.find(x => x.state === 'playing') ?? spelers.find(x => x.entity_id === 'media_player.keuken_keuken') ?? spelers[0])?.entity_id;
 };
 // Bladeren en kiezen gaat altijd via een Music Assistant-speler, ook als hier nu een Spotify-apparaat (de laptop) bediend wordt
 const bladerSpeler = () => (useMA() ? (isMA(entity) ? entity : maStandaard()) : entity);
@@ -127,7 +127,7 @@ export function open(entityId, startTab = 'nu') {
   entity = entityId;
   if (useMA()) {
     // Wat nu echt speelt: een Music Assistant-speler, anders het apparaat waar de kaart op tikte (bijvoorbeeld Spotify op de laptop)
-    const speelt = maPlayers().find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? ''));
+    const speelt = maPlayers().find(x => x.state === 'playing' && !/tv|soundbar/i.test(x.attributes.friendly_name ?? '')) ?? maPlayers().find(x => x.state === 'playing');
     const gegeven = hass().states[entityId];
     const viaMa = /music assistant/i.test(gegeven?.attributes.source ?? '');
     entity = speelt?.entity_id ?? (gegeven?.state === 'playing' && !viaMa && !isMA(entityId) ? entityId : maStandaard() ?? entityId);
