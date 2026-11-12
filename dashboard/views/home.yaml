@@ -593,6 +593,9 @@ sections:
   - type: grid
     column_span: 2
     cards:
+      - type: heading
+        heading: Kamers
+        heading_style: title
       - type: custom:button-card
         template: room
         name: Woonkamer
@@ -702,6 +705,9 @@ sections:
         card:
           type: custom:button-card
           template: toothbrush
+      - type: heading
+        heading: Snel
+        heading_style: title
       - type: custom:button-card
         template: action
         name: Film

@@ -19,6 +19,10 @@ sections:
   # Kosten per periode
   - type: grid
     cards:
+      - type: heading
+        heading: Kosten
+        heading_style: title
+        icon: mdi:cash-multiple
       - type: custom:button-card
         template: price
         entity: sensor.gang_p1_meter_3c39e72a64e8_p1_meter_3c39e72a64e8_active_real_time_energy_cost
@@ -73,6 +77,10 @@ sections:
   - type: grid
     column_span: 2
     cards:
+      - type: heading
+        heading: Actuele kosten
+        heading_style: title
+        icon: mdi:chart-line
       - type: custom:mini-graph-card
         name: Kosten per uur, laatste 24 uur
         icon: mdi:cash-clock

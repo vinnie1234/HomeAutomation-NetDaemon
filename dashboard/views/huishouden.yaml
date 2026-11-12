@@ -55,6 +55,10 @@ sections:
   # Jaap en afval
   - type: grid
     cards:
+      - type: heading
+        heading: Jaap
+        heading_style: title
+        icon: mdi:robot-vacuum
       # Jaap: status met batterijring, en de bediening eronder (eigen kaart, onafhankelijk van extra sensoren)
       - type: custom:button-card
         template: glass
@@ -157,6 +161,9 @@ sections:
             entity_id: vacuum.jaap
         grid_options:
           columns: 3
+      - type: heading
+        heading: Ruimte zuigen
+        heading_style: subtitle
       - type: custom:button-card
         template: action
         name: Woonkamer
@@ -213,6 +220,10 @@ sections:
         grid_options:
           columns: 6
 
+      - type: heading
+        heading: Afval
+        heading_style: title
+        icon: mdi:trash-can-outline
       - type: custom:button-card
         template: stat
         entity: sensor.afval_pmd
@@ -264,6 +275,10 @@ sections:
   # Wasmachine en batterijen
   - type: grid
     cards:
+      - type: heading
+        heading: Wasmachine
+        heading_style: title
+        icon: mdi:washing-machine
       # Compact: status met voortgangsring; tik opent de pop-up #wasmachine met bediening en instellingen
       - type: custom:button-card
         template: glass
@@ -349,6 +364,10 @@ sections:
         name: Was hangt buiten
         icon: mdi:hanger
 
+      - type: heading
+        heading: Batterijen
+        heading_style: title
+        icon: mdi:battery-heart-variant
       # Eén samenvatting; onbekende waarden worden weggelaten
       - type: custom:button-card
         template: glass
@@ -405,6 +424,10 @@ sections:
           method: state
           numeric: true
         show_empty: false
+      - type: heading
+        heading: Post & pakketten
+        heading_style: title
+        icon: mdi:package-variant-closed
       - type: custom:button-card
         template: carrier
         entity: sensor.buiten_postnl_inkomende_pakketten
@@ -498,6 +521,10 @@ sections:
   - type: grid
     cards:
       - !include ../cards/camera_woonkamer.yaml
+      - type: heading
+        heading: Agenda en taken
+        heading_style: title
+        icon: mdi:calendar-check
       - !include ../cards/taak_knop.yaml
       - !include ../cards/boodschappen_knop.yaml
       - !include ../cards/agenda.yaml
