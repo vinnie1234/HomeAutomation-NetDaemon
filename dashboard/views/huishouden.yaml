@@ -232,7 +232,13 @@ sections:
         label: |
           [[[
             const n = parseInt(states['sensor.garbage_placed_pmd']?.state);
-            return isNaN(n) ? '' : `${n}× buiten gezet`;
+            const d = new Date(states['sensor.afval_pmd']?.state);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const diff = isNaN(d) ? null : Math.round((new Date(d).setHours(0, 0, 0, 0) - today) / 86400000);
+            const parts = [];
+            if (diff !== null && diff > 1) parts.push(`over ${diff} dagen`);
+            if (!isNaN(n)) parts.push(`${n}× buiten gezet`);
+            return parts.join(' · ');
           ]]]
         icon: mdi:recycle
         state_display: &afval_datum |
@@ -243,9 +249,18 @@ sections:
             const day = new Date(d); day.setHours(0, 0, 0, 0);
             const diff = Math.round((day - today) / 86400000);
             const date = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
-            return diff === 0 ? 'Vandaag' : diff === 1 ? 'Morgen' : `${date} · over ${diff} dagen`;
+            return diff === 0 ? 'Vandaag' : diff === 1 ? 'Morgen' : date;
           ]]]
         styles:
+          grid:
+            - grid-template-areas: '"i n" "s s" "l l"'
+            - grid-template-columns: auto 1fr
+            - grid-template-rows: auto 1fr auto
+          card:
+            - height: 120px
+          label:
+            - justify-self: start
+            - white-space: normal
           icon:
             - color: "#ffb060"
           state:
@@ -260,11 +275,26 @@ sections:
         label: |
           [[[
             const n = parseInt(states['sensor.garbage_placed_papier']?.state);
-            return isNaN(n) ? '' : `${n}× buiten gezet`;
+            const d = new Date(states['sensor.afval_papier']?.state);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const diff = isNaN(d) ? null : Math.round((new Date(d).setHours(0, 0, 0, 0) - today) / 86400000);
+            const parts = [];
+            if (diff !== null && diff > 1) parts.push(`over ${diff} dagen`);
+            if (!isNaN(n)) parts.push(`${n}× buiten gezet`);
+            return parts.join(' · ');
           ]]]
         icon: mdi:newspaper-variant-outline
         state_display: *afval_datum
         styles:
+          grid:
+            - grid-template-areas: '"i n" "s s" "l l"'
+            - grid-template-columns: auto 1fr
+            - grid-template-rows: auto 1fr auto
+          card:
+            - height: 120px
+          label:
+            - justify-self: start
+            - white-space: normal
           icon:
             - color: "#7aa2ff"
           state:
