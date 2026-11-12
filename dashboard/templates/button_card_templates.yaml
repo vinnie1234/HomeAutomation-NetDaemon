@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=7').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=8').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             const palet = ['#ffc83d', '#8b8cff', '#4fd1c5', '#f6ad55', '#38bdf8', '#f472b6', '#34d399', '#ff7a8a', '#5b9dff'];
             const dc = entity && entity.attributes && entity.attributes.device_class;
@@ -5968,7 +5968,7 @@ homework_days:
         const chosen = periods.some(p => p[0] === window.huisThuiswerkPeriode) ? window.huisThuiswerkPeriode : 'maand';
         window.huisKiesPeriode = key => { window.huisThuiswerkPeriode = key; };
         const on = 'rgba(255,176,96,0.25)', off = 'rgba(255,255,255,0.06)';
-        const tabs = periods.map(([key, label]) => `<span data-tab="${key}" style="cursor:pointer;flex:none;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:600;
+        const tabs = periods.map(([key, label]) => `<span data-tab="${key}" style="cursor:pointer;pointer-events:auto;flex:none;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:600;
             background:${key === chosen ? on : off}"
             onclick="event.stopPropagation();window.huisKiesPeriode('${key}');const r=this.closest('.hw');r.querySelectorAll('[data-tab]').forEach(t=>{t.style.background=t.dataset.tab==='${key}'?'${on}':'${off}'});r.querySelectorAll('[data-p]').forEach(e=>{e.style.display=e.dataset.p==='${key}'?'block':'none'})">${label}</span>`).join('');
 

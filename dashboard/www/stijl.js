@@ -31,7 +31,7 @@ const POPUP_CSS = `
   .bubble-pop-up.is-popup-opened .bubble-header { background: transparent !important; box-shadow: none !important; }
   .bubble-pop-up.is-popup-opened .bubble-close-button { border-radius: 14px !important; background: rgba(255, 255, 255, 0.10) !important; }
   .bubble-pop-up.is-popup-opened .bubble-pop-up-container {
-    position: relative !important; flex: 0 1 auto !important; height: auto !important; min-height: 0 !important;
+    position: relative !important; flex: 0 1 auto !important; height: auto !important; min-height: 0 !important; margin-top: 0 !important;
     max-height: calc(88dvh - 96px) !important; overflow: auto !important; padding-bottom: 16px !important;
   }
 `;
