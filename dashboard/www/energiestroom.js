@@ -120,6 +120,8 @@ class HuisEnergiestroom extends HTMLElement {
         .kaart .gr small { font-size:18px; font-weight:500; opacity:.8; margin-left:5px; }
         .chip { display:inline-block; margin-top:10px; padding:3px 12px; border-radius:8px; font-size:11.5px; letter-spacing:.1em; font-weight:700;
                 text-transform:uppercase; color:var(--c); background:color-mix(in srgb, var(--c) 18%, transparent); }
+        .vandaag { font-size:14px; margin-top:6px; opacity:.9; }
+        .vandaag b { font-weight:700; color:var(--c); }
         .reg { font-size:13px; opacity:.78; margin-top:10px; }
         .reg b { font-weight:700; }
         .balk { height:7px; border-radius:4px; background:rgba(255,255,255,.12); margin:14px 0 6px; position:relative; }
@@ -134,6 +136,8 @@ class HuisEnergiestroom extends HTMLElement {
         .mid .v { font-size:46px; font-weight:700; line-height:1.05; color:${COLOR_HOME}; }
         .mid .v small { font-size:20px; font-weight:500; margin-left:4px; opacity:.85; }
         .mid .l { font-size:12.5px; letter-spacing:.16em; margin-top:6px; opacity:.8; }
+        .mid .dag { margin-top:10px; font-size:13px; opacity:.85; padding:3px 12px; border-radius:999px; background:rgba(34,211,238,.12); }
+        .mid .dag b { font-weight:700; }
         .mid ha-icon { --mdc-icon-size:30px; color:${COLOR_HOME}; margin-bottom:6px; }
         .kamers { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; position:relative; }
         .kamer { padding:14px 14px 12px; }
@@ -264,8 +268,11 @@ class HuisEnergiestroom extends HTMLElement {
     this._el('water').innerHTML =
       `<div class="kk"><span class="ic"><ha-icon icon="mdi:water-outline"></ha-icon></span><span class="lb">Water</span></div>` +
       `<div class="gr">${waterNu === null ? '–' : waterNu.toFixed(waterNu < 10 ? 1 : 0).replace('.', ',')}<small>L/min</small></div>` +
-      `<span class="chip">${waterNu === null ? 'Onbekend' : waterNu > 0 ? 'Water loopt' : 'Dicht'}</span>` +
-      (waterVandaag !== null ? `<div class="reg">Vandaag <b>${Math.round(waterVandaag * 1000)} L</b></div>` : '');
+      (waterVandaag !== null ? `<div class="vandaag"><b>${Math.round(waterVandaag * 1000)} L</b> vandaag</div>` : '') +
+      `<span class="chip">${waterNu === null ? 'Onbekend' : waterNu > 0 ? 'Water loopt' : 'Dicht'}</span>`;
+
+    const st = this._stats || {};
+    const huisVandaag = st.imp != null ? Math.max(0, st.imp + (st.pv ?? 0) - (st.exp ?? 0)) : null;
 
     // Ring: aandeel zon en net van het verbruik, met kleine tussenruimtes
     const cx = 150, cy = 150, R = 124, C = 2 * Math.PI * R;
@@ -286,7 +293,8 @@ class HuisEnergiestroom extends HTMLElement {
     this._el('legenda').innerHTML =
       `<span><b style="color:${COLOR_SOLAR}">●</b> Zon ${Math.round(zonDeel * 100)} %</span><span><b style="color:${COLOR_NET}">●</b> Net ${Math.round((1 - zonDeel) * 100)} %</span>`;
     this._el('mid').innerHTML =
-      `<ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon><div class="v">${big(huis)}</div><div class="l">HUISVERBRUIK</div>`;
+      `<ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon><div class="v">${big(huis)}</div><div class="l">HUISVERBRUIK</div>` +
+      (huisVandaag !== null ? `<div class="dag"><b>${huisVandaag.toFixed(1).replace('.', ',')} kWh</b> vandaag</div>` : '');
 
     // Kamers
     this._rooms = ROOMS.map((room) => {
