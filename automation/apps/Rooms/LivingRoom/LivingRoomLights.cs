@@ -38,6 +38,7 @@ public class LivingRoomLights : BaseApp
 
         livingRoomPresenceService.OccupiedChanged.Subscribe(isOccupied =>
         {
+            if (Entities.InputBoolean.Datenight.IsOn()) return;
             if (Entities.Light.Woonkamer.IsOn() && !isOccupied)
             {
                 if (IsVincentSleepMode) Entities.Light.Woonkamer.TurnOff();
@@ -50,7 +51,7 @@ public class LivingRoomLights : BaseApp
 
         Entities.InputSelect.Housemodeselect
             .StateChanges()
-            .Where(_ => Entities.Light.HueFilamentBulb2.IsOn())
+            .Where(_ => Entities.Light.HueFilamentBulb2.IsOn() && Entities.InputBoolean.Datenight.IsOff())
             .Subscribe(_ =>
             {
                 LightExtension.SetLightSceneWoonkamer(Entities);
@@ -85,7 +86,7 @@ public class LivingRoomLights : BaseApp
         {
             Scheduler.Schedule(TimeSpan.FromSeconds(10), () =>
             {
-                if (Entities.Light.HueFilamentBulb2.IsOn())
+                if (Entities.Light.HueFilamentBulb2.IsOn() && Entities.InputBoolean.Datenight.IsOff())
                     LightExtension.SetLightSceneWoonkamer(Entities);
             });
         });

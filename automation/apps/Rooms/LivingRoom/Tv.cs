@@ -134,7 +134,7 @@ public class Tv : BaseApp
             Entities.Light.LampenKeuken.TurnOff();
             Entities.Light.Plafondslaapkamer.TurnOff();
             Entities.Light.Nachtkastje.TurnOff();
-            Entities.MediaPlayer.Tv.VolumeSet(0.14);
+            Entities.MediaPlayer.Tv.VolumeSet(0.10);
             Logger.LogDebug("Movie time started!");
         }
     }

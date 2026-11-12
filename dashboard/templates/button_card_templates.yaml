@@ -12,8 +12,14 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=8').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=13').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
+            // Date night: alles in warme roze en paarse tinten
+            if (states['input_boolean.datenight']?.state === 'on') {
+              const roze = ['#ff7a9c', '#ff9a8b', '#e879a8', '#c77dff', '#ffb3c1'];
+              let g = 0; for (const ch of String((entity && entity.entity_id) || (this && this._config && this._config.name) || '')) g = (g * 31 + ch.charCodeAt(0)) >>> 0;
+              return roze[g % roze.length];
+            }
             const palet = ['#ffc83d', '#8b8cff', '#4fd1c5', '#f6ad55', '#38bdf8', '#f472b6', '#34d399', '#ff7a8a', '#5b9dff'];
             const dc = entity && entity.attributes && entity.attributes.device_class;
             const perSoort = { temperature: '#ff8a4c', humidity: '#38bdf8', battery: '#34d399', power: '#ffc83d', energy: '#ffc83d', monetary: '#5b9dff', motion: '#38bdf8', door: '#f6ad55', window: '#f6ad55', moisture: '#38bdf8', problem: '#ff5d73' };
@@ -4807,6 +4813,8 @@ alert:
   variables:
     color: 56, 189, 248
     pulse: false
+    # Tijdens date night blijft een melding weg, behalve als hij echt belangrijk is (critical: true)
+    critical: false
   styles:
     grid:
       - grid-template-areas: '"i n side" "i l side"'
@@ -4815,6 +4823,7 @@ alert:
       - column-gap: 14px
     card:
       - --alert-rgb: '[[[ return variables.color; ]]]'
+      - display: '[[[ return states["input_boolean.datenight"]?.state === "on" && !variables.critical ? "none" : "grid"; ]]]'
       - min-height: 84px
       - padding: 12px 16px
       - background: '[[[ return `linear-gradient(135deg, rgba(${variables.color}, 0.28), rgba(${variables.color}, 0.08))`; ]]]'
@@ -6332,6 +6341,7 @@ pixel_voeding_alert:
   variables:
     color: 255, 77, 77
     pulse: true
+    critical: true
   tap_action:
     action: javascript
     javascript: |

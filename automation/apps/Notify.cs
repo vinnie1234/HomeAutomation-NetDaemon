@@ -65,7 +65,7 @@ public class Notify : INotify
     {
         if (SpeakersNotAllowed(nameof(NotifyHouse))) return;
 
-        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
@@ -96,7 +96,7 @@ public class Notify : INotify
         string? channel = null,
         string? vibrationPattern = null)
     {
-        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
@@ -181,7 +181,7 @@ public class Notify : INotify
         string? channel = null,
         string? vibrationPattern = null)
     {
-        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
@@ -213,7 +213,7 @@ public class Notify : INotify
         string? vibrationPattern = null,
         string? clickAction = null)
     {
-        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
@@ -237,7 +237,7 @@ public class Notify : INotify
     public void NotifyPhoneVincentTts(string title, string message, bool canAlwaysSendNotification,
         double? sendAfterMinutes = null)
     {
-        var canSendNotification = CanSendNotification(_storage, canAlwaysSendNotification, title, sendAfterMinutes);
+        var canSendNotification = CanSend(canAlwaysSendNotification, title, sendAfterMinutes);
         if (!canSendNotification) return;
 
         SaveNotification(_storage, title, message);
@@ -338,6 +338,8 @@ public class Notify : INotify
             reason = "someone is sleeping";
         else if (_entities.InputBoolean.Away.IsOn())
             reason = "nobody is home";
+        else if (_entities.InputBoolean.Datenight.IsOn())
+            reason = "date night";
 
         if (reason is null) return false;
 
@@ -510,6 +512,20 @@ public class Notify : INotify
     /// <param name="title">The title of the notification.</param>
     /// <param name="sendAfterMinutes">The delay in minutes after which the notification can be sent again.</param>
     /// <returns>True if the notification can be sent; otherwise, false.</returns>
+    /// <summary>
+    /// Whether a notification may be sent now. During a date night only the ones that may always be sent go through: everything else waits
+    /// for another day, like the rest of the house, so the evening stays quiet.
+    /// </summary>
+    private bool CanSend(bool canAlwaysSend, string title, double? sendAfterMinutes)
+    {
+        if (!canAlwaysSend && _entities.InputBoolean.Datenight.IsOn())
+        {
+            _logger.LogDebug("Skipped notification {Title}: date night", title);
+            return false;
+        }
+        return CanSendNotification(_storage, canAlwaysSend, title, sendAfterMinutes);
+    }
+
     private static bool CanSendNotification(IDataRepository storage, bool canAlwaysSend, string title,
         double? sendAfterMinutes)
     {

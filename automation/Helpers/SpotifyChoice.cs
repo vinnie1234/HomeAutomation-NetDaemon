@@ -48,6 +48,7 @@ public static partial class SpotifyChoice
     /// room is not off. A switch that does not exist yet counts as on.
     /// </summary>
     public static bool Autoplay(IHaContext ha, SpotifyRoom room, bool vincentHome, bool carleenHome) =>
+        ha.GetState("input_boolean.datenight")?.State != "on" &&
         Value(ha, AutoplayHelper(room, PersonFor(ha, vincentHome, carleenHome))) != "off";
 
     public static string AccountHelper(string person) => $"input_select.spotify_account_{person}";

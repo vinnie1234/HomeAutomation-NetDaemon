@@ -97,8 +97,56 @@ function layout(view) {
 
 const waker = new WeakMap();
 
+// Date night: een rustig, romantisch dashboard. De achtergrond en de accentkleur worden roze/paars; op Home blijft alleen de kop over
+// (de klok en de knop om date night te stoppen) en de chips verdwijnen. Meldingen verbergen zichzelf (zie het alert-template).
+const ROMANTISCH = 'radial-gradient(1200px 700px at 0% 0%, rgba(255, 90, 140, 0.38), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(170, 70, 210, 0.45), transparent 60%), #1a0814 fixed';
+let datenightWas = null;
+
+function datenightOn() {
+  const ha = document.querySelector('home-assistant');
+  return ha?.hass?.states?.['input_boolean.datenight']?.state === 'on';
+}
+
+function applyDatenight() {
+  const on = datenightOn();
+  const root = document.documentElement;
+  if (on !== datenightWas) {
+    datenightWas = on;
+    if (on) {
+      root.style.setProperty('--lovelace-background', ROMANTISCH);
+      root.style.setProperty('--accent-color', '#ff7a9c');
+      root.style.setProperty('--primary-color', '#ff7a9c');
+    } else {
+      root.style.removeProperty('--lovelace-background');
+      root.style.removeProperty('--accent-color');
+      root.style.removeProperty('--primary-color');
+    }
+  }
+  const home = location.pathname.endsWith('/home');
+  for (const view of views(document)) {
+    const shadow = view.shadowRoot;
+    if (!shadow) continue;
+    // Op Home alleen de eerste sectie (de kop); op de andere pagina's blijft alles staan, maar zonder chips
+    // Op Home alleen de eerste sectie (de kop); de andere secties (met hun omhulsel) gaan weg
+    [...shadow.querySelectorAll('hui-section')].forEach((section, i) => {
+      if (i === 0) return;
+      const wrapper = section.parentElement?.classList.contains('section-container') ? section.parentElement : section;
+      wrapper.style.display = on && home ? 'none' : '';
+    });
+  }
+  // De chips (pakketten, taken, prijs, ...) staan in de schaduw van de kaarten en zijn alleen zo te bereiken
+  const stack = [document];
+  while (stack.length) {
+    const node = stack.pop();
+    if (node.localName === 'mushroom-chips-card') node.style.display = on ? 'none' : '';
+    if (node.shadowRoot) stack.push(node.shadowRoot);
+    for (const child of node.children || []) stack.push(child);
+  }
+}
+
 function apply() {
   stylePopups();
+  applyDatenight();
   for (const view of views(document)) {
     layout(view);
     // Kaarten laden later en worden daarna hoger of lager: elke sectie meten, niet alleen de pagina zelf

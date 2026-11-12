@@ -65,7 +65,7 @@ public class TvPauseLightTests
     }
 
     [Fact]
-    public void WhenThePendantLampWasAlreadyOn_ItIsNotSwitchedOff()
+    public void WhenTheFilmPlays_ThePendantLampAlwaysGoesOut_EvenWhenItWasOnBefore()
     {
         Start(hanglamp: "on");
         Cast("playing", "paused");
@@ -74,7 +74,7 @@ public class TvPauseLightTests
         Cast("paused", "playing");
 
         _ctx.VerifyCallService("light", "turn_on", "hanglamp", times: 0);
-        _ctx.VerifyCallService("light", "turn_off", "hanglamp", times: 0);
+        _ctx.VerifyCallService("light", "turn_off", "hanglamp", times: 1);
     }
 
     [Fact]

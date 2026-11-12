@@ -10,7 +10,7 @@ namespace Automation.apps.Rooms.LivingRoom;
 /// Pausing a film on the living room TV puts the pendant lamp on, playing it again puts the lamp out. This works for Jellyfin (the player of
 /// every Jellyfin user that plays on "Tv in Woonkamer", whoever is logged in) and for other apps that report playing and paused on the
 /// TV itself (the Cast entity of the TV). A pause is only counted after <see cref="PauseDelay"/>: skipping and buffering pause for a moment.
-/// The lamp only goes out again when this app put it on, so a pendant lamp that was already on stays on.
+/// Playing always puts the lamp out.
 /// </summary>
 [NetDaemonApp(Id = nameof(TvPauseLight))]
 public class TvPauseLight : BaseApp
@@ -36,7 +36,6 @@ public class TvPauseLight : BaseApp
     public const int Kelvin = 2700;
 
     private readonly SerialDisposable _pending = new();
-    private bool _lampIsOursToSwitch;
 
     public TvPauseLight(
         IHaContext ha,
@@ -88,14 +87,11 @@ public class TvPauseLight : BaseApp
         }
 
         Logger.LogInformation("The film is paused: the pendant lamp goes on");
-        _lampIsOursToSwitch = true;
         Entities.Light.Hanglamp.TurnOn(brightnessPct: Brightness, colorTempKelvin: Kelvin);
     }
 
     private void Playing()
     {
-        if (!_lampIsOursToSwitch) return;
-        _lampIsOursToSwitch = false;
         Logger.LogInformation("The film plays again: the pendant lamp goes out");
         Entities.Light.Hanglamp.TurnOff();
     }

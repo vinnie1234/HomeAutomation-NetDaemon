@@ -102,6 +102,12 @@ public class Vacuum : BaseApp
     /// <param name="cleanKey">The key representing the zone to clean.</param>
     private void Clean(string cleanKey)
     {
+        if (Entities.InputBoolean.Datenight.IsOn())
+        {
+            Logger.LogInformation("Not cleaning {Room}: date night", cleanKey);
+            return;
+        }
+
         if (!_config.Roomba.Rooms.TryGetValue(cleanKey, out var zone))
         {
             Logger.LogError("Roomba room {Room} not found in configuration.", cleanKey);

@@ -13,6 +13,26 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
+      # Tijdens date night is dit het enige wat op Home blijft naast de klok: tik om te stoppen
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.datenight
+            state: "on"
+        card:
+          type: custom:button-card
+          template: alert
+          entity: input_boolean.datenight
+          icon: mdi:heart
+          name: Date night
+          label: Tik om te stoppen
+          variables:
+            color: 255, 122, 156
+            critical: true
+          tap_action:
+            action: toggle
+          grid_options:
+            columns: full
       - type: custom:button-card
         template: weather_hero
         grid_options:
@@ -854,7 +874,8 @@ sections:
   - type: grid
     cards:
       - !include ../cards/camera_woonkamer.yaml
-      # Wat er nu speelt (alleen zichtbaar als er iets aan staat)
+      # Eerst de muziek, daaronder de PlayStation en de TV (alleen zichtbaar als er iets aan staat)
+      - !include ../cards/muziek_nu.yaml
       - type: conditional
         conditions:
           - condition: state
@@ -867,7 +888,6 @@ sections:
           name: PlayStation 5
           icon: mdi:sony-playstation
           cover_background: true
-      - !include ../cards/muziek_nu.yaml
       - type: conditional
         conditions:
           - condition: state
