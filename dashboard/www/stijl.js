@@ -118,16 +118,21 @@ const MA_SPELERS = {
   'media_player.hub_vincent': 'media_player.slaapkamer_hub_vincent'
 };
 
-function naarMusicAssistant(uri) {
+function naarMusicAssistant(uri, instantie) {
   const m = String(uri).match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?|spotify:)(playlist|album|track|artist)[\/:]([A-Za-z0-9]+)/);
-  return m ? `spotify://${m[1]}/${m[2]}` : uri;
+  return m ? `${instantie || 'spotify'}://${m[1]}/${m[2]}` : uri;
 }
 
 window.huisSpeel = (hass, entityId, uri) => {
   const speler = hass.states['input_boolean.gebruik_music_assistant']?.state === 'on' ? MA_SPELERS[entityId] : null;
   if (!speler || !uri) return false;
+  // Het Spotify-account in Music Assistant van wie dit scherm bedient (Carleen heeft haar eigen account, anders is het van Vincent)
+  const persoon = /carleen/i.test(hass.user?.name ?? '') ? 'carleen' : 'vincent';
+  const instantie = hass.states[`input_text.ma_spotify_${persoon}`]?.state;
   hass.callService('media_player', 'shuffle_set', { entity_id: speler, shuffle: true });
-  hass.callService('music_assistant', 'play_media', { entity_id: speler, media_id: naarMusicAssistant(uri), media_type: 'playlist', enqueue: 'replace', radio_mode: false });
+  const mediaId = naarMusicAssistant(uri, ['', 'unknown', 'unavailable'].includes(instantie) ? '' : instantie);
+  const soort = (String(mediaId).match(/:\/\/(playlist|album|artist|track|radio)\//) ?? [])[1] ?? 'playlist';
+  hass.callService('music_assistant', 'play_media', { entity_id: speler, media_id: mediaId, media_type: soort, enqueue: 'replace', radio_mode: false });
   return true;
 };
 

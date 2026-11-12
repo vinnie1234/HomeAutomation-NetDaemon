@@ -29,10 +29,18 @@ public class Spotcast(IHaContext rawHa) : ISpotcast
     public static bool IsMusicAssistantOn(IHaContext ha) => ha.GetState(UseMusicAssistant)?.State == "on";
 
     /// <summary>A Spotify link or URI as Music Assistant writes it: <c>spotify://playlist/id</c>. Anything else (a Music Assistant URI, another link) stays as it is.</summary>
-    public static string ToMusicAssistantUri(string url)
+    public static string ToMusicAssistantUri(string url, string? instance = null)
     {
         var match = System.Text.RegularExpressions.Regex.Match(url, @"(?:open\.spotify\.com/(?:intl-[a-z]+/)?|spotify:)(?<type>playlist|album|track|artist)[/:](?<id>[A-Za-z0-9]+)");
-        return match.Success ? $"spotify://{match.Groups["type"].Value}/{match.Groups["id"].Value}" : url;
+        return match.Success ? $"{(string.IsNullOrWhiteSpace(instance) ? "spotify" : instance)}://{match.Groups["type"].Value}/{match.Groups["id"].Value}" : url;
+    }
+
+    /// <summary>The Spotify account in Music Assistant of whoever's settings count now (see <see cref="Helpers.SpotifyChoice.PersonFor"/>).</summary>
+    private string? SpotifyInstance()
+    {
+        var person = Helpers.SpotifyChoice.PersonFor(rawHa, _entities.InputBoolean.Awayvincent.IsOff(), _entities.InputBoolean.Awaycarleen.IsOff());
+        var state = rawHa.GetState($"input_text.ma_spotify_{person}")?.State;
+        return string.IsNullOrWhiteSpace(state) || state is "unknown" or "unavailable" ? null : state;
     }
 
     public void PlaySpotify(MediaPlayerEntity mediaPlayer, string spotifyUrl, string? account = null)
@@ -67,12 +75,20 @@ public class Spotcast(IHaContext rawHa) : ISpotcast
         }
     }
 
+    /// <summary>What a Music Assistant URI is (<c>playlist</c>, <c>album</c>, <c>radio</c>, ...); playlist when it does not say.</summary>
+    public static string MediaTypeOf(string uri)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(uri, @"^[a-z0-9_\-]+://(?<type>playlist|album|artist|track|radio)/");
+        return m.Success ? m.Groups["type"].Value : "playlist";
+    }
+
     private void PlayOnMusicAssistant(string player, string url)
     {
         var target = ServiceTarget.FromEntity(player);
         // The shuffle belongs to the queue of the player and stays when the queue is replaced
         _ha.CallService("media_player", "shuffle_set", target, new { shuffle = true });
+        var uri = ToMusicAssistantUri(url, SpotifyInstance());
         _ha.CallService("music_assistant", "play_media", target,
-            new { media_id = ToMusicAssistantUri(url), media_type = "playlist", enqueue = "replace", radio_mode = false });
+            new { media_id = uri, media_type = MediaTypeOf(uri), enqueue = "replace", radio_mode = false });
     }
 }

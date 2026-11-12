@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=16').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=17').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             // Date night: alles in warme roze en paarse tinten
             if (states['input_boolean.datenight']?.state === 'on') {
@@ -3181,6 +3181,11 @@ music_now:
             artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
           const items = [];
           for (const [id, room] of speakers) if (states[id]?.state === 'playing') items.push(from(states[id], room, undefined, 'speaker'));
+          // Met Music Assistant aan ook de spelers van Music Assistant die spelen (dezelfde muziek als op de speaker is een rij)
+          if (states['input_boolean.gebruik_music_assistant']?.state === 'on')
+            for (const s of Object.values(states))
+              if (s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state === 'playing' && !/tv|soundbar/i.test(s.attributes.friendly_name ?? ''))
+                items.push(from(s, s.attributes.friendly_name, 'Music Assistant', 'speaker'));
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
           for (const s of Object.values(states))
             if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing')
@@ -3209,6 +3214,11 @@ music_now:
             artist: s.attributes.media_artist ?? s.attributes.media_album_artist, app: app ?? s.attributes.app_name });
           const items = [];
           for (const [id, room] of speakers) if (states[id]?.state === 'playing') items.push(from(states[id], room, undefined, 'speaker'));
+          // Met Music Assistant aan ook de spelers van Music Assistant die spelen (dezelfde muziek als op de speaker is een rij)
+          if (states['input_boolean.gebruik_music_assistant']?.state === 'on')
+            for (const s of Object.values(states))
+              if (s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state === 'playing' && !/tv|soundbar/i.test(s.attributes.friendly_name ?? ''))
+                items.push(from(s, s.attributes.friendly_name, 'Music Assistant', 'speaker'));
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
           for (const s of Object.values(states))
             if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing')
@@ -3254,7 +3264,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=8').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=9').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {
@@ -3302,14 +3312,20 @@ mijn_spotify:
     body: |
       [[[
         const choice = String(states[`input_select.spotify_account_${variables.person}`]?.state ?? '').replace(/\s*\([^()]*\)\s*$/, '').trim().toLowerCase();
-        const player = choice && choice !== 'standaard account'
+        const spotifyPlayer = choice && choice !== 'standaard account'
           ? Object.values(states).find(s => /^media_player\.spotify_/.test(s.entity_id) && String(s.attributes.friendly_name ?? '').toLowerCase() === `spotify ${choice}`)
           : null;
+        // Met Music Assistant aan: de speler van Music Assistant die speelt (anders die van de keuken), met alle bronnen van Music Assistant
+        const maAan = states['input_boolean.gebruik_music_assistant']?.state === 'on';
+        const maSpelers = Object.values(states).filter(s => s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state !== 'unavailable');
+        const player = maAan
+          ? (maSpelers.find(s => s.state === 'playing' && !/tv|soundbar/i.test(s.attributes.friendly_name ?? '')) ?? states['media_player.keuken_keuken'] ?? null)
+          : spotifyPlayer;
         window.huisMijnSpotify = window.huisMijnSpotify ?? {
           open: (id, tab) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
             window.huisMijnSpotifyAt = Date.now();
-            import('/local/huis/muziek-speler.js?v=8').then(m => m.open(id, tab));
+            import('/local/huis/muziek-speler.js?v=9').then(m => m.open(id, tab));
           },
           press: (id, service) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
@@ -3338,7 +3354,7 @@ mijn_spotify:
         return `<div ${open} style="display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;pointer-events:auto">
             ${cover}
             <div style="flex:1;min-width:0;line-height:1.3">
-              <div style="font-size:12px;color:#1db954;font-weight:600">${playing ? '▶ ' : ''}Spotify · ${name}</div>
+              <div style="font-size:12px;color:#1db954;font-weight:600">${playing ? '▶ ' : ''}${maAan ? 'Music Assistant · ' + (a.friendly_name ?? '') : 'Spotify · ' + name}</div>
               <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hasTrack ? a.media_title : 'Niets aan het spelen'}</div>
               <div style="font-size:13px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub}</div>
             </div>

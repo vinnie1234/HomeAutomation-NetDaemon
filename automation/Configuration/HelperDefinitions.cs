@@ -86,6 +86,10 @@ public static class HelperDefinitions
         Boolean("gebruik_music_assistant", "Gebruik Music Assistant", icon: "mdi:music-box-multiple"),
         Boolean("muziek_volgt_mij", "Muziek volgt mij", icon: "mdi:account-music"),
         Boolean("muziek_volgt_laptop", "Muziek volgt laptop", icon: "mdi:laptop"),
+        // Music Assistant: de provider (het gekoppelde account) per persoon; MusicAssistantAccounts vult ze in
+        Text("ma_spotify_vincent", "MA spotify vincent", min: 0, max: 255, mode: "text", icon: "mdi:spotify"),
+        Text("ma_spotify_carleen", "MA spotify carleen", min: 0, max: 255, mode: "text", icon: "mdi:spotify"),
+        Text("ma_ytmusic_vincent", "MA ytmusic vincent", min: 0, max: 255, mode: "text", icon: "mdi:youtube"),
         Boolean("disableautoaway", "DisableAutoAway"),
         Boolean("disablelightautomationbathroom", "DisableLightAutomationBathroom", icon: "mdi:sync-off"),
         Boolean("disablelightautomationbedroom", "DisableLightAutomationBedRoom", icon: "mdi:sync-off"),

@@ -406,17 +406,21 @@ sections:
           navigation_path: "#instellingen"
       # Muziek via Music Assistant in plaats van Spotcast. Uit = alles werkt als voorheen.
       - type: custom:button-card
-        template: action
+        template: beheer_tile
         entity: input_boolean.gebruik_music_assistant
         name: Gebruik Music Assistant
         icon: mdi:music-box-multiple
+        variables:
+          accent: |
+            [[[ return entity.state === 'on' ? '#4ade80' : '#ffb060'; ]]]
+        label: |
+          [[[
+            return entity.state === 'on'
+              ? 'Nu: Music Assistant · tik om terug te gaan naar de Spotify-integratie'
+              : 'Nu: Spotify-integratie (Spotcast) · tik om Music Assistant te gebruiken';
+          ]]]
         tap_action:
           action: toggle
-        state:
-          - value: "on"
-            styles:
-              card:
-                - background: rgba(74, 222, 128, 0.18)
         grid_options:
           columns: 12
       # Dashboard verversen: op de tablet (Fully Kiosk) is er geen verversknop of trek-om-te-verversen

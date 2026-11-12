@@ -10,11 +10,40 @@ icon: mdi:spotify
 cards:
   - type: entities
     entities:
-      - type: section
-        label: Account (alle accounts van Spotcast, Spotify en SpotifyPlus)
-      - entity: input_select.spotify_account_carleen
-        name: Spotify-account
-        icon: mdi:account-music
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.gebruik_music_assistant
+            state: "off"
+        row:
+          type: section
+          label: Account (alle accounts van Spotcast, Spotify en SpotifyPlus)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.gebruik_music_assistant
+            state: "off"
+        row:
+          entity: input_select.spotify_account_carleen
+          name: Spotify-account
+          icon: mdi:account-music
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.gebruik_music_assistant
+            state: "on"
+        row:
+          type: section
+          label: Account in Music Assistant (de koppeling die Music Assistant gebruikt)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.gebruik_music_assistant
+            state: "on"
+        row:
+          entity: input_text.ma_spotify_carleen
+          name: Spotify Carleen
+          icon: mdi:spotify
       - type: section
         label: Playlist per ruimte (een Spotify-link)
       - entity: input_text.spotify_douche_carleen
@@ -49,73 +78,96 @@ cards:
         name: Wiens muziek telt dan
         icon: mdi:account-switch
   # Waar het gekozen account gekoppeld is. Afspelen gaat altijd via Spotcast: staat het account daar niet bij, dan speelt Spotcast op zijn standaardaccount.
-  - type: custom:button-card
-    template: beheer_tile
-    triggers_update: all
-    icon: mdi:link-variant
-    name: Koppelingen
-    label: |
-      [[[
-        const choice = states['input_select.spotify_account_carleen']?.state ?? '';
-        const name = choice.replace(/\s*\([^()]*\)\s*$/, '');
-        if (!name || name === 'Standaard account') return 'Geen account gekozen: Spotcast speelt op zijn standaardaccount';
-        const lower = name.toLowerCase();
-        const all = Object.values(states);
-        const spotcast = all.some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === lower);
-        const spotify = all.some(s => s.entity_id.startsWith('media_player.spotify_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotify ${lower}`);
-        const plus = all.some(s => s.entity_id.startsWith('media_player.spotifyplus_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotifyplus ${lower}`);
-        const mark = (ok, label) => `${label} ${ok ? '✓' : '✗'}`;
-        return `${mark(spotcast, 'Spotcast')} · ${mark(spotify, 'Spotify')} · ${mark(plus, 'SpotifyPlus')}${spotcast ? '' : ' · speelt nog niet: koppel Spotcast'}`;
-      ]]]
-    styles:
-      icon:
-        - color: |
-            [[[
-              const name = (states['input_select.spotify_account_carleen']?.state ?? '').replace(/\s*\([^()]*\)\s*$/, '').toLowerCase();
-              const ok = name && Object.values(states).some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === name);
-              return ok ? '#1db954' : '#ffb060';
-            ]]]
-    tap_action:
-      action: none
   # Een koppeling die er nog niet is: de knop opent in Home Assistant het scherm om hem toe te voegen en zegt tegen NetDaemon dat Carleen gaat koppelen;
   # zodra het account (of de extra koppeling) er is kiest NetDaemon het
-  - type: grid
-    columns: 3
-    square: false
-    cards:
-      - type: custom:button-card
-        template: action
-        name: Spotcast koppelen
-        icon: mdi:link-variant-plus
-        tap_action:
-          action: javascript
-          javascript: |
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: input_boolean.gebruik_music_assistant
+        state: "off"
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:button-card
+          template: beheer_tile
+          triggers_update: all
+          icon: mdi:link-variant
+          name: Koppelingen
+          label: |
             [[[
-              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
-              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotcast');
-              window.dispatchEvent(new CustomEvent('location-changed'));
+              const choice = states['input_select.spotify_account_carleen']?.state ?? '';
+              const name = choice.replace(/\s*\([^()]*\)\s*$/, '');
+              if (!name || name === 'Standaard account') return 'Geen account gekozen: Spotcast speelt op zijn standaardaccount';
+              const lower = name.toLowerCase();
+              const all = Object.values(states);
+              const spotcast = all.some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === lower);
+              const spotify = all.some(s => s.entity_id.startsWith('media_player.spotify_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotify ${lower}`);
+              const plus = all.some(s => s.entity_id.startsWith('media_player.spotifyplus_') && (s.attributes.friendly_name ?? '').toLowerCase() === `spotifyplus ${lower}`);
+              const mark = (ok, label) => `${label} ${ok ? '✓' : '✗'}`;
+              return `${mark(spotcast, 'Spotcast')} · ${mark(spotify, 'Spotify')} · ${mark(plus, 'SpotifyPlus')}${spotcast ? '' : ' · speelt nog niet: koppel Spotcast'}`;
             ]]]
-      - type: custom:button-card
-        template: action
-        name: Spotify koppelen
-        icon: mdi:link-variant-plus
-        tap_action:
-          action: javascript
-          javascript: |
-            [[[
-              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
-              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotify');
-              window.dispatchEvent(new CustomEvent('location-changed'));
-            ]]]
-      - type: custom:button-card
-        template: action
-        name: SpotifyPlus koppelen
-        icon: mdi:link-variant-plus
-        tap_action:
-          action: javascript
-          javascript: |
-            [[[
-              hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
-              history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotifyplus');
-              window.dispatchEvent(new CustomEvent('location-changed'));
-            ]]]
+          styles:
+            icon:
+              - color: |
+                  [[[
+                    const name = (states['input_select.spotify_account_carleen']?.state ?? '').replace(/\s*\([^()]*\)\s*$/, '').toLowerCase();
+                    const ok = name && Object.values(states).some(s => /^sensor\.spotcast_[^_]+_spotify_profile$/.test(s.entity_id) && (s.attributes.display_name ?? '').toLowerCase() === name);
+                    return ok ? '#1db954' : '#ffb060';
+                  ]]]
+          tap_action:
+            action: none
+        - type: grid
+          columns: 3
+          square: false
+          cards:
+            - type: custom:button-card
+              template: action
+              name: Spotcast koppelen
+              icon: mdi:link-variant-plus
+              tap_action:
+                action: javascript
+                javascript: |
+                  [[[
+                    hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
+                    history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotcast');
+                    window.dispatchEvent(new CustomEvent('location-changed'));
+                  ]]]
+            - type: custom:button-card
+              template: action
+              name: Spotify koppelen
+              icon: mdi:link-variant-plus
+              tap_action:
+                action: javascript
+                javascript: |
+                  [[[
+                    hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
+                    history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotify');
+                    window.dispatchEvent(new CustomEvent('location-changed'));
+                  ]]]
+            - type: custom:button-card
+              template: action
+              name: SpotifyPlus koppelen
+              icon: mdi:link-variant-plus
+              tap_action:
+                action: javascript
+                javascript: |
+                  [[[
+                    hass.callService('input_button', 'press', { entity_id: 'input_button.spotify_koppelen_carleen' });
+                    history.pushState(null, '', '/config/integrations/dashboard/add?domain=spotifyplus');
+                    window.dispatchEvent(new CustomEvent('location-changed'));
+                  ]]]
+  # Met Music Assistant: de koppelingen staan in Music Assistant zelf. Een tweede Spotify-account dat je daar toevoegt wordt vanzelf dat van Carleen.
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: input_boolean.gebruik_music_assistant
+        state: "on"
+    card:
+      type: custom:button-card
+      template: beheer_tile
+      icon: mdi:music-box-multiple
+      name: Accounts koppelen in Music Assistant
+      label: Voeg Spotify of YouTube Music toe onder Providers. Een tweede Spotify-account wordt automatisch van Carleen.
+      tap_action:
+        action: url
+        url_path: http://192.168.50.189:8095/#/settings/providers

@@ -161,4 +161,31 @@ public class SpotcastRoutingTests
     [InlineData("library://playlist/26", "library://playlist/26")]
     public void ASpotifyLink_BecomesAMusicAssistantUri(string link, string expected) =>
         Assert.Equal(expected, Spotcast.ToMusicAssistantUri(link));
+
+    [Fact]
+    public void ASpotifyLink_WithAnInstance_UsesThatAccount() =>
+        Assert.Equal("spotify--abc123://playlist/XYZ", Spotcast.ToMusicAssistantUri("https://open.spotify.com/playlist/XYZ", "spotify--abc123"));
+
+    [Fact]
+    public void TheFirstSpotifyAccountIsVincents_TheSecondIsCarleens_YouTubeMusicIsVincents()
+    {
+        var found = MusicAssistantAccounts.InstancesIn(["spotify--aaa://playlist/1", "spotify--bbb://playlist/2", "ytmusic--ccc://playlist/3", "library://playlist/4"]);
+
+        var fill = MusicAssistantAccounts.Assign(found, null, null, null);
+
+        Assert.Equal("spotify--aaa", fill[MusicAssistantAccounts.SpotifyVincent]);
+        Assert.Equal("spotify--bbb", fill[MusicAssistantAccounts.SpotifyCarleen]);
+        Assert.Equal("ytmusic--ccc", fill[MusicAssistantAccounts.YouTubeVincent]);
+    }
+
+    [Fact]
+    public void WhatIsFilledInStays_AndANewAccountBecomesCarleens()
+    {
+        var found = MusicAssistantAccounts.InstancesIn(["spotify--aaa://playlist/1", "spotify--bbb://playlist/2"]);
+
+        var fill = MusicAssistantAccounts.Assign(found, "spotify--aaa", null, "ytmusic--ccc");
+
+        Assert.Single(fill);
+        Assert.Equal("spotify--bbb", fill[MusicAssistantAccounts.SpotifyCarleen]);
+    }
 }

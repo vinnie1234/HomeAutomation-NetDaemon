@@ -36,13 +36,22 @@ public class MusicFollowMe : BaseApp
 
     public static readonly Room[] Rooms =
     [
-        new("Woonkamer", "binary_sensor.motionwoonkamer", "media_player.woonkamer", "Woonkamer", "media_player.woonkamer_woonkamer"),
+        // Motion in the living room: the music plays in the kitchen (the speaker that is meant for it)
+        new("Woonkamer", "binary_sensor.motionwoonkamer", "media_player.nestmini9818", "Keuken", "media_player.keuken_keuken"),
         new("Badkamer", "binary_sensor.badkamer_beweging", "media_player.googlehome0351", "Badkamer Speaker", "media_player.badkamer_badkamer_speaker"),
         new("Gang", "binary_sensor.gang_beweging", "media_player.friends_speakers", "Friends Speakers", "media_player.gang_friends_speakers"),
     ];
 
     /// <summary>The kitchen speaker, used by the laptop and found as a source of the music.</summary>
     public static readonly Room Kitchen = new("Keuken", "", "media_player.nestmini9818", KitchenDevice, "media_player.keuken_keuken");
+
+    /// <summary>Every speaker the music can come from.</summary>
+    private static readonly Room[] Sources =
+    [
+        new("Woonkamer", "binary_sensor.motionwoonkamer", "media_player.woonkamer", "Woonkamer", "media_player.woonkamer_woonkamer"),
+        Kitchen,
+        .. Rooms.Where(r => r.MusicAssistant != Kitchen.MusicAssistant)
+    ];
 
     /// <summary>The Spotify player that moves music between devices (Spotify Connect).</summary>
     public const string SpotifyPlayer = "media_player.spotifyplus_vincent_maarschalkerweerd";
@@ -129,7 +138,7 @@ public class MusicFollowMe : BaseApp
     /// <summary>The room whose speaker plays music now, if there is one.</summary>
     private Room? PlayingRoom()
     {
-        foreach (var room in Rooms.Append(Kitchen))
+        foreach (var room in Sources)
         {
             var playing = UsesMusicAssistant && HaContext.GetState(room.MusicAssistant)?.State == "playing"
                           || HaContext.GetState(room.Cast)?.State == "playing";
