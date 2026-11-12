@@ -131,6 +131,13 @@ export function open(entityId, startTab = 'nu') {
     const gegeven = hass().states[entityId];
     const viaMa = /music assistant/i.test(gegeven?.attributes.source ?? '');
     entity = speelt?.entity_id ?? (gegeven?.state === 'playing' && !viaMa && !isMA(entityId) ? entityId : maStandaard() ?? entityId);
+    // Speelt de speler iets van buiten de wachtrij van Music Assistant (Spotify op de tv), dan bedien je het apparaat zelf
+    const nu = hass().states[entity];
+    if (nu && isMA(entity) && !/music assistant/i.test(nu.attributes.source ?? '')) {
+      const alt = Object.values(hass().states).find(x => x.entity_id !== entity && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
+        && x.attributes.friendly_name === nu.attributes.friendly_name && x.state === 'playing');
+      if (alt) entity = alt.entity_id;
+    }
   }
   tab = ['nu', 'bladeren', 'apparaten'].includes(startTab) ? startTab : 'nu';
   browse = { stack: [], items: null, loading: false, error: '', query: '', results: null, filter: 'alles' };

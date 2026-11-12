@@ -3185,7 +3185,13 @@ music_now:
           if (states['input_boolean.gebruik_music_assistant']?.state === 'on')
             for (const s of Object.values(states))
               if (s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state === 'playing')
-                items.push(from(s, s.attributes.friendly_name, 'Music Assistant', 'speaker'));
+                {
+                  // Speelt de speler iets van buiten de wachtrij van Music Assistant (Spotify op de tv), dan bedien je het apparaat zelf: Music Assistant kan dat niet
+                  const extern = !/music assistant/i.test(s.attributes.source ?? '');
+                  const alt = extern ? Object.values(states).find(x => x.entity_id !== s.entity_id && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
+                    && x.attributes.friendly_name === s.attributes.friendly_name && x.state === 'playing') : null;
+                  items.push({ ...from(s, s.attributes.friendly_name, extern && s.attributes.source ? s.attributes.source : 'Music Assistant', 'speaker'), entity: alt ? alt.entity_id : s.entity_id });
+                }
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
           for (const s of Object.values(states))
             if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing'
@@ -3220,7 +3226,13 @@ music_now:
           if (states['input_boolean.gebruik_music_assistant']?.state === 'on')
             for (const s of Object.values(states))
               if (s.entity_id.startsWith('media_player.') && s.attributes.mass_player_type && s.state === 'playing')
-                items.push(from(s, s.attributes.friendly_name, 'Music Assistant', 'speaker'));
+                {
+                  // Speelt de speler iets van buiten de wachtrij van Music Assistant (Spotify op de tv), dan bedien je het apparaat zelf: Music Assistant kan dat niet
+                  const extern = !/music assistant/i.test(s.attributes.source ?? '');
+                  const alt = extern ? Object.values(states).find(x => x.entity_id !== s.entity_id && x.entity_id.startsWith('media_player.') && !x.attributes.mass_player_type
+                    && x.attributes.friendly_name === s.attributes.friendly_name && x.state === 'playing') : null;
+                  items.push({ ...from(s, s.attributes.friendly_name, extern && s.attributes.source ? s.attributes.source : 'Music Assistant', 'speaker'), entity: alt ? alt.entity_id : s.entity_id });
+                }
           // Elk Spotify-account dat speelt (niet SpotifyPlus): de naam is het eerste woord na "Spotify"
           for (const s of Object.values(states))
             if (/^media_player\.spotify_/.test(s.entity_id) && s.state === 'playing'
@@ -3268,7 +3280,7 @@ music_now_card:
             if (Date.now() - (window.huisMuziekAt ?? 0) < 600) return;
             window.huisMuziekAt = Date.now();
             // De speler (www/muziek-speler.js): bedienen, bladeren, apparaat kiezen, Jam; ?v= ophogen na een wijziging van dat bestand
-            import('/local/huis/muziek-speler.js?v=13').then(m => m.open(id)).catch(() =>
+            import('/local/huis/muziek-speler.js?v=14').then(m => m.open(id)).catch(() =>
               document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })));
           },
           toggle: id => {
@@ -3329,7 +3341,7 @@ mijn_spotify:
           open: (id, tab) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
             window.huisMijnSpotifyAt = Date.now();
-            import('/local/huis/muziek-speler.js?v=13').then(m => m.open(id, tab));
+            import('/local/huis/muziek-speler.js?v=14').then(m => m.open(id, tab));
           },
           press: (id, service) => {
             if (Date.now() - (window.huisMijnSpotifyAt ?? 0) < 600) return;
