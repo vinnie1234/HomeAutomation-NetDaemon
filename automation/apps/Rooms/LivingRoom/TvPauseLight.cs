@@ -30,10 +30,10 @@ public class TvPauseLight : BaseApp
     /// <summary>How long a film has to stay paused before the lamp goes on.</summary>
     public static readonly TimeSpan PauseDelay = TimeSpan.FromSeconds(2);
 
-    /// <summary>Dim and warm: bright enough to find the remote, not to ruin the film.</summary>
-    public const int Brightness = 35;
+    /// <summary>Bright enough to play a game or read the board: pausing a film is mostly for games and snacks.</summary>
+    public const int Brightness = 80;
 
-    public const int Kelvin = 2700;
+    public const int Kelvin = 3000;
 
     private readonly SerialDisposable _pending = new();
 
