@@ -319,6 +319,16 @@ public class Notify : INotify
     {
         if (SpeakersNotAllowed(nameof(SendMusicToHome))) return;
 
+        // With Music Assistant on, the file plays on the whole-house group of Music Assistant
+        if (Spotcast.IsMusicAssistantOn(_ha))
+        {
+            var player = ServiceTarget.FromEntity("media_player.hele_huis_2");
+            _ha.CallService("music_assistant", "play_media", player,
+                new { media_id = mediaContentId, media_type = "track", enqueue = "replace", radio_mode = false });
+            _ha.CallService("media_player", "volume_set", player, new { volume_level = volume });
+            return;
+        }
+
         _entities.MediaPlayer.HeleHuis.PlayMedia(new MediaPlayerPlayMediaParameters
         {
             Media = mediaContentId,

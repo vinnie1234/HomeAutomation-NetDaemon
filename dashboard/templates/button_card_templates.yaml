@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=15').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=16').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             // Date night: alles in warme roze en paarse tinten
             if (states['input_boolean.datenight']?.state === 'on') {
@@ -2834,6 +2834,8 @@ play_here:
     action: javascript
     javascript: |
       [[[
+        // Music Assistant aan (Beheer): de playlist gaat via Music Assistant (www/stijl.js)
+        if (window.huisSpeel?.(hass, entity.entity_id, variables.playlist)) return;
         const spotify = states[variables.spotify];
         const name = (entity.attributes.friendly_name ?? '').toLowerCase();
         const source = (states[variables.transfer]?.attributes.source_list ?? []).find(s => s.toLowerCase() === name);
@@ -2942,6 +2944,7 @@ playlist:
           .map(([motion, speaker]) => ({ speaker, at: new Date(states[motion]?.last_changed ?? 0) }))
           .sort((a, b) => b.at - a.at)[0];
         const target = active ?? bySource ?? lastMotion?.speaker ?? 'media_player.woonkamer';
+        if (window.huisSpeel?.(hass, target, variables.playlist)) return;
         const deviceId = hass.entities?.[target]?.device_id;
         hass.callService('spotcast', 'play_media', {
           media_player: deviceId ? { device_id: deviceId } : { entity_id: target },

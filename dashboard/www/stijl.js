@@ -107,6 +107,30 @@ function datenightOn() {
   return ha?.hass?.states?.['input_boolean.datenight']?.state === 'on';
 }
 
+// Een playlist afspelen: met Music Assistant aan (Beheer) via Music Assistant op de speler van dezelfde speaker, anders geeft dit false terug en
+// speelt de kaart zelf via Spotcast. Zelfde indeling als Spotcast.cs in NetDaemon.
+const MA_SPELERS = {
+  'media_player.nestmini9818': 'media_player.keuken_keuken',
+  'media_player.woonkamer': 'media_player.woonkamer_woonkamer',
+  'media_player.googlehome0351': 'media_player.badkamer_badkamer_speaker',
+  'media_player.friends_speakers': 'media_player.gang_friends_speakers',
+  'media_player.hele_huis': 'media_player.hele_huis_2',
+  'media_player.hub_vincent': 'media_player.slaapkamer_hub_vincent'
+};
+
+function naarMusicAssistant(uri) {
+  const m = String(uri).match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?|spotify:)(playlist|album|track|artist)[\/:]([A-Za-z0-9]+)/);
+  return m ? `spotify://${m[1]}/${m[2]}` : uri;
+}
+
+window.huisSpeel = (hass, entityId, uri) => {
+  const speler = hass.states['input_boolean.gebruik_music_assistant']?.state === 'on' ? MA_SPELERS[entityId] : null;
+  if (!speler || !uri) return false;
+  hass.callService('media_player', 'shuffle_set', { entity_id: speler, shuffle: true });
+  hass.callService('music_assistant', 'play_media', { entity_id: speler, media_id: naarMusicAssistant(uri), media_type: 'playlist', enqueue: 'replace', radio_mode: false });
+  return true;
+};
+
 // De vraag bij het aanzetten van date night: "Muziek aanpassen?" met Ja en Nee, 30 seconden lang. Ja drukt de knop die NetDaemon volgt
 // (input_button.datenight_muziek) en start de playlist; Nee en geen antwoord laten de muziek zoals hij is.
 const VRAAG_SECONDEN = 30;

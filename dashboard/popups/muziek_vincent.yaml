@@ -16,6 +16,14 @@ cards:
         name: Spotify-account
         icon: mdi:account-music
       - type: section
+        label: Muziek volgt
+      - entity: input_boolean.muziek_volgt_mij
+        name: Muziek volgt mij (beweging)
+        icon: mdi:account-music
+      - entity: input_boolean.muziek_volgt_laptop
+        name: Muziek volgt mijn laptop (lock en unlock)
+        icon: mdi:laptop
+      - type: section
         label: Playlist per ruimte (een Spotify-link)
       - entity: input_text.spotify_douche_vincent
         name: Douche

@@ -404,6 +404,21 @@ sections:
         tap_action:
           action: navigate
           navigation_path: "#instellingen"
+      # Muziek via Music Assistant in plaats van Spotcast. Uit = alles werkt als voorheen.
+      - type: custom:button-card
+        template: action
+        entity: input_boolean.gebruik_music_assistant
+        name: Gebruik Music Assistant
+        icon: mdi:music-box-multiple
+        tap_action:
+          action: toggle
+        state:
+          - value: "on"
+            styles:
+              card:
+                - background: rgba(74, 222, 128, 0.18)
+        grid_options:
+          columns: 12
       # Dashboard verversen: op de tablet (Fully Kiosk) is er geen verversknop of trek-om-te-verversen
       - type: custom:button-card
         template: action
