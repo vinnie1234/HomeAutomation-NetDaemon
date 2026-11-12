@@ -45,7 +45,7 @@ sections:
         variables:
           playlist: https://open.spotify.com/playlist/6oZLDHU5xcpk3lwe8ZXnqd
         grid_options:
-          columns: 3
+          columns: 4
       - type: custom:button-card
         template: playlist
         name: Douche
@@ -53,7 +53,7 @@ sections:
         variables:
           playlist: https://open.spotify.com/playlist/0VoOMsxNecfLRkaTvxbrHA
         grid_options:
-          columns: 3
+          columns: 4
       - type: custom:button-card
         template: playlist
         name: Thuis
@@ -61,7 +61,7 @@ sections:
         variables:
           playlist: https://open.spotify.com/playlist/15Z0BX6l9vvMddjiNb1DUf
         grid_options:
-          columns: 3
+          columns: 4
       - type: custom:button-card
         template: action
         name: Overal stil
