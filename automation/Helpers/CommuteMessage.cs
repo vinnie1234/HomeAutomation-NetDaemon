@@ -293,8 +293,8 @@ public static partial class CommuteMessage
     private static string Minutes(double minutes) => $"{Math.Round(minutes).ToString("0", Dutch)} min";
 
     private static string Clock(DateTimeOffset time) => Extensions.SchedulerExtensions.ToDutchTime(time).ToString("HH:mm", Dutch);
-    [System.Text.RegularExpressions.GeneratedRegex("werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "nl-NL")]
-    private static partial System.Text.RegularExpressions.Regex WorkRegex();
-    [System.Text.RegularExpressions.GeneratedRegex("thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "nl-NL")]
-    private static partial System.Text.RegularExpressions.Regex HomeRegex();
+    private static System.Text.RegularExpressions.Regex? WorkRegexInstance;
+    private static System.Text.RegularExpressions.Regex WorkRegex() => WorkRegexInstance ??= new("werk|kantoor", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    private static System.Text.RegularExpressions.Regex? HomeRegexInstance;
+    private static System.Text.RegularExpressions.Regex HomeRegex() => HomeRegexInstance ??= new("thuis|huis", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 }

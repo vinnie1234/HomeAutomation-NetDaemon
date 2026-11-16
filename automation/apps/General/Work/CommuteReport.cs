@@ -526,10 +526,10 @@ public partial class CommuteReport : BaseApp
 
     private static double? Number(JsonElement? element, string name) =>
         element is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
-    [GeneratedRegex(@"\s+(Lijnen|Route)\s*$", RegexOptions.IgnoreCase, "nl-NL")]
-    private static partial Regex TitleRegex();
-    [GeneratedRegex(@"\s*\([^)]*\)\s*")]
-    private static partial Regex MyRegex();
-    [GeneratedRegex(@"^(9292|ANWB Route)\s+", RegexOptions.IgnoreCase, "nl-NL")]
-    private static partial Regex MyRegex1();
+    private static Regex? TitleRegexInstance;
+    private static Regex TitleRegex() => TitleRegexInstance ??= new(@"\s+(Lijnen|Route)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static Regex? MyRegexInstance;
+    private static Regex MyRegex() => MyRegexInstance ??= new(@"\s*\([^)]*\)\s*");
+    private static Regex? MyRegex1Instance;
+    private static Regex MyRegex1() => MyRegex1Instance ??= new(@"^(9292|ANWB Route)\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

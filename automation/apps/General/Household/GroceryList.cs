@@ -49,9 +49,9 @@ public partial class GroceryList : BaseApp
     }
 
     /// <summary>The words that start a WhatsApp message for the shopping list: "Boodschappen melk", "AH: melk, brood".</summary>
-    [GeneratedRegex(@"^\s*(?:(?:boodschappenlijstje|boodschappenlijst|boodschappen|boodschap|albert\s*heijn|supermarkt|winkel|lijstje|ah)\b[\s,:;.\-–]*)+(?<rest>.+?)\s*$",
-        RegexOptions.IgnoreCase | RegexOptions.Singleline)]
-    private static partial Regex MessageRegex();
+    private static Regex? MessageRegexInstance;
+    private static Regex MessageRegex() => MessageRegexInstance ??= new(@"^\s*(?:(?:boodschappenlijstje|boodschappenlijst|boodschappen|boodschap|albert\s*heijn|supermarkt|winkel|lijstje|ah)\b[\s,:;.\-–]*)+(?<rest>.+?)\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     /// <summary>A message that is probably a chat sentence and not a list of products: a question, or very long.</summary>
     private const int MaxWordsPerItem = 6;

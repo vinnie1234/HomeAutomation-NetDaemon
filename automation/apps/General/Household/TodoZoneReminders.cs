@@ -232,6 +232,6 @@ public partial class TodoZoneReminders : BaseApp
         return match.Success ? (match.Groups["zone"].Value.Trim(), match.Groups["bell"].Success) : null;
     }
 
-    [GeneratedRegex(@"^📍\s*(?<zone>.+?)\s*(?<bell>🔔)?$")]
-    private static partial Regex PlaceRegex();
+    private static Regex? PlaceRegexInstance;
+    private static Regex PlaceRegex() => PlaceRegexInstance ??= new(@"^📍\s*(?<zone>.+?)\s*(?<bell>🔔)?$");
 }

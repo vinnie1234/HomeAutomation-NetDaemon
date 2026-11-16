@@ -14,6 +14,6 @@ public static partial class UrlExtractor
         return urls;
     }
 
-    [GeneratedRegex(@"https?://[^\s]+")]
-    private static partial Regex UrlRegex();
+    private static Regex? UrlRegexInstance;
+    private static Regex UrlRegex() => UrlRegexInstance ??= new(@"https?://[^\s]+");
 }

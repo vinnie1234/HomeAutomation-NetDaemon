@@ -237,8 +237,8 @@ public class BathRoomLightsTests
         spotcast.Received(1).PlaySpotify(Arg.Any<MediaPlayerEntity>(), "spotify:douche");
         ctx.VerifyCallService("light", "turn_on", "badkamer_spiegel");
         ctx.VerifyCallService("light", "turn_on", "plafond_badkamer");
-        // Cover opens when douching starts (was close, now open)
-        ctx.VerifyCallService("cover", "open_cover", "rollerblind_0003");
+        // The rollerblind is not moved for now
+        ctx.VerifyCallService("cover", "open_cover", "rollerblind_0003", times: 0);
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Tijd om te douchen" }); 
     }
     
@@ -281,8 +281,8 @@ public class BathRoomLightsTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         // Assert
-        // Cover closes when douching finishes (was open, now close)
-        ctx.VerifyCallService("cover", "close_cover", "rollerblind_0003");
+        // The rollerblind is not moved for now
+        ctx.VerifyCallService("cover", "close_cover", "rollerblind_0003", times: 0);
         ctx.VerifyCallService("media_player", "media_pause", "googlehome0351");
         ctx.VerifyCallServiceWithData("tts", "cloud_say", null, new TtsCloudSayParameters { EntityId = "media_player.hele_huis", Message = "Klaar met douchen" });
         

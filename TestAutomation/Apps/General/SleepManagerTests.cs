@@ -91,7 +91,7 @@ public class SleepManagerTests
     }
 
     [Fact]
-    public void VincentSleeping_ClosesRollerblind()
+    public void VincentSleeping_DoesNotMoveTheRollerblind_ForNow()
     {
         var ctx = SetupContext();
         ctx.InitApp<SleepManager>();
@@ -99,7 +99,7 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
 
 
-        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 1);
+        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 0);
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public class SleepManagerTests
     }
 
     [Fact]
-    public void VincentWakeUp_OpensRollerblind_WhenCarleenNotHome()
+    public void VincentWakeUp_DoesNotMoveTheRollerblind_ForNow()
     {
         var ctx = SetupContext();
         ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { State = "on" }); // Carleen not home
@@ -281,7 +281,7 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
 
 
-        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 1);
+        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 0);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public class SleepManagerTests
     }
 
     [Fact]
-    public void CarleenWakeUp_OpensRollerblind_WhenVincentAlsoAwake()
+    public void CarleenWakeUp_DoesNotMoveTheRollerblind_ForNow()
     {
         var ctx = SetupContext();
         ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { State = "off" });
@@ -344,7 +344,7 @@ public class SleepManagerTests
         ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
 
 
-        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 1);
+        ctx.VerifyCallService("cover", "set_cover_position", "rollerblind_0003", times: 0);
     }
 
     [Fact]
