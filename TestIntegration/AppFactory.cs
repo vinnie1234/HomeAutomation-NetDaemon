@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace TestIntegration;
 
-public class AppFactory : WebApplicationFactory<Program>
+public class AppFactory : WebApplicationFactory<Automation.Program>
 {
     /// <summary>
     /// WebApplicationFactory points the content root at the automation project folder, where the
