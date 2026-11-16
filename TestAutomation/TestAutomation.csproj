@@ -1,30 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <LangVersion>15</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Concentus" Version="2.2.2" />
         <PackageReference Include="FluentAssertions" Version="8.11.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
-        <PackageReference Include="NetDaemon.AppModel" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Client" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.HassModel" Version="26.43.1" />
-        <PackageReference Include="NetDaemon.Runtime" Version="26.43.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+        <PackageReference Include="NetDaemon.AppModel" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Client" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Extensions.Logging" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Extensions.Mqtt" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Extensions.Scheduling" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Extensions.Tts" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.HassModel" Version="26.45.0-alpha-4" />
+        <PackageReference Include="NetDaemon.Runtime" Version="26.45.0-alpha-4" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
         <PackageReference Include="Microsoft.Reactive.Testing" Version="7.0.0" />
 
         <PackageReference Include="NSubstitute" Version="6.2.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
