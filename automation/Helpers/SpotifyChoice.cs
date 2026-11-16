@@ -150,8 +150,8 @@ public static partial class SpotifyChoice
         return string.IsNullOrEmpty(state) || state is "unknown" or "unavailable" ? null : state;
     }
 
-    [GeneratedRegex(@"^sensor\.spotcast_[^_]+_spotify_profile$", RegexOptions.Compiled)]
-    private static partial Regex ProfileSensorRegex();
-    [GeneratedRegex(@"\s*\([^()]*\)\s*$", RegexOptions.Compiled)]
-    private static partial Regex BracketsRegex();
+    private static Regex? ProfileSensorRegexInstance;
+    private static Regex ProfileSensorRegex() => ProfileSensorRegexInstance ??= new(@"^sensor\.spotcast_[^_]+_spotify_profile$", RegexOptions.Compiled);
+    private static Regex? BracketsRegexInstance;
+    private static Regex BracketsRegex() => BracketsRegexInstance ??= new(@"\s*\([^()]*\)\s*$", RegexOptions.Compiled);
 }
