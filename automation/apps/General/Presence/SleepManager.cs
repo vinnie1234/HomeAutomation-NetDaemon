@@ -83,13 +83,14 @@ public class SleepManager : BaseApp
     /// </summary>
     private void OpenRollerblind()
     {
+        // The rollerblind is not moved for now (commented out on purpose; only the bedroom light stays)
         if (VincentSchedule.IsDayOff(Scheduler.NowNl().DayOfWeek))
         {
-            Entities.Cover.Rollerblind0003.SetCoverPosition(100);
+            // Entities.Cover.Rollerblind0003.SetCoverPosition(100);
             Entities.Light.Slaapkamer.TurnOn(brightnessPct: 30);
         }
-        else if ((Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition ?? 0) < 100)
-            Entities.Cover.Rollerblind0003.SetCoverPosition(45);
+        // else if ((Entities.Cover.Rollerblind0003.Attributes?.CurrentPosition ?? 0) < 100)
+        //     Entities.Cover.Rollerblind0003.SetCoverPosition(45);
     }
 
     /// <summary>
@@ -117,7 +118,7 @@ public class SleepManager : BaseApp
             TurnAllLightsOut();
             SendBatteryWarning();
             Entities.MediaPlayer.Tv.TurnOff();
-            Entities.Cover.Rollerblind0003.SetCoverPosition(0);
+            // Entities.Cover.Rollerblind0003.SetCoverPosition(0); // rollerblind not moved for now
             var now = Scheduler.NowNl();
             // Going to bed after midnight still belongs to the evening before: then "tomorrow" is the day after today, and the garbage of
             // that day is for the reminder of tonight (Alarm.GarbageCheck, 22:00). Only today's garbage can still be forgotten.

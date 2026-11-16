@@ -115,7 +115,7 @@ public class BathRoomLights : BaseApp
             }
             Entities.Light.BadkamerSpiegel.TurnOn(brightnessPct: 100);
             Entities.Light.PlafondBadkamer.TurnOn(brightnessPct: 100);
-            Entities.Cover.Rollerblind0003.OpenCover();
+            // Entities.Cover.Rollerblind0003.OpenCover(); // rollerblind not moved for now
             Notify.NotifyHouse("timeToDouche", "Tijd om te douchen", true);
             // Replaces the check of an earlier shower, so that one can't end this shower early
             _douchingTooLongCheck.Disposable = Scheduler.Schedule(TimeSpan.FromHours(1), () =>
@@ -142,7 +142,7 @@ public class BathRoomLights : BaseApp
                 }
             });
 
-            Entities.Cover.Rollerblind0003.CloseCover();
+            // Entities.Cover.Rollerblind0003.CloseCover(); // rollerblind not moved for now
             Entities.MediaPlayer.Googlehome0351.PauseIfPlaying();
             Notify.NotifyHouse("readyDouche", "Klaar met douchen", true);
         }
