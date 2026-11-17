@@ -214,7 +214,7 @@ function* themaDoelen() {
   const stack = [document];
   while (stack.length) {
     const node = stack.pop();
-    if (['hui-view', 'hui-sections-view', 'hui-root', 'ha-panel-lovelace'].includes(node.localName)) yield node;
+    if (['hui-view', 'hui-sections-view', 'hui-root', 'ha-panel-lovelace', 'hui-view-background', 'ha-sidebar', 'home-assistant-main'].includes(node.localName)) yield node;
     if (node.shadowRoot) stack.push(node.shadowRoot);
     for (const child of node.children || []) stack.push(child);
   }
