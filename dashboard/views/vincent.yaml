@@ -361,6 +361,19 @@ sections:
           ]]]
         tap_action:
           action: toggle
+      # Alle kleurlampen in het huis in Vice City-kleuren (NetDaemon GtaSix); nog eens tikken zet ze terug zoals ze waren
+      - type: custom:button-card
+        template: beheer_tile
+        name: Vice City-licht
+        icon: mdi:palm-tree
+        label: Alle kleurlampen in het huis in roze, oranje en turkoois · tik nog eens om ze terug te zetten
+        variables:
+          accent: "#ff2e93"
+        tap_action:
+          action: perform-action
+          perform_action: input_button.press
+          target:
+            entity_id: input_button.gta_6_verlichting
 
   # Muziek: de playlist per ruimte en het Spotify-account
   - type: grid

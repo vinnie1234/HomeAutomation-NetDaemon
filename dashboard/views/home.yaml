@@ -44,6 +44,24 @@ sections:
           template: gta6_hero
         grid_options:
           columns: full
+      # Alle kleurlampen in het huis in Vice City-kleuren; tik nog eens om ze terug te zetten
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_boolean.gta_6_modus
+            state: "on"
+        card:
+          type: custom:button-card
+          template: action
+          name: Vice City-licht
+          icon: mdi:palm-tree
+          tap_action:
+            action: perform-action
+            perform_action: input_button.press
+            target:
+              entity_id: input_button.gta_6_verlichting
+        grid_options:
+          columns: 6
       - type: conditional
         conditions:
           - condition: state

@@ -188,7 +188,23 @@ function toonVraag() {
 
 // GTA 6-modus (schakelaar op de pagina van Vincent): het hele dashboard in de kleuren van Vice City, met een eigen kop en aftellen op Home.
 // Date night gaat voor: staat die aan, dan blijft het romantische thema.
-const VICE_CITY = 'radial-gradient(1200px 700px at 0% 0%, rgba(255, 46, 147, 0.34), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(255, 122, 26, 0.30), transparent 60%), radial-gradient(900px 600px at 50% 110%, rgba(25, 227, 217, 0.18), transparent 70%), #14002e fixed';
+// Zoals paars naar oranje in Discord: diep paars linksboven, magenta in het midden, oranje rechtsonder
+const VICE_CITY = 'linear-gradient(135deg, #2a0a5e 0%, #5b0f8f 28%, #a1157a 55%, #d2461f 82%, #b8791a 100%) fixed';
+const GTA_VARS = {
+  '--lovelace-background': VICE_CITY,
+  '--accent-color': '#ff2e93',
+  '--primary-color': '#19e3d9',
+  '--huis-paneel-bg': 'rgba(30, 0, 60, 0.42)',
+  '--huis-paneel-rand': 'rgba(255, 46, 147, 0.55)',
+  '--huis-kaart-basis': 'rgba(40, 6, 74, 0.78)',
+  '--huis-gloed': '0 0 18px rgba(255, 46, 147, 0.30)',
+  '--ha-card-background': 'rgba(40, 6, 74, 0.78)',
+  '--card-background-color': 'rgba(40, 6, 74, 0.78)',
+  '--ha-card-border-color': 'rgba(255, 46, 147, 0.5)',
+  '--secondary-text-color': 'rgba(255, 224, 246, 0.74)',
+  '--sidebar-background-color': 'rgba(32, 0, 64, 0.88)',
+  '--divider-color': 'rgba(255, 46, 147, 0.25)'
+};
 let gtaWas = null;
 
 function applyGta() {
@@ -198,13 +214,9 @@ function applyGta() {
   gtaWas = on;
   const root = document.documentElement;
   if (on) {
-    root.style.setProperty('--lovelace-background', VICE_CITY);
-    root.style.setProperty('--accent-color', '#ff2e93');
-    root.style.setProperty('--primary-color', '#19e3d9');
-    root.style.setProperty('--huis-paneel-bg', 'linear-gradient(160deg, rgba(90, 20, 110, 0.45), rgba(20, 0, 46, 0.55))');
-    root.style.setProperty('--huis-paneel-rand', 'rgba(255, 46, 147, 0.38)');
+    for (const [naam, waarde] of Object.entries(GTA_VARS)) root.style.setProperty(naam, waarde);
   } else if (!datenightOn()) {
-    for (const v of ['--lovelace-background', '--accent-color', '--primary-color', '--huis-paneel-bg', '--huis-paneel-rand']) root.style.removeProperty(v);
+    for (const naam of Object.keys(GTA_VARS)) root.style.removeProperty(naam);
   }
 }
 
@@ -251,9 +263,7 @@ function applyDatenight() {
       root.style.setProperty('--accent-color', '#ff7a9c');
       root.style.setProperty('--primary-color', '#ff7a9c');
     } else {
-      root.style.removeProperty('--lovelace-background');
-      root.style.removeProperty('--accent-color');
-      root.style.removeProperty('--primary-color');
+      for (const naam of ['--lovelace-background', '--accent-color', '--primary-color', ...Object.keys(GTA_VARS)]) root.style.removeProperty(naam);
       gtaWas = null; // de GTA 6-modus kleurt daarna opnieuw
     }
   }
