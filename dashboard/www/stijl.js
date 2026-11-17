@@ -100,6 +100,7 @@ const waker = new WeakMap();
 // Date night: een rustig, romantisch dashboard. De achtergrond en de accentkleur worden roze/paars; op Home blijft alleen de kop over
 // (de klok en de knop om date night te stoppen), de kamers en de muziek; de chips en de rest verdwijnen. Meldingen verbergen zichzelf (zie het alert-template).
 const ROMANTISCH = 'radial-gradient(1200px 700px at 0% 0%, rgba(255, 90, 140, 0.38), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(170, 70, 210, 0.45), transparent 60%), #1a0814 fixed';
+const DATE_VARS = { '--lovelace-background': ROMANTISCH, '--accent-color': '#ff7a9c', '--primary-color': '#ff7a9c' };
 let datenightWas = null;
 
 function datenightOn() {
@@ -207,19 +208,38 @@ const GTA_VARS = {
 };
 let gtaWas = null;
 
+// Elke pagina heeft het thema (theme: Glass Home) op zichzelf staan: de waarden op <html> verliezen het daar van. Dus zetten we ze ook op de pagina-elementen.
+function* themaDoelen() {
+  yield document.documentElement;
+  const stack = [document];
+  while (stack.length) {
+    const node = stack.pop();
+    if (['hui-view', 'hui-sections-view', 'hui-root', 'ha-panel-lovelace'].includes(node.localName)) yield node;
+    if (node.shadowRoot) stack.push(node.shadowRoot);
+    for (const child of node.children || []) stack.push(child);
+  }
+}
+
+function zetThema(vars, aan) {
+  for (const el of themaDoelen())
+    for (const [naam, waarde] of Object.entries(vars)) {
+      if (aan) { if (el.style.getPropertyValue(naam) !== waarde) el.style.setProperty(naam, waarde); }
+      else el.style.removeProperty(naam);
+    }
+}
+
 function applyGta() {
   const ha = document.querySelector('home-assistant');
   const on = ha?.hass?.states?.['input_boolean.gta_6_modus']?.state === 'on' && !datenightOn();
   const root = document.documentElement;
-  // Home Assistant zet de waarden van het thema opnieuw als dat ververst wordt: staat de modus aan, dan controleren we dat elke ronde
-  if (on && root.style.getPropertyValue('--lovelace-background') !== VICE_CITY) gtaWas = null;
-  if (on === gtaWas) return;
-  gtaWas = on;
-  if (on) {
-    for (const [naam, waarde] of Object.entries(GTA_VARS)) root.style.setProperty(naam, waarde);
-  } else if (!datenightOn()) {
-    for (const naam of Object.keys(GTA_VARS)) root.style.removeProperty(naam);
+  // Pagina's en het thema worden opnieuw gemaakt: staat de modus aan, dan zetten we de waarden elke ronde opnieuw
+  if (on) { zetThema(GTA_VARS, true); gtaWas = true; return; }
+  if (gtaWas === true) {
+    // Date night gaat voor: dan blijven de achtergrond en de accenten van date night staan
+    const weg = datenightOn() ? Object.fromEntries(Object.entries(GTA_VARS).filter(([naam]) => !(naam in DATE_VARS))) : GTA_VARS;
+    zetThema(weg, false);
   }
+  gtaWas = false;
 }
 
 // Het aftellen van de GTA 6-kop: dagen, uren, minuten en seconden tot het tijdstip in het attribuut target; daarna "Nu uit".
@@ -260,15 +280,12 @@ function applyDatenight() {
     if (on && datenightWas === false) toonVraag();
     if (!on) sluitVraag();
     datenightWas = on;
-    if (on) {
-      root.style.setProperty('--lovelace-background', ROMANTISCH);
-      root.style.setProperty('--accent-color', '#ff7a9c');
-      root.style.setProperty('--primary-color', '#ff7a9c');
-    } else {
-      for (const naam of ['--lovelace-background', '--accent-color', '--primary-color', ...Object.keys(GTA_VARS)]) root.style.removeProperty(naam);
+    if (!on) {
+      zetThema({ ...DATE_VARS, ...GTA_VARS }, false);
       gtaWas = null; // de GTA 6-modus kleurt daarna opnieuw
     }
   }
+  if (on) zetThema(DATE_VARS, true);
   const home = location.pathname.endsWith('/home');
   for (const view of views(document)) {
     const shadow = view.shadowRoot;
