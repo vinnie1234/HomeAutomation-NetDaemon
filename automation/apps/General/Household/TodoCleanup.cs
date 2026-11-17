@@ -29,7 +29,7 @@ public class TodoCleanup : BaseApp
             try
             {
                 new TodoEntity(HaContext, list.EntityId).RemoveCompletedItems();
-                Logger.LogInformation("Removed the completed items of {List}", list.EntityId);
+                Logger.LogDebug("Removed the completed items of {List}", list.EntityId);
             }
             catch (Exception ex)
             {

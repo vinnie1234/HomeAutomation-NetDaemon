@@ -95,7 +95,7 @@ public class HomeWorkEnergyTracker : BaseApp
                 case true when _previous == null:
                     _previous = ReadMeters();
                     _lastTick = Scheduler.Now;
-                    Logger.LogInformation("Thuiswerken: begonnen met meten");
+                    Logger.LogDebug("Thuiswerken: begonnen met meten");
                     break;
                 case false when _previous != null:
                     CountStepLocked();

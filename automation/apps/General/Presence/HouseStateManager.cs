@@ -93,7 +93,7 @@ public class HouseStateManager : BaseApp
         _alarmWakeUp.Disposable = Scheduler.Schedule(alarm, () =>
         {
             if (!Entities.InputBoolean.Sleepingvincent.IsOn()) return;
-            Logger.LogInformation("The alarm of {Time} went off: Vincent is awake", alarm);
+            Logger.LogDebug("The alarm of {Time} went off: Vincent is awake", alarm);
             Core.ActivityContext.Note($"De wekker van {Extensions.SchedulerExtensions.ToDutchTime(alarm):HH:mm} gaat af");
             Entities.InputBoolean.Sleepingvincent.TurnOff();
         });

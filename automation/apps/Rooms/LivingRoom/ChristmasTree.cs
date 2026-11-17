@@ -100,7 +100,7 @@ public class ChristmasTree : BaseApp
 
         if (on) Entities.Light.FestaviaStringLights1.TurnOn();
         else Entities.Light.FestaviaStringLights1.TurnOff();
-        Logger.LogInformation("Christmas tree {State}", on ? "on" : "off");
+        Logger.LogDebug("Christmas tree {State}", on ? "on" : "off");
     }
 
     /// <summary>The tile Kerst on the dashboard: the living room scene "Kerst" (the Hue scene Sneeuwschittering) and the Christmas music.</summary>

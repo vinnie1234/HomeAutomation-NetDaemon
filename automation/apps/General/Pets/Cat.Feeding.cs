@@ -113,7 +113,7 @@ public partial class Cat
         try
         {
             Services.Number.SetValue(ServiceTarget.FromEntity(Entities.Number.ZedarA600Voeden.EntityId), amount.ToString(CultureInfo.InvariantCulture));
-            Logger.LogInformation("Asked the feeder for {Amount} portions, waiting for it to confirm", amount);
+            Logger.LogDebug("Asked the feeder for {Amount} portions, waiting for it to confirm", amount);
         }
         catch (Exception ex)
         {

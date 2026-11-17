@@ -115,7 +115,7 @@ public class TabletScreen : BaseApp
 
         // Motion only turns the screen on: the dashboard is still where it was, so loading the start URL every time somebody walks by
         // is not needed (and reloaded the whole dashboard under their fingers). Only an alert (force) opens Home, so it is in view.
-        Logger.LogInformation("Tablet aan: {Reason}", reason);
+        Logger.LogDebug("Tablet aan: {Reason}", reason);
         // The timer is set once: it stays at this value, so setting it at every wake-up was the same call again and again
         if (!double.TryParse(HaContext.GetState(ScreenOffTimer)?.State, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var timer)
             || Math.Abs(timer - AwakeTimeoutSeconds) > 0.5)
@@ -131,7 +131,7 @@ public class TabletScreen : BaseApp
 
     private void ScreenOff(string reason)
     {
-        Logger.LogInformation("Tablet uit: {Reason}", reason);
+        Logger.LogDebug("Tablet uit: {Reason}", reason);
         _lastWake = DateTimeOffset.MinValue;
         Entities.Switch.TabS6VanVincentScherm.TurnOff();
     }

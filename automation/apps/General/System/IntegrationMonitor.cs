@@ -153,7 +153,7 @@ public class IntegrationMonitor : BaseApp
             }
 
             var attempt = (record?.ReloadAttempts ?? 0) + 1;
-            Logger.LogWarning("Integration {Title} ({Domain}) has problems ({Problem}): reloading it (attempt {Attempt} of {Max})",
+            Logger.LogDebug("Integration {Title} ({Domain}) has problems ({Problem}): reloading it (attempt {Attempt} of {Max})",
                 entry.Title, entry.Domain, problem.Description, attempt, MaxReloadAttempts);
 
             SaveRecord(new IntegrationRepairRecord
@@ -372,7 +372,7 @@ public class IntegrationMonitor : BaseApp
 
             foreach (var id in recovered)
             {
-                Logger.LogInformation("Integration {Title} works again: forgetting its reload attempts", records[id].Title);
+                Logger.LogDebug("Integration {Title} works again: forgetting its reload attempts", records[id].Title);
                 records.Remove(id);
             }
 

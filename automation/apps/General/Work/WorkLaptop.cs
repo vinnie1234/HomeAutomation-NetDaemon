@@ -99,7 +99,7 @@ public class WorkLaptop : BaseApp
             // Starting earlier: the laptop is on at home before the hours begin, but not further back than the margin
             if (athome && VincentSchedule.Working.IsOff() && now >= start - Margin && now < end)
             {
-                Logger.LogInformation("Vincent works from {Now}: the laptop is on (the hours start at {Start})", now, start);
+                Logger.LogDebug("Vincent works from {Now}: the laptop is on (the hours start at {Start})", now, start);
                 VincentSchedule.Working.TurnOn();
             }
 
@@ -140,7 +140,7 @@ public class WorkLaptop : BaseApp
         // The laptop starts on a working day while Vincent is home and awake: the desk light, once a day
         if (VincentSchedule.IsDayOff(now.DayOfWeek) || !Vincent.IsHome || Vincent.IsSleeping || _workModeDay == today) return;
         _workModeDay = today;
-        Logger.LogInformation("The work laptop started: work mode");
+        Logger.LogDebug("The work laptop started: work mode");
         Entities.Light.Bureau.TurnOn();
         Entities.Light.Nachtkastje.TurnOff();
         Entities.Light.Plafondslaapkamer.TurnOn();
