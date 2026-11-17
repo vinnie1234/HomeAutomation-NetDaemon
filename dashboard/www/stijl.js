@@ -189,20 +189,20 @@ function toonVraag() {
 // GTA 6-modus (schakelaar op de pagina van Vincent): het hele dashboard in de kleuren van Vice City, met een eigen kop en aftellen op Home.
 // Date night gaat voor: staat die aan, dan blijft het romantische thema.
 // Zoals paars naar oranje in Discord: diep paars linksboven, magenta in het midden, oranje rechtsonder
-const VICE_CITY = 'linear-gradient(135deg, #2a0a5e 0%, #5b0f8f 28%, #a1157a 55%, #d2461f 82%, #b8791a 100%) fixed';
+const VICE_CITY = 'linear-gradient(135deg, #4a0e8f 0%, #6b1590 32%, #8f1a7c 58%, #b84f1f 84%, #a8701c 100%) fixed';
 const GTA_VARS = {
   '--lovelace-background': VICE_CITY,
   '--accent-color': '#ff2e93',
   '--primary-color': '#19e3d9',
-  '--huis-paneel-bg': 'rgba(30, 0, 60, 0.42)',
-  '--huis-paneel-rand': 'rgba(255, 46, 147, 0.55)',
-  '--huis-kaart-basis': 'rgba(40, 6, 74, 0.78)',
-  '--huis-gloed': '0 0 18px rgba(255, 46, 147, 0.30)',
-  '--ha-card-background': 'rgba(40, 6, 74, 0.78)',
-  '--card-background-color': 'rgba(40, 6, 74, 0.78)',
-  '--ha-card-border-color': 'rgba(255, 46, 147, 0.5)',
+  '--huis-paneel-bg': 'rgba(20, 0, 44, 0.30)',
+  '--huis-paneel-rand': 'rgba(255, 255, 255, 0.16)',
+  '--huis-kaart-basis': 'rgba(34, 6, 66, 0.58)',
+  '--huis-gloed': '0 0 14px rgba(255, 46, 147, 0.22)',
+  '--ha-card-background': 'rgba(34, 6, 66, 0.58)',
+  '--card-background-color': 'rgba(34, 6, 66, 0.58)',
+  '--ha-card-border-color': 'rgba(255, 140, 200, 0.35)',
   '--secondary-text-color': 'rgba(255, 224, 246, 0.74)',
-  '--sidebar-background-color': 'rgba(32, 0, 64, 0.88)',
+  '--sidebar-background-color': 'rgba(40, 8, 80, 0.55)',
   '--divider-color': 'rgba(255, 46, 147, 0.25)'
 };
 let gtaWas = null;
@@ -210,9 +210,11 @@ let gtaWas = null;
 function applyGta() {
   const ha = document.querySelector('home-assistant');
   const on = ha?.hass?.states?.['input_boolean.gta_6_modus']?.state === 'on' && !datenightOn();
+  const root = document.documentElement;
+  // Home Assistant zet de waarden van het thema opnieuw als dat ververst wordt: staat de modus aan, dan controleren we dat elke ronde
+  if (on && root.style.getPropertyValue('--lovelace-background') !== VICE_CITY) gtaWas = null;
   if (on === gtaWas) return;
   gtaWas = on;
-  const root = document.documentElement;
   if (on) {
     for (const [naam, waarde] of Object.entries(GTA_VARS)) root.style.setProperty(naam, waarde);
   } else if (!datenightOn()) {
