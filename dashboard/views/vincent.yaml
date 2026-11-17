@@ -15,26 +15,6 @@ sections:
     column_span: 3
     cards:
       - !include ../navbar.yaml
-      # GTA 6 (19 november 2026, 00:00): het hele dashboard in Vice City-stijl, met aftellen op Home
-      - type: custom:button-card
-        template: beheer_tile
-        entity: input_boolean.gta_6_modus
-        name: GTA 6
-        icon: mdi:car-sports
-        variables:
-          accent: |
-            [[[ return entity.state === 'on' ? '#ff2e93' : '#19e3d9'; ]]]
-        label: |
-          [[[
-            const naar = new Date('2026-11-19T00:00:00+01:00') - Date.now();
-            const dagen = Math.ceil(naar / 86400000);
-            const tekst = naar <= 0 ? 'Het is uit!' : `nog ${dagen} ${dagen === 1 ? 'dag' : 'dagen'} tot 19 november`;
-            return entity.state === 'on' ? `Aan · ${tekst} · tik om uit te zetten` : `Uit · ${tekst} · tik om het dashboard in GTA 6-stijl te zetten`;
-          ]]]
-        tap_action:
-          action: toggle
-        grid_options:
-          columns: 12
       - type: custom:button-card
         template: summary
         icon: mdi:account
@@ -363,6 +343,24 @@ sections:
         entity: input_datetime.jubileum
         name: Ons jubileum
         icon: mdi:heart-outline
+      # GTA 6 (19 november 2026, 00:00): het hele dashboard in Vice City-stijl, met aftellen op Home
+      - type: custom:button-card
+        template: beheer_tile
+        entity: input_boolean.gta_6_modus
+        name: GTA 6
+        icon: mdi:car-sports
+        variables:
+          accent: |
+            [[[ return entity.state === 'on' ? '#ff2e93' : '#19e3d9'; ]]]
+        label: |
+          [[[
+            const naar = new Date('2026-11-19T00:00:00+01:00') - Date.now();
+            const dagen = Math.ceil(naar / 86400000);
+            const tekst = naar <= 0 ? 'Het is uit!' : `nog ${dagen} ${dagen === 1 ? 'dag' : 'dagen'} tot 19 november`;
+            return entity.state === 'on' ? `Aan · ${tekst} · tik om uit te zetten` : `Uit · ${tekst} · tik om het dashboard in GTA 6-stijl te zetten`;
+          ]]]
+        tap_action:
+          action: toggle
 
   # Muziek: de playlist per ruimte en het Spotify-account
   - type: grid
