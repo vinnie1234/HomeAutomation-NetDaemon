@@ -10,8 +10,8 @@ const CSS = `
   .huis-achtergrond {
     position: absolute; z-index: 0; pointer-events: none; box-sizing: border-box;
     border-radius: 24px;
-    background: radial-gradient(120% 90% at 50% 15%, rgba(30, 41, 82, 0.50), rgba(8, 12, 28, 0.50));
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--huis-paneel-bg, radial-gradient(120% 90% at 50% 15%, rgba(30, 41, 82, 0.50), rgba(8, 12, 28, 0.50)));
+    border: 1px solid var(--huis-paneel-rand, rgba(255, 255, 255, 0.08));
   }
 `;
 
@@ -186,6 +186,58 @@ function toonVraag() {
   });
 }
 
+// GTA 6-modus (schakelaar op de pagina van Vincent): het hele dashboard in de kleuren van Vice City, met een eigen kop en aftellen op Home.
+// Date night gaat voor: staat die aan, dan blijft het romantische thema.
+const VICE_CITY = 'radial-gradient(1200px 700px at 0% 0%, rgba(255, 46, 147, 0.34), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(255, 122, 26, 0.30), transparent 60%), radial-gradient(900px 600px at 50% 110%, rgba(25, 227, 217, 0.18), transparent 70%), #14002e fixed';
+let gtaWas = null;
+
+function applyGta() {
+  const ha = document.querySelector('home-assistant');
+  const on = ha?.hass?.states?.['input_boolean.gta_6_modus']?.state === 'on' && !datenightOn();
+  if (on === gtaWas) return;
+  gtaWas = on;
+  const root = document.documentElement;
+  if (on) {
+    root.style.setProperty('--lovelace-background', VICE_CITY);
+    root.style.setProperty('--accent-color', '#ff2e93');
+    root.style.setProperty('--primary-color', '#19e3d9');
+    root.style.setProperty('--huis-paneel-bg', 'linear-gradient(160deg, rgba(90, 20, 110, 0.45), rgba(20, 0, 46, 0.55))');
+    root.style.setProperty('--huis-paneel-rand', 'rgba(255, 46, 147, 0.38)');
+  } else if (!datenightOn()) {
+    for (const v of ['--lovelace-background', '--accent-color', '--primary-color', '--huis-paneel-bg', '--huis-paneel-rand']) root.style.removeProperty(v);
+  }
+}
+
+// Het aftellen van de GTA 6-kop: dagen, uren, minuten en seconden tot het tijdstip in het attribuut target; daarna "Nu uit".
+class HuisGta6Teller extends HTMLElement {
+  connectedCallback() {
+    if (this._timer) return;
+    this.attachShadow({ mode: 'open' });
+    this.shadowRoot.innerHTML = `<style>
+        :host { display: block; }
+        .rij { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .vak { min-width: 64px; padding: 8px 6px 6px; border-radius: 12px; background: rgba(18, 0, 43, 0.62); border: 1px solid rgba(255, 210, 63, 0.55); box-shadow: 0 0 14px rgba(255, 46, 147, 0.5); }
+        .g { font: 800 30px/1 Impact, 'Arial Black', sans-serif; color: #fff; text-shadow: 0 0 10px #ff2e93; font-variant-numeric: tabular-nums; }
+        .l { font: 600 10px/1.4 Roboto, sans-serif; letter-spacing: .18em; color: #ffd23f; margin-top: 3px; }
+        .uit { margin-top: 10px; font: 800 30px/1.1 Impact, 'Arial Black', sans-serif; color: #fff; letter-spacing: .06em; text-shadow: 0 0 14px #ff2e93, 0 0 28px #ff7a1a; }
+        .datum { font: 700 12px/1 Roboto, sans-serif; letter-spacing: .3em; color: #fff; opacity: .9; margin-top: 8px; }
+      </style><div class="datum">19 NOVEMBER 2026</div><div id="inhoud"></div>`;
+    const doel = new Date(this.getAttribute('target')).getTime();
+    const teken = () => {
+      const rest = Math.max(0, doel - Date.now());
+      const inhoud = this.shadowRoot.getElementById('inhoud');
+      if (rest === 0) { inhoud.innerHTML = '<div class="uit">NU UIT! 🌴🚗</div>'; return; }
+      const d = Math.floor(rest / 86400000), u = Math.floor(rest % 86400000 / 3600000), m = Math.floor(rest % 3600000 / 60000), sec = Math.floor(rest % 60000 / 1000);
+      const vak = (g, l) => `<div class="vak"><div class="g">${String(g).padStart(2, '0')}</div><div class="l">${l}</div></div>`;
+      inhoud.innerHTML = `<div class="rij">${vak(d, 'DAGEN')}${vak(u, 'UREN')}${vak(m, 'MIN')}${vak(sec, 'SEC')}</div>`;
+    };
+    teken();
+    this._timer = setInterval(() => { if (!this.isConnected) { clearInterval(this._timer); this._timer = null; return; } teken(); }, 1000);
+  }
+  disconnectedCallback() { clearInterval(this._timer); this._timer = null; }
+}
+if (!customElements.get('huis-gta6-teller')) customElements.define('huis-gta6-teller', HuisGta6Teller);
+
 function applyDatenight() {
   const on = datenightOn();
   const root = document.documentElement;
@@ -202,6 +254,7 @@ function applyDatenight() {
       root.style.removeProperty('--lovelace-background');
       root.style.removeProperty('--accent-color');
       root.style.removeProperty('--primary-color');
+      gtaWas = null; // de GTA 6-modus kleurt daarna opnieuw
     }
   }
   const home = location.pathname.endsWith('/home');
@@ -231,6 +284,7 @@ function applyDatenight() {
 function apply() {
   stylePopups();
   applyDatenight();
+  applyGta();
   for (const view of views(document)) {
     layout(view);
     // Kaarten laden later en worden daarna hoger of lager: elke sectie meten, niet alleen de pagina zelf

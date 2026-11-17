@@ -85,6 +85,7 @@ public static class HelperDefinitions
         Boolean("datenight", "DateNight", icon: "far:heart"),
         Boolean("gebruik_music_assistant", "Gebruik Music Assistant", icon: "mdi:music-box-multiple"),
         Boolean("muziek_volgt_mij", "Muziek volgt mij", icon: "mdi:account-music"),
+        Boolean("gta_6_modus", "GTA 6 modus", icon: "mdi:car-sports"),
         Boolean("muziek_volgt_laptop", "Muziek volgt laptop", icon: "mdi:laptop"),
         // Music Assistant: de provider (het gekoppelde account) per persoon; MusicAssistantAccounts vult ze in
         Text("ma_spotify_vincent", "MA spotify vincent", min: 0, max: 255, mode: "text", icon: "mdi:spotify"),

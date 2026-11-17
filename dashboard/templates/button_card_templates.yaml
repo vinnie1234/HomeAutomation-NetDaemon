@@ -12,8 +12,14 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=17').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=18').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
+            // GTA 6-modus: de kleuren van Vice City
+            if (states['input_boolean.gta_6_modus']?.state === 'on') {
+              const vice = ['#ff2e93', '#ff7a1a', '#19e3d9', '#ffd23f', '#b44cff'];
+              let v = 0; for (const ch of String((entity && entity.entity_id) || (this && this._config && this._config.name) || '')) v = (v * 31 + ch.charCodeAt(0)) >>> 0;
+              return vice[v % vice.length];
+            }
             // Date night: alles in warme roze en paarse tinten
             if (states['input_boolean.datenight']?.state === 'on') {
               const roze = ['#ff7a9c', '#ff9a8b', '#e879a8', '#c77dff', '#ffb3c1'];
@@ -505,6 +511,48 @@ theme_info_card:
       - line-height: 1.7
       - opacity: 1
       - padding-top: 6px
+
+# GTA 6-kop (modus aan op de pagina van Vincent): zonsondergang over Vice City met palmen, het logo en het aftellen naar 19 november 2026 00:00.
+# Het aftellen is het element <huis-gta6-teller> uit www/stijl.js, dat zelf elke seconde doortelt.
+gta6_hero:
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    body: |
+      [[[
+        const palm = (x, h, s) => `<g transform="translate(${x} 300) scale(${s})" fill="#12002b"><path d="M-3 0 Q0 -${h / 2} 3 -${h} L7 -${h} Q4 -${h / 2} 8 0Z"/>
+          <path d="M3 -${h} Q-40 -${h + 30} -62 -${h - 24} Q-30 -${h + 6} 3 -${h - 3}Z"/><path d="M5 -${h} Q50 -${h + 34} 74 -${h - 20} Q36 -${h + 4} 5 -${h - 4}Z"/>
+          <path d="M3 -${h} Q-18 -${h + 52} -52 -${h + 40} Q-14 -${h + 26} 3 -${h - 2}Z"/><path d="M5 -${h} Q30 -${h + 58} 66 -${h + 40} Q26 -${h + 24} 5 -${h - 2}Z"/></g>`;
+        return `<div style="position:relative;overflow:hidden;border-radius:20px;height:260px;text-align:center;
+            background:linear-gradient(180deg,#2a0a5e 0%,#7a1fa2 28%,#ff2e93 58%,#ff7a1a 82%,#ffd23f 100%);box-shadow:0 0 40px rgba(255,46,147,.45)">
+          <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%">
+            <defs><linearGradient id="gzon" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a8"/><stop offset="1" stop-color="#ff7a1a"/></linearGradient></defs>
+            <circle cx="400" cy="200" r="92" fill="url(#gzon)" opacity=".95"/>
+            ${[0, 1, 2, 3, 4, 5].map(i => `<rect x="300" y="${196 + i * 13}" width="200" height="${2 + i * 1.6}" fill="#ff7a1a" opacity=".55"/>`).join('')}
+            <rect x="0" y="262" width="800" height="38" fill="#12002b"/>
+            ${palm(70, 200, 1.15)}${palm(170, 150, .8)}${palm(640, 170, .9)}${palm(740, 215, 1.2)}
+          </svg>
+          <div style="position:relative;z-index:1;padding-top:14px">
+            <div style="font-family:Impact,'Arial Black',sans-serif;letter-spacing:.08em;font-size:15px;color:#fff;opacity:.9">GRAND THEFT AUTO</div>
+            <div style="font-family:Impact,'Arial Black',sans-serif;font-size:64px;line-height:1;font-style:italic;letter-spacing:.04em;
+              background:linear-gradient(180deg,#fff 10%,#ffd23f 45%,#ff2e93 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(18,0,43,.8))">VI</div>
+            <huis-gta6-teller target="2026-11-19T00:00:00+01:00"></huis-gta6-teller>
+          </div>
+        </div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 0
+      - background: transparent
+      - border: none
+      - box-shadow: none
+    custom_fields:
+      body:
+        - width: 100%
 
 # Weer-hero voor Home: een realistische lucht van het weer van nu, aangekleed per seizoen of feestdag
 # (input_select.weerkaart_thema, "Automatisch" volgt de datum, zie holiday_theme) en met KNMI-weerwaarschuwingen.
