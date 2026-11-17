@@ -192,6 +192,8 @@ public class WorkFromCalendarTests
     [InlineData("C: vakantie", false)]
     [InlineData("V: Tandarts", false)]
     [InlineData("Tandarts", false)]
+    [InlineData("C: Beschikbaarheid invullen", false)]
+    [InlineData("c: beschikbaarheid", false)]
     public void IsAppointment_IsAnythingElseWithTheLetter(string summary, bool expected)
     {
         WorkFromCalendar.IsAppointment(summary).Should().Be(expected);

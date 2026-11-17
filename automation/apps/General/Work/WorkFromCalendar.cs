@@ -67,10 +67,17 @@ public class WorkFromCalendar : BaseApp
     public static bool IsDayOffEvent(string? summary, char letter = 'c') =>
         summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*(vrij|vakantie)\b", RegexOptions.IgnoreCase);
 
-    /// <summary>Whether the title is an appointment of the person: "C: something" that is neither work nor a day off.</summary>
+    /// <summary>
+    /// Items in the calendar that are a reminder and not a place to be: they never bring the routes of the person on Home (no "has to go home" or
+    /// travel advice). A word of the title is enough ("C: Beschikbaarheid invullen").
+    /// </summary>
+    public static readonly string[] NotAPlace = ["beschikbaarheid"];
+
+    /// <summary>Whether the title is an appointment of the person: "C: something" that is neither work, a day off nor just a reminder.</summary>
     public static bool IsAppointment(string? summary, char letter = 'c') =>
         summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*\S", RegexOptions.IgnoreCase)
-        && !IsWorkEvent(summary, letter) && !IsDayOffEvent(summary, letter);
+        && !IsWorkEvent(summary, letter) && !IsDayOffEvent(summary, letter)
+        && !NotAPlace.Any(word => summary.Contains(word, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Whether the person's work comes from the calendar: switched on, or (for Carleen) not switched off.</summary>
     private bool FromCalendar(string person)
