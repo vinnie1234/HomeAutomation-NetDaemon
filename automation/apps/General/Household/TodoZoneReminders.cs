@@ -70,6 +70,12 @@ public partial class TodoZoneReminders : BaseApp
         // The helpers can be created a moment after startup, and zones come and go
         Scheduler.SchedulePeriodic(TimeSpan.FromMinutes(15), SyncZoneOptions);
 
+        // A zone that was just added (or renamed or removed) is a choice within seconds, not after the next round
+        HaContext.StateAllChanges()
+            .Where(x => x.Entity.EntityId.StartsWith("zone.", StringComparison.Ordinal))
+            .Throttle(TimeSpan.FromSeconds(5), Scheduler)
+            .Subscribe(_ => SyncZoneOptions());
+
         // A text field is only saved when you leave it, which is the same tap that presses the button: give that a moment
         Entities.InputButton.TodoToevoegen.StateChanges().Subscribe(_ => Scheduler.Schedule(ButtonDelay, AddItem));
 
