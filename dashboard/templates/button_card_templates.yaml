@@ -4323,6 +4323,9 @@ hockey_pagina:
           window.huisHockeyKaart = kaart;
         }
         const H = window.huisHockey, e = H.esc;
+        // Een uitklapblok blijft open of dicht als de kaart opnieuw getekend wordt
+        const open = k => (window.huisHockeyOpen ?? {})[k] ? 'open' : '';
+        const toggle = k => `ontoggle="(window.huisHockeyOpen=window.huisHockeyOpen??{})['${k}']=this.open"`;
         const paneel = 'padding:16px;border-radius:20px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,122,156,0.4);text-align:left;pointer-events:auto;box-sizing:border-box';
         const thuis = states['sensor.union_thuiswedstrijden'];
         if (!thuis || thuis.state === 'unavailable') return `<div style="${paneel}"><b>De wedstrijden ontbreken</b><div style="opacity:.75;margin-top:4px;font-size:13px">Installeer de integratie "R.K.H.V. Union Hockey" (HACS, github.com/vinnie1234/R.K.H.V-Union) en voeg hem toe onder Instellingen, Apparaten en diensten.</div></div>`;
@@ -4349,8 +4352,8 @@ hockey_pagina:
             <div style="display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px"></ha-icon>${g.woord}</div>
             <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.uur(g.van)} tot ${H.uur(g.tot)}, getoetst aan de KNHB-regels. Dit is een advies: de thuisvereniging beslist.</div>
             ${H.punten(g)}
-            <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${n}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
-            <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
+            <details ${open('velden')} ${toggle('velden')} style="pointer-events:auto;margin-top:8px"><summary style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${n}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
+            <details ${open('procedure')} ${toggle('procedure')} style="pointer-events:auto;margin-top:8px"><summary style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
             <div style="margin-top:8px;font-size:11.5px;opacity:.55">Bronnen: KNHB Weerprotocol en Procedure afgelastingen 2026. Wat de KNHB niet met een getal onderbouwt, staat als eigen inschatting aangeduid. Controleer altijd knhb.nl/afgelastingen en de KNMI-waarschuwingen.</div></div>`
           : `<div style="${paneel}">Nog geen verwachting.</div>`;
 
@@ -4364,9 +4367,8 @@ hockey_pagina:
         const knop = (naam, label) => `<span onclick="window.huisHockeyFilter='${naam}';window.dispatchEvent(new Event('huis-hockey-klaar'))" style="cursor:pointer;padding:5px 12px;border-radius:12px;font-size:12.5px;font-weight:600;${filter === naam ? 'background:#ff7a9c33;color:#ff7a9c;border:1px solid #ff7a9c88' : 'background:rgba(255,255,255,0.07);border:1px solid transparent'}">${label}</span>`;
         const rijWedstrijd = ({ m, g: gm }) => {
           const wie = persoon(m.team_id);
-          const open = (window.huisHockeyOpen ?? {})[m.id] ? 'open' : '';
-          return `<details ${open} ontoggle="(window.huisHockeyOpen=window.huisHockeyOpen??{})['${m.id}']=this.open" style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.07)">
-            <summary style="cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none">
+          return `<details ${open(m.id)} ${toggle(m.id)} style="pointer-events:auto;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07)">
+            <summary style="pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none">
               <span style="width:48px;font-weight:700">${e(m.time ?? '–')}</span>
               <span style="flex:1;min-width:0"><b>${e(m.team)}</b> <span style="opacity:.7">tegen ${e(m.opponent)}</span>${wie ? ` <span style="color:#ff7a9c;font-size:12px">· ${e(wie)}</span>` : ''}
                 <div style="font-size:12px;opacity:.65">${e(m.field ?? 'veld nog niet bekend')}${m.field_type ? ` · ${soortTekst(m.field_type)}` : ''}${m.cancelled ? ' · <b style="color:#ff6b6b">afgelast</b>' : ''}</div></span>
@@ -4410,7 +4412,7 @@ hockey_pagina:
               <span style="width:92px;line-height:1.25"><b>${s.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</b><br><span style="opacity:.7">${tijdNaam(x.start)} tot ${tijdNaam(x.end)}</span></span>
               <span style="flex:1">${e(x.field ?? '')}${veldSoort(x.field) ? ` <span style="opacity:.6">· ${soortTekst(veldSoort(x.field))}</span>` : ''}${x.comment ? `<div style="font-size:12px;opacity:.65">${e(x.comment)}</div>` : ''}</span>${chip(gt, true)}</div>`;
           }).join('');
-          const tabel = (t.table ?? []).length ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;font-size:13px">De poule</summary>${t.table.map(r => `<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;${r.current ? 'color:#ff7a9c;font-weight:700' : ''}"><span style="width:22px">${r.position}</span><span style="flex:1">${e(r.team)}</span><span>${r.played}</span><span style="width:34px;text-align:right">${r.points}</span></div>`).join('')}</details>` : '';
+          const tabel = (t.table ?? []).length ? `<details ${open('poule')} ${toggle('poule')} style="pointer-events:auto;margin-top:10px"><summary style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">De poule</summary>${t.table.map(r => `<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;${r.current ? 'color:#ff7a9c;font-weight:700' : ''}"><span style="width:22px">${r.position}</span><span style="flex:1">${e(r.team)}</span><span>${r.played}</span><span style="width:34px;text-align:right">${r.points}</span></div>`).join('')}</details>` : '';
           const kop = (naam) => `<div style="margin-top:14px;font-weight:700">${naam}</div>`;
           teamPaneel = `<div style="${paneel}">
               <div style="font-size:17px;font-weight:800">Team volgen</div>
