@@ -1,0 +1,23 @@
+# Weer en verkeer → Hockey: de thuiswedstrijden van Union met het advies om af te lasten (regels van de KNHB), en het team dat je volgt.
+title: Hockey
+path: weer-hockey
+icon: mdi:hockey-sticks
+theme: Glass Home
+type: sections
+subview: true
+back_path: /dashboard-huis/weer
+max_columns: 3
+dense_section_placement: true
+sections:
+  - type: grid
+    column_span: 3
+    cards:
+      - !include ../navbar.yaml
+      - type: heading
+        heading: Hockey bij Union
+        heading_style: title
+        icon: mdi:hockey-sticks
+      - type: custom:button-card
+        template: hockey_pagina
+        grid_options:
+          columns: full
