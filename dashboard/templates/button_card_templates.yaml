@@ -4405,8 +4405,8 @@ hockey_pagina:
             </summary>
             <div style="margin-top:6px">
               ${gm ? `<div style="font-size:12.5px;opacity:.8;margin-bottom:2px">Weer van ${H.span(gm.van, gm.tot)}: <b style="color:${gm.kleur}">${gm.woord}</b></div>${H.tijdlijn(gm)}${gm.punten.length ? `<details ${open('u' + m.id)} ${toggle('u' + m.id)} style="pointer-events:auto;margin-top:4px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:12.5px">Uitleg van de regels</summary>${H.uitleg(gm)}</details>` : ''}${m.field_type ? H.velden(gm, m.field_type) : ''}`
-                : '<div style="font-size:12.5px;opacity:.7">De verwachting gaat maar 48 uur vooruit; kijk later nog eens.</div>'}
-              ${H.keuring(m.time) ? `<div style="font-size:12.5px;margin-top:6px"><b>Keuring</b> door de thuisvereniging uiterlijk ${H.keuring(m.time)} uur.${m.remarks ? ` Opmerking: ${e(m.remarks)}` : ''}</div>` : ''}
+                : '<div style="font-size:12.5px;opacity:.7">De verwachting gaat maar 48 uur vooruit, dus het weer voor deze wedstrijd is nog niet te beoordelen. Kijk later nog eens.</div>'}
+              ${H.keuring(m.time) ? `<div style="font-size:12.5px;margin-top:6px"><b>Wanneer beslist de club?</b> Uiterlijk om ${H.keuring(m.time)} uur keurt de thuisvereniging het veld en staat vast of de wedstrijd van ${e(m.time)} doorgaat. Dat is het laatste moment van het besluit, niet het moment om af te lasten: ${gm && gm.niveau > 0 ? 'bij dit weer is afkeuren mogelijk' : 'bij dit weer is er geen reden om af te lasten'}.${m.remarks ? ` Opmerking: ${e(m.remarks)}` : ''}</div>` : ''}
             </div></details>`;
         };
         const lijst = Object.keys(perDag).sort().map(d => `<div style="margin-top:12px"><div style="font-weight:700;text-transform:capitalize">${dagNaam(d)}</div>${perDag[d].map(rijWedstrijd).join('')}</div>`).join('')
