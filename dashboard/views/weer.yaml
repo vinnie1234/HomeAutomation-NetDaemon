@@ -339,6 +339,7 @@ sections:
         template: commute_card
         variables:
           mode: all
+          eerst_relevant: true
         grid_options:
           columns: full
       # De kaarten openen in een venster in het midden van het scherm (zie window.huisKaartOpen in commute_card)

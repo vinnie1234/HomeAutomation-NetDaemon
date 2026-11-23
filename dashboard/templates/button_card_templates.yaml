@@ -4095,10 +4095,10 @@ commute_card:
         };
         const blocks = list => `<div style="white-space:normal;overflow-wrap:anywhere;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px 20px">${list.map(blockOf).join('')}</div>`;
         // Op Weer en verkeer één blok per persoon, naast elkaar (op een smal scherm onder elkaar), met de routes van die persoon erin
-        const perPerson = () => `<div style="white-space:normal;overflow-wrap:anywhere;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:start">`
-          + [...new Set(rows.map(r => r.attributes.person))].map(person => {
+        const perPerson = (list = rows) => `<div style="white-space:normal;overflow-wrap:anywhere;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:start">`
+          + [...new Set(list.map(r => r.attributes.person))].map(person => {
             const owner = states[person], picture = owner?.attributes.entity_picture;
-            const mine = rows.filter(r => r.attributes.person === person);
+            const mine = list.filter(r => r.attributes.person === person);
             return `<div style="min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
                 box-shadow:0 8px 32px rgba(0,0,0,0.18);pointer-events:auto">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:17px;font-weight:700">
@@ -4107,7 +4107,19 @@ commute_card:
               ${mine.map(s => { const k = kindStyle(s); return `<div style="padding:12px;margin-bottom:10px;border-radius:18px;background:rgba(${k.rgb},0.08);border:1px ${s.dir === 'other' ? 'dashed' : 'solid'} rgba(${k.rgb},0.3);${s.kind === 'missing' ? '' : 'cursor:pointer'}">${rowOf(s)}</div>`; }).join('')}
             </div>`;
           }).join('') + `</div>`;
-        const overview = variables.mode === 'all' ? perPerson() : blocks(rows);
+        // Op Weer en verkeer (eerst_relevant): bovenaan alleen wat nu telt, naar kantoor als de persoon thuis is en naar huis als de persoon niet thuis is;
+        // de rest (andere richting, overige routes) staat achter "Toon meer routes". Het open of dicht blijft bewaard als de kaart opnieuw getekend wordt.
+        const relevantNu = s => (s.dir === 'work' || s.dir === 'home')
+          && (s.dir === 'work') === (states[`input_boolean.away${personKey(s)}`]?.state !== 'on');
+        window.huisVerkeerMeerOpen = open => { window.huisVerkeerMeer = open; };
+        const overview = variables.mode === 'all' && variables.eerst_relevant
+          ? perPerson(rows.filter(relevantNu))
+            + (rows.some(s => !relevantNu(s))
+              ? `<details ${window.huisVerkeerMeer ? 'open' : ''} style="margin-top:14px;pointer-events:auto" ontoggle="window.huisVerkeerMeerOpen(this.open)">
+                  <summary style="cursor:pointer;font-weight:600;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);display:inline-block">Toon meer routes (${rows.filter(s => !relevantNu(s)).length})</summary>
+                  <div style="margin-top:12px">${perPerson(rows.filter(s => !relevantNu(s)))}</div></details>`
+              : '')
+          : variables.mode === 'all' ? perPerson() : blocks(rows);
         // Een link uit een WhatsApp-bericht (?reis=carleen-work-ov) opent meteen het venster van die reis, één keer
         if (asked && window.huisReisDetail[asked] && window.huisReisLastOpened !== asked) {
           window.huisReisLastOpened = asked;
