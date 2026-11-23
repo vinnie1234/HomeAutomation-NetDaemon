@@ -92,7 +92,9 @@
       data:
         type: hourly
       target:
-        entity_id: weather.weer_thuis
+        entity_id:
+          - weather.weer_thuis
+          - weather.weer_nijmegen
       response_variable: verwachting
   sensor:
     - name: Weer verwachting per uur
@@ -101,3 +103,10 @@
       state: "{{ now().isoformat() }}"
       attributes:
         forecast: "{{ verwachting['weather.weer_thuis'].forecast[:48] }}"
+    # Hockey (Union, Nijmegen): dezelfde verwachting voor de locatie van de club, voor de Buitenactiviteiten.
+    - name: Weer verwachting hockey
+      unique_id: weer_verwachting_hockey
+      icon: mdi:hockey-sticks
+      state: "{{ now().isoformat() }}"
+      attributes:
+        forecast: "{{ verwachting['weather.weer_nijmegen'].forecast[:48] }}"
