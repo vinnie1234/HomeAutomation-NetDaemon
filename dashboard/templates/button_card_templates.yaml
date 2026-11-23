@@ -2296,8 +2296,11 @@ weather_hero:
 
         // ---------- Carleen hockeyt: hockeysticks tegen de muur bij de voordeur en haar sporttas. De tekst staat in de melding op Home ----------
         if (hockey) {
-          const stick = (x0, x1, kleur, wit) => `<path d="M${x0} 2 L${x1} 30.5 Q${x1 + 0.4} 34 ${x1 + 4.4} 34.6" stroke="${dim(kleur)}" stroke-width="1.7" fill="none" stroke-linecap="round"/>
-              <path d="M${x0} 2 L${x0 + 0.6} 9" stroke="${dim(wit ? 'rgb(240,240,240)' : 'rgb(30,30,36)')}" stroke-width="1.9" stroke-linecap="round"/>`;
+          // Een veldhockeystick: lange rechte steel met een band bovenaan en onderaan een kromme kop (een J) met een ronde neus
+          const stick = (x0, x1, kleur, wit) => `<path d="M${x0} 2 L${x1} 27" stroke="${dim(kleur)}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <path d="M${x1} 25 Q${x1 + 0.3} 33.6 ${x1 - 4.2} 34.2" stroke="${dim(kleur)}" stroke-width="2.9" fill="none" stroke-linecap="round"/>
+              <path d="M${x1 - 0.2} 29 Q${x1 - 0.4} 33 ${x1 - 3.2} 33.3" stroke="rgba(255,255,255,0.35)" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+              <path d="M${x0} 2 L${x0 + 0.5} 9" stroke="${dim(wit ? 'rgb(240,240,240)' : 'rgb(30,30,36)')}" stroke-width="1.9" stroke-linecap="round"/>`;
           const bag = `<rect x="15" y="23" width="18" height="11.5" rx="3.2" fill="${dim('rgb(30,58,138)')}"/>
               <rect x="15" y="27.4" width="18" height="2.2" fill="${dim('rgb(255,122,156)')}"/>
               <path d="M20 23.2 Q24 18.6 28 23.2" stroke="${dim('rgb(20,30,70)')}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
