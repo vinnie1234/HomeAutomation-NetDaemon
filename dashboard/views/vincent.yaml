@@ -125,6 +125,13 @@ sections:
         name: Aan het werk
         icon: mdi:briefcase-outline
         show_state: true
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.vakantie_vincent
+        name: Op vakantie
+        icon: mdi:palm-tree
+        show_state: true
       - type: custom:button-card
         template: homework_tile
 
@@ -209,6 +216,13 @@ sections:
             entity: input_boolean.vrij_vincent
             name: Vrij (vandaag of tot ik hem uitzet)
             icon: mdi:beach
+            show_state: true
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: input_boolean.vakantie_vincent
+            name: Op vakantie (geen werk, geen routes)
+            icon: mdi:palm-tree
             show_state: true
           - type: entities
             state_color: true

@@ -3579,7 +3579,7 @@ commute_card:
             const wanted = s => {
               const key = personKey(s);
               const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
-                && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
+                && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states[`input_boolean.vakantie_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
               if (!office) return false;
               // De heenreis alleen als de persoon thuis is; de terugreis als de persoon niet thuis is
               const atHome = states[`input_boolean.away${key}`]?.state !== 'on';
@@ -3661,7 +3661,7 @@ commute_card:
         const wanted = s => {
           const key = personKey(s);
           const office = states[`input_select.werkdag_${key}_${dayNames[nowDate.getDay()]}`]?.state === 'Kantoor'
-            && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
+            && states[`input_boolean.vrij_${key}`]?.state !== 'on' && states[`input_boolean.vakantie_${key}`]?.state !== 'on' && states['input_boolean.onvacation']?.state !== 'on';
           if (!office) return false;
           // De heenreis alleen als de persoon thuis is; de terugreis als de persoon niet thuis is
           const atHome = states[`input_boolean.away${key}`]?.state !== 'on';

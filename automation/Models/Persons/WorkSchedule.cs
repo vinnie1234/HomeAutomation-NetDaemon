@@ -12,7 +12,8 @@ namespace Automation.Models.Persons;
 /// <item><c>input_datetime.werk_start_{person}</c> / <c>werk_eind_{person}</c>: the working hours</item>
 /// <item><c>input_boolean.working{person}</c>: whether the person is working right now</item>
 /// </list>
-/// A day off and being on vacation (<c>input_boolean.onvacation</c>, shared) are always days off.
+/// A day off, being on vacation yourself (<c>input_boolean.vakantie_{person}</c>) and the vacation of the whole house (<c>input_boolean.onvacation</c>,
+/// shared) are always days off.
 /// </summary>
 public class WorkSchedule
 {
@@ -71,6 +72,9 @@ public class WorkSchedule
 
     public InputBooleanEntity Working => new(_haContext, $"input_boolean.working{_person}");
     public InputBooleanEntity DayOff => new(_haContext, $"input_boolean.vrij_{_person}");
+
+    /// <summary>The person is on vacation (their own switch; both on means the whole house is on vacation, see <c>VacationManager</c>).</summary>
+    public InputBooleanEntity Vacation => new(_haContext, $"input_boolean.vakantie_{_person}");
     public InputDatetimeEntity WakeUpOffice => new(_haContext, $"input_datetime.opstaan_kantoor_{_person}");
     public InputDatetimeEntity WakeUpHomeWork => new(_haContext, $"input_datetime.opstaan_thuiswerk_{_person}");
 
@@ -83,7 +87,7 @@ public class WorkSchedule
     public InputSelectEntity WorkDaySetting(DayOfWeek day) => new(_haContext, $"input_select.werkdag_{_person}_{DayNames[day]}");
 
     /// <summary>Whether the person has a day off or is on vacation, regardless of the weekday.</summary>
-    public bool IsOnLeave => DayOff.IsOn() || new InputBooleanEntity(_haContext, "input_boolean.onvacation").IsOn();
+    public bool IsOnLeave => DayOff.IsOn() || Vacation.IsOn() || new InputBooleanEntity(_haContext, "input_boolean.onvacation").IsOn();
 
     /// <summary>What kind of day the given weekday is. Unknown settings count as a day off, so nothing starts by mistake.</summary>
     public WorkDay GetWorkDay(DayOfWeek day)

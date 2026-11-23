@@ -57,6 +57,13 @@ sections:
       - type: custom:bubble-card
         card_type: button
         button_type: switch
+        entity: input_boolean.vakantie_carleen
+        name: Op vakantie
+        icon: mdi:palm-tree
+        show_state: true
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
         entity: input_boolean.sleepingcarleen
         name: Slapen
         icon: mdi:sleep
@@ -143,6 +150,13 @@ sections:
             entity: input_boolean.vrij_carleen
             name: Vrij (vandaag of tot ik hem uitzet)
             icon: mdi:beach
+            show_state: true
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: input_boolean.vakantie_carleen
+            name: Op vakantie (geen werk, geen routes)
+            icon: mdi:palm-tree
             show_state: true
           - type: entities
             state_color: true

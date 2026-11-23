@@ -50,6 +50,9 @@ public static class HelperDefinitions
         WorkDay("werkdag_carleen_zaterdag", "Werkdag Carleen zaterdag"),
         WorkDay("werkdag_carleen_zondag", "Werkdag Carleen zondag"),
         Boolean("vrij_carleen", "Vrij Carleen", icon: "mdi:beach"),
+        // Vakantie per persoon (de gedeelde "onvacation" is voor het hele huis)
+        Boolean("vakantie_vincent", "Vakantie Vincent", icon: "mdi:palm-tree"),
+        Boolean("vakantie_carleen", "Vakantie Carleen", icon: "mdi:palm-tree"),
         Time("opstaan_kantoor_carleen", "Opstaan kantoor Carleen", "07:15:00"),
         Time("opstaan_thuiswerk_carleen", "Opstaan thuiswerk Carleen", "08:15:00"),
         Time("werk_start_carleen", "Werk start Carleen", "08:30:00"),

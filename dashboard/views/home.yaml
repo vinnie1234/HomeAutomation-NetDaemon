@@ -248,6 +248,26 @@ sections:
               content: Carleen vrij
           - type: conditional
             conditions:
+              - condition: state
+                entity: input_boolean.vakantie_vincent
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:palm-tree
+              icon_color: teal
+              content: Vincent op vakantie
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vakantie_carleen
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:palm-tree
+              icon_color: teal
+              content: Carleen op vakantie
+          - type: conditional
+            conditions:
               - condition: user
                 users:
                   - 0d3e17e157c247858fd93001d40168c6

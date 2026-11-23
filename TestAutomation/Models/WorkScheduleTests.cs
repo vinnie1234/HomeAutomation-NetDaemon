@@ -14,9 +14,10 @@ public class WorkScheduleTests
     private void SetState(string entityId, string state) =>
         _ctx.HaContext.GetState(entityId).Returns(new EntityState { EntityId = entityId, State = state });
 
-    private WorkSchedule Schedule(string dayOff = "off", string onVacation = "off")
+    private WorkSchedule Schedule(string dayOff = "off", string onVacation = "off", string ownVacation = "off")
     {
         SetState("input_boolean.vrij_carleen", dayOff);
+        SetState("input_boolean.vakantie_carleen", ownVacation);
         SetState("input_boolean.onvacation", onVacation);
         SetState("input_select.werkdag_carleen_maandag", "Kantoor");
         SetState("input_select.werkdag_carleen_dinsdag", "Thuis");
@@ -62,6 +63,16 @@ public class WorkScheduleTests
     public void DayOffOrVacation_MakesEveryDayADayOff(string dayOff, string onVacation)
     {
         var schedule = Schedule(dayOff, onVacation);
+
+        Assert.True(schedule.IsDayOff(DayOfWeek.Monday));
+        Assert.False(schedule.IsOfficeDay(DayOfWeek.Monday));
+        Assert.False(schedule.IsHomeWorkDay(DayOfWeek.Tuesday));
+    }
+
+    [Fact]
+    public void OwnVacation_MakesEveryDayADayOff()
+    {
+        var schedule = Schedule(ownVacation: "on");
 
         Assert.True(schedule.IsDayOff(DayOfWeek.Monday));
         Assert.False(schedule.IsOfficeDay(DayOfWeek.Monday));
