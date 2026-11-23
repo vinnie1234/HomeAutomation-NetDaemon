@@ -4199,8 +4199,10 @@ activiteiten_weer:
             tekst: 'Neerslag bij vorst: ijzel of natte sneeuw maakt het veld glad en bevroren, "bespeling is tijdelijk niet mogelijk" (Weerprotocol, ijzel en bevroren veld).' },
           { id: 'vorst-extreem', officieel: true, test: u => u.t <= -10 ? 2 : 0,
             tekst: 'Extreme vorst (onder -10°): daar wordt voor kunstgras het veld zelf een probleem (Weerprotocol, vorst).' },
-          { id: 'vorst', officieel: true, test: u => u.t <= 0 && u.t > -10 && !(u.r > 0) ? 1 : 0,
-            tekst: 'Vorst: droge vorst is voor kunstgras geen probleem, maar een hard, glad of bevroren veld met onvoorspelbaar balgedrag mag worden afgekeurd. Het veld wordt ter plekke gekeurd (Weerprotocol, bevroren veld).' },
+          { id: 'vorst', officieel: true, test: u => u.t <= 0 && u.t > -10 && !(u.r > 0) ? (u.t <= -2 || u.vocht >= 85 ? 2 : 1) : 0,
+            tekst: 'Vorst: in de KNHB-tabel is een bevroren veld "advies: veld niet bespelen, afgelasting door thuisvereniging" (uitgangspunt is veiligheid). Droge, kale vorst is voor kunstgras zelf geen probleem, maar bij een hoge luchtvochtigheid (of vanaf ongeveer -2°, mijn inschatting) wordt het veld hard, glad en met onvoorspelbaar balgedrag (Weerprotocol, bevroren veld). De vereniging keurt het veld ter plekke.' },
+          { id: 'dooi', officieel: false, test: u => u.t > 0 && u.t <= 4 && u.min4 <= -2 ? 1 : 0,
+            tekst: 'Net na de vorst: het veld kan na een koude nacht nog bevroren of glad zijn terwijl de lucht al boven nul is. Laat het veld ter plekke keuren (eigen inschatting, de KNHB noemt hier geen grens).' },
           { id: 'windchill', officieel: true, test: u => u.gevoel <= -20 ? 2 : u.gevoel <= -15 ? 1 : 0,
             tekst: 'Gevoelstemperatuur onder -15° (KNMI code geel) of -20° (code oranje): lokale beoordeling door de vereniging, met de leeftijd van de spelers (Weerprotocol, tabel). Bij -20° is afgelasten mijn inschatting.' },
           { id: 'onweer', officieel: true, test: u => ['lightning', 'lightning-rainy'].includes(u.f.condition) ? 1 : 0,
@@ -4213,12 +4215,12 @@ activiteiten_weer:
             tekst: 'Warm weer: er wordt gewoon gehockeyd. Alleen in uiterste gevallen kan de vereniging het veld afkeuren omdat het voor de keeper niet verantwoord is. Inkorten van de wedstrijd mag niet (Weerprotocol, warm weer). 30° is het voorbeeld dat de KNHB noemt.' }
         ];
         const gevoelsTemp = u => u.t <= 10 && u.w > 4.8 ? 13.12 + 0.6215 * u.t - 11.37 * Math.pow(u.w, 0.16) + 0.3965 * u.t * Math.pow(u.w, 0.16) : u.t;
-        const afgelasten = uren => {
+        const afgelasten = (uren, vocht) => {
           // Een wedstrijd is overdag; kijk naar 08:00 tot 20:00 (is dat er niet, dan alles)
           let venster = uren.filter(u => { const h = u.tijd.getHours(); return h >= 8 && h < 20; });
           if (!venster.length) venster = uren;
           const punten = AFGELAST_REGELS.map(r => {
-            const raak = venster.map(u => ({ u, n: r.test({ ...u, gevoel: gevoelsTemp(u) }) })).filter(x => x.n > 0);
+            const raak = venster.map(u => ({ u, n: r.test({ ...u, vocht, gevoel: gevoelsTemp(u), min4: Math.min(...uren.slice(Math.max(0, uren.indexOf(u) - 3), uren.indexOf(u) + 1).map(x => x.t)) }) })).filter(x => x.n > 0);
             if (!raak.length) return null;
             return { ...r, n: Math.max(...raak.map(x => x.n)), van: raak[0].u.tijd, tot: new Date(raak[raak.length - 1].u.tijd.getTime() + 3600000) };
           }).filter(Boolean).sort((x, y) => y.n - x.n);
@@ -4254,7 +4256,7 @@ activiteiten_weer:
               <div style="display:flex;gap:2px;margin-top:12px">${balk}</div>
               <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:3px"><span>nu</span><span>over 12 uur</span><span>over 24 uur</span></div>
               <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst} <span style="opacity:.55;font-weight:400"> · tik voor de uitleg</span></div>
-              ${a.afgelasten ? (() => { const g = afgelasten(uren); return `<div style="font-size:12.5px;margin-top:6px;display:flex;align-items:center;gap:6px;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px"></ha-icon>${g.woord}</div>`; })() : ''}
+              ${a.afgelasten ? (() => { const g = afgelasten(uren, parseFloat(states[`sensor.weer_${a.station ?? 'thuis'}_luchtvochtigheid`]?.state)); return `<div style="font-size:12.5px;margin-top:6px;display:flex;align-items:center;gap:6px;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px"></ha-icon>${g.woord}</div>`; })() : ''}
             </div>`;
         };
         // Het venster met de uitleg: per onderdeel de waarde, de grens en wat dat betekent, daaronder de komende uren
@@ -4293,7 +4295,7 @@ activiteiten_weer:
           ].join('');
           let afgelastBlok = '';
           if (a.afgelasten) {
-            const g = afgelasten(uren);
+            const g = afgelasten(uren, vocht);
             const tijdspan = p => `${uurtekst(p.van)} tot ${uurtekst(p.tot)}`;
             const punten = g.punten.length ? g.punten.map(p => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px">
                 <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${p.n === 2 ? 'Reden om af te keuren' : 'Let op'} · ${tijdspan(p)}</b><span style="opacity:.6;white-space:nowrap">${p.officieel ? 'KNHB-regel' : 'eigen inschatting'}</span></div>
