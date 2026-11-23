@@ -199,6 +199,42 @@ public class WorkFromCalendarTests
         WorkFromCalendar.IsAppointment(summary).Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData("C: Vakantie", true)]
+    [InlineData("c:vakantie Spanje", true)]
+    [InlineData("C: vrij", false)]
+    [InlineData("C: vakantiegeld", false)]
+    [InlineData("V: vakantie", false)]
+    public void IsVacationEvent_IsOnlyVakantie(string summary, bool expected)
+    {
+        WorkFromCalendar.IsVacationEvent(summary).Should().Be(expected);
+    }
+
+    [Fact]
+    public void AVacationEventThatCoversToday_PutsTheVacationSwitchOn()
+    {
+        SetState("input_boolean.vakantie_carleen", "off");
+        Events(("C: Vakantie", "2026-10-26", "2026-10-31"));
+        Start();
+
+        AdvanceTo(new DateTime(2026, 10, 28, 22, 1, 0, DateTimeKind.Utc));
+
+        _ctx.VerifyCallService("input_boolean", "turn_on", "vakantie_carleen", times: 1);
+        _storage.Received().Save(WorkFromCalendar.StoreKey, Arg.Is<WorkCalendarStore>(s => s.VacationFromCalendar.Contains("carleen")));
+    }
+
+    [Fact]
+    public void AVacationSwitchedOnByHand_IsNotPutOffByTheCalendar()
+    {
+        SetState("input_boolean.vakantie_carleen", "on");
+        Events(("Tandarts", "2026-10-28T10:00:00+01:00", "2026-10-28T11:00:00+01:00"));
+        Start();
+
+        AdvanceTo(new DateTime(2026, 10, 28, 22, 1, 0, DateTimeKind.Utc));
+
+        _ctx.VerifyCallService("input_boolean", "turn_off", "vakantie_carleen", times: 0);
+    }
+
     [Fact]
     public void ADayOffEvent_MakesTheDayVrij_AndGivesTheOldSettingBackAfterwards()
     {

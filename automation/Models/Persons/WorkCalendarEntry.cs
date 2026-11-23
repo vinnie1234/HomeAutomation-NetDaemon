@@ -34,4 +34,7 @@ public class WorkCalendarEntry
 public class WorkCalendarStore
 {
     public List<WorkCalendarEntry> Entries { get; set; } = [];
+
+    /// <summary>The people whose vacation switch was put on by the calendar ("V: vakantie"): only that one is put off again by the calendar.</summary>
+    public List<string> VacationFromCalendar { get; set; } = [];
 }

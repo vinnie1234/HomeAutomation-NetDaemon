@@ -57,6 +57,7 @@ public class WorkFromCalendar : BaseApp
         // After a restart the nightly steps may have been missed; both are safe to repeat
         ResetDaysThatAreOver();
         _ = SyncAsync(1, 1);
+        _ = SyncAsync(0, 0, applyDays: false);
     }
 
     /// <summary>Whether the title of an event says "C: werk" (or the letter of somebody else), with any capitals and spaces.</summary>
@@ -72,6 +73,10 @@ public class WorkFromCalendar : BaseApp
     /// travel advice). A word of the title is enough ("C: Beschikbaarheid invullen").
     /// </summary>
     public static readonly string[] NotAPlace = ["beschikbaarheid"];
+
+    /// <summary>Whether the title of an event says "V: vakantie" (or the letter of somebody else): the person is on vacation, not only free.</summary>
+    public static bool IsVacationEvent(string? summary, char letter = 'c') =>
+        summary != null && Regex.IsMatch(summary, $@"^\s*{letter}\s*:\s*vakantie\b", RegexOptions.IgnoreCase);
 
     /// <summary>Whether the title is an appointment of the person: "C: something" that is neither work, a day off nor just a reminder.</summary>
     public static bool IsAppointment(string? summary, char letter = 'c') =>
@@ -108,11 +113,41 @@ public class WorkFromCalendar : BaseApp
                     for (var day = fromDay; day <= toDay; day++)
                         ApplyDay(person, letter, schedule, today.AddDays(day), items, FromCalendar(person));
                 if (fromDay == 0) PublishAppointment(person, letter, items);
+                if (fromDay == 0) ApplyVacation(person, letter, schedule, today, items);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Could not read the work from the calendar");
+        }
+    }
+
+    /// <summary>
+    /// "V: vakantie" (or "C: vakantie") covering today puts the vacation switch of that person on; when the event is over the calendar puts it off again,
+    /// but only when it was the calendar that put it on: a vacation that was switched on by hand stays.
+    /// </summary>
+    private void ApplyVacation(string person, char letter, WorkSchedule schedule, DateTime today, List<JsonElement> items)
+    {
+        var covered = items.Any(item => IsVacationEvent(SummaryOf(item), letter) && Covers(item, today));
+        var store = _storage.Get<WorkCalendarStore>(StoreKey) ?? new WorkCalendarStore();
+        var fromCalendar = store.VacationFromCalendar.Contains(person);
+
+        if (covered && schedule.Vacation.IsOff())
+        {
+            Logger.LogInformation("{Person} is on vacation according to the calendar", person);
+            schedule.Vacation.TurnOn();
+            if (!fromCalendar) store.VacationFromCalendar.Add(person);
+            _storage.Save(StoreKey, store);
+        }
+        else if (!covered && fromCalendar)
+        {
+            if (schedule.Vacation.IsOn())
+            {
+                Logger.LogInformation("The vacation of {Person} in the calendar is over", person);
+                schedule.Vacation.TurnOff();
+            }
+            store.VacationFromCalendar.Remove(person);
+            _storage.Save(StoreKey, store);
         }
     }
 
