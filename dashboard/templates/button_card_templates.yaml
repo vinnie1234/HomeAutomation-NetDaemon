@@ -4329,6 +4329,7 @@ hockey_pagina:
   template: glass
   triggers_update:
     - sensor.union_thuiswedstrijden
+    - sensor.union_afgelastingen
     - sensor.union_trainingen
     - sensor.weer_verwachting_hockey
   show_icon: false
@@ -4385,6 +4386,12 @@ hockey_pagina:
             <details ${open('procedure')} ${toggle('procedure')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
             <div style="margin-top:8px;font-size:11.5px;opacity:.55">Bronnen: het Weerprotocol van Union (unionhockey.nl/weerprotocol) en het Weerprotocol en de Procedure afgelastingen 2026 van de KNHB. Wat zij niet met een getal onderbouwen, staat als eigen inschatting aangeduid. Controleer altijd de afgelastingen op unionhockey.nl en knhb.nl en de KNMI-waarschuwingen.</div></div>`
           : `<div style="${paneel}">Nog geen verwachting.</div>`;
+
+        // ---- 1b. afgelaste wedstrijden (uit Lisa en het wedstrijdschema, zonder de jeugd tot en met O18)
+        const afgelast = (states['sensor.union_afgelastingen']?.attributes.matches ?? []).filter(m => !H.isJeugd(m));
+        const afgelastPaneel = afgelast.length ? `<div style="${paneel};border-color:#ff6b6b88">
+            <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:17px;font-weight:800;color:#ff6b6b"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;flex:none"></ha-icon><span>Afgelast (${afgelast.length})</span></div>
+            ${afgelast.map(m => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:13px"><b>${new Date(m.date + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${e(m.time ?? '')}</b> · ${e(m.team)} tegen ${e(m.opponent)}${m.home ? '' : ' (uit)'}<div style="font-size:12px;opacity:.65">${e(m.field ? H.veldNaam(m.field) : '')}${m.remarks ? ` · ${e(m.remarks)}` : ''}</div></div>`).join('')}</div>` : '';
 
         // ---- 2. de thuiswedstrijden
         const filter = window.huisHockeyFilter ?? 'alle';
@@ -4450,7 +4457,7 @@ hockey_pagina:
               ${stand}${kop('Komende wedstrijden')}${volgende}${uitslagen ? kop('Uitslagen') + uitslagen : ''}${trainingen ? kop('Trainingen') + trainingen : ''}${tabel}</div>`;
         }
 
-        return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;white-space:normal;align-items:start">${vandaag}${wedstrijdPaneel}${teamPaneel}</div>`;
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;white-space:normal;align-items:start">${afgelastPaneel}${vandaag}${wedstrijdPaneel}${teamPaneel}</div>`;
       ]]]
   styles:
     grid:
