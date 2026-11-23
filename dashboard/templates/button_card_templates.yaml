@@ -806,7 +806,7 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=2').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=3').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
@@ -2294,30 +2294,23 @@ weather_hero:
         }
 
 
-        // ---------- Carleen hockeyt: een hockeydoel met sticks en een bal, en wat ze moet doen ----------
+        // ---------- Carleen hockeyt: een hockeyveld op het gras (blauw bij een waterveld, groen bij kunstgras). De tekst staat in de melding op Home ----------
         if (hockey) {
-          const tijd = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-          const wedstrijd = hockey.soort === 'Wedstrijd';
-          const vroeg = hockey.wanneer === 'Morgen' ? 'morgen ' : hockey.wanneer === 'Vandaag' ? '' : `${hockey.start.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} `;
-          const laat = hockey.vertrek && hockey.vertrek.getTime() <= Date.now() && hockey.start.getTime() > Date.now();
-          const kleur = hockey.afgelast ? '#ff6b6b' : hockey.oordeel ? hockey.oordeel.kleur : '#a3e635';
-          const regel2 = hockey.afgelast ? 'afgelast' : hockey.vertrek ? (laat ? 'nu vertrekken' : `vertrek ${tijd(hockey.vertrek)}`) : hockey.aankomst ? `verzamelen ${tijd(hockey.aankomst)}` : '';
-          const weer = !hockey.afgelast && hockey.oordeel && hockey.oordeel.niveau > 0 ? ` · ${hockey.oordeel.niveau === 2 ? 'afkeuren?' : 'let op'}` : '';
-          const px = Math.max(homeX + 34, 60);
-          out += `<div onclick="history.pushState(null,'','/dashboard-huis/weer-hockey');window.dispatchEvent(new CustomEvent('location-changed'))"
-              style="position:absolute;left:max(${px}%, 330px);bottom:${Math.max(1, groundBottom(px) - 3)}%;transform:translateX(-50%);cursor:pointer;pointer-events:auto;text-align:center;
-              filter:drop-shadow(0 3px 4px rgba(0,0,0,0.3))">
-              <svg viewBox="0 0 64 40" style="width:clamp(70px, 9%, 110px);overflow:visible">
-                <ellipse cx="32" cy="38" rx="28" ry="2.4" fill="rgba(0,0,0,0.22)"/>
-                <path d="M10 37 L10 8 L54 8 L54 37" fill="none" stroke="${dim('rgb(245,245,245)')}" stroke-width="2.4" stroke-linejoin="round"/>
-                <path d="M10 8 L16 3 L48 3 L54 8 M16 3 L16 31 M48 3 L48 31" fill="none" stroke="${dim('rgb(226,232,240)')}" stroke-width="1" opacity="0.8"/>
-                <path d="M12 14 H52 M12 20 H52 M12 26 H52 M22 8 V36 M32 8 V36 M42 8 V36" stroke="${dim('rgb(226,232,240)')}" stroke-width="0.5" opacity="0.55"/>
-                <path d="M2 36 Q8 22 14 12" stroke="${dim('rgb(255,122,156)')}" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M2 36 Q4 37.5 7 36.5" stroke="${dim('rgb(255,122,156)')}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-                <path d="M60 36 Q56 24 50 14" stroke="${dim('rgb(56,189,248)')}" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M60 36 Q58 37.5 55 36.5" stroke="${dim('rgb(56,189,248)')}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-                <circle cx="31" cy="35" r="2.4" fill="${dim('rgb(255,255,255)')}"/>
-              </svg>
-              <div style="margin-top:2px;padding:3px 9px;border-radius:10px;background:rgba(10,14,24,0.72);border:1px solid ${kleur}88;font-size:11.5px;line-height:1.25;color:#f2f4f8;white-space:nowrap">
-                <b>Carleen</b> · ${wedstrijd ? 'wedstrijd' : 'training'} ${vroeg}${tijd(hockey.start)}<br><span style="color:${laat ? '#ff6b6b' : kleur};font-weight:700">${regel2}${weer}</span></div></div>`;
+          const soorten = states['sensor.union_thuiswedstrijden']?.attributes.field_types ?? {};
+          const water = Object.entries(soorten).find(([n]) => String(hockey.veld ?? '').toLowerCase().startsWith(n.toLowerCase()))?.[1] === 'water';
+          const mat = water ? 'rgb(37,99,235)' : 'rgb(34,139,70)', rand = water ? 'rgb(29,78,216)' : 'rgb(21,101,52)';
+          out += `<svg viewBox="0 0 110 40" style="position:absolute;left:max(${homeX + 36}%, 360px);bottom:${roadH + 1}%;width:clamp(100px, 13%, 170px);transform:translateX(-50%);
+              overflow:visible;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.3))">
+              <path d="M16 3 H94 L108 36 H2 Z" fill="${dim(rand)}"/>
+              <path d="M18 5.5 H92 L104.5 34 H5.5 Z" fill="${dim(mat)}"/>
+              <path d="M18 5.5 H92 L104.5 34 H5.5 Z" fill="none" stroke="${dim('rgb(255,255,255)')}" stroke-width="0.9"/>
+              <path d="M55 5.5 V34" stroke="${dim('rgb(255,255,255)')}" stroke-width="0.8"/>
+              <ellipse cx="55" cy="20" rx="7" ry="3.6" fill="none" stroke="${dim('rgb(255,255,255)')}" stroke-width="0.8"/>
+              <path d="M30 5.5 Q55 14 80 5.5 M7.5 34 Q55 22 102.5 34" fill="none" stroke="${dim('rgb(255,255,255)')}" stroke-width="0.7" opacity="0.9"/>
+              <rect x="46" y="2.2" width="18" height="3.3" rx="0.8" fill="none" stroke="${dim('rgb(245,245,245)')}" stroke-width="1"/>
+              <rect x="44" y="34" width="22" height="4" rx="0.8" fill="none" stroke="${dim('rgb(245,245,245)')}" stroke-width="1"/>
+              <circle cx="62" cy="22" r="1.6" fill="${dim('rgb(255,255,255)')}"/>
+            </svg>`;
         }
 
         // ---------- Heerlijk weer (25° of warmer en zon): een opblaasbadje met badeend, een parasol en een strandbal ----------
@@ -4229,9 +4222,9 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=2').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=3').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
-        const afgelasten = (uren, vocht) => window.huisHockey?.dag(uren, vocht);
+        const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
           const uren = verwachting(a).slice(0, 26).map(f => beoordeel(a, f));
           window.huisActiviteiten = window.huisActiviteiten ?? {};
@@ -4260,7 +4253,7 @@ activiteiten_weer:
               <div style="display:flex;gap:2px;margin-top:12px">${balk}</div>
               <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:3px"><span>nu</span><span>over 12 uur</span><span>over 24 uur</span></div>
               <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst} <span style="opacity:.55;font-weight:400"> · ${a.afgelasten ? 'tik voor de wedstrijden' : 'tik voor de uitleg'}</span></div>
-              ${a.afgelasten ? (() => { const g = afgelasten(uren, parseFloat(states[`sensor.weer_${a.station ?? 'thuis'}_luchtvochtigheid`]?.state)); if (!g) return ''; return `<div style="font-size:12.5px;margin-top:6px;display:flex;align-items:center;gap:6px;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px"></ha-icon>${g.woord}</div>`; })() : ''}
+              ${a.afgelasten ? (() => { const g = afgelasten(uren); if (!g) return ''; return `<div style="font-size:12.5px;margin-top:6px;display:flex;align-items:center;justify-content:flex-start;gap:6px;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px;flex:none"></ha-icon><span style="flex:0 1 auto">${g.woord}</span></div>`; })() : ''}
             </div>`;
         };
         // Het venster met de uitleg: per onderdeel de waarde, de grens en wat dat betekent, daaronder de komende uren
@@ -4349,7 +4342,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=2').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=3').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op
@@ -4368,7 +4361,7 @@ hockey_pagina:
         if (!thuis || thuis.state === 'unavailable') return `<div style="${paneel}"><b>De wedstrijden ontbreken</b><div style="opacity:.75;margin-top:4px;font-size:13px">Installeer de integratie "R.K.H.V. Union Hockey" (HACS, github.com/vinnie1234/R.K.H.V-Union) en voeg hem toe onder Instellingen, Apparaten en diensten.</div></div>`;
         const eigenVerwachting = states['sensor.weer_verwachting_hockey']?.attributes.forecast;
         const verwachting = eigenVerwachting?.length ? eigenVerwachting : (states['sensor.weer_verwachting_per_uur']?.attributes.forecast ?? []);
-        const vocht = parseFloat(states['sensor.weer_nijmegen_luchtvochtigheid']?.state);
+        const vocht = H.omstandigheden(states);
         const dagNaam = iso => new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
         const tijdNaam = iso => new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
         const chip = (g, kort) => g ? `<span style="padding:3px 10px;border-radius:9px;font-size:12px;font-weight:700;white-space:nowrap;color:${g.kleur};background:${g.kleur}22;border:1px solid ${g.kleur}66">${kort ? ['Spelen', 'Let op', 'Afkeuren'][g.niveau] : g.woord}</span>`
@@ -4386,12 +4379,12 @@ hockey_pagina:
         const g = uren.length ? H.dag(uren, vocht) : null;
         const velden = Object.entries(thuis.attributes.field_types ?? {});
         const vandaag = g ? `<div style="${paneel};border-color:${g.kleur}88">
-            <div style="display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px"></ha-icon>${g.woord}</div>
-            <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.uur(g.van)} tot ${H.uur(g.tot)}, getoetst aan de KNHB-regels. Dit is een advies: de thuisvereniging beslist.</div>
+            <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;flex:none"></ha-icon><span style="flex:0 1 auto">${g.woord}</span></div>
+            <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.uur(g.van)} tot ${H.uur(g.tot)}, getoetst aan het weerprotocol van Union en de KNHB. Dit is een advies: de vereniging beslist.</div>
             ${H.punten(g)}
             <details ${open('velden')} ${toggle('velden')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${n}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
             <details ${open('procedure')} ${toggle('procedure')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
-            <div style="margin-top:8px;font-size:11.5px;opacity:.55">Bronnen: KNHB Weerprotocol en Procedure afgelastingen 2026. Wat de KNHB niet met een getal onderbouwt, staat als eigen inschatting aangeduid. Controleer altijd knhb.nl/afgelastingen en de KNMI-waarschuwingen.</div></div>`
+            <div style="margin-top:8px;font-size:11.5px;opacity:.55">Bronnen: het Weerprotocol van Union (unionhockey.nl/weerprotocol) en het Weerprotocol en de Procedure afgelastingen 2026 van de KNHB. Wat zij niet met een getal onderbouwen, staat als eigen inschatting aangeduid. Controleer altijd de afgelastingen op unionhockey.nl en knhb.nl en de KNMI-waarschuwingen.</div></div>`
           : `<div style="${paneel}">Nog geen verwachting.</div>`;
 
         // ---- 2. de thuiswedstrijden
