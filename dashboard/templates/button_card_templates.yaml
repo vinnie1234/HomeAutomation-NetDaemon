@@ -2303,7 +2303,7 @@ weather_hero:
               <path d="M20 23.2 Q24 18.6 28 23.2" stroke="${dim('rgb(20,30,70)')}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
               <rect x="18.6" y="30.4" width="5" height="3" rx="0.8" fill="${dim('rgb(18,34,90)')}"/>
               <path d="M15.6 25.5 Q24 24.4 32.4 25.5" stroke="rgba(255,255,255,0.22)" stroke-width="0.8" fill="none"/>`;
-          out += svgAt(nearHouse(3.9), groundBottom(nearHouse(3.9)) - 2.2, 50, 59, '0 0 36 38',
+          out += svgAt(nearHouse(3.9), groundBottom(nearHouse(3.9)) - 2.2, 34, 40, '0 0 36 38',
             `<ellipse cx="18" cy="35.6" rx="16.5" ry="1.6" fill="rgba(0,0,0,0.22)"/>${stick(3.5, 7.5, 'rgb(255,122,156)', false)}${stick(7.2, 11, 'rgb(56,189,248)', true)}${stick(10.8, 14.4, 'rgb(250,204,21)', false)}${bag}`,
             'pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3))');
         }
