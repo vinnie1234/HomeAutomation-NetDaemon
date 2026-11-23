@@ -110,7 +110,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=5').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=6').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             const m = window.huisHockey.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });

@@ -68,12 +68,15 @@
   // De uren (met t, w, st, r, f en tijd) toetsen aan de regels. alle = alle uren van de verwachting, voor de koude van de uren daarvoor
   const toets = (venster, omstandigheden, alle) => {
     const lijst = alle ?? venster, { vocht, code } = context(omstandigheden);
+    // Per uur: welke regels gelden en hoe zwaar
+    const perUur = venster.map(u => {
+      const i = lijst.indexOf(u);
+      const min4 = Math.min(...lijst.slice(Math.max(0, i - 3), i + 1).map(x => x.t));
+      const treffers = REGELS.map(regel => ({ regel, n: regel.test({ ...u, vocht, code, gevoel: gevoelsTemp(u), min4 }) })).filter(x => x.n > 0);
+      return { u, treffers, niveau: treffers.length ? Math.max(...treffers.map(x => x.n)) : 0 };
+    });
     const punten = REGELS.map(regel => {
-      const raak = venster.map(u => {
-        const i = lijst.indexOf(u);
-        const min4 = Math.min(...lijst.slice(Math.max(0, i - 3), i + 1).map(x => x.t));
-        return { u, n: regel.test({ ...u, vocht, code, gevoel: gevoelsTemp(u), min4 }) };
-      }).filter(x => x.n > 0);
+      const raak = perUur.filter(x => x.treffers.some(t => t.regel === regel));
       if (!raak.length) return null;
       // De uren die samen vallen vormen een tijdvak; zijn er gaten, dan zijn het meer tijdvakken
       const perioden = [];
@@ -82,11 +85,20 @@
         if (laatste && u.tijd.getTime() - laatste.tot.getTime() < 1000) laatste.tot = new Date(u.tijd.getTime() + 3600000);
         else perioden.push({ van: u.tijd, tot: new Date(u.tijd.getTime() + 3600000) });
       });
-      return { ...regel, n: Math.max(...raak.map(x => x.n)), perioden, van: perioden[0].van, tot: perioden[perioden.length - 1].tot };
+      return { ...regel, n: Math.max(...raak.map(x => x.treffers.find(t => t.regel === regel).n)), perioden, van: perioden[0].van, tot: perioden[perioden.length - 1].tot };
     }).filter(Boolean).sort((x, y) => y.n - x.n);
+    // De tijdlijn: uren met dezelfde situatie vormen een tijdvak, met de reden waarom het wel of niet kan
+    const tijdlijn = [];
+    perUur.forEach(x => {
+      const sleutel = `${x.niveau}:${x.treffers.map(t => t.regel.id).sort().join(',')}`;
+      const laatste = tijdlijn[tijdlijn.length - 1];
+      const einde = new Date(x.u.tijd.getTime() + 3600000);
+      if (laatste && laatste.sleutel === sleutel && x.u.tijd.getTime() - laatste.tot.getTime() < 1000) { laatste.tot = einde; laatste.uren.push(x.u); }
+      else tijdlijn.push({ sleutel, niveau: x.niveau, regels: x.treffers.map(t => t.regel), van: x.u.tijd, tot: einde, uren: [x.u] });
+    });
     const niveau = punten.length ? Math.max(...punten.map(p => p.n)) : 0;
     const [woord, kleur] = NIVEAUS[niveau];
-    return { niveau, woord, kleur, punten, van: venster[0]?.tijd, tot: venster.length ? new Date(venster[venster.length - 1].tijd.getTime() + 3600000) : null };
+    return { niveau, woord, kleur, punten, tijdlijn, van: venster[0]?.tijd, tot: venster.length ? new Date(venster[venster.length - 1].tijd.getTime() + 3600000) : null };
   };
 
   // Een wedstrijddag: de uren van 08:00 tot 20:00 (is dat er niet, dan alles)
@@ -121,6 +133,29 @@
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${p.n === 2 ? 'Reden om af te keuren' : 'Let op'}${metTijd ? ` · ${periode(p)}` : ` · ${esc(p.kort)}`}</b><span style="opacity:.6;white-space:nowrap">${bronNaam(p.bron)}</span></div>
       <div style="opacity:.8;margin-top:2px">${p.tekst}</div></div>`).join('')
     : `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px;opacity:.8">In de verwachting staat niets wat volgens het weerprotocol van Union of de KNHB reden is om af te keuren.</div>`;
+
+  // Waarom het in een tijdvak wel kan: de waarden van die uren in een zin
+  const kanBecause = uren => {
+    const ts = uren.map(u => Math.round(u.t)), wmax = Math.round(Math.max(...uren.map(u => u.st))), rmax = Math.max(...uren.map(u => u.r));
+    const temp = Math.min(...ts) === Math.max(...ts) ? `${ts[0]}°` : `${Math.min(...ts)}° tot ${Math.max(...ts)}°`;
+    return `${temp}, ${rmax >= 0.1 ? `regen tot ${String(Math.round(rmax * 10) / 10).replace('.', ',')} mm per uur` : 'droog'}, windstoten tot ${wmax} km/h: boven het vriespunt en geen reden uit het protocol om af te keuren`;
+  };
+
+  // Per tijdvak wat er aan de hand is: kan het, kan het niet en waarom
+  const tijdlijn = g => !g.tijdlijn?.length ? '' : g.tijdlijn.map(t => {
+    const [kleur, woord] = t.niveau === 2 ? ['#ff6b6b', 'Afkeuren'] : t.niveau === 1 ? ['#ffb060', 'Let op'] : ['#4ade80', 'Kan'];
+    const redenen = t.niveau === 0 ? kanBecause(t.uren)
+      : t.regels.sort((x, y) => y.n - x.n).map(r => `${esc(r.kort)} <span style="opacity:.55">(${bronNaam(r.bron)})</span>`).join('<br>');
+    return `<div style="display:grid;grid-template-columns:96px 1fr;gap:2px 10px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px;align-items:start">
+        <div><div style="font-weight:700">${span(t.van, t.tot)}</div><span style="display:inline-block;margin-top:3px;padding:2px 9px;border-radius:8px;font-weight:700;color:${kleur};background:${kleur}22">${woord}</span></div>
+        <div style="opacity:.85;align-self:center">${redenen}</div></div>`;
+  }).join('');
+
+  // De uitleg van elke regel die meespeelt, één keer
+  const uitleg = g => g.punten.length ? g.punten.map(p => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${esc(p.kort)}</b><span style="opacity:.6;white-space:nowrap">${bronNaam(p.bron)}</span></div>
+      <div style="opacity:.8;margin-top:2px">${p.tekst}</div></div>`).join('')
+    : `<div style="padding:8px 0;font-size:12.5px;opacity:.8">Er speelt geen enkele regel mee.</div>`;
 
   // Advies per soort veld. Het protocol van Union maakt geen onderscheid; het KNHB Weerprotocol wel. soort = 'water' | 'kunstgras' | undefined (dan beide)
   const velden = (g, soort) => {
@@ -229,6 +264,6 @@
     return { item, titel, label: [item.veld, ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
   };
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, MARGE_MIN };
+  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
