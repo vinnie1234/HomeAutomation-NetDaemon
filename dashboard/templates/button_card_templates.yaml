@@ -4133,6 +4133,101 @@ commute_card:
         return overview;
       ]]]
 
+# Is het weer goed genoeg voor een buitenactiviteit? Per activiteit (hardlopen, wielrennen, wandelen, paardrijden, hockey) een cijfer per uur uit de
+# verwachting van de komende 24 uur (sensor.weer_verwachting_per_uur): temperatuur, wind en windstoten, regen, onweer en donker. Het cijfer is het product van
+# vier onderdelen van 0 tot 1, dus één slecht onderdeel (veel wind, onweer) maakt het uur slecht. Per activiteit staat nu het oordeel met de reden, het beste
+# moment en een balkje van de komende 24 uur. De grenzen staan hieronder in ACTIVITEITEN en zijn eenvoudig aan te passen (een eigen weer-app kan andere wegen).
+activiteiten_weer:
+  template: glass
+  triggers_update:
+    - sensor.weer_verwachting_per_uur
+    - sun.sun
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    body: |
+      [[[
+        const forecast = (states['sensor.weer_verwachting_per_uur']?.attributes.forecast ?? []).slice(0, 26);
+        if (!forecast.length) return '<div style="opacity:.6;padding:8px">Nog geen verwachting (zie de template-sensor in het README).</div>';
+        // De grenzen per activiteit. temp: onder lo of boven hi onmogelijk, tussen ideaalLaag en ideaalHoog perfect; wind en windstoten in km/h; regen in mm per uur
+        const ACTIVITEITEN = [
+          { naam: 'Hardlopen',   icon: 'mdi:run-fast',        kleur: '#4ade80', temp: [-5, 5, 16, 26], wind: [15, 40], stoot: [35, 65], regen: [0.3, 3],  donker: 0.6 },
+          { naam: 'Wielrennen',  icon: 'mdi:bike-fast',       kleur: '#38bdf8', temp: [2, 12, 22, 32], wind: [15, 32], stoot: [30, 55], regen: [0.1, 1.5], donker: 0.3 },
+          { naam: 'Wandelen',    icon: 'mdi:walk',            kleur: '#a78bfa', temp: [-8, 6, 20, 30], wind: [20, 45], stoot: [40, 70], regen: [0.5, 4],  donker: 0.6 },
+          { naam: 'Paardrijden', icon: 'mdi:horse-variant',   kleur: '#f6ad55', temp: [-3, 8, 20, 28], wind: [15, 35], stoot: [30, 50], regen: [0.5, 4],  donker: 0.3 },
+          { naam: 'Hockey',      icon: 'mdi:hockey-sticks',   kleur: '#ff7a9c', temp: [0, 8, 20, 28],  wind: [20, 40], stoot: [40, 60], regen: [0.5, 3],  donker: 0.3 }
+        ];
+        const lineair = (x, goed, slecht) => goed === slecht ? 1 : Math.max(0, Math.min(1, (slecht - x) / (slecht - goed)));
+        const tempScore = (x, [lo, idLaag, idHoog, hi]) => x <= lo || x >= hi ? 0 : x < idLaag ? (x - lo) / (idLaag - lo) : x <= idHoog ? 1 : (hi - x) / (hi - idHoog);
+        // Zonsopkomst en zonsondergang als uur van de dag (de volgende keer dat ze komen, het tijdstip is elke dag bijna hetzelfde)
+        const uurVan = iso => { const d = new Date(iso); return isNaN(d) ? null : d.getHours() + d.getMinutes() / 60; };
+        const op = uurVan(states['sun.sun']?.attributes.next_rising) ?? 7.5, onder = uurVan(states['sun.sun']?.attributes.next_setting) ?? 17;
+        const beoordeel = (a, f) => {
+          const tijd = new Date(f.datetime), uur = tijd.getHours() + 0.5;
+          const t = parseFloat(f.temperature), w = parseFloat(f.wind_speed) || 0, st = parseFloat(f.wind_gust_speed) || w, r = parseFloat(f.precipitation) || 0;
+          const kans = parseFloat(f.precipitation_probability) || 0;
+          const onweer = ['lightning', 'lightning-rainy'].includes(f.condition);
+          const delen = {
+            temp: tempScore(t, a.temp), wind: lineair(w, a.wind[0], a.wind[1]), stoot: lineair(st, a.stoot[0], a.stoot[1]),
+            regen: lineair(r, a.regen[0], a.regen[1]) * (1 - Math.max(0, kans - 50) / 100 * 0.4), onweer: onweer ? 0 : 1
+          };
+          const donker = uur < op || uur >= onder;
+          const factor = donker ? a.donker : 1;
+          const cijfer = Math.round(100 * delen.temp * delen.wind * delen.stoot * delen.regen * delen.onweer * factor);
+          // De reden: het slechtste onderdeel
+          const [sleutel, waarde] = Object.entries(delen).sort((x, y) => x[1] - y[1])[0];
+          let reden = '';
+          if (cijfer >= 75) reden = donker ? 'prima, al is het donker' : `${Math.round(t)}°, weinig wind, droog`;
+          else if (donker && factor < 1 && waarde >= 0.75) reden = 'het is donker';
+          else reden = ({ temp: t < a.temp[1] ? `te koud (${Math.round(t)}°)` : `te warm (${Math.round(t)}°)`, wind: `veel wind (${Math.round(w)} km/h)`,
+            stoot: `windstoten tot ${Math.round(st)} km/h`, regen: `regen (${r.toFixed(1).replace('.', ',')} mm${kans >= 60 ? `, ${Math.round(kans)}% kans` : ''})`, onweer: 'onweer' })[sleutel];
+          return { cijfer, reden, tijd, donker };
+        };
+        const oordeel = c => c >= 75 ? ['Top', '#4ade80'] : c >= 55 ? ['Goed', '#a3e635'] : c >= 35 ? ['Matig', '#ffb060'] : ['Slecht', '#ff6b6b'];
+        const uurtekst = d => `${String(d.getHours()).padStart(2, '0')}:00`;
+        const rij = a => {
+          const uren = forecast.map(f => beoordeel(a, f));
+          const nu = uren[0], [woord, kleur] = oordeel(nu.cijfer);
+          // Het beste aaneengesloten moment: de uren die minstens 60 hebben en bij elkaar liggen, met het hoogste gemiddelde
+          let beste = null, start = -1;
+          for (let i = 0; i <= uren.length; i++) {
+            const goed = i < uren.length && uren[i].cijfer >= 60;
+            if (goed && start < 0) start = i;
+            if (!goed && start >= 0) {
+              const stuk = uren.slice(start, i), gem = stuk.reduce((x, u) => x + u.cijfer, 0) / stuk.length;
+              if (!beste || gem * Math.sqrt(stuk.length) > beste.score) beste = { van: stuk[0].tijd, tot: new Date(stuk[stuk.length - 1].tijd.getTime() + 3600000), gem, score: gem * Math.sqrt(stuk.length) };
+              start = -1;
+            }
+          }
+          const besteTekst = beste ? `Beste moment: ${uurtekst(beste.van)} tot ${uurtekst(beste.tot)}` : 'Geen goed moment de komende 24 uur';
+          const balk = uren.map(u => `<span title="${uurtekst(u.tijd)}: ${u.cijfer}" style="flex:1;height:8px;border-radius:2px;background:${oordeel(u.cijfer)[1]};opacity:${u.donker ? 0.4 : 1}"></span>`).join('');
+          return `<div style="min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,0.05);border:1.5px solid ${a.kleur}66;text-align:left">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${a.kleur}33;color:${a.kleur}"><ha-icon icon="${a.icon}" style="--mdc-icon-size:24px"></ha-icon></span>
+                <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:16px">${a.naam}</div><div style="font-size:12px;opacity:.75">${nu.reden}</div></div>
+                <span style="padding:4px 12px;border-radius:10px;font-size:13px;font-weight:800;color:${kleur};background:${kleur}22;border:1px solid ${kleur}66">${woord}</span>
+              </div>
+              <div style="display:flex;gap:2px;margin-top:12px">${balk}</div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:3px"><span>nu</span><span>over 12 uur</span><span>over 24 uur</span></div>
+              <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst}</div>
+            </div>`;
+        };
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;white-space:normal">${ACTIVITEITEN.map(rij).join('')}</div>`;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: '"body"'
+    card:
+      - padding: 0
+      - background: transparent
+      - border: none
+      - box-shadow: none
+    custom_fields:
+      body:
+        - width: 100%
+
 # Wasadvies voor de hele dag: wanneer de wasmachine starten, met de stroomprijs én de kans om buiten te drogen.
 # - Starten kan vanaf 08:00, het programma duurt 3 uur.
 # - Buiten drogen kan als de 3 uur na het einde droog zijn en vóór zonsondergang vallen;
