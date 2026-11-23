@@ -806,7 +806,7 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=6').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=7').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
@@ -4220,7 +4220,7 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=6').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=7').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
         const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
@@ -4340,7 +4340,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=6').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=7').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op
@@ -4381,7 +4381,7 @@ hockey_pagina:
             <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.span(g.van, g.tot)}, getoetst aan het weerprotocol van Union en de KNHB. Dit is een advies: de vereniging beslist.</div>
             ${H.tijdlijn(g)}
             <details ${open('uitleg')} ${toggle('uitleg')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Uitleg van de regels die meespelen</summary>${H.uitleg(g)}</details>
-            <details ${open('velden')} ${toggle('velden')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${n}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
+            <details ${open('velden')} ${toggle('velden')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${H.veldNaam(n)}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
             <details ${open('procedure')} ${toggle('procedure')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
             <div style="margin-top:8px;font-size:11.5px;opacity:.55">Bronnen: het Weerprotocol van Union (unionhockey.nl/weerprotocol) en het Weerprotocol en de Procedure afgelastingen 2026 van de KNHB. Wat zij niet met een getal onderbouwen, staat als eigen inschatting aangeduid. Controleer altijd de afgelastingen op unionhockey.nl en knhb.nl en de KNMI-waarschuwingen.</div></div>`
           : `<div style="${paneel}">Nog geen verwachting.</div>`;
@@ -4400,7 +4400,7 @@ hockey_pagina:
             <summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none">
               <span style="width:48px;font-weight:700">${e(m.time ?? '–')}</span>
               <span style="flex:1;min-width:0"><b>${e(m.team)}</b> <span style="opacity:.7">tegen ${e(m.opponent)}</span>${wie ? ` <span style="color:#ff7a9c;font-size:12px">· ${e(wie)}</span>` : ''}
-                <div style="font-size:12px;opacity:.65">${e(m.field ?? 'veld nog niet bekend')}${m.field_type ? ` · ${soortTekst(m.field_type)}` : ''}${m.cancelled ? ' · <b style="color:#ff6b6b">afgelast</b>' : ''}</div></span>
+                <div style="font-size:12px;opacity:.65">${e(m.field ? H.veldNaam(m.field) : 'veld nog niet bekend')}${m.field_type ? ` · ${soortTekst(m.field_type)}` : ''}${m.cancelled ? ' · <b style="color:#ff6b6b">afgelast</b>' : ''}</div></span>
               ${m.cancelled ? '<span style="padding:3px 10px;border-radius:9px;font-size:12px;font-weight:700;color:#ff6b6b;background:#ff6b6b22">Afgelast</span>' : chip(gm, true)}
             </summary>
             <div style="margin-top:6px">
@@ -4430,7 +4430,7 @@ hockey_pagina:
             const gm = m.home && m.start && !m.cancelled && verwachting.length ? H.moment(m.start, null, verwachting, vocht) : null;
             return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,0.07);font-size:13px">
               <span style="width:92px;line-height:1.25"><b>${new Date(m.date + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</b><br><span style="opacity:.7">${e(m.time ?? '–')}</span></span>
-              <span style="flex:1;min-width:0">${m.home ? '<b>Thuis</b>' : 'Uit'} tegen ${e(m.opponent)}<div style="font-size:12px;opacity:.65">${e(m.field ?? m.location ?? '')}${m.city && !m.home ? `, ${e(m.city)}` : ''}${m.arrival_time && !m.home ? ` · verzamelen ${e(m.arrival_time)}` : ''}</div></span>
+              <span style="flex:1;min-width:0">${m.home ? '<b>Thuis</b>' : 'Uit'} tegen ${e(m.opponent)}<div style="font-size:12px;opacity:.65">${e(m.field ? H.veldNaam(m.field) : (m.location ?? ''))}${m.city && !m.home ? `, ${e(m.city)}` : ''}${m.arrival_time && !m.home ? ` · verzamelen ${e(m.arrival_time)}` : ''}</div></span>
               ${m.cancelled ? '<span style="color:#ff6b6b;font-weight:700">afgelast</span>' : m.home ? chip(gm, true) : ''}</div>`;
           }).join('') || '<div style="opacity:.7;font-size:13px">Geen wedstrijden gepland.</div>';
           const uitslagen = (t.results ?? []).slice(0, 6).map(r => `<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.07);font-size:13px"><span style="width:78px;opacity:.7">${new Date(r.date + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span><span style="flex:1">${e(r.home_team)} – ${e(r.away_team)}</span><b>${r.score_home ?? '–'} – ${r.score_away ?? '–'}</b></div>`).join('');
@@ -4439,7 +4439,7 @@ hockey_pagina:
             const s = new Date(x.start);
             return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.07);font-size:13px">
               <span style="width:92px;line-height:1.25"><b>${s.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</b><br><span style="opacity:.7">${tijdNaam(x.start)} tot ${tijdNaam(x.end)}</span></span>
-              <span style="flex:1">${e(x.field ?? '')}${veldSoort(x.field) ? ` <span style="opacity:.6">· ${soortTekst(veldSoort(x.field))}</span>` : ''}${x.comment ? `<div style="font-size:12px;opacity:.65">${e(x.comment)}</div>` : ''}</span>${chip(gt, true)}</div>`;
+              <span style="flex:1">${e(H.veldNaam(x.field))}${veldSoort(x.field) ? ` <span style="opacity:.6">· ${soortTekst(veldSoort(x.field))}</span>` : ''}${x.comment ? `<div style="font-size:12px;opacity:.65">${e(x.comment)}</div>` : ''}</span>${chip(gt, true)}</div>`;
           }).join('');
           const tabel = (t.table ?? []).length ? `<details ${open('poule')} ${toggle('poule')} style="pointer-events:auto;margin-top:10px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">De poule</summary>${t.table.map(r => `<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;${r.current ? 'color:#ff7a9c;font-weight:700' : ''}"><span style="width:22px">${r.position}</span><span style="flex:1">${e(r.team)}</span><span>${r.played}</span><span style="width:34px;text-align:right">${r.points}</span></div>`).join('')}</details>` : '';
           const kop = (naam) => `<div style="margin-top:14px;font-weight:700">${naam}</div>`;

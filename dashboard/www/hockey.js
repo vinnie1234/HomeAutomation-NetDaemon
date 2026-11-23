@@ -54,6 +54,8 @@
   const span = (van, tot) => dagSleutel(van) === dagSleutel(new Date(tot.getTime() - 1)) ? `${tijdLabel(van)} tot ${uur(tot)}` : `${tijdLabel(van)} tot ${tijdLabel(tot)}`;
   const NIVEAUS = [['Niet afgelasten', '#4ade80'], ['Let op: wacht de keuring af', '#ffb060'], ['Afkeuren ligt voor de hand', '#ff6b6b']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  // De naam van een veld zoals Union hem in het schema zet, en zoals wij hem noemen: het Rabobank-veld is het D-veld
+  const veldNaam = naam => String(naam ?? '').replace(/^rabobank[- ]?veld/i, 'D-veld');
   const bronNaam = b => b === 'eigen' ? 'eigen inschatting' : `${b}-regel`;
 
   // Een uur van de verwachting als de uren die de kaart ook gebruikt: { tijd, t, w, st, r, f }
@@ -261,9 +263,9 @@
       if (!item.thuis) delen.push('uit, de thuisclub beslist');
     }
     const niveau = item.afgelast ? 2 : item.oordeel?.niveau ?? 0;
-    return { item, titel, label: [item.veld, ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
+    return { item, titel, label: [veldNaam(item.veld), ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
   };
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, MARGE_MIN };
+  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
