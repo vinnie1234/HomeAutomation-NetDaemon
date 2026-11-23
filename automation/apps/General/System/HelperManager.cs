@@ -102,9 +102,13 @@ public class HelperManager : BaseApp
 
         if (helper.Domain == "input_select" && item.Options != null && helper.Settings.TryGetValue("options", out var value))
         {
-            var missing = ((IEnumerable<string>)value).Except(item.Options).ToList();
-            settings["options"] = item.Options.Concat(missing).ToList();
+            // The order of the definition wins (some lists are alphabetical with "Automatisch" on top); options that were added in Home Assistant stay, at the end
+            var defined = ((IEnumerable<string>)value).ToList();
+            var missing = defined.Except(item.Options).ToList();
+            var ordered = defined.Concat(item.Options.Except(defined)).ToList();
+            settings["options"] = ordered;
             if (missing.Count > 0) changes.Add($"added {string.Join(", ", missing)}");
+            if (missing.Count == 0 && !ordered.SequenceEqual(item.Options)) changes.Add("changed the order of the options");
         }
 
         if (settings.ContainsKey("initial") && !helper.Settings.ContainsKey("initial"))

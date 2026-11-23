@@ -117,6 +117,67 @@
 
   const procedure = () => `<b>Wie beslist en wanneer</b> (Procedure afgelastingen 2026): de thuisspelende vereniging keurt het veld, een team kan niet zelf afzeggen (dat geldt als niet opkomen). Keuring uiterlijk 07:00 voor wedstrijden tot 10:30, 08:30 voor wedstrijden tussen 10:30 en 13:00 en 11:00 voor wedstrijden na 13:00. Is er geen bespeelbaar veld, dan wordt afgelast door het bestuur of de wedstrijdsecretaris, na akkoord van de competitieleiding. De scheidsrechter kan het veld ook ter plekke afkeuren. Bij een centrale afgelasting door de KNHB (altijd bij KNMI code rood) staat dat op knhb.nl/afgelastingen. Reis je ver, dan bepaalt de afreizende vereniging of komen verantwoord is.`;
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, velden, procedure, uur, esc, uitUur, periode };
+  // ---- wat moet een persoon vandaag (en een wedstrijd al de avond ervoor)
+  const MARGE_MIN = 5;           // marge bovenop de reistijd
+  const AANKOMST_WEDSTRIJD = 20; // minuten voor de aanvang aanwezig op het eigen veld
+  const AANKOMST_TRAINING = 10;
+  const NA_UREN = 17;            // vanaf dit uur de avond ervoor laten we de wedstrijd van morgen zien
+
+  // De ANWB-route van huis naar de hockey van een persoon: sensor.anwb_route_thuis_hockey_<persoon>_*. Zonder eigen route de eerste die er is.
+  const route = (states, slug) => {
+    const eigen = states[`sensor.anwb_route_thuis_hockey_${slug}_reistijd`];
+    const bron = eigen ?? Object.values(states).find(x => /^sensor\.anwb_route_thuis_hockey_.*_reistijd$/.test(x.entity_id));
+    const min = parseFloat(bron?.state);
+    if (isNaN(min)) return null;
+    return { reis: min, normaal: parseFloat(bron.attributes.normal_duration_min) || min };
+  };
+
+  // De teams van een persoon: de sensoren van de integratie waar deze persoon aan gekoppeld is
+  const teamsVan = (states, persoonId) => Object.values(states)
+    .filter(x => x.entity_id.startsWith('sensor.union_') && x.attributes.team_id && x.attributes.person === persoonId);
+
+  // opties: { persoon: 'carleen', proef: false }. proef = test: de eerstvolgende dingen van het team, ook als het niet vandaag is.
+  const persoon = (states, { persoon: slug, proef = false, nu = new Date() }) => {
+    let teams = teamsVan(states, `person.${slug}`);
+    if (!teams.length && proef) teams = Object.values(states).filter(x => x.entity_id.startsWith('sensor.union_') && x.attributes.team_id).slice(0, 1);
+    if (!teams.length) return { teams: [], items: [] };
+    const dagStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const vandaag = dagStart(nu), morgen = vandaag + 86400000;
+    const verwachting = (states['sensor.weer_verwachting_hockey']?.attributes.forecast?.length ? states['sensor.weer_verwachting_hockey'] : states['sensor.weer_verwachting_per_uur'])?.attributes.forecast ?? [];
+    const vocht = parseFloat(states['sensor.weer_nijmegen_luchtvochtigheid']?.state);
+    const ritje = route(states, slug);
+    const items = [];
+    teams.forEach(t => {
+      const a = t.attributes;
+      (a.matches ?? []).filter(m => m.start).forEach(m => items.push({ soort: 'Wedstrijd', team: a.team, start: new Date(m.start), einde: new Date(new Date(m.start).getTime() + 70 * 60000),
+        thuis: m.home, tegen: m.opponent, veld: m.field, plaats: [m.location, m.city].filter(Boolean).join(', '), afgelast: m.cancelled, opmerking: m.remarks, veldsoort: m.field_type,
+        aankomst: m.arrival_time ? (([h, mi]) => new Date(new Date(m.start).setHours(h, mi, 0, 0)))(m.arrival_time.split(':').map(Number)) : null }));
+      (a.trainings ?? []).forEach(x => items.push({ soort: 'Training', team: a.team, start: new Date(x.start), einde: new Date(x.end), thuis: true, veld: x.field, plaats: 'Union', afgelast: x.cancelled, opmerking: x.comment, aankomst: null }));
+    });
+    const zichtbaar = items.filter(i => i.einde.getTime() >= nu.getTime() - 15 * 60000).filter(i => {
+      if (proef) return true;
+      const dag = dagStart(i.start);
+      if (dag === vandaag) return true;
+      return i.soort === 'Wedstrijd' && dag === morgen && nu.getHours() >= NA_UREN;
+    }).sort((x, y) => x.start - y.start).slice(0, proef ? 3 : 8);
+    zichtbaar.forEach(i => {
+      const dag = dagStart(i.start);
+      i.wanneer = dag === vandaag ? 'Vandaag' : dag === morgen ? 'Morgen' : i.start.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+      // Het weer: alleen waar de thuisvereniging beslist (wedstrijden thuis en trainingen bij Union)
+      i.oordeel = i.thuis && !i.afgelast && verwachting.length ? moment(i.start, i.einde, verwachting, vocht) : null;
+      // Het vertrek: alleen als de auto naar Union gaat
+      if (i.thuis && ritje && !i.afgelast) {
+        i.aankomst = i.aankomst ?? new Date(i.start.getTime() - (i.soort === 'Wedstrijd' ? AANKOMST_WEDSTRIJD : AANKOMST_TRAINING) * 60000);
+        const dichtbij = i.start.getTime() - nu.getTime() < 3 * 3600000;
+        const reis = dichtbij ? ritje.reis : ritje.normaal;
+        i.vertrek = new Date(i.aankomst.getTime() - (reis + MARGE_MIN) * 60000);
+        i.reis = Math.round(reis);
+        i.actueel = dichtbij;
+      }
+    });
+    return { teams: teams.map(t => t.attributes.team), items: zichtbaar };
+  };
+
+  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, velden, procedure, uur, esc, uitUur, periode, persoon, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();

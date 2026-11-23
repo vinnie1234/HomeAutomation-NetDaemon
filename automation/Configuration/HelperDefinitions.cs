@@ -202,11 +202,11 @@ public static class HelperDefinitions
 
         // input_select
         Select("housemodeselect", "HouseModeSelect", options: ["Morning", "Day", "Evening", "Night"], icon: "mdi:home-alert"),
-        Select("tijd_van_de_dag", "Tijd van de dag", options: ["Ochtend", "Middag", "Avond", "Nacht", "Automatisch"]),
+        Select("tijd_van_de_dag", "Tijd van de dag", options: AutomaticFirst("Ochtend", "Middag", "Avond", "Nacht", "Automatisch")),
         Select("water_usage_swelector", "Water Usage Selector", options: ["Default", "WC Klein", "WC Groot", "Afwas", "Douchen", "Wasmachine", "Anders", "Kraan"]),
-        Select("weerkaart_thema", "weerkaart_thema", options: ["Automatisch", "Lente", "Zomer", "Herfst", "Winter", "Pasen", "Nieuwjaar", "Kerst", "Sinterklaas", "Halloween", "Verjaardag Vincent", "Verjaardag Carleen", "Verjaardag Pixel", "Jubileum", "Valentijn", "Koningsdag", "Dodenherdenking", "Bevrijdingsdag"], icon: "mdi:weather-hurricane"),
-        // Testen van de weerkaart: zet hem in een situatie (weer, een weerwaarschuwing, muziek en tv, de was, het afval, Pixel bij de deur, post en pakketjes, bezorgbusjes, een gemist pakketje, niemand thuis, op vakantie, een vliegtuig)
-        Select("weerkaart_scenario", "Weerkaart scenario", options: ["Automatisch", "Heerlijk weer", "Lichte mist", "Dichte mist", "Hagel", "Harde wind", "Vorst", "Hitte", "Regenboog", "Regen", "Onweer", "Sneeuw", "Mist", "Muziek en tv", "Was buiten", "Afval buiten", "Pixel bij de deur", "Stofzuiger aan", "Pixel gekke 10 minuten", "Auto komt thuis", "Auto rijdt weg", "Auto staat stil", "Post en pakketjes", "Busje in de verte", "Busje komt aan", "Busje bezorgt", "Busje rijdt weg", "Drie busjes", "Pakketje gemist", "Pakketje bij afhaalpunt", "Niemand thuis", "Op vakantie", "Op vakantie met oppas", "Vliegtuig", "Code geel", "Code oranje", "Code rood"], icon: "mdi:test-tube"),
+        Select("weerkaart_thema", "weerkaart_thema", options: AutomaticFirst("Automatisch", "Lente", "Zomer", "Herfst", "Winter", "Pasen", "Nieuwjaar", "Kerst", "Sinterklaas", "Halloween", "Verjaardag Vincent", "Verjaardag Carleen", "Verjaardag Pixel", "Jubileum", "Valentijn", "Koningsdag", "Dodenherdenking", "Bevrijdingsdag"), icon: "mdi:weather-hurricane"),
+        // Testen van de weerkaart: zet hem in een situatie (weer, een weerwaarschuwing, muziek en tv, de was, het afval, Pixel bij de deur, post en pakketjes, bezorgbusjes, een gemist pakketje, niemand thuis, op vakantie, een vliegtuig, Carleen hockeyt)
+        Select("weerkaart_scenario", "Weerkaart scenario", options: AutomaticFirst("Automatisch", "Heerlijk weer", "Hockey", "Lichte mist", "Dichte mist", "Hagel", "Harde wind", "Vorst", "Hitte", "Regenboog", "Regen", "Onweer", "Sneeuw", "Mist", "Muziek en tv", "Was buiten", "Afval buiten", "Pixel bij de deur", "Stofzuiger aan", "Pixel gekke 10 minuten", "Auto komt thuis", "Auto rijdt weg", "Auto staat stil", "Post en pakketjes", "Busje in de verte", "Busje komt aan", "Busje bezorgt", "Busje rijdt weg", "Drie busjes", "Pakketje gemist", "Pakketje bij afhaalpunt", "Niemand thuis", "Op vakantie", "Op vakantie met oppas", "Vliegtuig", "Code geel", "Code oranje", "Code rood"), icon: "mdi:test-tube"),
 
         // input_datetime
         // Verjaardagen en ons jubileum (de weerkaart viert feest); de datums vul je zelf in, ze staan bewust niet in deze openbare code
@@ -313,6 +313,10 @@ public static class HelperDefinitions
         string? mode = null, string? unit = null, string? icon = null, double? start = null) =>
         new("input_number", id, name, Settings(("min", min), ("max", max), ("step", step), ("mode", mode),
             ("unit_of_measurement", unit), ("icon", icon)), StartValue: start?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    /// <summary>The options sorted alphabetically, with "Automatisch" (the automatic choice) always at the top.</summary>
+    private static string[] AutomaticFirst(params string[] options) =>
+        [.. options.Where(o => o == "Automatisch"), .. options.Where(o => o != "Automatisch").Order(StringComparer.CurrentCultureIgnoreCase)];
 
     private static HelperDefinition Select(string id, string name, IReadOnlyList<string> options, string? icon = null) =>
         new("input_select", id, name, Settings(("options", options), ("icon", icon)));

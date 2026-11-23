@@ -103,7 +103,7 @@ public class HelperManagerTests
         new("input_select", "weerkaart_thema", "weerkaart_thema", new Dictionary<string, object> { ["options"] = new[] { "Automatisch", "Kerst", "Halloween" } });
 
     [Fact]
-    public async Task ExistingSelect_GetsTheMissingOptionsAddedAtTheEnd()
+    public async Task ExistingSelect_GetsTheOrderOfTheDefinition_AndKeepsOptionsAddedInHomeAssistantAtTheEnd()
     {
         _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(Arg.Any<ListHelpersCommand>(), Arg.Any<CancellationToken>())
             .Returns(new List<HelperItem> { new() { Id = "weerkaart_thema", Name = "weerkaart_thema", Options = ["Kerst", "Automatisch", "Eigen"] } });
@@ -115,8 +115,20 @@ public class HelperManagerTests
         json.GetProperty("type").GetString().Should().Be("input_select/update");
         json.GetProperty("input_select_id").GetString().Should().Be("weerkaart_thema");
         json.GetProperty("name").GetString().Should().Be("weerkaart_thema");
-        json.GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Kerst", "Automatisch", "Eigen", "Halloween");
+        json.GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Automatisch", "Kerst", "Halloween", "Eigen");
         CreateCommands().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ExistingSelect_WithAllOptionsInAnotherOrder_IsUpdatedToTheOrderOfTheDefinition()
+    {
+        _connection.SendCommandAndReturnResponseAsync<ListHelpersCommand, IReadOnlyList<HelperItem>>(Arg.Any<ListHelpersCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new List<HelperItem> { new() { Id = "weerkaart_thema", Name = "weerkaart_thema", Options = ["Kerst", "Halloween", "Automatisch"] } });
+
+        await _app.EnsureHelpersAsync([Theme]);
+
+        var update = _connection.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<UpdateHelperCommand>().Single();
+        JsonSerializer.SerializeToElement(update).GetProperty("options").EnumerateArray().Select(x => x.GetString()).Should().Equal("Automatisch", "Kerst", "Halloween");
     }
 
     [Fact]
