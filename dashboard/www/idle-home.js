@@ -1,9 +1,13 @@
 // Huis-dashboard: na 1 minuut niets doen (niet tikken, klikken, scrollen of typen) terug naar Home.
+// Op de pagina Hockey duurt dat een uur, zodat die open kan blijven staan.
 // Alleen op het Huis-dashboard en niet op Home zelf. Staat er een venster open (bladeren in Jellyfin, de geschiedenis van
 // de medicijnen, een tijdlijn) of is iets schermvullend, dan wacht hij tot dat dicht is.
 // Geladen via frontend.extra_module_url in configuration.yaml (zie README.md).
 (() => {
   const DASHBOARD = '/dashboard-huis/', HOME = '/dashboard-huis/home', IDLE_MS = 60000;
+  // Pagina's die langer open mogen blijven (de pagina Hockey: een uur)
+  const LONG_IDLE = { '/dashboard-huis/weer-hockey': 3600000 };
+  const idleMs = () => LONG_IDLE[window.location.pathname] ?? IDLE_MS;
   let timer;
 
   const somethingOpen = () => document.fullscreenElement
@@ -20,7 +24,7 @@
 
   const restart = () => {
     clearTimeout(timer);
-    timer = setTimeout(goHome, IDLE_MS);
+    timer = setTimeout(goHome, idleMs());
   };
 
   // Een telefoon met de oude navigatieknoppen (terug, home, recent) onderaan: de app tekent het dashboard dan achter die knoppen en de menubalk
