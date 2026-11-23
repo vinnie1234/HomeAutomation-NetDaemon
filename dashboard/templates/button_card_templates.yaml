@@ -4133,7 +4133,7 @@ commute_card:
         return overview;
       ]]]
 
-# Is het weer goed genoeg voor een buitenactiviteit? Per activiteit (hardlopen, wielrennen, wandelen, paardrijden, hockey) een cijfer per uur uit de
+# Is het weer goed genoeg voor een buitenactiviteit? Per activiteit (hardlopen, wielrennen, wandelen, tuinieren, hockey) een cijfer per uur uit de
 # verwachting van de komende 24 uur (sensor.weer_verwachting_per_uur): temperatuur, wind en windstoten, regen, onweer en donker. Het cijfer is het product van
 # vier onderdelen van 0 tot 1, dus één slecht onderdeel (veel wind, onweer) maakt het uur slecht. Per activiteit staat nu het oordeel met de reden, het beste
 # moment en een balkje van de komende 24 uur. De grenzen staan hieronder in ACTIVITEITEN en zijn eenvoudig aan te passen (een eigen weer-app kan andere wegen).
@@ -4156,7 +4156,7 @@ activiteiten_weer:
           { naam: 'Hardlopen',   icon: 'mdi:run-fast',        kleur: '#4ade80', temp: [-5, 5, 16, 26], wind: [15, 40], stoot: [35, 65], regen: [0.3, 3],  donker: 0.6 },
           { naam: 'Wielrennen',  icon: 'mdi:bike-fast',       kleur: '#38bdf8', temp: [2, 12, 22, 32], wind: [15, 32], stoot: [30, 55], regen: [0.1, 1.5], donker: 0.3 },
           { naam: 'Wandelen',    icon: 'mdi:walk',            kleur: '#a78bfa', temp: [-8, 6, 20, 30], wind: [20, 45], stoot: [40, 70], regen: [0.5, 4],  donker: 0.6 },
-          { naam: 'Paardrijden', icon: 'mdi:horse-variant',   kleur: '#f6ad55', temp: [-3, 8, 20, 28], wind: [15, 35], stoot: [30, 50], regen: [0.5, 4],  donker: 0.3 },
+          { naam: 'Tuinieren',   icon: 'mdi:shovel',          kleur: '#84cc16', temp: [2, 10, 24, 32], wind: [25, 50], stoot: [45, 75], regen: [0.2, 2.5], donker: 0.2 },
           { naam: 'Hockey',      icon: 'mdi:hockey-sticks',   kleur: '#ff7a9c', temp: [0, 8, 20, 28],  wind: [20, 40], stoot: [40, 60], regen: [0.5, 3],  donker: 0.3 }
         ];
         const lineair = (x, goed, slecht) => goed === slecht ? 1 : Math.max(0, Math.min(1, (slecht - x) / (slecht - goed)));

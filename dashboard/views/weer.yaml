@@ -327,7 +327,7 @@ sections:
           reverse: true
         show_empty: false
 
-  # Buitenactiviteiten: is het weer goed genoeg om te hardlopen, wielrennen, wandelen, paardrijden of hockeyen
+  # Buitenactiviteiten: is het weer goed genoeg om te hardlopen, wielrennen, wandelen, tuinieren of hockeyen
   - type: grid
     column_span: 3
     cards:
