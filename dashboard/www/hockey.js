@@ -311,6 +311,16 @@
     return null;
   };
 
-  window.huisHockey = { risico,  REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
+  // Heeft het team van de persoon vandaag gewonnen? (uit de uitslagen van de integratie.) proef = test: de laatste winst, ook als die niet van vandaag is.
+  const winst = (states, { persoon: slug, naam, proef = false, nu = new Date() }) => {
+    const p = n => String(n).padStart(2, '0'), vandaag = `${nu.getFullYear()}-${p(nu.getMonth() + 1)}-${p(nu.getDate())}`;
+    for (const team of teamsVan(states, `person.${slug}`)) {
+      const r = (team.attributes.results ?? []).find(x => x.outcome === 'W' && (proef || x.date === vandaag));
+      if (r) return { titel: `${naam ?? slug} heeft gewonnen!`, label: `${team.attributes.team}: ${r.home_team} ${r.score_home} – ${r.score_away} ${r.away_team}`, resultaat: r };
+    }
+    return null;
+  };
+
+  window.huisHockey = { winst, risico,  REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
