@@ -4397,6 +4397,8 @@ hockey_pagina:
         const filter = window.huisHockeyFilter ?? 'alle';
         const wedstrijden = (thuis.attributes.matches ?? []).filter(m => !H.isJeugd(m)).map(m => ({ m, g: m.start && !m.cancelled && verwachting.length ? H.moment(m.start, null, verwachting, vocht) : null }));
         const risico = wedstrijden.filter(x => x.g && x.g.niveau > 0).length;
+        // Afgelast in de afgelopen 7 dagen (uit de integratie, die elke afgelasting onthoudt), zonder de jeugd tot en met O18
+        const afgelopen = (states['sensor.union_afgelastingen']?.attributes.last_7_days ?? []).filter(m => !H.isJeugd(m));
         const zichtbaar = wedstrijden.filter(x => filter === 'alle' || (x.g && x.g.niveau > 0));
         const perDag = {};
         zichtbaar.forEach(x => (perDag[x.m.date] = perDag[x.m.date] ?? []).push(x));
@@ -4416,12 +4418,15 @@ hockey_pagina:
               ${H.keuring(m.time) ? `<div style="font-size:12.5px;margin-top:6px"><b>Wanneer beslist de club?</b> Uiterlijk om ${H.keuring(m.time)} uur keurt de thuisvereniging het veld en staat vast of de wedstrijd van ${e(m.time)} doorgaat. Dat is het laatste moment van het besluit, niet het moment om af te lasten: ${gm && gm.niveau > 0 ? 'bij dit weer is afkeuren mogelijk' : 'bij dit weer is er geen reden om af te lasten'}.${m.remarks ? ` Opmerking: ${e(m.remarks)}` : ''}</div>` : ''}
             </div></details>`;
         };
-        const lijst = Object.keys(perDag).sort().map(d => `<div style="margin-top:12px"><div style="font-weight:700;text-transform:capitalize">${dagNaam(d)}</div>${perDag[d].map(rijWedstrijd).join('')}</div>`).join('')
+        const afgelopenLijst = !afgelopen.length ? `<div style="opacity:.7;margin-top:8px;font-size:13px">In de afgelopen 7 dagen is er geen thuiswedstrijd afgelast.</div>`
+          : Object.entries(afgelopen.reduce((o, m) => ((o[m.date] = o[m.date] ?? []).push(m), o), {})).sort((a, b) => b[0].localeCompare(a[0]))
+            .map(([d, lijstDag]) => `<div style="margin-top:12px"><div style="font-weight:700;text-transform:capitalize">${dagNaam(d)}</div>${lijstDag.map(m => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);font-size:13px"><b>${e(m.time ?? '')}</b> ${e(m.team)} <span style="opacity:.7">tegen ${e(m.opponent)}</span>${m.home ? '' : ' (uit)'}<div style="font-size:12px;opacity:.65">${e(m.field ? H.veldNaam(m.field) : '')}${m.remarks ? ` · ${e(m.remarks)}` : ''}</div></div>`).join('')}</div>`).join('');
+        const lijst = filter === 'afgelopen' ? afgelopenLijst : Object.keys(perDag).sort().map(d => `<div style="margin-top:12px"><div style="font-weight:700;text-transform:capitalize">${dagNaam(d)}</div>${perDag[d].map(rijWedstrijd).join('')}</div>`).join('')
           || `<div style="opacity:.7;margin-top:8px;font-size:13px">${filter === 'alle' ? 'Geen thuiswedstrijden in de komende dagen.' : 'Geen wedstrijden met een risico.'}</div>`;
         const wedstrijdPaneel = `<div style="${paneel}">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div style="font-size:17px;font-weight:800">Thuiswedstrijden</div>
-              <div style="display:flex;gap:6px">${knop('alle', `Alle (${wedstrijden.length})`)}${knop('risico', `Let op (${risico})`)}</div></div>
-            <div style="font-size:12px;opacity:.65;margin-top:2px">De komende ${thuis.attributes.days_ahead ?? 14} dagen, per wedstrijd getoetst aan het weer rond de aanvang, zonder de jeugd tot en met O18. Tik op een wedstrijd voor de reden.</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">${knop('alle', `Alle (${wedstrijden.length})`)}${knop('risico', `Let op (${risico})`)}${knop('afgelopen', `Afgelast, 7 dagen (${afgelopen.length})`)}</div></div>
+            <div style="font-size:12px;opacity:.65;margin-top:2px">${filter === 'afgelopen' ? 'De thuiswedstrijden die in de afgelopen 7 dagen zijn afgelast, zonder de jeugd tot en met O18.' : `De komende ${thuis.attributes.days_ahead ?? 14} dagen, per wedstrijd getoetst aan het weer rond de aanvang, zonder de jeugd tot en met O18. Tik op een wedstrijd voor de reden.`}</div>
             ${lijst}</div>`;
 
         // ---- 3. het gevolgde team
