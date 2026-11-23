@@ -806,7 +806,7 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=8').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
@@ -4220,7 +4220,7 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=8').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
         const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
@@ -4341,7 +4341,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=8').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op

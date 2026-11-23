@@ -102,6 +102,40 @@ sections:
         grid_options:
           columns: full
 
+      # Hockey: morgen (of vandaag) kunnen er senioren-thuiswedstrijden afgelast moeten worden vanwege het weer; tik voor de pagina Hockey
+      - type: custom:button-card
+        template: alert
+        icon: mdi:calendar-alert
+        name: |
+          [[[
+            const kaart = this;
+            if (!window.huisHockey) {
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              return '';
+            }
+            return window.huisHockey.risico(states)?.titel ?? '';
+          ]]]
+        label: '[[[ return window.huisHockey?.risico(states)?.label ?? ""; ]]]'
+        variables:
+          color: '[[[ return window.huisHockey?.risico(states)?.niveau === 2 ? "255, 107, 107" : "255, 176, 96"; ]]]'
+        styles:
+          card:
+            - display: |
+                [[[
+                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
+                  return window.huisHockey?.risico(states) ? 'grid' : 'none';
+                ]]]
+        triggers_update:
+          - sensor.union_thuiswedstrijden
+          - sensor.weer_verwachting_hockey
+          - sensor.weer_nijmegen_waarschuwingscode
+          - input_boolean.datenight
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/weer-hockey
+        grid_options:
+          columns: full
+
       # Hockey van Carleen: training vandaag of wedstrijd (ook de avond ervoor) met het vertrek en het weer; tik voor de pagina Hockey. Het scenario Hockey toont hem als test.
       - type: custom:button-card
         template: alert
@@ -110,7 +144,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=8').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             const m = window.huisHockey.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });

@@ -273,6 +273,30 @@
     return { item, titel, label: [veldNaam(item.veld), ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
   };
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
+  // Wedstrijden van vandaag (die nog moeten beginnen) en morgen waar het weer reden is om af te keuren: voor de melding "let op, misschien afgelastingen"
+  // (senioren; de jeugd tot en met O18 telt niet mee). Geeft null als er niets te melden is.
+  const risico = (states, nu = new Date()) => {
+    const verwachting = (states['sensor.weer_verwachting_hockey']?.attributes.forecast?.length ? states['sensor.weer_verwachting_hockey'] : states['sensor.weer_verwachting_per_uur'])?.attributes.forecast ?? [];
+    if (!verwachting.length) return null;
+    const ctx = omstandigheden(states), sleutel = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const vandaag = sleutel(nu), morgen = vandaag + 86400000;
+    const kandidaten = (states['sensor.union_thuiswedstrijden']?.attributes.matches ?? [])
+      .filter(m => m.start && !m.cancelled && !isJeugd(m)).map(m => ({ m, start: new Date(m.start) }))
+      .filter(x => x.start > nu && [vandaag, morgen].includes(sleutel(x.start)))
+      .map(x => ({ ...x, dag: sleutel(x.start) === vandaag ? 'vandaag' : 'morgen', g: moment(x.start, null, verwachting, ctx) })).filter(x => x.g);
+    for (const dag of ['vandaag', 'morgen']) {
+      const rij = kandidaten.filter(x => x.dag === dag), kans = rij.filter(x => x.g.niveau > 0);
+      if (!kans.length) continue;
+      const hard = kans.filter(x => x.g.niveau === 2).length;
+      const redenen = [...new Set(kans.flatMap(x => x.g.punten.map(p => p.kort)))];
+      const keuringen = kans.map(x => keuring(x.m.time)).filter(Boolean).sort();
+      return { dag, aantal: kans.length, van: rij.length, hard, niveau: hard ? 2 : 1, redenen, keuring: keuringen[0] ?? null,
+        titel: `Let op: ${dag} ${hard ? 'waarschijnlijk' : 'misschien'} afgelastingen`,
+        label: `${kans.length} van de ${rij.length} thuiswedstrijden van de senioren (${redenen.join(', ')})${keuringen[0] ? `. Eerste keuring ${keuringen[0]} uur` : ''}` };
+    }
+    return null;
+  };
+
+  window.huisHockey = { risico,  REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
