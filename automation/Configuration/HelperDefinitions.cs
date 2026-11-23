@@ -85,7 +85,6 @@ public static class HelperDefinitions
         Boolean("datenight", "DateNight", icon: "far:heart"),
         Boolean("gebruik_music_assistant", "Gebruik Music Assistant", icon: "mdi:music-box-multiple"),
         Boolean("muziek_volgt_mij", "Muziek volgt mij", icon: "mdi:account-music"),
-        Boolean("gta_6_modus", "GTA 6 modus", icon: "mdi:car-sports"),
         Boolean("muziek_volgt_laptop", "Muziek volgt laptop", icon: "mdi:laptop"),
         // Music Assistant: de provider (het gekoppelde account) per persoon; MusicAssistantAccounts vult ze in
         Text("ma_spotify_vincent", "MA spotify vincent", min: 0, max: 255, mode: "text", icon: "mdi:spotify"),
@@ -154,7 +153,6 @@ public static class HelperDefinitions
         // Voert wat Pixel gemist heeft (een voeding die de voeder niet bevestigde), precies dat aantal porties (Cat)
         Button("pixel_alsnog_voeren", "Pixel alsnog voeren", icon: "mdi:food-drumstick"),
         Button("datenight_muziek", "Datenight muziek", icon: "mdi:music-note-plus"),
-        Button("gta_6_verlichting", "GTA 6 verlichting", icon: "mdi:palm-tree"),
         Button("restartnetdeamon", "RestartNetDaemon"),
         Button("start_friends", "Start Friends"),
         Button("start_kerstmuziek", "Start Kerstmuziek", icon: "mdi:music-note"),

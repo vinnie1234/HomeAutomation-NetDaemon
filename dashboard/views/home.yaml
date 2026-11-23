@@ -33,25 +33,8 @@ sections:
             action: toggle
           grid_options:
             columns: full
-      # GTA 6-modus: de kop met het aftellen komt in plaats van de weerkaart
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: input_boolean.gta_6_modus
-            state: "on"
-        card:
-          type: custom:button-card
-          template: gta6_hero
-        grid_options:
-          columns: full
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: input_boolean.gta_6_modus
-            state: "off"
-        card:
-          type: custom:button-card
-          template: weather_hero
+      - type: custom:button-card
+        template: weather_hero
         grid_options:
           columns: full
       # Thema, tijd van de dag en een scenario (weer, muziek en tv, de was, ...) van de weerkaart kiezen om te testen; alleen zichtbaar met ?test in de URL (bijv. /dashboard-huis/home?test)
