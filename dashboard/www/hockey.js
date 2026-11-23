@@ -127,7 +127,7 @@
   const procedure = () => `<b>Wedstrijden</b> (Union en KNHB): de thuisvereniging keurt het veld, bij Union het wedstrijdsecretariaat (junioren op zaterdag, senioren op zondag) samen met de clubmanager. Keuring uiterlijk 07:00 voor wedstrijden tot 10:30, 08:30 voor wedstrijden tussen 10:30 en 13:00 en 11:00 voor wedstrijden na 13:00. Union informeert de bezoekende club via LISA en zet een bericht op de website en in de app. Een team kan niet zelf afzeggen (dat geldt als niet opkomen). De scheidsrechter kan het veld ook ter plekke afkeuren of de wedstrijd staken. Bij een centrale afgelasting door de KNHB (altijd bij KNMI code rood) staat dat op knhb.nl/afgelastingen. Reis je ver, dan bepaalt de afreizende vereniging of komen verantwoord is.<br><br><b>Trainingen</b> (Union): de clubmanager en/of technisch manager beslist, uiterlijk 1 uur voordat de eerste training begint, en plaatst een bericht op de website en in de app. Trainers beslissen niet zelf over het doorgaan van een training. Bij onweer of een dreigend onbespeelbaar veld kunnen teams schuilen in het clubhuis.`;
 
   // ---- wat moet een persoon vandaag (en een wedstrijd al de avond ervoor)
-  const MARGE_MIN = 10;          // marge bovenop de reistijd
+  const MARGE_MIN = 15;          // marge bovenop de reistijd
   const AANKOMST_WEDSTRIJD = 20; // minuten voor de aanvang aanwezig op het eigen veld
   const AANKOMST_TRAINING = 10;
   const NA_UREN = 17;            // vanaf dit uur de avond ervoor laten we de wedstrijd van morgen zien
