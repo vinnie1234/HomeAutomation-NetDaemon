@@ -4144,7 +4144,7 @@ commute_card:
           ? perPerson(rows.filter(relevantNu))
             + (rows.some(s => !relevantNu(s))
               ? `<details ${window.huisVerkeerMeer ? 'open' : ''} style="margin-top:14px;pointer-events:auto" ontoggle="window.huisVerkeerMeerOpen(this.open)">
-                  <summary style="cursor:pointer;font-weight:600;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);display:inline-block">Toon meer routes (${rows.filter(s => !relevantNu(s)).length})</summary>
+                  <summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:600;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);display:inline-block">Toon meer routes (${rows.filter(s => !relevantNu(s)).length})</summary>
                   <div style="margin-top:12px">${perPerson(rows.filter(s => !relevantNu(s)))}</div></details>`
               : '')
           : variables.mode === 'all' ? perPerson() : blocks(rows);
@@ -4251,7 +4251,7 @@ activiteiten_weer:
               <div style="display:flex;gap:2px;margin-top:12px">${balk}</div>
               <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:3px"><span>nu</span><span>over 12 uur</span><span>over 24 uur</span></div>
               <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst} <span style="opacity:.55;font-weight:400"> · ${a.afgelasten ? 'tik voor de wedstrijden' : 'tik voor de uitleg'}</span></div>
-              ${a.afgelasten ? (() => { const g = afgelasten(uren); if (!g) return ''; return `<div style="font-size:12.5px;margin-top:6px;display:flex;align-items:center;justify-content:flex-start;gap:6px;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px;flex:none"></ha-icon><span style="flex:0 1 auto">${g.woord}</span></div>`; })() : ''}
+              ${a.afgelasten ? (() => { const g = afgelasten(uren); if (!g) return ''; return `<div style="font-size:12.5px;margin-top:6px;text-align:left;color:${g.kleur};font-weight:700"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:16px;vertical-align:-3px;margin-right:6px"></ha-icon>${g.woord}</div>`; })() : ''}
             </div>`;
         };
         // Het venster met de uitleg: per onderdeel de waarde, de grens en wat dat betekent, daaronder de komende uren
@@ -4378,7 +4378,7 @@ hockey_pagina:
         const g = uren.length ? H.dag(uren, vocht) : null;
         const velden = Object.entries(thuis.attributes.field_types ?? {});
         const vandaag = g ? `<div style="${paneel};border-color:${g.kleur}88">
-            <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;flex:none"></ha-icon><span style="flex:0 1 auto">${g.woord}</span></div>
+            <div style="text-align:left;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;vertical-align:-5px;margin-right:8px"></ha-icon>${g.woord}</div>
             <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.span(g.van, g.tot)}, getoetst aan het weerprotocol van Union en de KNHB. Dit is een advies: de vereniging beslist.</div>
             ${H.tijdlijn(g)}
             <details ${open('uitleg')} ${toggle('uitleg')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Uitleg van de regels die meespelen</summary>${H.uitleg(g)}</details>
@@ -4390,7 +4390,7 @@ hockey_pagina:
         // ---- 1b. afgelaste wedstrijden (uit Lisa en het wedstrijdschema), alle wedstrijden, ook de jeugd
         const afgelast = states['sensor.union_afgelastingen']?.attributes.matches ?? [];
         const afgelastPaneel = afgelast.length ? `<div style="${paneel};border-color:#ff6b6b88">
-            <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:17px;font-weight:800;color:#ff6b6b"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;flex:none"></ha-icon><span>Afgelast (${afgelast.length})</span></div>
+            <div style="text-align:left;font-size:17px;font-weight:800;color:#ff6b6b"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;vertical-align:-5px;margin-right:8px"></ha-icon>Afgelast (${afgelast.length})</div>
             ${afgelast.map(m => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:13px"><b>${new Date(m.date + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${e(m.time ?? '')}</b> · ${e(m.team)} tegen ${e(m.opponent)}${m.home ? '' : ' (uit)'}<div style="font-size:12px;opacity:.65">${e(m.field ? H.veldNaam(m.field) : '')}${m.remarks ? ` · ${e(m.remarks)}` : ''}</div></div>`).join('')}</div>` : '';
 
         // ---- 2. de thuiswedstrijden
