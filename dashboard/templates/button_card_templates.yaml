@@ -4183,12 +4183,14 @@ activiteiten_weer:
           else if (donker && factor < 1 && waarde >= 0.75) reden = 'het is donker';
           else reden = ({ temp: t < a.temp[1] ? `te koud (${Math.round(t)}°)` : `te warm (${Math.round(t)}°)`, wind: `veel wind (${Math.round(w)} km/h)`,
             stoot: `windstoten tot ${Math.round(st)} km/h`, regen: `regen (${r.toFixed(1).replace('.', ',')} mm${kans >= 60 ? `, ${Math.round(kans)}% kans` : ''})`, onweer: 'onweer' })[sleutel];
-          return { cijfer, reden, tijd, donker };
+          return { cijfer, reden, tijd, donker, delen, factor, t, w, st, r, kans, onweer, f };
         };
         const oordeel = c => c >= 75 ? ['Top', '#4ade80'] : c >= 55 ? ['Goed', '#a3e635'] : c >= 35 ? ['Matig', '#ffb060'] : ['Slecht', '#ff6b6b'];
         const uurtekst = d => `${String(d.getHours()).padStart(2, '0')}:00`;
         const rij = a => {
           const uren = forecast.map(f => beoordeel(a, f));
+          window.huisActiviteiten = window.huisActiviteiten ?? {};
+          window.huisActiviteiten[a.naam] = { a, uren };
           const nu = uren[0], [woord, kleur] = oordeel(nu.cijfer);
           // Het beste aaneengesloten moment: de uren die minstens 60 hebben en bij elkaar liggen, met het hoogste gemiddelde
           let beste = null, start = -1;
@@ -4203,7 +4205,8 @@ activiteiten_weer:
           }
           const besteTekst = beste ? `Beste moment: ${uurtekst(beste.van)} tot ${uurtekst(beste.tot)}` : 'Geen goed moment de komende 24 uur';
           const balk = uren.map(u => `<span title="${uurtekst(u.tijd)}: ${u.cijfer}" style="flex:1;height:8px;border-radius:2px;background:${oordeel(u.cijfer)[1]};opacity:${u.donker ? 0.4 : 1}"></span>`).join('');
-          return `<div style="min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,0.05);border:1.5px solid ${a.kleur}66;text-align:left">
+          return `<div onpointerdown="this._x=event.clientX;this._y=event.clientY" onpointerup="if(Math.hypot(event.clientX-this._x,event.clientY-this._y)<10)window.huisActiviteitOpen('${a.naam}')" onclick="window.huisActiviteitOpen('${a.naam}')"
+              style="cursor:pointer;pointer-events:auto;min-width:0;box-sizing:border-box;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,0.05);border:1.5px solid ${a.kleur}66;text-align:left">
               <div style="display:flex;align-items:center;gap:10px">
                 <span style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${a.kleur}33;color:${a.kleur}"><ha-icon icon="${a.icon}" style="--mdc-icon-size:24px"></ha-icon></span>
                 <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:16px">${a.naam}</div><div style="font-size:12px;opacity:.75">${nu.reden}</div></div>
@@ -4211,8 +4214,59 @@ activiteiten_weer:
               </div>
               <div style="display:flex;gap:2px;margin-top:12px">${balk}</div>
               <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:3px"><span>nu</span><span>over 12 uur</span><span>over 24 uur</span></div>
-              <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst}</div>
+              <div style="font-size:13px;margin-top:8px;font-weight:600">${besteTekst} <span style="opacity:.55;font-weight:400"> · tik voor de uitleg</span></div>
             </div>`;
+        };
+        // Het venster met de uitleg: per onderdeel de waarde, de grens en wat dat betekent, daaronder de komende uren
+        window.huisActiviteitOpen = naam => {
+          if (Date.now() - (window.huisActiviteitAt ?? 0) < 600) return;
+          window.huisActiviteitAt = Date.now();
+          const gegevens = window.huisActiviteiten?.[naam];
+          if (!gegevens) return;
+          const { a, uren } = gegevens;
+          const st = document.querySelector('home-assistant').hass.states;
+          const nu = uren[0], [woord, kleur] = oordeel(nu.cijfer);
+          const dec = x => String(Math.round(x * 10) / 10).replace('.', ',');
+          const vocht = parseFloat(st['sensor.weer_thuis_luchtvochtigheid']?.state), dauw = parseFloat(st['sensor.weer_thuis_dauwpunt']?.state);
+          // Voelt als: windchill bij kou en wind (de gebruikelijke formule), anders de temperatuur zelf
+          const voelt = nu.t <= 10 && nu.w > 4.8 ? 13.12 + 0.6215 * nu.t - 11.37 * Math.pow(nu.w, 0.16) + 0.3965 * nu.t * Math.pow(nu.w, 0.16) : nu.t;
+          const status = x => x >= 0.85 ? ['✓', '#4ade80'] : x >= 0.5 ? ['~', '#ffb060'] : ['✗', '#ff6b6b'];
+          const regel = (label, waarde, grens, score, uitleg) => {
+            const [teken, kl] = status(score);
+            return `<div style="display:grid;grid-template-columns:28px 1fr;gap:2px 10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.08)">
+              <span style="grid-row:span 2;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:${kl};background:${kl}22">${teken}</span>
+              <div style="display:flex;justify-content:space-between;gap:8px"><b>${label}</b><span style="font-weight:700">${waarde}</span></div>
+              <div style="font-size:12.5px;opacity:.75">${grens}${uitleg ? ` · <span style="color:${kl};opacity:1;font-weight:600">${uitleg}</span>` : ''}</div></div>`;
+          };
+          const d = nu.delen;
+          const vochtig = !isNaN(vocht) && vocht >= 90 ? 'vochtig' : !isNaN(vocht) && vocht >= 80 ? 'wat vochtig' : '';
+          const regels = [
+            regel('Temperatuur', `${dec(nu.t)}°`, `ideaal ${a.temp[1]}° tot ${a.temp[2]}°`, d.temp, d.temp >= 0.99 ? 'prima' : nu.t < a.temp[1] ? 'te koud' : 'te warm'),
+            regel('Voelt als', `${dec(voelt)}°`, nu.w > 4.8 && nu.t <= 10 ? `door de wind van ${dec(nu.w)} km/h` : 'zo goed als gelijk aan de temperatuur', voelt < nu.t - 2 ? 1 : 1, voelt < nu.t - 2 ? 'kouder dan het is' : ''),
+            regel('Wind', `${dec(nu.w)} km/h`, `prima tot ${a.wind[0]}, te veel vanaf ${a.wind[1]}`, d.wind, d.wind >= 0.99 ? 'rustig' : d.wind > 0.5 ? 'merkbaar' : 'veel wind'),
+            regel('Windstoten', `${dec(nu.st)} km/h`, `prima tot ${a.stoot[0]}, te veel vanaf ${a.stoot[1]}`, d.stoot, d.stoot >= 0.99 ? '' : d.stoot > 0.5 ? 'pittig' : 'te hard'),
+            regel('Regen', `${dec(nu.r)} mm`, `droog tot ${dec(a.regen[0])} mm, te nat vanaf ${dec(a.regen[1])} mm · kans ${Math.round(nu.kans)}%`, d.regen, d.regen >= 0.99 ? 'droog' : d.regen > 0.5 ? 'wat nat' : 'nat'),
+            regel('Onweer', nu.onweer ? 'ja' : 'nee', 'bij onweer is buiten sporten niet veilig', d.onweer, nu.onweer ? 'niet doen' : ''),
+            regel('Licht', nu.donker ? 'donker' : 'dag', `zon op ${String(Math.floor(op)).padStart(2, '0')}:${String(Math.round((op % 1) * 60)).padStart(2, '0')}, zon onder ${String(Math.floor(onder)).padStart(2, '0')}:${String(Math.round((onder % 1) * 60)).padStart(2, '0')}`, nu.donker ? nu.factor : 1, nu.donker ? 'telt voor ' + Math.round(nu.factor * 100) + '% mee' : ''),
+            regel('Luchtvochtigheid', isNaN(vocht) ? '–' : `${Math.round(vocht)}%`, isNaN(dauw) ? 'telt niet mee in het cijfer' : `dauwpunt ${dec(dauw)}° · telt niet mee in het cijfer`, vochtig ? 0.7 : 1, vochtig)
+          ].join('');
+          const komend = uren.slice(1, 13).map(u => { const [w2, k2] = oordeel(u.cijfer); return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);font-size:13px">
+              <span style="width:44px;font-weight:700">${uurtekst(u.tijd)}</span><span style="min-width:58px;text-align:center;padding:2px 8px;border-radius:8px;font-weight:700;color:${k2};background:${k2}22">${w2}</span>
+              <span style="opacity:.75">${u.reden}</span></div>`; }).join('');
+          document.getElementById('huis-activiteit')?.remove();
+          const el = document.createElement('div');
+          el.id = 'huis-activiteit';
+          el.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(4,6,12,0.65);padding:16px;box-sizing:border-box';
+          el.innerHTML = `<div style="width:min(560px,100%);max-height:90vh;overflow:auto;box-sizing:border-box;background:#121828;border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:20px;color:#f2f4f8;font-family:inherit">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${a.kleur}33;color:${a.kleur}"><ha-icon icon="${a.icon}" style="--mdc-icon-size:26px"></ha-icon></span>
+                  <div><div style="font-size:19px;font-weight:700">${a.naam}</div><div style="font-size:13px;opacity:.75">Nu: <b style="color:${kleur}">${woord}</b> (${nu.cijfer} van 100) · ${nu.reden}</div></div></div>
+                <span data-sluit style="cursor:pointer;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,0.1)">✕</span></div>
+              ${regels}
+              <div style="margin-top:14px;font-weight:700">De komende uren</div>${komend}
+              <div style="margin-top:12px;font-size:11.5px;opacity:.55">Het cijfer is het product van temperatuur, wind, windstoten, regen en onweer (elk van 0 tot 1), met een afslag in het donker. Eén slecht onderdeel maakt het hele uur slecht.</div></div>`;
+          el.addEventListener('click', e => { if (e.target === el || e.target.closest('[data-sluit]')) el.remove(); });
+          document.body.appendChild(el);
         };
         return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;white-space:normal">${ACTIVITEITEN.map(rij).join('')}</div>`;
       ]]]
