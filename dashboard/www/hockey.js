@@ -45,6 +45,13 @@
 
   const gevoelsTemp = u => u.t <= 10 && u.w > 4.8 ? 13.12 + 0.6215 * u.t - 11.37 * Math.pow(u.w, 0.16) + 0.3965 * u.t * Math.pow(u.w, 0.16) : u.t;
   const uur = d => `${String(d.getHours()).padStart(2, '0')}:00`;
+  const dagSleutel = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  // De dag erbij als het niet vandaag is ("morgen 06:00"), zodat een tijdvak over middernacht niet als "12:00 tot 10:00" leest
+  const dagLabel = d => { const verschil = Math.round((dagSleutel(d) - dagSleutel(new Date())) / 86400000);
+    return verschil === 0 ? '' : verschil === 1 ? 'morgen ' : verschil === -1 ? 'gisteren ' : `${d.toLocaleDateString('nl-NL', { weekday: 'short' })} `; };
+  const tijdLabel = d => `${dagLabel(d)}${uur(d)}`;
+  // van tot tot (tot is het eind, dus het uur erna); op dezelfde dag zonder de dag twee keer te noemen
+  const span = (van, tot) => dagSleutel(van) === dagSleutel(new Date(tot.getTime() - 1)) ? `${tijdLabel(van)} tot ${uur(tot)}` : `${tijdLabel(van)} tot ${tijdLabel(tot)}`;
   const NIVEAUS = [['Niet afgelasten', '#4ade80'], ['Let op: wacht de keuring af', '#ffb060'], ['Afkeuren ligt voor de hand', '#ff6b6b']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const bronNaam = b => b === 'eigen' ? 'eigen inschatting' : `${b}-regel`;
@@ -68,7 +75,14 @@
         return { u, n: regel.test({ ...u, vocht, code, gevoel: gevoelsTemp(u), min4 }) };
       }).filter(x => x.n > 0);
       if (!raak.length) return null;
-      return { ...regel, n: Math.max(...raak.map(x => x.n)), van: raak[0].u.tijd, tot: new Date(raak[raak.length - 1].u.tijd.getTime() + 3600000) };
+      // De uren die samen vallen vormen een tijdvak; zijn er gaten, dan zijn het meer tijdvakken
+      const perioden = [];
+      raak.forEach(({ u }) => {
+        const laatste = perioden[perioden.length - 1];
+        if (laatste && u.tijd.getTime() - laatste.tot.getTime() < 1000) laatste.tot = new Date(u.tijd.getTime() + 3600000);
+        else perioden.push({ van: u.tijd, tot: new Date(u.tijd.getTime() + 3600000) });
+      });
+      return { ...regel, n: Math.max(...raak.map(x => x.n)), perioden, van: perioden[0].van, tot: perioden[perioden.length - 1].tot };
     }).filter(Boolean).sort((x, y) => y.n - x.n);
     const niveau = punten.length ? Math.max(...punten.map(p => p.n)) : 0;
     const [woord, kleur] = NIVEAUS[niveau];
@@ -101,7 +115,7 @@
     return minuten < 10 * 60 + 30 ? '07:00' : minuten < 13 * 60 ? '08:30' : '11:00';
   };
 
-  const periode = p => `${uur(p.van)} tot ${uur(p.tot)}`;
+  const periode = p => p.perioden.slice(0, 3).map(r => span(r.van, r.tot)).join(', ') + (p.perioden.length > 3 ? ' en later' : '');
 
   const punten = (g, metTijd = true) => g.punten.length ? g.punten.map(p => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px">
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${p.n === 2 ? 'Reden om af te keuren' : 'Let op'}${metTijd ? ` · ${periode(p)}` : ` · ${esc(p.kort)}`}</b><span style="opacity:.6;white-space:nowrap">${bronNaam(p.bron)}</span></div>
@@ -215,6 +229,6 @@
     return { item, titel, label: [item.veld, ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
   };
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, MARGE_MIN };
+  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();

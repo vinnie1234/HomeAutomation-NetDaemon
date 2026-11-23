@@ -806,7 +806,7 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=4').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=5').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
@@ -4220,7 +4220,7 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=4').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=5').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
         const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
@@ -4340,7 +4340,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=4').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=5').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op
@@ -4378,7 +4378,7 @@ hockey_pagina:
         const velden = Object.entries(thuis.attributes.field_types ?? {});
         const vandaag = g ? `<div style="${paneel};border-color:${g.kleur}88">
             <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;font-size:17px;font-weight:800;color:${g.kleur}"><ha-icon icon="mdi:calendar-remove" style="--mdc-icon-size:22px;flex:none"></ha-icon><span style="flex:0 1 auto">${g.woord}</span></div>
-            <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.uur(g.van)} tot ${H.uur(g.tot)}, getoetst aan het weerprotocol van Union en de KNHB. Dit is een advies: de vereniging beslist.</div>
+            <div style="font-size:12px;opacity:.7;margin:2px 0 6px">Weer bij Union van ${H.span(g.van, g.tot)}, getoetst aan het weerprotocol van Union en de KNHB. Dit is een advies: de vereniging beslist.</div>
             ${H.punten(g)}
             <details ${open('velden')} ${toggle('velden')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Per soort veld (${velden.map(([n, s]) => `${n}: ${soortTekst(s)}`).join(', ')})</summary>${H.velden(g)}</details>
             <details ${open('procedure')} ${toggle('procedure')} style="pointer-events:auto;margin-top:8px"><summary onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation()" style="pointer-events:auto;cursor:pointer;font-weight:700;font-size:13px">Wie beslist en wanneer</summary><div style="margin-top:6px;font-size:12px;line-height:1.5;opacity:.8">${H.procedure()}</div></details>
@@ -4403,7 +4403,7 @@ hockey_pagina:
               ${m.cancelled ? '<span style="padding:3px 10px;border-radius:9px;font-size:12px;font-weight:700;color:#ff6b6b;background:#ff6b6b22">Afgelast</span>' : chip(gm, true)}
             </summary>
             <div style="margin-top:6px">
-              ${gm ? `<div style="font-size:12.5px;opacity:.8;margin-bottom:2px">Weer van ${H.uur(gm.van)} tot ${H.uur(gm.tot)}: <b style="color:${gm.kleur}">${gm.woord}</b></div>${H.punten(gm, false)}${m.field_type ? H.velden(gm, m.field_type) : ''}`
+              ${gm ? `<div style="font-size:12.5px;opacity:.8;margin-bottom:2px">Weer van ${H.span(gm.van, gm.tot)}: <b style="color:${gm.kleur}">${gm.woord}</b></div>${H.punten(gm, false)}${m.field_type ? H.velden(gm, m.field_type) : ''}`
                 : '<div style="font-size:12.5px;opacity:.7">De verwachting gaat maar 48 uur vooruit; kijk later nog eens.</div>'}
               ${H.keuring(m.time) ? `<div style="font-size:12.5px;margin-top:6px"><b>Keuring</b> door de thuisvereniging uiterlijk ${H.keuring(m.time)} uur.${m.remarks ? ` Opmerking: ${e(m.remarks)}` : ''}</div>` : ''}
             </div></details>`;
