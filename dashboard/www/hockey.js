@@ -56,6 +56,13 @@
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // De naam van een veld zoals Union hem in het schema zet, en zoals wij hem noemen: het Rabobank-veld is het D-veld
   const veldNaam = naam => String(naam ?? '').replace(/^rabobank[- ]?veld/i, 'D-veld');
+  // Jeugd: een team tot en met O18 (Meisjes O14-2, Jongens O10-Groen, O7-rood MIX); senioren (Dames 2, Dames Onder 25-1, Heren 45-1) niet
+  const isJeugd = m => {
+    const o = /(?:^|[\s/])O(\d{1,2})(?!\d)/.exec(m.team ?? '');
+    if (o) return parseInt(o[1], 10) <= 18;
+    const c = /^Onder (\d{1,2})$/.exec(m.category ?? '');
+    return c ? parseInt(c[1], 10) <= 18 : /^mini/i.test(m.category ?? '');
+  };
   const bronNaam = b => b === 'eigen' ? 'eigen inschatting' : `${b}-regel`;
 
   // Een uur van de verwachting als de uren die de kaart ook gebruikt: { tijd, t, w, st, r, f }
@@ -266,6 +273,6 @@
     return { item, titel, label: [veldNaam(item.veld), ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
   };
 
-  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, MARGE_MIN };
+  window.huisHockey = { REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
