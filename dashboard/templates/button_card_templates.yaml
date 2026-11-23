@@ -806,7 +806,7 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=10').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
@@ -4220,7 +4220,7 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=10').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
         const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
@@ -4341,7 +4341,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=9').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=10').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op
@@ -4363,7 +4363,7 @@ hockey_pagina:
         const vocht = H.omstandigheden(states);
         const dagNaam = iso => new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
         const tijdNaam = iso => new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-        const chip = (g, kort) => g ? `<span style="padding:3px 10px;border-radius:9px;font-size:12px;font-weight:700;white-space:nowrap;color:${g.kleur};background:${g.kleur}22;border:1px solid ${g.kleur}66">${kort ? ['Spelen', 'Let op', 'Afkeuren'][g.niveau] : g.woord}</span>`
+        const chip = (g, kort) => g ? `<span style="padding:3px 10px;border-radius:9px;font-size:12px;font-weight:700;white-space:nowrap;color:${g.kleur};background:${g.kleur}22;border:1px solid ${g.kleur}66">${kort ? ['Spelen', 'Let op', 'Afgelasten'][g.niveau] : g.woord}</span>`
           : '<span style="padding:3px 10px;border-radius:9px;font-size:12px;white-space:nowrap;opacity:.55;border:1px solid rgba(255,255,255,0.2)">nog geen verwachting</span>';
         const veldSoort = naam => thuis.attributes.field_types ? Object.entries(thuis.attributes.field_types).find(([n]) => (naam ?? '').toLowerCase().startsWith(n.toLowerCase()))?.[1] : null;
         const soortTekst = s => s === 'water' ? 'waterveld' : s === 'kunstgras' ? 'kunstgras' : '';

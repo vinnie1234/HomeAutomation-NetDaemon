@@ -43,6 +43,10 @@
       tekst: 'Warm weer: er wordt gewoon gehockeyd. Alleen in uiterste gevallen kan de vereniging het veld afkeuren omdat het voor de keeper niet verantwoord is. Inkorten van de wedstrijd mag niet (KNHB Weerprotocol). 30° is het voorbeeld dat de KNHB noemt.' }
   ];
 
+  // Geen regel van Union of de KNHB maar een voorzorg: direct na een afgelasting kan het veld nog niet goed zijn
+  const NAWERKING = { id: 'nawerking', bron: 'eigen', n: 1, test: () => 0, kort: 'kort na het afgelasten',
+    tekst: 'Direct na een periode met afgelasten (vorst, ijzel, veel water) kan het veld nog bevroren, glad of nat zijn terwijl het weer al beter is. Laat het veld ter plekke keuren. De drie uur en de 3° zijn een eigen inschatting; Union en de KNHB noemen daar geen grens voor.' };
+  REGELS.push(NAWERKING);
   const gevoelsTemp = u => u.t <= 10 && u.w > 4.8 ? 13.12 + 0.6215 * u.t - 11.37 * Math.pow(u.w, 0.16) + 0.3965 * u.t * Math.pow(u.w, 0.16) : u.t;
   const uur = d => `${String(d.getHours()).padStart(2, '0')}:00`;
   const dagSleutel = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -52,7 +56,7 @@
   const tijdLabel = d => `${dagLabel(d)}${uur(d)}`;
   // van tot tot (tot is het eind, dus het uur erna); op dezelfde dag zonder de dag twee keer te noemen
   const span = (van, tot) => dagSleutel(van) === dagSleutel(new Date(tot.getTime() - 1)) ? `${tijdLabel(van)} tot ${uur(tot)}` : `${tijdLabel(van)} tot ${tijdLabel(tot)}`;
-  const NIVEAUS = [['Niet afgelasten', '#4ade80'], ['Let op: wacht de keuring af', '#ffb060'], ['Afkeuren ligt voor de hand', '#ff6b6b']];
+  const NIVEAUS = [['Niet afgelasten', '#4ade80'], ['Let op: wacht de keuring af', '#ffb060'], ['Afgelasten ligt voor de hand', '#ff6b6b']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // De naam van een veld zoals Union hem in het schema zet, en zoals wij hem noemen: het Rabobank-veld is het D-veld
   const veldNaam = naam => String(naam ?? '').replace(/^rabobank[- ]?veld/i, 'D-veld');
@@ -77,13 +81,23 @@
   // De uren (met t, w, st, r, f en tijd) toetsen aan de regels. alle = alle uren van de verwachting, voor de koude van de uren daarvoor
   const toets = (venster, omstandigheden, alle) => {
     const lijst = alle ?? venster, { vocht, code } = context(omstandigheden);
-    // Per uur: welke regels gelden en hoe zwaar
-    const perUur = venster.map(u => {
-      const i = lijst.indexOf(u);
+    // Per uur: welke regels gelden en hoe zwaar (van alle uren, want na een afgelasting telt het eerdere uur mee)
+    const alleUren = lijst.map((u, i) => {
       const min4 = Math.min(...lijst.slice(Math.max(0, i - 3), i + 1).map(x => x.t));
       const treffers = REGELS.map(regel => ({ regel, n: regel.test({ ...u, vocht, code, gevoel: gevoelsTemp(u), min4 }) })).filter(x => x.n > 0);
       return { u, treffers, niveau: treffers.length ? Math.max(...treffers.map(x => x.n)) : 0 };
     });
+    // Na een periode met afgelasten staat er altijd "Let op": het veld kan nog bevroren of nat zijn. Dat duurt tot het echt weg is
+    // (meer dan 3 uur later en boven de 3°) of tot er door iets anders weer "Let op" staat.
+    let sindsAfgelasten = null;
+    alleUren.forEach(x => {
+      if (x.niveau === 2) { sindsAfgelasten = 0; return; }
+      if (sindsAfgelasten === null) return;
+      sindsAfgelasten += 1;
+      if (x.niveau === 0 && (sindsAfgelasten <= 3 || x.u.t <= 3)) { x.treffers = [{ regel: NAWERKING, n: 1 }]; x.niveau = 1; }
+      else if (x.niveau === 0) sindsAfgelasten = null;
+    });
+    const perUur = venster.map(u => alleUren[lijst.indexOf(u)]);
     const punten = REGELS.map(regel => {
       const raak = perUur.filter(x => x.treffers.some(t => t.regel === regel));
       if (!raak.length) return null;
@@ -139,20 +153,20 @@
   const periode = p => p.perioden.slice(0, 3).map(r => span(r.van, r.tot)).join(', ') + (p.perioden.length > 3 ? ' en later' : '');
 
   const punten = (g, metTijd = true) => g.punten.length ? g.punten.map(p => `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${p.n === 2 ? 'Reden om af te keuren' : 'Let op'}${metTijd ? ` · ${periode(p)}` : ` · ${esc(p.kort)}`}</b><span style="opacity:.6;white-space:nowrap">${bronNaam(p.bron)}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:${p.n === 2 ? '#ff6b6b' : '#ffb060'}">${p.n === 2 ? 'Reden om af te lasten' : 'Let op'}${metTijd ? ` · ${periode(p)}` : ` · ${esc(p.kort)}`}</b><span style="opacity:.6;white-space:nowrap">${bronNaam(p.bron)}</span></div>
       <div style="opacity:.8;margin-top:2px">${p.tekst}</div></div>`).join('')
-    : `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px;opacity:.8">In de verwachting staat niets wat volgens het weerprotocol van Union of de KNHB reden is om af te keuren.</div>`;
+    : `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px;opacity:.8">In de verwachting staat niets wat volgens het weerprotocol van Union of de KNHB reden is om af te lasten.</div>`;
 
   // Waarom het in een tijdvak wel kan: de waarden van die uren in een zin
   const kanBecause = uren => {
     const ts = uren.map(u => Math.round(u.t)), wmax = Math.round(Math.max(...uren.map(u => u.st))), rmax = Math.max(...uren.map(u => u.r));
     const temp = Math.min(...ts) === Math.max(...ts) ? `${ts[0]}°` : `${Math.min(...ts)}° tot ${Math.max(...ts)}°`;
-    return `${temp}, ${rmax >= 0.1 ? `regen tot ${String(Math.round(rmax * 10) / 10).replace('.', ',')} mm per uur` : 'droog'}, windstoten tot ${wmax} km/h: boven het vriespunt en geen reden uit het protocol om af te keuren`;
+    return `${temp}, ${rmax >= 0.1 ? `regen tot ${String(Math.round(rmax * 10) / 10).replace('.', ',')} mm per uur` : 'droog'}, windstoten tot ${wmax} km/h: boven het vriespunt en geen reden uit het protocol om af te lasten`;
   };
 
   // Per tijdvak wat er aan de hand is: kan het, kan het niet en waarom
   const tijdlijn = g => !g.tijdlijn?.length ? '' : g.tijdlijn.map(t => {
-    const [kleur, woord] = t.niveau === 2 ? ['#ff6b6b', 'Afkeuren'] : t.niveau === 1 ? ['#ffb060', 'Let op'] : ['#4ade80', 'Kan'];
+    const [kleur, woord] = t.niveau === 2 ? ['#ff6b6b', 'Afgelasten'] : t.niveau === 1 ? ['#ffb060', 'Let op'] : ['#4ade80', 'Kan'];
     const redenen = t.niveau === 0 ? kanBecause(t.uren)
       : t.regels.sort((x, y) => y.n - x.n).map(r => `${esc(r.kort)} <span style="opacity:.55">(${bronNaam(r.bron)})</span>`).join('<br>');
     return `<div style="display:grid;grid-template-columns:96px 1fr;gap:2px 10px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px;align-items:start">
@@ -178,7 +192,7 @@
         tekst: vorstig ? 'Union: vanaf 0° wordt het veld niet betreden, ook een waterveld niet. De KNHB: een waterveld moet nat bespeeld worden, maar in de winter staan de waterinstallaties meestal uit, dus het veld is niet nat te maken. Een droger waterveld geeft meer grip en een hogere balstuit, en met name de grip kan bij hoge snelheid tot blessures leiden. Dat het water op het veld kan bevriezen is mijn eigen aanvulling.'
           : 'Controleer of het veld vochtig genoeg is en of het veilig is om op te spelen: de vraag is of bespelen een onnodig risico voor de spelers geeft (KNHB). Droog weer zonder besproeiing geeft meer grip en een hogere balstuit.' }
     ].filter(v => !soort || v.soort === soort);
-    return lijst.map(v => { const [w, k] = v.niveau === 2 ? ['Afkeuren', '#ff6b6b'] : v.niveau === 1 ? ['Let op', '#ffb060'] : ['Kan spelen', '#4ade80'];
+    return lijst.map(v => { const [w, k] = v.niveau === 2 ? ['Afgelasten', '#ff6b6b'] : v.niveau === 1 ? ['Let op', '#ffb060'] : ['Kan spelen', '#4ade80'];
       return `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="display:flex;align-items:center;justify-content:flex-start;gap:6px"><ha-icon icon="${v.icon}" style="--mdc-icon-size:16px"></ha-icon>${v.naam}</b><span style="padding:2px 10px;border-radius:8px;font-weight:700;color:${k};background:${k}22">${w}</span></div><div style="opacity:.8;margin-top:3px">${v.tekst}</div></div>`; }).join('');
   };
 
@@ -265,7 +279,7 @@
       const laat = item.vertrek && item.vertrek.getTime() <= Date.now() && item.start.getTime() > Date.now();
       if (item.vertrek) delen.push(laat ? 'nu vertrekken' : `vertrek ${tijd(item.vertrek)}`);
       else if (item.aankomst) delen.push(`verzamelen ${tijd(item.aankomst)}`);
-      if (item.oordeel && item.oordeel.niveau > 0) delen.push(`${item.oordeel.niveau === 2 ? 'veld waarschijnlijk afgekeurd' : 'let op het weer'} (${item.oordeel.punten.map(p => p.kort).join(', ')})`);
+      if (item.oordeel && item.oordeel.niveau > 0) delen.push(`${item.oordeel.niveau === 2 ? 'waarschijnlijk afgelast' : 'let op het weer'} (${item.oordeel.punten.map(p => p.kort).join(', ')})`);
       else if (item.oordeel) delen.push('weer is geen probleem');
       if (!item.thuis) delen.push('uit, de thuisclub beslist');
     }
