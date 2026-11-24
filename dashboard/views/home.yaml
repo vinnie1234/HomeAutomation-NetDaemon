@@ -102,125 +102,6 @@ sections:
         grid_options:
           columns: full
 
-      # Hockey: morgen (of vandaag) kunnen er senioren-thuiswedstrijden afgelast moeten worden vanwege het weer; tik voor de pagina Hockey
-      - type: custom:button-card
-        template: alert
-        icon: mdi:calendar-alert
-        name: |
-          [[[
-            const kaart = this;
-            if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
-              return '';
-            }
-            return window.huisHockey.risico(states)?.titel ?? '';
-          ]]]
-        label: '[[[ return window.huisHockey?.risico(states)?.label ?? ""; ]]]'
-        variables:
-          color: '[[[ return window.huisHockey?.risico(states)?.niveau === 2 ? "255, 107, 107" : "255, 176, 96"; ]]]'
-        styles:
-          card:
-            - display: |
-                [[[
-                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
-                  return window.huisHockey?.risico(states) ? 'grid' : 'none';
-                ]]]
-        triggers_update:
-          - sensor.union_thuiswedstrijden
-          - sensor.weer_verwachting_hockey
-          - sensor.weer_nijmegen_waarschuwingscode
-          - input_boolean.datenight
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-huis/weer-hockey
-        grid_options:
-          columns: full
-
-      # Carleen heeft gewonnen: dezelfde dag een feestmelding. Het scenario Hockey toont de laatste winst als test.
-      - type: custom:button-card
-        template: alert
-        icon: mdi:trophy
-        name: |
-          [[[
-            const kaart = this;
-            if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
-              return '';
-            }
-            const w = window.huisHockey.winst(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
-            return w ? `🎉 ${w.titel}` : '';
-          ]]]
-        label: |
-          [[[
-            const w = window.huisHockey?.winst(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
-            return w ? w.label : '';
-          ]]]
-        variables:
-          color: 250, 204, 21
-          pulse: true
-        styles:
-          card:
-            - display: |
-                [[[
-                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
-                  return window.huisHockey?.winst(states, { persoon: 'carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' }) ? 'grid' : 'none';
-                ]]]
-        triggers_update:
-          - sensor.union_thuiswedstrijden
-          - sensor.union_trainingen
-          - input_select.weerkaart_scenario
-          - input_boolean.datenight
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-huis/weer-hockey
-        grid_options:
-          columns: full
-
-      # Hockey van Carleen: training vandaag of wedstrijd (ook de avond ervoor) met het vertrek en het weer; tik voor de pagina Hockey. Het scenario Hockey toont hem als test.
-      - type: custom:button-card
-        template: alert
-        icon: mdi:hockey-sticks
-        name: |
-          [[[
-            const kaart = this;
-            if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
-              return '';
-            }
-            const m = window.huisHockey.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
-            return m ? m.titel : '';
-          ]]]
-        label: |
-          [[[
-            const m = window.huisHockey?.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
-            return m ? m.label : '';
-          ]]]
-        variables:
-          color: |
-            [[[
-              const m = window.huisHockey?.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
-              return m ? m.kleur : '255, 122, 156';
-            ]]]
-        styles:
-          card:
-            - display: |
-                [[[
-                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
-                  return window.huisHockey?.melding(states, { persoon: 'carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' }) ? 'grid' : 'none';
-                ]]]
-        triggers_update:
-          - sensor.union_trainingen
-          - sensor.union_thuiswedstrijden
-          - sensor.weer_verwachting_hockey
-          - sensor.anwb_route_thuis_hockey_carleen_reistijd
-          - input_select.weerkaart_scenario
-          - input_boolean.datenight
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-huis/weer-hockey
-        grid_options:
-          columns: full
-
       # Meldingen: alleen zichtbaar als ze nu relevant zijn
       - type: custom:mushroom-chips-card
         alignment: start
@@ -723,6 +604,164 @@ sections:
         card:
           type: custom:button-card
           template: pixel_alert
+        grid_options:
+          columns: 12
+      # Hockey: de meldingen over Carleen en de afgelastingen, bij de andere opvallende meldingen (net als de portemonnee)
+      # Hockey: morgen (of vandaag) kunnen er senioren-thuiswedstrijden afgelast moeten worden vanwege het weer; tik voor de pagina Hockey
+      - type: custom:button-card
+        template: alert
+        icon: mdi:calendar-alert
+        name: |
+          [[[
+            const kaart = this;
+            if (!window.huisHockey) {
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              return '';
+            }
+            return window.huisHockey.risico(states)?.titel ?? '';
+          ]]]
+        label: '[[[ return window.huisHockey?.risico(states)?.label ?? ""; ]]]'
+        variables:
+          color: '[[[ return window.huisHockey?.risico(states)?.niveau === 2 ? "255, 107, 107" : "255, 176, 96"; ]]]'
+        styles:
+          card:
+            - display: |
+                [[[
+                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
+                  return window.huisHockey?.risico(states) ? 'grid' : 'none';
+                ]]]
+        triggers_update:
+          - sensor.union_thuiswedstrijden
+          - sensor.weer_verwachting_hockey
+          - sensor.weer_nijmegen_waarschuwingscode
+          - input_boolean.datenight
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/weer-hockey
+        grid_options:
+          columns: 12
+
+      # Carleen heeft gewonnen: dezelfde dag een feestmelding. Het scenario Hockey toont de laatste winst als test.
+      - type: custom:button-card
+        template: alert
+        icon: mdi:trophy
+        name: |
+          [[[
+            const kaart = this;
+            if (!window.huisHockey) {
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              return '';
+            }
+            const w = window.huisHockey.winst(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
+            return w ? `🎉 ${w.titel}` : '';
+          ]]]
+        label: |
+          [[[
+            const w = window.huisHockey?.winst(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
+            return w ? w.label : '';
+          ]]]
+        variables:
+          color: 250, 204, 21
+          pulse: true
+        styles:
+          card:
+            - display: |
+                [[[
+                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
+                  return window.huisHockey?.winst(states, { persoon: 'carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' }) ? 'grid' : 'none';
+                ]]]
+        triggers_update:
+          - sensor.union_thuiswedstrijden
+          - sensor.union_trainingen
+          - input_select.weerkaart_scenario
+          - input_boolean.datenight
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/weer-hockey
+        grid_options:
+          columns: 12
+
+      # Hockey van Carleen: training vandaag of wedstrijd (ook de avond ervoor) met het vertrek en het weer; tik voor de pagina Hockey. Het scenario Hockey toont hem als test.
+      - type: custom:button-card
+        template: alert
+        icon: mdi:hockey-sticks
+        name: |
+          [[[
+            const kaart = this;
+            if (!window.huisHockey) {
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              return '';
+            }
+            return window.huisHockey.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' })?.titel ?? '';
+          ]]]
+        label: |
+          [[[
+            const m = window.huisHockey?.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
+            return m ? m.label : '';
+          ]]]
+        variables:
+          color: |
+            [[[
+              const m = window.huisHockey?.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
+              return m ? m.kleur : '255, 122, 156';
+            ]]]
+        styles:
+          card:
+            - display: |
+                [[[
+                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
+                  return window.huisHockey?.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' }) ? 'grid' : 'none';
+                ]]]
+        triggers_update:
+          - sensor.union_trainingen
+          - sensor.union_thuiswedstrijden
+          - sensor.weer_verwachting_hockey
+          - sensor.anwb_route_thuis_hockey_carleen_reistijd
+          - input_select.weerkaart_scenario
+          - input_boolean.datenight
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-huis/weer-hockey
+        grid_options:
+          columns: 12
+
+      # Afgelaste training of wedstrijd van Carleen: een rode melding die blijft staan tot je hem wegdrukt (tik, bevestig). Per apparaat onthouden.
+      - type: custom:button-card
+        template: alert
+        icon: mdi:calendar-remove
+        name: |
+          [[[
+            const kaart = this;
+            if (!window.huisHockey) {
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              return '';
+            }
+            return window.huisHockey.afgelastMelding(states, { persoon: 'carleen', naam: 'Carleen' })?.titel ?? '';
+          ]]]
+        label: '[[[ return window.huisHockey?.afgelastMelding(states, { persoon: "carleen", naam: "Carleen" })?.label ?? ""; ]]]'
+        variables:
+          color: 255, 107, 107
+        styles:
+          card:
+            - display: |
+                [[[
+                  if (states['input_boolean.datenight']?.state === 'on') return 'none';
+                  return window.huisHockey?.afgelastMelding(states, { persoon: 'carleen', naam: 'Carleen' }) ? 'grid' : 'none';
+                ]]]
+        triggers_update:
+          - sensor.union_trainingen
+          - sensor.union_thuiswedstrijden
+          - input_boolean.datenight
+        tap_action:
+          action: javascript
+          javascript: |
+            [[[
+              const m = window.huisHockey?.afgelastMelding(states, { persoon: 'carleen', naam: 'Carleen' });
+              if (m) window.huisHockey.verberg(m.item);
+              this.requestUpdate?.();
+            ]]]
+          confirmation:
+            text: Melding verbergen? Hij komt op dit apparaat niet terug.
         grid_options:
           columns: 12
       - type: custom:auto-entities

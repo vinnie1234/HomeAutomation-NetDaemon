@@ -12,7 +12,7 @@ glass:
       - '--c': |
           [[[
             // De paneelachtergrond van de secties (www/stijl.js) hoort bij elke pagina met kaarten; ?v= ophogen na een wijziging van dat bestand
-            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=24').catch(() => null); }
+            if (!window.huisStijl) { window.huisStijl = import('/local/huis/stijl.js?v=27').catch(() => null); }
             if (variables && variables.accent) return variables.accent;
             // Date night: alles in warme roze en paarse tinten
             if (states['input_boolean.datenight']?.state === 'on') {
@@ -806,12 +806,12 @@ weather_hero:
         // Testen: het scenario Hockey toont de eerstvolgende van haar team, ook als het niet vandaag is.
         if (!window.huisHockey && !window.huisHockeyLaden) {
           const kaart = this;
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => { this._heroSky = null; kaart?.requestUpdate?.(); }).catch(() => { window.huisHockeyLaden = null; });
         }
         const hockey = window.huisHockey ? window.huisHockey.persoon(states, { persoon: 'carleen', proef: scenario === 'hockey' }).items[0] ?? null : null;
         const sunNow = states['sun.sun'];
         const skySignature = JSON.stringify([
-          hockey ? [hockey.soort, hockey.start.getTime(), hockey.vertrek ? Math.floor(hockey.vertrek.getTime() / 60000) : 0, hockey.oordeel?.niveau ?? -1, hockey.afgelast, hockey.vertrek ? hockey.vertrek.getTime() <= Date.now() : false] : null,
+          hockey ? [hockey.soort, hockey.start.getTime(), hockey.vertrek ? Math.floor(hockey.vertrek.getTime() / 60000) : 0, hockey.oordeel?.niveau ?? -1, hockey.vertrek ? hockey.vertrek.getTime() <= Date.now() : false] : null,
           window.innerWidth > 0 && window.innerWidth < 640,
           new Date().toDateString(),
           sunNow?.state, Math.round((sunNow?.attributes?.elevation ?? 0) / 2), Math.round((sunNow?.attributes?.azimuth ?? 0) / 10),
@@ -2689,11 +2689,18 @@ weather_hero:
         - inset: 0
         - overflow: hidden
         - pointer-events: none
+      # Klok en temperatuur hangen op een breed scherm (tablet, pc) aan de bovenkant, onder het themalabel en de pillen van Vincent en Carleen:
+      # onderaan botsten ze met de weg. Op een telefoon (smal) blijven ze onderaan, want daar staan de banners bovenaan.
       clock:
         - z-index: 1
-        - align-self: end
+        - align-self: '[[[ return window.innerWidth > 0 && window.innerWidth < 640 ? "end" : "start"; ]]]'
         - justify-self: start
-        - padding: 0 0 46px 10px
+        - padding: |
+            [[[
+              if (window.innerWidth > 0 && window.innerWidth < 640) return '0 0 46px 10px';
+              // Onder het themalabel linksboven (bij Kerst staat dat 30px lager)
+              return `${variables.theme_info?.theme === 'kerst' ? 78 : 48}px 0 0 10px`;
+            ]]]
         - text-align: left
       timers:
         - z-index: 1
@@ -2707,9 +2714,9 @@ weather_hero:
         - padding: 16px 16px 0 0
       temp:
         - z-index: 1
-        - align-self: end
+        - align-self: '[[[ return window.innerWidth > 0 && window.innerWidth < 640 ? "end" : "start"; ]]]'
         - justify-self: end
-        - padding: 0 22px 24px 0
+        - padding: '[[[ return window.innerWidth > 0 && window.innerWidth < 640 ? "0 22px 24px 0" : "10px 22px 0 0"; ]]]'
 
 # Terugknop bovenaan een subpagina: smalle strook over de volle breedte met een pijl links en de tekst ernaast. De pagina geeft name,
 # icon en de tap_action (navigate).
@@ -4220,7 +4227,7 @@ activiteiten_weer:
         // De regels voor afgelasten staan in www/hockey.js (ook voor de pagina Hockey); ?v= ophogen na een wijziging van dat bestand
         const kaart = this;
         if (!window.huisHockey && !window.huisHockeyLaden) {
-          window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
         }
         const afgelasten = uren => window.huisHockey?.dag(uren, window.huisHockey.omstandigheden(states));
         const rij = a => {
@@ -4341,7 +4348,7 @@ hockey_pagina:
       [[[
         const kaart = this;
         if (!window.huisHockey) {
-          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=11').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+          if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
           return '<div style="opacity:.6;padding:8px">Laden…</div>';
         }
         // Een keuze op de pagina (filter, team) of het laden van het script zet de kaart opnieuw op
@@ -5209,7 +5216,9 @@ alert:
     grid:
       - grid-template-areas: '"i n side" "i l side"'
       - grid-template-columns: auto 1fr auto
-      - grid-template-rows: 1fr 1fr
+      # Rijen op maat (niet 1fr 1fr): een label dat over meer regels loopt maakte anders ook de rij van de titel even hoog, en de kaart veel te groot
+      - grid-template-rows: auto auto
+      - align-content: center
       - column-gap: 14px
     card:
       - --alert-rgb: '[[[ return variables.color; ]]]'

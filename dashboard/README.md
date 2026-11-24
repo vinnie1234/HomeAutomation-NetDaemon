@@ -90,6 +90,12 @@ een keer is gestart.
 - Kamertegel: **tik** opent de pop-up, **lang drukken** zet alle lampen van die kamer aan of uit.
 - Pop-up: lamp **schuiven** = helderheid, **tik op het icoon** = aan/uit. Omlaag swipen sluit.
 - Meldingen bovenaan verschijnen alleen als ze relevant zijn; tik erop om naar de juiste pagina te gaan.
+- Een bolletje bij een pagina in het menu (Pixel, Huis, Weer en verkeer, Vincent) betekent dat er daar iets aandacht nodig heeft.
+  Bovenaan die pagina staat dan "Aandacht nodig: ..." met de reden; elke reden van een bolletje staat daar ook. Het bolletje bij
+  Huis verdwijnt op dat apparaat zodra je de pagina opent, tot er iets anders te melden is.
+- Een afgelaste training of wedstrijd van Carleen krijgt een eigen rode melding op Home ("... is afgelast"), en staat dan niet
+  meer in de gewone hockeymelding met vertrek en weer. Tik op de melding en bevestig om hem te verbergen (per apparaat
+  onthouden). De melding "Let op, misschien afgelastingen" telt afgelaste wedstrijden niet mee. Alles staat ook op de pagina Hockey.
 - De labels naast de weerkaart (pakketten, brieven, taken): tik opent een pop-up met de details. Het thema-label
   linksboven opent de periode van het thema en de feestdagen.
 - Agenda en taken in één kaart: kleur per agenda of lijst (blauw Vincent, roze Carleen, paars samen); taken afvinken en

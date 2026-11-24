@@ -244,10 +244,40 @@ function applyDatenight() {
   }
 }
 
+// Alle hui-card's onder een knoop, ook in de schaduw van andere elementen
+function* kaarten(start) {
+  const stack = [start];
+  while (stack.length) {
+    const node = stack.pop();
+    if (node.localName === 'hui-card') yield node;
+    if (node.shadowRoot) stack.push(node.shadowRoot);
+    for (const child of node.children || []) stack.push(child);
+  }
+}
+
+// Een button-card die zichzelf verbergt (display: none, zoals de meldingen op Home) laat zijn plek in het raster van de sectie staan:
+// een lege rij met 8px tussenruimte erboven. Zes verborgen meldingen zijn een gat van ruim 50px onder de weerkaart. Daarom gaat het
+// omhulsel van zo'n kaart ook weg, en komt terug zodra de kaart weer iets toont (binnen een paar seconden, zie apply).
+function klapLegeKaartenIn(view) {
+  if (!view.shadowRoot) return;
+  for (const kaart of kaarten(view.shadowRoot)) {
+    const plek = kaart.parentElement;
+    if (!plek?.parentElement || getComputedStyle(plek.parentElement).display !== 'grid') continue;
+    // Alleen een button-card die zelf de kaart is (geen stapel met meer kaarten erin)
+    const knop = [...(kaart.shadowRoot ?? kaart).children].find((k) => k.localName === 'button-card');
+    const binnen = knop?.shadowRoot?.querySelector('ha-card');
+    if (!binnen) continue;
+    const leeg = getComputedStyle(binnen).display === 'none';
+    if (leeg && plek.dataset.huisLeeg !== '1') { plek.dataset.huisLeeg = '1'; plek.style.display = 'none'; }
+    else if (!leeg && plek.dataset.huisLeeg === '1') { delete plek.dataset.huisLeeg; plek.style.display = ''; }
+  }
+}
+
 function apply() {
   stylePopups();
   applyDatenight();
   for (const view of views(document)) {
+    klapLegeKaartenIn(view);
     layout(view);
     // Kaarten laden later en worden daarna hoger of lager: elke sectie meten, niet alleen de pagina zelf
     let ro = waker.get(view);

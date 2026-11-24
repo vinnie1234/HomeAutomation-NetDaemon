@@ -227,7 +227,7 @@
   const persoon = (states, { persoon: slug, proef = false, nu = new Date() }) => {
     let teams = teamsVan(states, `person.${slug}`);
     if (!teams.length && proef) teams = Object.values(states).filter(x => x.entity_id.startsWith('sensor.union_') && x.attributes.team_id).slice(0, 1);
-    if (!teams.length) return { teams: [], items: [] };
+    if (!teams.length) return { teams: [], items: [], afgelast: [] };
     const dagStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     const vandaag = dagStart(nu), morgen = vandaag + 86400000;
     const verwachting = (states['sensor.weer_verwachting_hockey']?.attributes.forecast?.length ? states['sensor.weer_verwachting_hockey'] : states['sensor.weer_verwachting_per_uur'])?.attributes.forecast ?? [];
@@ -241,19 +241,24 @@
         aankomst: m.arrival_time ? (([h, mi]) => new Date(new Date(m.start).setHours(h, mi, 0, 0)))(m.arrival_time.split(':').map(Number)) : null }));
       (a.trainings ?? []).forEach(x => items.push({ soort: 'Training', team: a.team, start: new Date(x.start), einde: new Date(x.end), thuis: true, veld: x.field, plaats: 'Union', afgelast: x.cancelled, opmerking: x.comment, aankomst: null }));
     });
-    const zichtbaar = items.filter(i => i.einde.getTime() >= nu.getTime() - 15 * 60000).filter(i => {
+    const inVenster = items.filter(i => i.einde.getTime() >= nu.getTime() - 15 * 60000).filter(i => {
       if (proef) return true;
       const d = dagStart(i.start);
       if (d === vandaag) return true;
       return i.soort === 'Wedstrijd' && d === morgen && nu.getHours() >= NA_UREN;
-    }).sort((x, y) => x.start - y.start).slice(0, proef ? 3 : 8);
-    zichtbaar.forEach(i => {
+    }).sort((x, y) => x.start - y.start);
+    inVenster.forEach(i => {
       const d = dagStart(i.start);
       i.wanneer = d === vandaag ? 'Vandaag' : d === morgen ? 'Morgen' : i.start.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+    });
+    // Afgelaste wedstrijden en trainingen horen niet in de planning (er valt niets te doen: geen vertrek, geen weer), maar krijgen een eigen melding
+    const afgelast = inVenster.filter(i => i.afgelast).slice(0, proef ? 3 : 8);
+    const zichtbaar = inVenster.filter(i => !i.afgelast).slice(0, proef ? 3 : 8);
+    zichtbaar.forEach(i => {
       // Het weer: alleen waar de thuisvereniging beslist (wedstrijden thuis en trainingen bij Union)
-      i.oordeel = i.thuis && !i.afgelast && verwachting.length ? moment(i.start, i.einde, verwachting, ctx) : null;
+      i.oordeel = i.thuis && verwachting.length ? moment(i.start, i.einde, verwachting, ctx) : null;
       // Het vertrek: alleen als de auto naar Union gaat
-      if (i.thuis && ritje && !i.afgelast) {
+      if (i.thuis && ritje) {
         i.aankomst = i.aankomst ?? new Date(i.start.getTime() - (i.soort === 'Wedstrijd' ? AANKOMST_WEDSTRIJD : AANKOMST_TRAINING) * 60000);
         const dichtbij = i.start.getTime() - nu.getTime() < 3 * 3600000;
         const reis = dichtbij ? ritje.reis : ritje.normaal;
@@ -262,29 +267,48 @@
         i.actueel = dichtbij;
       }
     });
-    return { teams: teams.map(t => t.attributes.team), items: zichtbaar };
+    return { teams: teams.map(t => t.attributes.team), items: zichtbaar, afgelast };
+  };
+
+  const tijd = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  // "Carleen: wedstrijd tegen Union 2 morgen 10:00" of "Carleen: training 19:30"
+  const omschrijving = (item, naam) => {
+    const wanneer = item.wanneer === 'Vandaag' ? '' : item.wanneer === 'Morgen' ? 'morgen ' : `${item.start.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} `;
+    return `${naam}: ${item.soort === 'Wedstrijd' ? `wedstrijd tegen ${item.tegen}` : 'training'} ${wanneer}${tijd(item.start)}`;
   };
 
   // De melding voor het dashboard: de eerstvolgende training of wedstrijd van de persoon als titel en regel. null als er niets te melden is.
   const melding = (states, opties) => {
     const item = persoon(states, opties).items[0];
     if (!item) return null;
-    const tijd = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-    const naam = opties.naam ?? opties.persoon;
-    const wanneer = item.wanneer === 'Vandaag' ? '' : item.wanneer === 'Morgen' ? 'morgen ' : `${item.start.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} `;
-    const titel = `${naam}: ${item.soort === 'Wedstrijd' ? `wedstrijd tegen ${item.tegen}` : 'training'} ${wanneer}${tijd(item.start)}`;
+    const titel = omschrijving(item, opties.naam ?? opties.persoon);
     const delen = [];
-    if (item.afgelast) delen.push('afgelast');
-    else {
-      const laat = item.vertrek && item.vertrek.getTime() <= Date.now() && item.start.getTime() > Date.now();
-      if (item.vertrek) delen.push(laat ? 'nu vertrekken' : `vertrek ${tijd(item.vertrek)}`);
-      else if (item.aankomst) delen.push(`verzamelen ${tijd(item.aankomst)}`);
-      if (item.oordeel && item.oordeel.niveau > 0) delen.push(`${item.oordeel.niveau === 2 ? 'waarschijnlijk afgelast' : 'let op het weer'} (${item.oordeel.punten.map(p => p.kort).join(', ')})`);
-      else if (item.oordeel) delen.push('weer is geen probleem');
-      if (!item.thuis) delen.push('uit, de thuisclub beslist');
-    }
-    const niveau = item.afgelast ? 2 : item.oordeel?.niveau ?? 0;
-    return { item, titel, label: [veldNaam(item.veld), ...delen].filter(Boolean).join(' · '), kleur: item.afgelast || niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
+    const laat = item.vertrek && item.vertrek.getTime() <= Date.now() && item.start.getTime() > Date.now();
+    if (item.vertrek) delen.push(laat ? 'nu vertrekken' : `vertrek ${tijd(item.vertrek)}`);
+    else if (item.aankomst) delen.push(`verzamelen ${tijd(item.aankomst)}`);
+    if (item.oordeel && item.oordeel.niveau > 0) delen.push(`${item.oordeel.niveau === 2 ? 'waarschijnlijk afgelast' : 'let op het weer'} (${item.oordeel.punten.map(p => p.kort).join(', ')})`);
+    else if (item.oordeel) delen.push('weer is geen probleem');
+    if (!item.thuis) delen.push('uit, de thuisclub beslist');
+    const niveau = item.oordeel?.niveau ?? 0;
+    return { item, titel, label: [veldNaam(item.veld), ...delen].filter(Boolean).join(' · '), kleur: niveau === 2 ? '255, 107, 107' : niveau === 1 ? '255, 176, 96' : '255, 122, 156', niveau };
+  };
+
+  // Een afgelaste training of wedstrijd van de persoon: de melding blijft staan tot hij op dit apparaat is weggedrukt (verberg). null als er niets is.
+  const VERBORGEN = 'huis-hockey-verborgen';
+  const sleutelVan = i => `${i.soort}|${i.team}|${i.start.getTime()}`;
+  const verborgen = () => { try { return JSON.parse(localStorage.getItem(VERBORGEN) ?? '[]'); } catch { return []; } };
+  const afgelastMelding = (states, opties) => {
+    const weg = verborgen().map(x => x.sleutel);
+    const item = persoon(states, opties).afgelast.find(i => !weg.includes(sleutelVan(i)));
+    if (!item) return null;
+    const opmerking = item.opmerking && item.opmerking.length > 90 ? `${item.opmerking.slice(0, 90)}…` : item.opmerking;
+    return { item, titel: `${omschrijving(item, opties.naam ?? opties.persoon)} is afgelast`, label: [veldNaam(item.veld), opmerking, 'tik om de melding te verbergen'].filter(Boolean).join(' · '), kleur: '255, 107, 107' };
+  };
+  // Verbergt de melding van deze afgelasting op dit apparaat. Oude keuzes (meer dan twee dagen geleden) worden opgeruimd.
+  const verberg = item => {
+    const lijst = verborgen().filter(x => x.start > Date.now() - 2 * 86400000);
+    lijst.push({ sleutel: sleutelVan(item), start: item.start.getTime() });
+    localStorage.setItem(VERBORGEN, JSON.stringify(lijst));
   };
 
   // Wedstrijden van vandaag (die nog moeten beginnen) en morgen waar het weer reden is om af te keuren: voor de melding "let op, misschien afgelastingen"
@@ -321,6 +345,16 @@
     return null;
   };
 
-  window.huisHockey = { winst, risico,  REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
+  window.huisHockey = { winst, risico, afgelastMelding, verberg, REGELS, NIVEAUS, toets, dag, moment, keuring, punten, tijdlijn, uitleg, velden, procedure, uur, esc, uitUur, periode, persoon, melding, omstandigheden, span, veldNaam, isJeugd, MARGE_MIN };
+  // De kaarten van Home die op dit script wachten zijn al getekend voordat het klaar was en tonen dan niets (een melding verscheen pas na een
+  // wijziging van een van hun sensoren, soms uren later). Een button-card tekent alleen opnieuw als zijn config of een eigen sensor verandert,
+  // en een gewoon requestUpdate() doet niets: daarom wordt hier de config als veranderd gemeld.
+  const stack = [document];
+  while (stack.length) {
+    const node = stack.pop();
+    if (node.localName === 'button-card' && JSON.stringify(node._config ?? {}).includes('huisHockey')) node.requestUpdate('_config', {});
+    if (node.shadowRoot) stack.push(node.shadowRoot);
+    for (const child of node.children || []) stack.push(child);
+  }
   window.dispatchEvent(new Event('huis-hockey-klaar'));
 })();
