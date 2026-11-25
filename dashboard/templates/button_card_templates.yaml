@@ -5410,6 +5410,36 @@ pixel_alert:
       return 'Tik om het af te vinken bij Pixel';
     ]]]
 
+# De luchtontvochtiger heeft aandacht nodig: de tank is vol of hij meldt een storing (een van de zeven "Probleem"-sensoren). Tik opent de
+# bediening (pop-up #luchtontvochtiger) op Huis.
+dehumidifier_alert:
+  template: alert
+  icon: mdi:water-alert-outline
+  variables:
+    pulse: true
+    color: |
+      [[[
+        const B = 'luchtontvochtiger';
+        const fault = ['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => states[`binary_sensor.${B}_probleem${n}`]?.state === 'on');
+        return fault ? '255, 107, 107' : '255, 176, 96';
+      ]]]
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/huishouden#luchtontvochtiger
+  name: |
+    [[[
+      const B = 'luchtontvochtiger';
+      const tank = states[`binary_sensor.${B}_tank_full`]?.state === 'on';
+      const fault = ['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => states[`binary_sensor.${B}_probleem${n}`]?.state === 'on');
+      if (tank && fault) return 'Luchtontvochtiger: tank vol en storing';
+      return fault ? 'Luchtontvochtiger: storing' : 'Luchtontvochtiger: tank vol';
+    ]]]
+  label: |
+    [[[
+      const B = 'luchtontvochtiger';
+      return states[`binary_sensor.${B}_tank_full`]?.state === 'on' ? 'Leeg de tank en zet hem terug · tik voor de bediening' : 'Tik voor de bediening';
+    ]]]
+
 # Stroom extreem duur of negatief, met dezelfde grenzen als de melding van NetDaemon (Alarm.cs): boven € 0,55 of onder € 0.
 # Toont de prijs nu en tot hoe laat het zo blijft (uit hourly_prices). Tik gaat naar de prijzen.
 price_alert:

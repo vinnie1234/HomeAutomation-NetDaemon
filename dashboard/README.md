@@ -102,6 +102,10 @@ een keer is gestart.
   toevoegen kan er direct in.
 - "Taak met plek": kies voor wie, wat, de plek en of er een WhatsApp-bericht moet komen als je daar aankomt.
 - Autokaart: status, tank, locatie en beurt; knoppen om te vergrendelen, ontgrendelen (met bevestiging) en de lichten.
+- Luchtontvochtiger (heeft geen vaste ruimte, dus bij Huis onder Wasmachine): ring met de luchtvochtigheid, tik opent de bediening
+  (aan of uit, doel, stand Continu, Auto of Slaap, snelheid, timer, ionisator en kinderslot). Op Home staat een chip zolang hij aan staat.
+  Is de tank vol of meldt hij een storing, dan staat er een melding op Home, een bolletje bij Huis en een regel in de samenvatting van Huis.
+  De entiteiten heten `*.luchtontvochtiger*` (het apparaat komt uit de integratie xtend_tuya).
 - Rode melding "NetDaemon reageert niet": tik herstart de add-on (alleen met een beheerdersaccount).
 - Oranje melding "NetDaemon kan zijn sensoren niet meer bijwerken": NetDaemon draait, maar publiceert niets meer via MQTT.
   Controleer dan de MQTT-gebruiker en het wachtwoord in `appsettings.json` van NetDaemon (de gebruikersnaam in Home

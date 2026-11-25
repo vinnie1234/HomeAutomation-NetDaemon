@@ -427,6 +427,20 @@ sections:
               tap_action:
                 action: navigate
                 navigation_path: /dashboard-huis/systeem
+          # De luchtontvochtiger (geen vaste ruimte): zolang hij aan staat, met de luchtvochtigheid die hij meet
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: humidifier.luchtontvochtiger
+                state: "on"
+            chip:
+              type: template
+              icon: mdi:air-humidifier
+              icon_color: blue
+              content: "Ontvochtiger {{ state_attr('humidifier.luchtontvochtiger', 'current_humidity') | int(0) }}%"
+              tap_action:
+                action: navigate
+                navigation_path: /dashboard-huis/huishouden#luchtontvochtiger
 
       # Opvallende meldingen: alleen zichtbaar als ze nu spelen
       # NetDaemon reageert niet (geen levensteken): altijd de eerste melding
@@ -604,6 +618,40 @@ sections:
         card:
           type: custom:button-card
           template: pixel_alert
+        grid_options:
+          columns: 12
+      # De luchtontvochtiger: de tank is vol of hij meldt een storing (een van de zeven "Probleem"-sensoren)
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_tank_full
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_2
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_3
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_4
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_5
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_6
+                state: "on"
+              - condition: state
+                entity: binary_sensor.luchtontvochtiger_probleem_7
+                state: "on"
+        card:
+          type: custom:button-card
+          template: dehumidifier_alert
         grid_options:
           columns: 12
       # Hockey: de meldingen over Carleen en de afgelastingen, bij de andere opvallende meldingen (net als de portemonnee)

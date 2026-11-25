@@ -18,8 +18,11 @@ sections:
         variables:
           level: |
             [[[
-              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0) return 'bad';
-              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on');
+              // De luchtontvochtiger: dezelfde redenen als het bolletje bij Huis in de navigatie (navbar.yaml)
+              const dh = id => states[`binary_sensor.luchtontvochtiger${id}`]?.state === 'on';
+              const dhFault = ['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => dh(`_probleem${n}`));
+              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0 || dhFault) return 'bad';
+              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') || dh('_tank_full');
               // Afval vandaag en morgen: dezelfde redenen als het bolletje bij Huis in de navigatie (navbar.yaml)
               const afval = ['sensor.afval_vandaag', 'sensor.afval_morgen'].some(id => !['Geen', 'unknown', 'unavailable', undefined].includes(states[id]?.state));
               return low || afval ? 'warn' : 'ok';
@@ -30,6 +33,10 @@ sections:
             if (states['binary_sensor.jaap_bin_full']?.state === 'on') issues.push('bak van Jaap legen');
             const crit = parseInt(states['sensor.battery_devices_critical']?.state) || 0;
             if (crit) issues.push(`${crit} ${crit === 1 ? 'batterij' : 'batterijen'} vervangen`);
+            // De luchtontvochtiger: de tank of een storing (dezelfde redenen als het bolletje bij Huis in de navigatie)
+            const dh = id => states[`binary_sensor.luchtontvochtiger${id}`]?.state === 'on';
+            if (dh('_tank_full')) issues.push('tank luchtontvochtiger legen');
+            if (['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => dh(`_probleem${n}`))) issues.push('luchtontvochtiger meldt een storing');
             ['wasmiddel', 'wasverzachter'].forEach(k => {
               if (states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') issues.push(`${k} kopen`);
             });
@@ -398,6 +405,87 @@ sections:
         icon: mdi:hanger
 
       - type: heading
+        heading: Luchtontvochtiger
+        heading_style: title
+        icon: mdi:air-humidifier
+      # Compact, zoals de wasmachine (hij heeft geen vaste ruimte): ring met de luchtvochtigheid, tik opent de pop-up #luchtontvochtiger
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        entity: humidifier.luchtontvochtiger
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: navigate
+          navigation_path: "#luchtontvochtiger"
+        name: |
+          [[[
+            const B = 'luchtontvochtiger';
+            const on = id => states[`binary_sensor.${B}${id}`]?.state === 'on';
+            if (on('_tank_full')) return 'Tank vol: legen';
+            if (['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => on(`_probleem${n}`))) return 'Storing';
+            if (['unavailable', 'unknown'].includes(entity.state)) return 'Niet bereikbaar';
+            if (entity.state !== 'on') return 'Uit';
+            const now = parseFloat(entity.attributes.current_humidity);
+            return `Aan · ${isNaN(now) ? '–' : Math.round(now)}% (doel ${entity.attributes.humidity}%)`;
+          ]]]
+        label: |
+          [[[
+            const B = 'luchtontvochtiger';
+            if (entity.state !== 'on') return 'Tik om aan te zetten of in te stellen';
+            const modes = { Continuities: 'Continu', Auto: 'Auto', Sleep: 'Slaap' };
+            const parts = [modes[entity.attributes.mode] ?? entity.attributes.mode];
+            const speed = parseFloat(states[`fan.${B}`]?.attributes.percentage);
+            if (!isNaN(speed)) parts.push(speed >= 100 ? 'hoge snelheid' : 'lage snelheid');
+            const temp = parseFloat(states[`sensor.${B}_temperatuur`]?.state);
+            if (!isNaN(temp)) parts.push(`${temp.toFixed(1).replace('.', ',')}°`);
+            const timer = states[`select.${B}_aftellen`]?.state;
+            if (/^\d+h$/.test(timer)) parts.push(`timer ${parseInt(timer)} u`);
+            return parts.join(' · ');
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const B = 'luchtontvochtiger';
+              // De tank vol of een storing (een van de zeven "Probleem"-sensoren)
+              const ids = ['_tank_full', ...['', '_2', '_3', '_4', '_5', '_6', '_7'].map(n => `_probleem${n}`)];
+              const bad = ids.some(id => states[`binary_sensor.${B}${id}`]?.state === 'on');
+              const running = entity.state === 'on';
+              const now = parseFloat(entity.attributes.current_humidity);
+              const goal = parseFloat(entity.attributes.humidity);
+              const pct = bad ? 100 : running && !isNaN(now) ? Math.min(100, now) : 0;
+              const color = bad ? '#ff6b6b' : now <= goal ? '#4ade80' : '#38bdf8';
+              return `<div style="width:64px;height:64px;border-radius:50%;
+                        background:conic-gradient(${color} ${pct * 3.6}deg, rgba(255,255,255,0.08) 0);
+                        display:flex;align-items:center;justify-content:center">
+                        <div style="width:52px;height:52px;border-radius:50%;background:#121828;display:flex;
+                          align-items:center;justify-content:center">
+                          ${running && !isNaN(now)
+                            ? `<span style="font-size:15px;font-weight:700">${Math.round(now)}%</span>`
+                            : '<ha-icon icon="mdi:air-humidifier" style="--mdc-icon-size:26px;opacity:0.6"></ha-icon>'}
+                        </div>
+                      </div>`;
+            ]]]
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+        styles:
+          grid:
+            - grid-template-areas: '"ring n arrow" "ring l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - height: 88px
+          name:
+            - align-self: end
+            - font-size: 16px
+          label:
+            - align-self: start
+            - white-space: normal
+            - text-align: left
+          custom_fields:
+            arrow:
+              - align-self: center
+
+      - type: heading
         heading: Batterijen
         heading_style: title
         icon: mdi:battery-heart-variant
@@ -721,6 +809,210 @@ sections:
             entity: sensor.badkamer_wasmachine_trommelreiniging_over
             name: Trommelreiniging over
             icon: mdi:washing-machine-alert
+
+  # Pop-up: luchtontvochtiger bedienen (opent via de kaart Luchtontvochtiger en de melding op Home).
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#luchtontvochtiger"
+        name: Luchtontvochtiger
+        icon: mdi:air-humidifier
+        sub_button:
+          - entity: sensor.luchtontvochtiger_luchtvochtigheid
+            show_state: true
+            show_icon: false
+            show_background: false
+        cards:
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: action
+                name: Aan
+                icon: mdi:power
+                tap_action:
+                  action: perform-action
+                  perform_action: humidifier.turn_on
+                  target:
+                    entity_id: humidifier.luchtontvochtiger
+              - type: custom:button-card
+                template: action
+                name: Uit
+                icon: mdi:power-off
+                tap_action:
+                  action: perform-action
+                  perform_action: humidifier.turn_off
+                  target:
+                    entity_id: humidifier.luchtontvochtiger
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Doel
+            icon: mdi:water-percent
+          - type: tile
+            entity: humidifier.luchtontvochtiger
+            name: Doel
+            icon: mdi:water-percent
+            features_position: bottom
+            features:
+              - type: target-humidity
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Stand
+            icon: mdi:cog-outline
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:button-card
+                template: action
+                entity: humidifier.luchtontvochtiger
+                triggers_update: all
+                name: Continu
+                icon: mdi:infinity
+                tap_action:
+                  action: perform-action
+                  perform_action: humidifier.set_mode
+                  target:
+                    entity_id: humidifier.luchtontvochtiger
+                  data:
+                    mode: Continuities
+                state:
+                  - operator: template
+                    value: "[[[ return entity.attributes.mode === 'Continuities'; ]]]"
+                    styles:
+                      card:
+                        - background: rgba(74, 222, 128, 0.22)
+                        - border: 1.5px solid rgba(74, 222, 128, 0.7)
+              - type: custom:button-card
+                template: action
+                entity: humidifier.luchtontvochtiger
+                triggers_update: all
+                name: Auto
+                icon: mdi:auto-fix
+                tap_action:
+                  action: perform-action
+                  perform_action: humidifier.set_mode
+                  target:
+                    entity_id: humidifier.luchtontvochtiger
+                  data:
+                    mode: Auto
+                state:
+                  - operator: template
+                    value: "[[[ return entity.attributes.mode === 'Auto'; ]]]"
+                    styles:
+                      card:
+                        - background: rgba(74, 222, 128, 0.22)
+                        - border: 1.5px solid rgba(74, 222, 128, 0.7)
+              - type: custom:button-card
+                template: action
+                entity: humidifier.luchtontvochtiger
+                triggers_update: all
+                name: Slaap
+                icon: mdi:weather-night
+                tap_action:
+                  action: perform-action
+                  perform_action: humidifier.set_mode
+                  target:
+                    entity_id: humidifier.luchtontvochtiger
+                  data:
+                    mode: Sleep
+                state:
+                  - operator: template
+                    value: "[[[ return entity.attributes.mode === 'Sleep'; ]]]"
+                    styles:
+                      card:
+                        - background: rgba(74, 222, 128, 0.22)
+                        - border: 1.5px solid rgba(74, 222, 128, 0.7)
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Snelheid
+            icon: mdi:fan
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                template: action
+                entity: fan.luchtontvochtiger
+                triggers_update: all
+                name: Laag
+                icon: mdi:fan-speed-1
+                tap_action:
+                  action: perform-action
+                  perform_action: fan.set_percentage
+                  target:
+                    entity_id: fan.luchtontvochtiger
+                  data:
+                    percentage: 50
+                state:
+                  - operator: template
+                    value: "[[[ return entity.attributes.percentage <= 50; ]]]"
+                    styles:
+                      card:
+                        - background: rgba(74, 222, 128, 0.22)
+                        - border: 1.5px solid rgba(74, 222, 128, 0.7)
+              - type: custom:button-card
+                template: action
+                entity: fan.luchtontvochtiger
+                triggers_update: all
+                name: Hoog
+                icon: mdi:fan-speed-3
+                tap_action:
+                  action: perform-action
+                  perform_action: fan.set_percentage
+                  target:
+                    entity_id: fan.luchtontvochtiger
+                  data:
+                    percentage: 100
+                state:
+                  - operator: template
+                    value: "[[[ return entity.attributes.percentage > 50; ]]]"
+                    styles:
+                      card:
+                        - background: rgba(74, 222, 128, 0.22)
+                        - border: 1.5px solid rgba(74, 222, 128, 0.7)
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Timer en extra
+            icon: mdi:timer-outline
+          - type: tile
+            entity: select.luchtontvochtiger_aftellen
+            name: Uitzetten over
+            icon: mdi:timer-outline
+            features_position: bottom
+            features:
+              - type: select-options
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.luchtontvochtiger_ionisator
+            name: Ionisator
+            icon: mdi:atom
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: switch.luchtontvochtiger_kinderslot
+            name: Kinderslot
+            icon: mdi:lock-outline
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Gegevens
+            icon: mdi:information-outline
+          - type: entities
+            entities:
+              - entity: sensor.luchtontvochtiger_luchtvochtigheid
+                name: Luchtvochtigheid
+              - entity: sensor.luchtontvochtiger_temperatuur
+                name: Temperatuur
+              - entity: binary_sensor.luchtontvochtiger_tank_full
+                name: Tank vol
 
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
   - type: grid
