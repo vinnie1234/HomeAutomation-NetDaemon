@@ -44,15 +44,13 @@ public class Gaming : BaseApp
         if (!DisableLightAutomations)
         {
             // The Samsung cannot be turned on through HA (no turn_on); the PS5 wakes it over HDMI-CEC. Its sources are only "TV" and "HDMI"
-            // (not a particular HDMI input), the soundbar has no sources to select
+            // (not a particular HDMI input). The soundbar (input and volume) is left to the Soundbar app.
             Entities.MediaPlayer.Tv.SelectSource("HDMI");
-            Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();
             Entities.Light.Plafondslaapkamer.TurnOff();
             Entities.Light.Nachtkastje.TurnOff();
             Entities.Light.HueFilamentBulb1.TurnOff();
             Entities.Light.HueFilamentBulb2.TurnOff();
-            Entities.MediaPlayer.Tv.VolumeSet(0.14);
         }
     }
 }

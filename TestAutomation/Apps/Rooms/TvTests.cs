@@ -97,7 +97,7 @@ public class TvTests
     }
 
     [Fact]
-    public void TvTurnsOn_TurnsSoundbarOn()
+    public void TvTurnsOn_DoesNotTurnOnTheCastSoundbar()
     {
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
@@ -111,12 +111,12 @@ public class TvTests
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
-        // Assert
-        ctx.VerifyCallService("media_player", "turn_on", "av_soundbar", times: 1);
+        // Assert - turning on av_soundbar (Google Cast) launches a cast receiver and moves the soundbar to its Wi-Fi input
+        ctx.VerifyNotCallService("media_player.turn_on");
     }
 
     [Fact]
-    public void TvTurnsOn_SetsVolume()
+    public void TvTurnsOn_DoesNotSetTheVolume()
     {
         // Arrange
         var ctx = AppTestContext.NewWithScheduler();
@@ -130,8 +130,8 @@ public class TvTests
         ctx.HaContextMock.ProcessPendingOperations();
         Thread.Sleep(50);
 
-        // Assert
-        ctx.VerifyCallService("media_player", "volume_set", "tv", times: 1);
+        // Assert - the volume is set once, when the soundbar turns on (the Soundbar app)
+        ctx.VerifyNotCallService("media_player.volume_set");
     }
 
     [Fact]

@@ -29,7 +29,7 @@ public class Tv : BaseApp
     /// <summary>
     /// Whether a TV state means the TV is on.
     /// </summary>
-    private static bool IsTvOnState(string? state) => state is "on" or "playing" or "paused" or "idle";
+    internal static bool IsTvOnState(string? state) => state is "on" or "playing" or "paused" or "idle";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Tv"/> class.
@@ -126,15 +126,15 @@ public class Tv : BaseApp
 
         if (!DisableLightAutomations)
         {
+            // The soundbar is left to the Soundbar app: av_soundbar is the Google Cast side of it, and turning that on launches a cast
+            // receiver, which switched the soundbar to its Wi-Fi input and, minutes later, back to the wrong HDMI input.
             Entities.Scene.WoonkamerMovie2.TurnOn();
-            Entities.MediaPlayer.AvSoundbar.TurnOn();
             Entities.Light.PlafondWoonkamer.TurnOff();
             Entities.Light.HueFilamentBulb1.TurnOff();
             Entities.Light.HueFilamentBulb2.TurnOff();
             Entities.Light.LampenKeuken.TurnOff();
             Entities.Light.Plafondslaapkamer.TurnOff();
             Entities.Light.Nachtkastje.TurnOff();
-            Entities.MediaPlayer.Tv.VolumeSet(0.10);
             Logger.LogDebug("Movie time started!");
         }
     }

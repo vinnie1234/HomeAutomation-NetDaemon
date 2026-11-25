@@ -25,13 +25,13 @@ public class GamingTests
 
         // Assert
         ctx.VerifyCallService("media_player", "select_source", "tv");
-        ctx.VerifyCallService("media_player", "turn_on", "av_soundbar");
+        ctx.VerifyNotCallService("media_player.turn_on");
         ctx.VerifyCallService("light", "turn_off", "plafond_woonkamer");
         ctx.VerifyCallService("light", "turn_off", "plafondslaapkamer");
         ctx.VerifyCallService("light", "turn_off", "nachtkastje");
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_1");
         ctx.VerifyCallService("light", "turn_off", "hue_filament_bulb_2");
-        ctx.VerifyCallService("media_player", "volume_set", "tv");
+        ctx.VerifyNotCallService("media_player.volume_set");
     }
 
     [Fact]
