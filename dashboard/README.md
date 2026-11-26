@@ -106,6 +106,14 @@ een keer is gestart.
   (aan of uit, doel, stand Continu, Auto of Slaap, snelheid, timer, ionisator en kinderslot). Op Home staat een chip zolang hij aan staat.
   Is de tank vol of meldt hij een storing, dan staat er een melding op Home, een bolletje bij Huis en een regel in de samenvatting van Huis.
   De entiteiten heten `*.luchtontvochtiger*` (het apparaat komt uit de integratie xtend_tuya).
+- Ramen (bij Huis, onder Luchtontvochtiger): één kaart "Ramen" met het advies, tik opent de pop-up. Er zijn geen raamsensoren: bij
+  de twee ramen in de woonkamer (bij de tv en bij de tafel) en het raam in de slaapkamer druk je als het raam open gaat en (met bevestiging) als het dicht is. De pop-up toont het advies met
+  de redenen (buiten en binnen, vocht in g/m³, wind, regen, donker), per raam sinds wanneer het open staat, en hoe lang de ramen vandaag en de
+  laatste dagen open stonden. Staat een raam open, dan is er een melding op Home (tik en bevestig als het dicht is), een bolletje bij Huis en een
+  regel in de samenvatting van Huis; NetDaemon stuurt een telefoonmelding bij regen, harde wind, donker en warm (beestjes) of als het te lang open
+  staat. Het advies: buiten 90% vochtig of meer of niet droger dan binnen is "Weinig nut" (laat de ontvochtiger werken); regen, een
+  waarschuwing, windstoten vanaf 50 km/u, of donker en 10 graden of warmer is "Liever dicht"; anders "Luchten kan", en bij 5 graden of kouder
+  "Kort luchten" (10 minuten). De grenzen staan in `automation/Helpers/WindowAdvice.cs`, de app in `automation/apps/General/Household/WindowMonitor.cs`.
 - Rode melding "NetDaemon reageert niet": tik herstart de add-on (alleen met een beheerdersaccount).
 - Oranje melding "NetDaemon kan zijn sensoren niet meer bijwerken": NetDaemon draait, maar publiceert niets meer via MQTT.
   Controleer dan de MQTT-gebruiker en het wachtwoord in `appsettings.json` van NetDaemon (de gebruikersnaam in Home

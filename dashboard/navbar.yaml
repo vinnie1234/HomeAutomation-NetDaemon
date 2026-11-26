@@ -36,7 +36,7 @@ routes:
     label: Huis
     icon: mdi:broom
     icon_selected: mdi:broom
-    # Bolletje bij nieuwe meldingen (afval morgen, bak van Jaap vol, batterij kritiek, tank of storing van de luchtontvochtiger).
+    # Bolletje bij nieuwe meldingen (afval morgen, bak van Jaap vol, batterij kritiek, tank of storing van de luchtontvochtiger, een raam open).
     # Wie Huishouden opent, heeft ze gezien: dat wordt per apparaat onthouden tot er iets verandert.
     badge:
       show: |
@@ -47,6 +47,7 @@ routes:
             !['Geen', 'unavailable', 'unknown', undefined].includes(afval) && `afval:${afval}:${new Date().toDateString()}`,
             states['binary_sensor.jaap_bin_full']?.state === 'on' && 'jaap',
             parseInt(states['sensor.battery_devices_critical']?.state) > 0 && `batterij:${states['sensor.battery_devices_critical'].state}`,
+            ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'].some(key => states[`input_boolean.raam_${key}`]?.state === 'on') && 'raam-open',
             dh('_tank_full') && 'ontvochtiger-tank',
             ['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => dh(`_probleem${n}`)) && 'ontvochtiger-storing'
           ].filter(Boolean).join('|');

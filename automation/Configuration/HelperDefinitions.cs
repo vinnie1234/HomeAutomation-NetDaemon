@@ -27,6 +27,12 @@ public static class HelperDefinitions
         Number("pixel_antibraak_doosprijs", "Pixel antibraak doosprijs", min: 0, max: 1000, step: 0.01, mode: "box", unit: "€", icon: "mdi:cash", start: 20.30),
         Number("pixel_antibraak_doosgrootte", "Pixel antibraak doosgrootte", min: 1, max: 500, step: 1, mode: "box", unit: "pillen", icon: "mdi:package-variant", start: 4),
 
+        // Ramen (WindowMonitor): aan = dat raam staat open. Er zijn geen raamsensoren: het dashboard zet ze aan en uit.
+        // Twee ramen in de woonkamer (bij de tv en bij de tafel) en een in de slaapkamer.
+        Boolean("raam_woonkamer_tv", "Raam woonkamer tv", icon: "mdi:window-open-variant"),
+        Boolean("raam_woonkamer_tafel", "Raam woonkamer tafel", icon: "mdi:window-open-variant"),
+        Boolean("raam_slaapkamer", "Raam slaapkamer", icon: "mdi:window-open-variant"),
+
         // Werkrooster per persoon (WorkSchedule). Vincent neemt zijn oude instellingen over; Carleen en het weekend beginnen op Vrij.
         WorkDay("werkdag_vincent_maandag", "Werkdag Vincent maandag", copyFrom: "input_boolean.officeday_monday"),
         WorkDay("werkdag_vincent_dinsdag", "Werkdag Vincent dinsdag", copyFrom: "input_boolean.officeday_tuesday"),

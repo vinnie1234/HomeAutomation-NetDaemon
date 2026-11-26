@@ -5440,6 +5440,84 @@ dehumidifier_alert:
       return states[`binary_sensor.${B}_tank_full`]?.state === 'on' ? 'Leeg de tank en zet hem terug · tik voor de bediening' : 'Tik voor de bediening';
     ]]]
 
+# Een raam staat open (er zijn geen raamsensoren: het staat aan met de knoppen op Huis, zie de pop-up #ramen). Tik en bevestig als het dicht is.
+# variables.room is de sleutel van het raam (woonkamer_tv, woonkamer_tafel, slaapkamer), variables.room_name de naam. Rood als NetDaemon (WindowMonitor)
+# adviseert liever dicht (regen, wind, beestjes), anders oranje.
+window_alert:
+  template: alert
+  icon: mdi:window-open-variant
+  variables:
+    pulse: |
+      [[[ return states['sensor.raam_advies']?.attributes.sleutel === 'dicht'; ]]]
+    color: |
+      [[[ return states['sensor.raam_advies']?.attributes.sleutel === 'dicht' ? '255, 107, 107' : '255, 176, 96'; ]]]
+  name: |
+    [[[ return `Raam open: ${variables.room_name}`; ]]]
+  label: |
+    [[[
+      const since = new Date(states[`input_boolean.raam_${variables.room}`]?.last_changed);
+      const min = Math.max(0, Math.round((Date.now() - since) / 60000));
+      const duration = min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`;
+      const advice = states['sensor.raam_advies']?.attributes;
+      const parts = [`Sinds ${since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · ${duration}`];
+      if (advice?.sleutel === 'dicht' && advice.redenen?.length) parts.push(advice.redenen[0]);
+      parts.push('tik als het dicht is');
+      return parts.join(' · ');
+    ]]]
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        if (!window.confirm(`Is het raam ${String(variables.room_name).toLowerCase()} dicht?`)) return;
+        hass.callService('input_boolean', 'turn_off', { entity_id: `input_boolean.raam_${variables.room}` });
+      ]]]
+
+# Eén knop per ruimte in de pop-up #ramen (entity: input_boolean.raam_<ruimte>, name: de ruimte). Tik als het raam open gaat; tik en bevestig
+# als het dicht is. Open: oranje, met sinds wanneer en hoe lang.
+window_button:
+  template: action
+  triggers_update: all
+  show_label: true
+  icon: mdi:window-closed-variant
+  styles:
+    grid:
+      - grid-template-areas: '"i" "n" "l"'
+      - row-gap: 4px
+    card:
+      - height: 108px
+    label:
+      - justify-self: center
+      - font-size: 11px
+      - text-align: center
+      - white-space: normal
+  label: |
+    [[[
+      if (entity.state !== 'on') return 'Dicht';
+      const since = new Date(entity.last_changed);
+      const min = Math.max(0, Math.round((Date.now() - since) / 60000));
+      const duration = min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`;
+      return `Open sinds ${since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · ${duration}`;
+    ]]]
+  tap_action:
+    action: javascript
+    javascript: |
+      [[[
+        if (entity.state === 'on') {
+          if (!window.confirm(`Is het ${String(entity.attributes.friendly_name).toLowerCase()} dicht?`)) return;
+          hass.callService('input_boolean', 'turn_off', { entity_id: entity.entity_id });
+        } else {
+          hass.callService('input_boolean', 'turn_on', { entity_id: entity.entity_id });
+        }
+      ]]]
+  state:
+    - operator: template
+      value: "[[[ return entity.state === 'on'; ]]]"
+      icon: mdi:window-open-variant
+      styles:
+        card:
+          - background: rgba(255, 176, 96, 0.22)
+          - border: 1.5px solid rgba(255, 176, 96, 0.7)
+
 # Stroom extreem duur of negatief, met dezelfde grenzen als de melding van NetDaemon (Alarm.cs): boven € 0,55 of onder € 0.
 # Toont de prijs nu en tot hoe laat het zo blijft (uit hourly_prices). Tik gaat naar de prijzen.
 price_alert:

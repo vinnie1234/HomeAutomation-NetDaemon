@@ -21,8 +21,10 @@ sections:
               // De luchtontvochtiger: dezelfde redenen als het bolletje bij Huis in de navigatie (navbar.yaml)
               const dh = id => states[`binary_sensor.luchtontvochtiger${id}`]?.state === 'on';
               const dhFault = ['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => dh(`_probleem${n}`));
-              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0 || dhFault) return 'bad';
-              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') || dh('_tank_full');
+              const openWindows = ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'].filter(key => states[`input_boolean.raam_${key}`]?.state === 'on');
+              if (states['binary_sensor.jaap_bin_full']?.state === 'on' || parseInt(states['sensor.battery_devices_critical']?.state) > 0 || dhFault
+                || (openWindows.length && states['sensor.raam_advies']?.attributes.sleutel === 'dicht')) return 'bad';
+              const low = ['wasmiddel', 'wasverzachter'].some(k => states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') || dh('_tank_full') || openWindows.length > 0;
               // Afval vandaag en morgen: dezelfde redenen als het bolletje bij Huis in de navigatie (navbar.yaml)
               const afval = ['sensor.afval_vandaag', 'sensor.afval_morgen'].some(id => !['Geen', 'unknown', 'unavailable', undefined].includes(states[id]?.state));
               return low || afval ? 'warn' : 'ok';
@@ -37,6 +39,10 @@ sections:
             const dh = id => states[`binary_sensor.luchtontvochtiger${id}`]?.state === 'on';
             if (dh('_tank_full')) issues.push('tank luchtontvochtiger legen');
             if (['', '_2', '_3', '_4', '_5', '_6', '_7'].some(n => dh(`_probleem${n}`))) issues.push('luchtontvochtiger meldt een storing');
+            // Ramen die open staan (dezelfde reden als het bolletje bij Huis in de navigatie)
+            const windowNames = { woonkamer_tv: 'woonkamer bij de tv', woonkamer_tafel: 'woonkamer bij de tafel', slaapkamer: 'slaapkamer' };
+            const openWindows = Object.keys(windowNames).filter(key => states[`input_boolean.raam_${key}`]?.state === 'on');
+            if (openWindows.length) issues.push(`raam ${openWindows.map(key => windowNames[key]).join(' en ')} open`);
             ['wasmiddel', 'wasverzachter'].forEach(k => {
               if (states[`binary_sensor.badkamer_wasmachine_${k}_bijna_op`]?.state === 'on') issues.push(`${k} kopen`);
             });
@@ -481,6 +487,82 @@ sections:
             - align-self: start
             - white-space: normal
             - text-align: left
+          custom_fields:
+            arrow:
+              - align-self: center
+
+      - type: heading
+        heading: Ramen
+        heading_style: title
+        icon: mdi:window-open-variant
+      # Eén tik opent de pop-up #ramen: het advies met de redenen, de ramen per ruimte (open gezet of dicht gedaan, met de duur) en hoe lang ze open stonden.
+      # Er zijn geen raamsensoren: de knoppen in de pop-up zetten input_boolean.raam_<ruimte> aan en uit, NetDaemon (WindowMonitor) rekent het advies uit.
+      - type: custom:button-card
+        template: glass
+        triggers_update: all
+        entity: sensor.raam_advies
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: navigate
+          navigation_path: "#ramen"
+        name: |
+          [[[
+            const rooms = { woonkamer_tv: 'Woonkamer bij de tv', woonkamer_tafel: 'Woonkamer bij de tafel', slaapkamer: 'Slaapkamer' };
+            const open = Object.entries(rooms).filter(([key]) => states[`input_boolean.raam_${key}`]?.state === 'on');
+            const minutes = key => Math.max(0, Math.round((Date.now() - new Date(states[`input_boolean.raam_${key}`].last_changed)) / 60000));
+            const duration = min => min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`;
+            if (open.length === 1) return `Raam open: ${open[0][1]} · ${duration(minutes(open[0][0]))}`;
+            if (open.length > 1) return `${open.length} ramen open`;
+            return ['unavailable', 'unknown'].includes(entity.state) ? 'Raamadvies niet beschikbaar' : entity.state;
+          ]]]
+        label: |
+          [[[
+            const rooms = ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'];
+            const open = rooms.filter(key => states[`input_boolean.raam_${key}`]?.state === 'on');
+            const reasons = entity.attributes.redenen ?? [];
+            if (open.length) return `Advies: ${String(entity.state).toLowerCase()}${reasons.length ? ` · ${reasons[0]}` : ''}`;
+            return `${entity.attributes.minuten ? `${entity.attributes.minuten} min · ` : ''}${reasons[0] ?? 'Tik voor het advies'}`;
+          ]]]
+        custom_fields:
+          ring: |
+            [[[
+              const rooms = ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'];
+              const open = rooms.filter(key => states[`input_boolean.raam_${key}`]?.state === 'on').length;
+              const key = entity.attributes.sleutel;
+              const color = open ? (key === 'dicht' ? '#ff6b6b' : '#ffb060')
+                : { luchten: '#4ade80', kort: '#38bdf8', weinig_nut: '#7aa2ff', dicht: '#ff6b6b' }[key] ?? 'rgba(255,255,255,0.35)';
+              return `<div style="width:64px;height:64px;border-radius:50%;border:4px solid ${color};box-sizing:border-box;
+                        display:flex;align-items:center;justify-content:center;background:#121828">
+                        ${open ? `<span style="font-size:22px;font-weight:700">${open}</span>`
+                               : `<ha-icon icon="mdi:window-closed-variant" style="--mdc-icon-size:28px;color:${color}"></ha-icon>`}
+                      </div>`;
+            ]]]
+          arrow: '<ha-icon icon="mdi:chevron-right" style="--mdc-icon-size:22px;opacity:0.5"></ha-icon>'
+        styles:
+          grid:
+            - grid-template-areas: '"ring n arrow" "ring l arrow"'
+            - grid-template-columns: auto 1fr auto
+            - column-gap: 14px
+          card:
+            - height: 88px
+          name:
+            - align-self: end
+            - font-size: 16px
+          label:
+            - align-self: start
+            - white-space: normal
+            - text-align: left
+            # Hooguit twee regels: de redenen zijn lange zinnen en de kaart is even hoog als de andere
+            - display: -webkit-box
+            - -webkit-line-clamp: 2
+            - -webkit-box-orient: vertical
+            - overflow: hidden
+            - color: |
+                [[[
+                  const open = ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'].some(key => states[`input_boolean.raam_${key}`]?.state === 'on');
+                  return open ? '#ffb060' : 'var(--secondary-text-color)';
+                ]]]
           custom_fields:
             arrow:
               - align-self: center
@@ -1013,6 +1095,141 @@ sections:
                 name: Temperatuur
               - entity: binary_sensor.luchtontvochtiger_tank_full
                 name: Tank vol
+
+  # Pop-up: ramen (opent via de kaart Ramen en de meldingen op Home). Het advies komt van NetDaemon (WindowMonitor, sensor.raam_advies);
+  # er zijn geen raamsensoren, dus de knoppen zetten input_boolean.raam_<ruimte> aan (open gezet) en uit (dicht gedaan).
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#ramen"
+        name: Ramen
+        icon: mdi:window-open-variant
+        sub_button:
+          - entity: sensor.raam_open_aantal
+            show_state: true
+            show_icon: false
+            show_background: false
+        cards:
+          # Het advies met de redenen en de cijfers erachter
+          - type: custom:button-card
+            template: glass
+            triggers_update: all
+            entity: sensor.raam_advies
+            show_icon: false
+            show_name: false
+            tap_action:
+              action: none
+            custom_fields:
+              body: |
+                [[[
+                  const a = entity.attributes ?? {};
+                  const colors = { luchten: '#4ade80', kort: '#38bdf8', weinig_nut: '#7aa2ff', dicht: '#ff6b6b' };
+                  const icons = { luchten: 'mdi:window-open-variant', kort: 'mdi:timer-sand', weinig_nut: 'mdi:water-percent', dicht: 'mdi:window-closed-variant' };
+                  const color = colors[a.sleutel] ?? 'rgba(255,255,255,0.5)';
+                  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+                  const num = (id, digits = 0) => { const v = parseFloat(states[id]?.state); return isNaN(v) ? '–' : v.toFixed(digits).replace('.', ','); };
+                  const grams = v => v == null ? '–' : `${String(v).replace('.', ',')} g/m³`;
+                  const dark = states['sun.sun']?.state === 'below_horizon';
+                  const rain = states['binary_sensor.weer_thuis_neerslag_verwacht']?.state === 'on';
+                  const reasons = (a.redenen ?? []).map(r => `<li style="margin:3px 0">${esc(r)}</li>`).join('');
+                  const box = (title, lines) => `<div style="flex:1;min-width:130px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,0.05)">
+                      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">${title}</div>${lines.map(l => `<div style="font-size:13px;margin-top:3px">${l}</div>`).join('')}</div>`;
+                  return `<div style="text-align:left;white-space:normal">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <ha-icon icon="${icons[a.sleutel] ?? 'mdi:help-circle-outline'}" style="--mdc-icon-size:34px;color:${color}"></ha-icon>
+                      <div><div style="font-size:19px;font-weight:800;color:${color}">${esc(entity.state)}</div>
+                        ${a.minuten ? `<div style="font-size:12px;opacity:.7">Een goede tijd om te luchten: ${a.minuten} minuten, kort en wijd open</div>` : ''}</div>
+                    </div>
+                    <ul style="margin:10px 0 0 0;padding-left:18px;font-size:13px;opacity:.9">${reasons}</ul>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                      ${box('Buiten', [`${num('sensor.weer_thuis_temperatuur')}° · ${num('sensor.weer_thuis_luchtvochtigheid')}%`, grams(a.buiten_absoluut), `wind tot ${num('sensor.weer_thuis_windstoten')} km/u`, `${rain ? 'regen verwacht' : 'droog'} · ${dark ? 'donker' : 'licht'}`])}
+                      ${box('Binnen', [`${num('sensor.luchtontvochtiger_temperatuur', 1)}° · ${num('sensor.luchtontvochtiger_luchtvochtigheid')}%`, grams(a.binnen_absoluut), `ontvochtiger: ${states['humidifier.luchtontvochtiger']?.state === 'on' ? `aan, doel ${states['humidifier.luchtontvochtiger'].attributes.humidity}%` : 'uit'}`])}
+                    </div>
+                  </div>`;
+                ]]]
+            styles:
+              grid:
+                - grid-template-areas: '"body"'
+              card:
+                - padding: 14px
+              custom_fields:
+                body:
+                  - justify-self: stretch
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Ramen (tik als een raam open gaat)
+            icon: mdi:window-open-variant
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:button-card
+                template: window_button
+                entity: input_boolean.raam_woonkamer_tv
+                name: Woonkamer tv
+              - type: custom:button-card
+                template: window_button
+                entity: input_boolean.raam_woonkamer_tafel
+                name: Woonkamer tafel
+              - type: custom:button-card
+                template: window_button
+                entity: input_boolean.raam_slaapkamer
+                name: Slaapkamer
+          - type: custom:button-card
+            template: action
+            name: Alles dicht
+            icon: mdi:window-closed-variant
+            tap_action:
+              action: javascript
+              javascript: |
+                [[[
+                  const open = ['woonkamer_tv', 'woonkamer_tafel', 'slaapkamer'].map(key => `input_boolean.raam_${key}`).filter(id => states[id]?.state === 'on');
+                  if (!open.length) return;
+                  if (!window.confirm('Zijn alle ramen dicht?')) return;
+                  open.forEach(id => hass.callService('input_boolean', 'turn_off', { entity_id: id }));
+                ]]]
+
+          - type: custom:bubble-card
+            card_type: separator
+            name: Hoe lang open
+            icon: mdi:timer-outline
+          - type: custom:button-card
+            template: glass
+            triggers_update: all
+            entity: sensor.raam_open_vandaag_minuten
+            show_icon: false
+            show_name: false
+            tap_action:
+              action: none
+            custom_fields:
+              body: |
+                [[[
+                  const a = entity.attributes ?? {};
+                  const rooms = { woonkamer_tv: 'Woonkamer bij de tv', woonkamer_tafel: 'Woonkamer bij de tafel', slaapkamer: 'Slaapkamer' };
+                  const duration = min => { min = Math.round(min); return min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`; };
+                  const perRoom = Object.entries(a.per_raam ?? {}).filter(([, m]) => m > 0).map(([key, m]) => `${rooms[key] ?? key}: ${duration(m)}`);
+                  const week = (a.week ?? []).map(d => {
+                    const day = new Date(`${d.datum}T12:00:00`).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;border-top:1px solid rgba(255,255,255,0.07)"><span style="text-transform:capitalize">${day}</span><span>${d.minuten ? duration(d.minuten) : '–'}${d.langste ? ` <span style="opacity:.6">(langste ${duration(d.langste)})</span>` : ''}</span></div>`;
+                  }).join('');
+                  return `<div style="text-align:left;white-space:normal">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline">
+                      <span style="font-size:13px;opacity:.7">Vandaag open</span><b style="font-size:18px">${parseFloat(entity.state) ? duration(parseFloat(entity.state)) : '–'}</b></div>
+                    ${perRoom.length ? `<div style="font-size:12.5px;opacity:.8;margin-top:2px">${perRoom.join(' · ')}</div>` : ''}
+                    ${a.langste_minuten ? `<div style="font-size:12.5px;opacity:.8">Langste keer vandaag: ${duration(a.langste_minuten)}</div>` : ''}
+                    ${week ? `<div style="margin-top:10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">Eerdere dagen</div>${week}` : ''}
+                  </div>`;
+                ]]]
+            styles:
+              grid:
+                - grid-template-areas: '"body"'
+              card:
+                - padding: 14px
+              custom_fields:
+                body:
+                  - justify-self: stretch
 
   # Pop-up: taak met plek toevoegen (opent via de tegel Taak met plek)
   - type: grid
