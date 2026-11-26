@@ -109,7 +109,7 @@ een keer is gestart.
 - Ramen (bij Huis, onder Luchtontvochtiger): één kaart "Ramen" met het advies, tik opent de pop-up. Er zijn geen raamsensoren: bij
   de twee ramen in de woonkamer (bij de tv en bij de tafel) en het raam in de slaapkamer druk je als het raam open gaat en (met bevestiging) als het dicht is. De pop-up toont het advies met
   de redenen (buiten en binnen, vocht in g/m³, wind, regen, donker), per raam sinds wanneer het open staat, en hoe lang de ramen vandaag en de
-  laatste dagen open stonden. Staat een raam open, dan is er een melding op Home (tik en bevestig als het dicht is), een bolletje bij Huis en een
+  laatste dagen open stonden. Staat een raam open, dan is er één melding op Home voor alle open ramen (tik opent de pop-up met alle ramen), een bolletje bij Huis en een
   regel in de samenvatting van Huis; NetDaemon stuurt een telefoonmelding bij regen, harde wind, donker en warm (beestjes) of als het te lang open
   staat. Het advies: buiten 90% vochtig of meer of niet droger dan binnen is "Weinig nut" (laat de ontvochtiger werken); regen, een
   waarschuwing, windstoten vanaf 50 km/u, of donker en 10 graden of warmer is "Liever dicht"; anders "Luchten kan", en bij 5 graden of kouder

@@ -5440,9 +5440,9 @@ dehumidifier_alert:
       return states[`binary_sensor.${B}_tank_full`]?.state === 'on' ? 'Leeg de tank en zet hem terug · tik voor de bediening' : 'Tik voor de bediening';
     ]]]
 
-# Een raam staat open (er zijn geen raamsensoren: het staat aan met de knoppen op Huis, zie de pop-up #ramen). Tik en bevestig als het dicht is.
-# variables.room is de sleutel van het raam (woonkamer_tv, woonkamer_tafel, slaapkamer), variables.room_name de naam. Rood als NetDaemon (WindowMonitor)
-# adviseert liever dicht (regen, wind, beestjes), anders oranje.
+# Er staat een raam open (er zijn geen raamsensoren: het staat aan met de knoppen bij Huis, zie de pop-up #ramen). Eén melding voor alle ramen die
+# open staan: welke en hoe lang; tik opent de pop-up #ramen met alle ramen, waar je ze dicht doet. Rood als NetDaemon (WindowMonitor) adviseert
+# liever dicht (regen, wind, beestjes), anders oranje.
 window_alert:
   template: alert
   icon: mdi:window-open-variant
@@ -5452,25 +5452,28 @@ window_alert:
     color: |
       [[[ return states['sensor.raam_advies']?.attributes.sleutel === 'dicht' ? '255, 107, 107' : '255, 176, 96'; ]]]
   name: |
-    [[[ return `Raam open: ${variables.room_name}`; ]]]
+    [[[
+      const windows = { woonkamer_tv: 'Woonkamer bij de tv', woonkamer_tafel: 'Woonkamer bij de tafel', slaapkamer: 'Slaapkamer' };
+      const open = Object.entries(windows).filter(([key]) => states[`input_boolean.raam_${key}`]?.state === 'on');
+      return open.length === 1 ? `Raam open: ${open[0][1]}` : `${open.length} ramen open`;
+    ]]]
   label: |
     [[[
-      const since = new Date(states[`input_boolean.raam_${variables.room}`]?.last_changed);
-      const min = Math.max(0, Math.round((Date.now() - since) / 60000));
-      const duration = min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`;
+      const windows = { woonkamer_tv: 'Woonkamer bij de tv', woonkamer_tafel: 'Woonkamer bij de tafel', slaapkamer: 'Slaapkamer' };
+      const open = Object.entries(windows).filter(([key]) => states[`input_boolean.raam_${key}`]?.state === 'on')
+        .map(([key, name]) => ({ name, since: new Date(states[`input_boolean.raam_${key}`].last_changed) }));
+      const duration = since => { const min = Math.max(0, Math.round((Date.now() - since) / 60000)); return min < 60 ? `${min} min` : `${Math.floor(min / 60)} u ${min % 60} min`; };
       const advice = states['sensor.raam_advies']?.attributes;
-      const parts = [`Sinds ${since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · ${duration}`];
+      const parts = [];
+      if (open.length === 1) parts.push(`Sinds ${open[0].since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · ${duration(open[0].since)}`);
+      else parts.push(open.map(w => `${w.name} ${duration(w.since)}`).join(' · '));
       if (advice?.sleutel === 'dicht' && advice.redenen?.length) parts.push(advice.redenen[0]);
-      parts.push('tik als het dicht is');
+      parts.push('tik voor alle ramen');
       return parts.join(' · ');
     ]]]
   tap_action:
-    action: javascript
-    javascript: |
-      [[[
-        if (!window.confirm(`Is het raam ${String(variables.room_name).toLowerCase()} dicht?`)) return;
-        hass.callService('input_boolean', 'turn_off', { entity_id: `input_boolean.raam_${variables.room}` });
-      ]]]
+    action: navigate
+    navigation_path: /dashboard-huis/huishouden#ramen
 
 # Eén knop per ruimte in de pop-up #ramen (entity: input_boolean.raam_<ruimte>, name: de ruimte). Tik als het raam open gaat; tik en bevestig
 # als het dicht is. Open: oranje, met sinds wanneer en hoe lang.

@@ -654,44 +654,23 @@ sections:
           template: dehumidifier_alert
         grid_options:
           columns: 12
-      # Een raam staat open (er zijn geen raamsensoren: het staat aan met de knoppen bij Huis). Tik en bevestig als het dicht is.
+      # Er staat een raam open (er zijn geen raamsensoren: het staat aan met de knoppen bij Huis). Eén melding voor alle ramen; tik opent de pop-up Ramen.
       - type: conditional
         conditions:
-          - condition: state
-            entity: input_boolean.raam_woonkamer_tv
-            state: "on"
+          - condition: or
+            conditions:
+              - condition: state
+                entity: input_boolean.raam_woonkamer_tv
+                state: "on"
+              - condition: state
+                entity: input_boolean.raam_woonkamer_tafel
+                state: "on"
+              - condition: state
+                entity: input_boolean.raam_slaapkamer
+                state: "on"
         card:
           type: custom:button-card
           template: window_alert
-          variables:
-            room: woonkamer_tv
-            room_name: Woonkamer bij de tv
-        grid_options:
-          columns: 12
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: input_boolean.raam_woonkamer_tafel
-            state: "on"
-        card:
-          type: custom:button-card
-          template: window_alert
-          variables:
-            room: woonkamer_tafel
-            room_name: Woonkamer bij de tafel
-        grid_options:
-          columns: 12
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: input_boolean.raam_slaapkamer
-            state: "on"
-        card:
-          type: custom:button-card
-          template: window_alert
-          variables:
-            room: slaapkamer
-            room_name: Slaapkamer
         grid_options:
           columns: 12
       # Hockey: de meldingen over Carleen en de afgelastingen, bij de andere opvallende meldingen (net als de portemonnee)
