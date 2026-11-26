@@ -1087,6 +1087,44 @@ sections:
             card_type: separator
             name: Gegevens
             icon: mdi:information-outline
+          # De luchtvochtigheid van de laatste 24 uur met het doel erbij: zie je of hij het haalt en hoe lang dat duurt
+          - type: custom:mini-graph-card
+            name: Luchtvochtigheid
+            icon: mdi:water-percent
+            hours_to_show: 24
+            points_per_hour: 4
+            line_width: 3
+            smoothing: true
+            show:
+              fill: fade
+              labels: false
+              extrema: true
+              legend: true
+            color_thresholds:
+              - value: 0
+                color: "#7aa2ff"
+              - value: 40
+                color: "#4ade80"
+              - value: 60
+                color: "#ffb060"
+              - value: 70
+                color: "#ff6b6b"
+            entities:
+              - entity: sensor.luchtontvochtiger_luchtvochtigheid
+                name: Nu
+              - entity: humidifier.luchtontvochtiger
+                attribute: humidity
+                name: Doel
+                color: "#ffffff"
+                show_fill: false
+                show_points: false
+                show_legend: true
+                smoothing: false
+                line_width: 1.5
+            card_mod:
+              style: |
+                :host, ha-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+                ha-card { transform: translateZ(0); backface-visibility: hidden; }
           - type: entities
             entities:
               - entity: sensor.luchtontvochtiger_luchtvochtigheid
