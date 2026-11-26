@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Automation.apps.General.Presence;
 using Automation.Helpers;
 using Automation.Extensions;
@@ -88,6 +89,62 @@ public class SleepManagerTests
         TestExceptionCatcher.CaughtException.Should().BeNull("because Sleeping() should not throw: " + TestExceptionCatcher.CaughtException);
 
         ctx.VerifyCallService("media_player", "turn_off", "tv", times: 1);
+    }
+
+    [Fact]
+    public void VincentSleeping_PutsTheDehumidifierOnSleepMode()
+    {
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("humidifier.luchtontvochtiger").Returns(new EntityState
+        {
+            EntityId = "humidifier.luchtontvochtiger", State = "on", AttributesJson = JsonSerializer.SerializeToElement(new { mode = "Auto" })
+        });
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        // (The data is an anonymous type of the app, which a test cannot name: compare what it serializes to)
+        ctx.VerifyCallService("humidifier", "set_mode", "luchtontvochtiger", times: 1);
+        var data = ctx.HaContext.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == "CallService" && (string?)c.GetArguments()[1] == "set_mode")
+            .Select(c => JsonSerializer.Serialize(c.GetArguments()[3]))
+            .Single();
+        data.Should().Be("{\"mode\":\"Sleep\"}");
+    }
+
+    [Theory]
+    [InlineData("off", "Auto")]
+    [InlineData("on", "Sleep")]
+    [InlineData("unavailable", "Auto")]
+    public void VincentSleeping_LeavesTheDehumidifierAlone_WhenOffOrAlreadyOnSleepMode(string state, string mode)
+    {
+        // Off: someone turned it off and it stays off; already on Sleep: nothing to ask
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("humidifier.luchtontvochtiger").Returns(new EntityState
+        {
+            EntityId = "humidifier.luchtontvochtiger", State = state, AttributesJson = JsonSerializer.SerializeToElement(new { mode })
+        });
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyNotCallService("humidifier.set_mode");
+    }
+
+    [Fact]
+    public void VincentSleeping_WithoutADehumidifier_StillRunsTheRoutine()
+    {
+        // The state of the dehumidifier is unknown (not set up): the routine goes on
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ctx.VerifyNotCallService("humidifier.set_mode");
+        ctx.VerifyCallService("media_player", "turn_off", "tv");
     }
 
     [Fact]

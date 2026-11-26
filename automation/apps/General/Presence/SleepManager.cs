@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using System.Text.Json;
 using Automation.Configuration;
 using Automation.Core;
 using Automation.Helpers;
@@ -19,6 +20,12 @@ public class SleepManager : BaseApp
     /// </summary>
     private bool DisableLightAutomations => Entities.InputBoolean.Disablelightautomationgeneral.IsOn();
     
+    /// <summary>The dehumidifier (it has no fixed room): the integration is xtend_tuya, so it is not in the generated entities.</summary>
+    public const string Dehumidifier = "humidifier.luchtontvochtiger";
+
+    /// <summary>The mode of the dehumidifier for the night (the modes are Continuities, Auto and Sleep).</summary>
+    public const string DehumidifierSleepMode = "Sleep";
+
     private readonly IDataRepository _storage;
 
     /// <summary>
@@ -118,6 +125,7 @@ public class SleepManager : BaseApp
             TurnAllLightsOut();
             SendBatteryWarning();
             Entities.MediaPlayer.Tv.TurnOff();
+            DehumidifierToSleepMode();
             // Entities.Cover.Rollerblind0003.SetCoverPosition(0); // rollerblind not moved for now
             var now = Scheduler.NowNl();
             // Going to bed after midnight still belongs to the evening before: then "tomorrow" is the day after today, and the garbage of
@@ -142,6 +150,20 @@ public class SleepManager : BaseApp
             Logger.LogError(ex, "Error in the sleep routine");
             TestExceptionCatcher.CaughtException = ex;
         }
+    }
+
+    /// <summary>
+    /// Puts the dehumidifier on its sleep mode (quiet) when it is on and not on that mode yet. One that is off stays off: someone turned it off.
+    /// </summary>
+    private void DehumidifierToSleepMode()
+    {
+        var state = HaContext.GetState(Dehumidifier);
+        if (state?.State != "on") return;
+
+        var mode = state.AttributesJson is { ValueKind: JsonValueKind.Object } a && a.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
+        if (mode == DehumidifierSleepMode) return;
+
+        HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = DehumidifierSleepMode });
     }
 
     /// <summary>
