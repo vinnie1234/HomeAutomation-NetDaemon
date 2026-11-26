@@ -673,6 +673,20 @@ sections:
           template: window_alert
         grid_options:
           columns: 12
+      # Open issues of pull requests in een van de GitHub-repositories (sensor.git_open_items); alleen voor Vincent, tik opent het overzicht op zijn pagina
+      - type: conditional
+        conditions:
+          - condition: user
+            users:
+              - 0d3e17e157c247858fd93001d40168c6
+          - condition: numeric_state
+            entity: sensor.git_open_items
+            above: 0
+        card:
+          type: custom:button-card
+          template: git_alert
+        grid_options:
+          columns: 12
       # Hockey: de meldingen over Carleen en de afgelastingen, bij de andere opvallende meldingen (net als de portemonnee)
       # Hockey: morgen (of vandaag) kunnen er senioren-thuiswedstrijden afgelast moeten worden vanwege het weer; tik voor de pagina Hockey
       - type: custom:button-card

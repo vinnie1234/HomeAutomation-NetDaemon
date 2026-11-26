@@ -12,7 +12,7 @@ YAML-dashboard voor Home Assistant.
 | `templates/button_card_templates.yaml` | Gedeelde stijl en gedrag van tegels (kamer, persoon, actie, info) |
 | `navbar.yaml` | Navigatiebalk, opgenomen in elke pagina |
 | `cards/` | Gedeelde kaarten en lijsten: `agenda.yaml` (agenda en taken), `auto.yaml`, `todo_*.yaml` (de takenlijsten en de boodschappenlijst), `boodschappen_knop.yaml` (tegel op Huis), `taak_knop.yaml`, `boodschappen_gedaan_knop.yaml` (knop op Home, een uur na Boodschappen AH), `kerstmuziek_knop.yaml` (knop op Home, alleen zolang de kerstlampjes er zijn), `camera_woonkamer.yaml`, `power_sources.yaml` (de apparaten van "Grootste verbruikers nu"), ... |
-| `ha/template.yaml` | Template-sensoren voor `/config/template.yaml`: verwachting per uur, brieven van deze week en of NetDaemon online is |
+| `ha/template.yaml` | Template-sensoren voor `/config/template.yaml`: verwachting per uur, brieven van deze week, of NetDaemon online is en de open issues en pull requests van de GitHub-repositories |
 | `themes/glass_home.yaml` | Thema "Glass Home" |
 
 ## Benodigd uit HACS
@@ -62,6 +62,9 @@ takenlijsten `todo.dagelijks` (heet "Samen"), `todo.vincent` en `todo.carleen`, 
    - `Brieven deze week`: de PostNL-brieven van de laatste 7 dagen, voor het aantal en de scans,
    - `NetDaemon online`: uit als het levensteken van NetDaemon (elke minuut) een paar minuten wegblijft; het dashboard
      toont dan een melding met een herstartknop,
+   - `Git open items`: de open issues en pull requests van alle repositories van de integratie GitHub, samen (de state) en per
+     repository met sterren, forks, de laatste release en de laatste commit (het attribuut `repos`). Een repository erbij toevoegen
+     in de integratie is genoeg; herlaad daarna de template-entiteiten, dan telt hij mee.
    - `NetDaemon MQTT werkt`: uit als het MQTT-levensteken van NetDaemon verouderd is. De sensoren die NetDaemon zelf aanmaakt
      lopen via MQTT, en als de broker de login weigert stopt dat publiceren zonder foutmelding. Het dashboard toont dan een
      oranje melding.
@@ -114,6 +117,11 @@ een keer is gestart.
   staat. Het advies: buiten 90% vochtig of meer of niet droger dan binnen is "Weinig nut" (laat de ontvochtiger werken); regen, een
   waarschuwing, windstoten vanaf 50 km/u, of donker en 10 graden of warmer is "Liever dicht"; anders "Luchten kan", en bij 5 graden of kouder
   "Kort luchten" (10 minuten). De grenzen staan in `automation/Helpers/WindowAdvice.cs`, de app in `automation/apps/General/Household/WindowMonitor.cs`.
+- Git (pagina Vincent, onder "Waar is..."): per GitHub-repository de open issues en pull requests, de samengevoegde pull requests, sterren, forks, kijkers,
+  de laatste release en de laatste commit, met bovenaan de totalen. Groen als er niets openstaat, oranje bij open issues, paars bij open pull requests;
+  elk getal is een link naar die lijst op GitHub. Staat er in een repository iets open, dan is er een melding op Home (alleen voor Vincent; tik opent dit
+  overzicht), een bolletje bij Vincent in het menu en een regel bovenaan zijn pagina. De gegevens komen uit de integratie GitHub (die ververst zelf
+  om de paar minuten) via de sensor `sensor.git_open_items`.
 - Rode melding "NetDaemon reageert niet": tik herstart de add-on (alleen met een beheerdersaccount).
 - Oranje melding "NetDaemon kan zijn sensoren niet meer bijwerken": NetDaemon draait, maar publiceert niets meer via MQTT.
   Controleer dan de MQTT-gebruiker en het wachtwoord in `appsettings.json` van NetDaemon (de gebruikersnaam in Home

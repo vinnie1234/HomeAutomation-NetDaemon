@@ -72,8 +72,9 @@ routes:
     icon: mdi:account-outline
     icon_selected: mdi:account
     hidden: "[[[ return user.id !== '0d3e17e157c247858fd93001d40168c6'; ]]]"
+    # Bolletje bij bijna geen peuken meer of open issues en pull requests in Git; bovenaan de pagina staat dan de reden
     badge:
-      show: "[[[ return parseFloat(states['input_number.peuken_pakjes']?.state) < 10; ]]]"
+      show: "[[[ return parseFloat(states['input_number.peuken_pakjes']?.state) < 10 || parseInt(states['sensor.git_open_items']?.state) > 0; ]]]"
       color: "#ffb060"
   - url: /dashboard-huis/carleen
     label: Carleen

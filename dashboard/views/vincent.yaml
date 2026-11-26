@@ -22,12 +22,18 @@ sections:
           level: |
             [[[
               const packs = parseFloat(states['input_number.peuken_pakjes']?.state);
-              return packs < 5 ? 'bad' : packs < 10 ? 'warn' : 'ok';
+              const git = parseInt(states['sensor.git_open_items']?.state) || 0;
+              return packs < 5 ? 'bad' : packs < 10 || git > 0 ? 'warn' : 'ok';
             ]]]
+        # Aandacht nodig (dezelfde redenen als het bolletje bij Vincent in het menu): bijna geen peuken meer, open issues of pull requests in Git
         name: |
           [[[
             const packs = parseFloat(states['input_number.peuken_pakjes']?.state);
-            return packs < 10 ? `Nog maar ${Math.round(packs)} ${packs === 1 ? 'pakje' : 'pakjes'} peuken` : 'Hoi Vincent';
+            const git = parseInt(states['sensor.git_open_items']?.state) || 0;
+            const reasons = [];
+            if (packs < 10) reasons.push(`Nog maar ${Math.round(packs)} ${packs === 1 ? 'pakje' : 'pakjes'} peuken`);
+            if (git > 0) reasons.push(`Git: ${git} ${git === 1 ? 'issue of PR' : "issues en PR's"} open`);
+            return reasons.length ? reasons.join(' · ') : 'Hoi Vincent';
           ]]]
         label: |
           [[[
@@ -55,6 +61,16 @@ sections:
         template: laptop_status
       - type: custom:button-card
         template: werktijd_status
+
+  # Git: de GitHub-repositories met open issues en pull requests, sterren en de laatste release (op Home staat een melding als er iets openstaat)
+  - type: grid
+    cards:
+      - type: heading
+        heading: Git
+        heading_style: title
+        icon: mdi:github
+      - type: custom:button-card
+        template: git_repos
 
   # Agenda en taken, en een taak met een plek toevoegen
   - type: grid

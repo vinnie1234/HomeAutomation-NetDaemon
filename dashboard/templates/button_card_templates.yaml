@@ -5475,6 +5475,36 @@ window_alert:
     action: navigate
     navigation_path: /dashboard-huis/huishouden#ramen
 
+# Er staan open issues of pull requests in een van de GitHub-repositories (sensor.git_open_items, zie ha/template.yaml). Eén melding voor alle
+# repositories; tik opent het overzicht op de pagina Vincent. Oranje bij open issues, paars als er alleen pull requests wachten.
+git_alert:
+  template: alert
+  entity: sensor.git_open_items
+  icon: mdi:github
+  variables:
+    color: |
+      [[[ return (entity?.attributes?.repos ?? []).some(r => r.issues > 0) ? '255, 176, 96' : '139, 140, 255'; ]]]
+  tap_action:
+    action: navigate
+    navigation_path: /dashboard-huis/vincent
+  name: |
+    [[[
+      const open = (entity?.attributes?.repos ?? []).filter(r => r.issues + r.prs > 0);
+      const issues = open.reduce((n, r) => n + r.issues, 0);
+      const prs = open.reduce((n, r) => n + r.prs, 0);
+      const what = [issues && `${issues} open ${issues === 1 ? 'issue' : 'issues'}`, prs && `${prs} ${prs === 1 ? 'pull request' : 'pull requests'}`]
+        .filter(Boolean).join(' en ');
+      const short = r => r.naam.replace(/^HomeAssis(ta|a)nt/i, '') || r.naam;
+      return open.length === 1 ? `${short(open[0])}: ${what}` : `Git: ${what}`;
+    ]]]
+  label: |
+    [[[
+      const open = (entity?.attributes?.repos ?? []).filter(r => r.issues + r.prs > 0);
+      if (open.length === 1) return 'Tik voor het overzicht van de repositories';
+      const short = r => r.naam.replace(/^HomeAssis(ta|a)nt/i, '') || r.naam;
+      return open.map(r => `${short(r)}: ${[r.issues && `${r.issues} ${r.issues === 1 ? 'issue' : 'issues'}`, r.prs && `${r.prs} PR`].filter(Boolean).join(', ')}`).join(' · ');
+    ]]]
+
 # Eén knop per ruimte in de pop-up #ramen (entity: input_boolean.raam_<ruimte>, name: de ruimte). Tik als het raam open gaat; tik en bevestig
 # als het dicht is. Open: oranje, met sinds wanneer en hoe lang.
 window_button:
@@ -6530,6 +6560,74 @@ homework_days:
     custom_fields:
       list:
         - width: 100%
+
+# De GitHub-repositories op de pagina Vincent (sensor.git_open_items, zie ha/template.yaml): bovenaan de totalen, daarna per repository de open
+# issues en pull requests, de samengevoegde pull requests, sterren, forks en kijkers, de laatste release en de laatste commit. Alles is een
+# link naar GitHub (nieuw tabblad). Een repository is groen als er niets openstaat, oranje bij open issues en paars bij open pull requests.
+git_repos:
+  template: glass
+  entity: sensor.git_open_items
+  show_icon: false
+  show_name: false
+  tap_action:
+    action: none
+  custom_fields:
+    body: |
+      [[[
+        const repos = entity?.attributes?.repos;
+        if (!Array.isArray(repos) || !repos.length) {
+          return '<div style="opacity:.65;padding:6px 2px;text-align:left">Geen repositories gevonden (de integratie GitHub en de sensor Git open items)</div>';
+        }
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const link = (url, html, style = '') => url
+          ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;${style}">${html}</a>`
+          : `<span style="${style}">${html}</span>`;
+        const chip = (icon, text, url, rgb) => link(url,
+          `<ha-icon icon="${icon}" style="--mdc-icon-size:15px;margin:0;${rgb ? `color:rgb(${rgb})` : ''}"></ha-icon>${text}`,
+          `display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;
+           background:${rgb ? `rgba(${rgb},0.18)` : 'rgba(255,255,255,0.07)'};border:1px solid ${rgb ? `rgba(${rgb},0.45)` : 'rgba(255,255,255,0.08)'};
+           ${rgb ? '' : 'opacity:0.8'}`);
+        const ORANGE = '255, 176, 96', PURPLE = '139, 140, 255', GREEN = '74, 222, 128';
+        const sum = key => repos.reduce((n, r) => n + (r[key] || 0), 0);
+        const tile = (value, label, rgb) => `<div style="flex:1;min-width:0;text-align:center;padding:8px 4px;border-radius:12px;
+            background:${rgb ? `rgba(${rgb},0.16)` : 'rgba(255,255,255,0.05)'};border:1px solid ${rgb ? `rgba(${rgb},0.4)` : 'rgba(255,255,255,0.07)'}">
+            <div style="font-size:22px;font-weight:700;line-height:1.1;${rgb ? `color:rgb(${rgb})` : ''}">${value}</div>
+            <div style="font-size:11px;opacity:0.7">${label}</div></div>`;
+        const totals = `<div style="display:flex;gap:8px">
+            ${tile(sum('issues'), 'open issues', sum('issues') ? ORANGE : null)}${tile(sum('prs'), 'open PRs', sum('prs') ? PURPLE : null)}
+            ${tile(sum('samengevoegd'), 'samengevoegd')}${tile(sum('sterren'), 'sterren')}</div>`;
+        const block = r => {
+          const rgb = r.issues ? ORANGE : r.prs ? PURPLE : GREEN;
+          const open = [r.issues && `${r.issues} ${r.issues === 1 ? 'issue' : 'issues'}`, r.prs && `${r.prs} ${r.prs === 1 ? 'PR' : "PR's"}`].filter(Boolean).join(' · ');
+          const status = open ? `<span style="color:rgb(${rgb});font-weight:700">${open} open</span>` : `<span style="color:rgb(${rgb});font-weight:700">Alles bij</span>`;
+          const commit = r.commit ? link(r.commit_url, `<ha-icon icon="mdi:source-commit" style="--mdc-icon-size:15px;margin:0;flex:none"></ha-icon><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">${esc(r.commit)}</span>`,
+            'display:flex;justify-content:flex-start;align-items:center;gap:4px;flex:1;min-width:0;opacity:0.7;font-size:12px') : '';
+          const release = r.release ? chip('mdi:tag-outline', esc(r.release), r.release_url) : '';
+          const footer = release || commit ? `<div style="display:flex;align-items:center;gap:10px;min-width:0">${release}${commit}</div>` : '';
+          return `<div style="padding:10px 12px;border-radius:14px;background:rgba(${rgb},0.08);border:1px solid rgba(${rgb},0.4);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+                ${link(r.url, `<span style="display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;overflow-wrap:anywhere"><ha-icon icon="mdi:github" style="--mdc-icon-size:20px;margin:0;color:rgb(${rgb})"></ha-icon>${esc(r.naam)}</span>`, 'min-width:0')}
+                <span style="font-size:12px;white-space:nowrap">${status}</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${chip('mdi:alert-circle-outline', `${r.issues} issues`, `${r.url}/issues`, r.issues ? ORANGE : null)}
+                ${chip('mdi:source-pull', `${r.prs} PR's`, `${r.url}/pulls`, r.prs ? PURPLE : null)}
+                ${chip('mdi:source-merge', `${r.samengevoegd} merged`, `${r.url}/pulls?q=is%3Apr+is%3Amerged`)}
+                ${chip('mdi:star-outline', r.sterren, `${r.url}/stargazers`)}
+                ${chip('mdi:source-fork', r.forks, `${r.url}/forks`)}
+                ${chip('mdi:eye-outline', r.kijkers, `${r.url}/watchers`)}</div>
+              ${footer}</div>`;
+        };
+        return `<div style="display:flex;flex-direction:column;gap:10px;text-align:left">${totals}${repos.map(block).join('')}</div>`;
+      ]]]
+  styles:
+    card:
+      - padding: 14px
+    grid:
+      - grid-template-areas: '"body"'
+    custom_fields:
+      body:
+        - justify-self: stretch
+        - min-width: 0
 
 # Peuken: hoeveel pakjes er nog zijn, groot getal met een rij pakjes. Tik = er is er één op (-1), lang drukken = precies invoeren.
 # Groen vanaf 10, oranje onder 10, rood onder 5.

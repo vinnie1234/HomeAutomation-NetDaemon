@@ -110,3 +110,45 @@
       state: "{{ now().isoformat() }}"
       attributes:
         forecast: "{{ verwachting['weather.weer_nijmegen'].forecast[:48] }}"
+
+# De GitHub-repositories (integratie GitHub): hoeveel issues en pull requests er open staan, in totaal (de state) en per repository (het
+# attribuut repos, met ook sterren, forks, de laatste release en de laatste commit). Het dashboard toont dit op Vincent (git_repos), meldt het
+# op Home (git_alert) en zet een bolletje bij Vincent. Een repository erbij toevoegen kan zonder iets aan te passen; herlaad daarna de
+# template-entiteiten (Ontwikkelhulpmiddelen -> YAML) zodat de nieuwe sensoren meetellen.
+- sensor:
+    - name: Git open items
+      unique_id: git_open_items
+      default_entity_id: sensor.git_open_items
+      icon: mdi:github
+      unit_of_measurement: open
+      state: >
+        {% set ns = namespace(n=0) %}
+        {% for e in integration_entities('github') if e.endswith('_issues') or e.endswith('_pull_requests') %}
+          {% set ns.n = ns.n + (states(e) | int(0)) %}
+        {% endfor %}
+        {{ ns.n }}
+      attributes:
+        repos: >
+          {% set ns = namespace(l=[]) %}
+          {% for e in integration_entities('github') | sort if e.endswith('_issues') %}
+            {% set p = e[:-7] %}
+            {% set naam = (state_attr(e, 'friendly_name') | default('', true)) | replace(' Issues', '') %}
+            {% set rel = p ~ '_laatste_release' %}
+            {% set com = p ~ '_laatste_commit' %}
+            {% set ns.l = ns.l + [{
+              'volledig': naam,
+              'naam': naam.split('/')[-1],
+              'url': 'https://github.com/' ~ naam,
+              'issues': states(p ~ '_issues') | int(0),
+              'prs': states(p ~ '_pull_requests') | int(0),
+              'samengevoegd': states(p ~ '_samengevoegde') | int(0),
+              'sterren': states(p ~ '_sterren') | int(0),
+              'forks': states(p ~ '_forks') | int(0),
+              'kijkers': states(p ~ '_kijkers') | int(0),
+              'release': '' if states(rel) in ['unknown', 'unavailable'] else states(rel),
+              'release_url': state_attr(rel, 'url') | default('', true),
+              'commit': '' if states(com) in ['unknown', 'unavailable'] else states(com),
+              'commit_url': state_attr(com, 'url') | default('', true)
+            }] %}
+          {% endfor %}
+          {{ ns.l }}
