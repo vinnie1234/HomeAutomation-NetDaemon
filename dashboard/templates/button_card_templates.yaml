@@ -302,6 +302,40 @@ price:
       return isNaN(v) ? '–' : `€ ${v.toFixed(2).replace('.', ',')}`;
     ]]]
 
+# De stroomprijs als grafiek met de geschiedenis erachter (www/prijs-historie.js, het element huis-prijs-historie, haalt de uurprijzen zelf op).
+# Standaard: de laatste 7 dagen, met de tik-actie van de kaart zelf (de pagina Prijs opent er de pop-up #prijs-historie mee).
+# variables.full: true is de grafiek met Dag, Week en Maand, vorige en volgende periode, aanwijzen voor de prijs en de gemiddelde, laagste en
+# hoogste prijs eronder (in de pop-up).
+price_history:
+  template: glass
+  show_icon: false
+  show_name: false
+  show_label: false
+  variables:
+    full: false
+  custom_fields:
+    chart: |
+      [[[
+        // De module definieert het element; tot hij geladen is staat er een lege plek
+        if (!window.huisPrijsHistorie) window.huisPrijsHistorie = import('/local/huis/prijs-historie.js?v=1').catch(() => null);
+        return variables.full ? '<huis-prijs-historie period="week"></huis-prijs-historie>' : '<huis-prijs-historie compact></huis-prijs-historie>';
+      ]]]
+    hint: |
+      [[[ return variables.full ? '' : '<div style="font-size:11px;opacity:0.6;text-align:center;padding-top:4px">Tik voor dag, week of maand en eerdere periodes</div>'; ]]]
+  styles:
+    card:
+      - padding: 14px
+      - cursor: '[[[ return variables.full ? "default" : "pointer"; ]]]'
+    grid:
+      - grid-template-areas: '"chart" "hint"'
+      - grid-template-columns: 1fr
+    custom_fields:
+      chart:
+        - width: 100%
+        - min-width: 0
+      hint:
+        - width: 100%
+
 # Pollen (Google Pollen-index 0-5): naam, niveau en een balk van 5 blokjes.
 pollen:
   template: glass
@@ -5448,9 +5482,9 @@ window_alert:
   icon: mdi:window-open-variant
   variables:
     pulse: |
-      [[[ return states['sensor.raam_advies']?.attributes.sleutel === 'dicht'; ]]]
+      [[[ return ['dicht', 'weg'].includes(states['sensor.raam_advies']?.attributes.sleutel); ]]]
     color: |
-      [[[ return states['sensor.raam_advies']?.attributes.sleutel === 'dicht' ? '255, 107, 107' : '255, 176, 96'; ]]]
+      [[[ return ['dicht', 'weg'].includes(states['sensor.raam_advies']?.attributes.sleutel) ? '255, 107, 107' : '255, 176, 96'; ]]]
   name: |
     [[[
       const windows = { woonkamer_tv: 'Woonkamer bij de tv', woonkamer_tafel: 'Woonkamer bij de tafel', slaapkamer: 'Slaapkamer' };
@@ -5467,7 +5501,8 @@ window_alert:
       const parts = [];
       if (open.length === 1) parts.push(`Sinds ${open[0].since.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} · ${duration(open[0].since)}`);
       else parts.push(open.map(w => `${w.name} ${duration(w.since)}`).join(' · '));
-      if (advice?.sleutel === 'dicht' && advice.redenen?.length) parts.push(advice.redenen[0]);
+      if (advice?.sleutel === 'weg') parts.push('er is niemand thuis');
+      else if (advice?.sleutel === 'dicht' && advice.redenen?.length) parts.push(advice.redenen[0]);
       parts.push('tik voor alle ramen');
       return parts.join(' · ');
     ]]]

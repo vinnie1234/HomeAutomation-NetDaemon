@@ -189,6 +189,31 @@ public class WindowAdviceTests
     }
 
     [Fact]
+    public void NobodyHome_AiringMakesNoSense_EvenWhenTheWeatherIsPerfect()
+    {
+        var advice = WindowAdvice.Advise(Mild() with { NobodyHome = true });
+
+        advice.Verdict.Should().Be(WindowVerdict.NobodyHome);
+        advice.Title.Should().Be("Niemand thuis");
+        advice.Key.Should().Be("weg");
+        advice.Minutes.Should().BeNull();
+        advice.Reasons.Should().ContainSingle().Which.Should().Contain("niemand thuis");
+    }
+
+    [Fact]
+    public void NobodyHome_BeatsTheWeather_AndEvenMissingWeatherData()
+    {
+        WindowAdvice.Advise(Mild(rain: true, dark: true) with { NobodyHome = true }).Verdict.Should().Be(WindowVerdict.NobodyHome);
+        WindowAdvice.Advise(Mild(outdoorTemperature: null, outdoorHumidity: null) with { NobodyHome = true }).Verdict.Should().Be(WindowVerdict.NobodyHome);
+    }
+
+    [Fact]
+    public void NobodyHome_IsARiskForAnOpenWindow()
+    {
+        WindowAdvice.Risks(Mild() with { NobodyHome = true }).Should().ContainSingle().Which.Kind.Should().Be("weg");
+    }
+
+    [Fact]
     public void ByDayAndWarm_BugsAreNoReason()
     {
         WindowAdvice.Advise(Mild(outdoorTemperature: 15, outdoorHumidity: 50, dark: false)).Verdict.Should().Be(WindowVerdict.Ventilate);
@@ -226,6 +251,7 @@ public class WindowAdviceTests
     [InlineData(WindowVerdict.VentilateShort, "kort")]
     [InlineData(WindowVerdict.LittleUse, "weinig_nut")]
     [InlineData(WindowVerdict.KeepClosed, "dicht")]
+    [InlineData(WindowVerdict.NobodyHome, "weg")]
     public void EveryVerdict_HasAKeyForTheDashboard(WindowVerdict verdict, string key)
     {
         new WindowAdviceResult(verdict, "", [], null, null, null).Key.Should().Be(key);

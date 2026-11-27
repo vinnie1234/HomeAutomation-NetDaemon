@@ -123,12 +123,23 @@ sections:
         heading: Afgelopen week
         heading_style: title
         icon: mdi:history
-      - type: statistics-graph
-        entities:
-          - sensor.anwb_electricity_all_in_price_current
-        days_to_show: 7
-        period: hour
-        chart_type: line
-        stat_types:
-          - mean
-        hide_legend: true
+      # De prijs van de laatste 7 dagen (eigen grafiek, www/prijs-historie.js); tik opent de pop-up met dag, week en maand en eerdere periodes
+      - type: custom:button-card
+        template: price_history
+        tap_action:
+          action: navigate
+          navigation_path: "#prijs-historie"
+
+  # Pop-up: de prijs per dag, week of maand, en terug in de tijd
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#prijs-historie"
+        name: Stroomprijs
+        icon: mdi:chart-line
+        cards:
+          - type: custom:button-card
+            template: price_history
+            variables:
+              full: true

@@ -17,8 +17,8 @@ namespace Automation.apps.General.Household;
 /// Published for the dashboard: <c>sensor.raam_advies</c> (the advice of <see cref="WindowAdvice"/> with its reasons),
 /// <c>sensor.raam_open_aantal</c> (the open windows and since when) and <c>sensor.raam_open_vandaag_minuten</c> (today's minutes
 /// open, per window, with the longest opening and the last days). The phone gets a message once per opening for each risk: rain, wind or a
-/// warning, the dark, and a window that has been open too long. The risks are the reasons the advice gives to keep the windows closed
-/// (<see cref="WindowAdvice.Risks"/>).
+/// warning, the dark, nobody home, and a window that has been open too long. The risks are the reasons the advice gives to keep the windows
+/// closed (<see cref="WindowAdvice.Risks"/>). Nobody home means both <c>input_boolean.awayvincent</c> and <c>input_boolean.awaycarleen</c> are on.
 /// </remarks>
 [NetDaemonApp(Id = nameof(WindowMonitor))]
 public class WindowMonitor : BaseApp
@@ -52,7 +52,8 @@ public class WindowMonitor : BaseApp
     [
         "sensor.weer_thuis_temperatuur", "sensor.weer_thuis_luchtvochtigheid", "sensor.weer_thuis_windstoten",
         "binary_sensor.weer_thuis_neerslag_verwacht", "binary_sensor.weer_thuis_waarschuwing_actief", "sun.sun",
-        "sensor.luchtontvochtiger_temperatuur", "sensor.luchtontvochtiger_luchtvochtigheid", "humidifier.luchtontvochtiger"
+        "sensor.luchtontvochtiger_temperatuur", "sensor.luchtontvochtiger_luchtvochtigheid", "humidifier.luchtontvochtiger",
+        "input_boolean.awayvincent", "input_boolean.awaycarleen"
     ];
 
     private readonly IDataRepository _storage;
@@ -191,7 +192,8 @@ public class WindowMonitor : BaseApp
             IsDark: HaContext.GetState("sun.sun")?.State == "below_horizon",
             IndoorTemperature: Number(HaContext.GetState("sensor.luchtontvochtiger_temperatuur")?.State),
             IndoorHumidity: Number(HaContext.GetState("sensor.luchtontvochtiger_luchtvochtigheid")?.State),
-            TargetHumidity: target);
+            TargetHumidity: target,
+            NobodyHome: HaContext.GetState("input_boolean.awayvincent")?.State == "on" && HaContext.GetState("input_boolean.awaycarleen")?.State == "on");
     }
 
     private void Publish(WindowAdviceResult advice, List<(string Key, string Name, DateTimeOffset Since)> open, DateTimeOffset now)

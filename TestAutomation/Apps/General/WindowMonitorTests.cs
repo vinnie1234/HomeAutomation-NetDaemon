@@ -355,6 +355,58 @@ public class WindowMonitorTests : IDisposable
     }
 
     [Fact]
+    public void WhenBothAreAway_TheAdviceSaysNobodyIsHome()
+    {
+        Set("input_boolean.awayvincent", "on");
+        Set("input_boolean.awaycarleen", "on");
+        Start(Utc(26, 11));
+
+        var (state, attributes) = Last(WindowMonitor.AdviceSensor);
+
+        state.Should().Be("Niemand thuis");
+        attributes.GetProperty("sleutel").GetString().Should().Be("weg");
+    }
+
+    [Fact]
+    public void WhenOnlyOneIsAway_SomeoneIsStillHome()
+    {
+        Set("input_boolean.awayvincent", "on");
+        Start(Utc(26, 11));
+
+        Last(WindowMonitor.AdviceSensor).State.Should().Be("Luchten kan");
+    }
+
+    [Fact]
+    public void WhenTheLastOneLeaves_TheAdviceChangesRightAway()
+    {
+        Set("input_boolean.awayvincent", "on");
+        Start(Utc(26, 11));
+        Last(WindowMonitor.AdviceSensor).State.Should().Be("Luchten kan");
+
+        Set("input_boolean.awaycarleen", "on");
+        _ctx.HaContextMock.StateChangeSubject.OnNext(new StateChange(
+            new Entity(_ctx.HaContext, "input_boolean.awaycarleen"),
+            new EntityState { EntityId = "input_boolean.awaycarleen", State = "off" },
+            new EntityState { EntityId = "input_boolean.awaycarleen", State = "on" }));
+        Advance(TimeSpan.FromSeconds(5));
+
+        Last(WindowMonitor.AdviceSensor).State.Should().Be("Niemand thuis");
+    }
+
+    [Fact]
+    public void AnOpenWindow_WhileNobodyIsHome_SendsOneMessage()
+    {
+        Set("input_boolean.awayvincent", "on");
+        Set("input_boolean.awaycarleen", "on");
+        Start(Utc(26, 11));
+        Open("woonkamer_tv", Utc(26, 11));
+
+        Advance(TimeSpan.FromMinutes(10));
+
+        VerifyMessages(1);
+    }
+
+    [Fact]
     public void AtNight_TheAdviceIsToKeepTheWindowsClosed()
     {
         // The night of 26 to 27 November: -3° and 80% outside, dark, and the air outside is far drier than inside

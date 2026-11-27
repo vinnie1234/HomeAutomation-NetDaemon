@@ -18,7 +18,10 @@ public enum WindowVerdict
     LittleUse,
 
     /// <summary>Better not (rain, wind, a warning, or bugs in the dark).</summary>
-    KeepClosed
+    KeepClosed,
+
+    /// <summary>Nobody is home: airing makes no sense, and an open window is a risk.</summary>
+    NobodyHome
 }
 
 /// <summary>
@@ -33,6 +36,7 @@ public enum WindowVerdict
 /// <param name="IndoorTemperature">The temperature in the house in °C.</param>
 /// <param name="IndoorHumidity">The relative humidity in the house in %.</param>
 /// <param name="TargetHumidity">The humidity the dehumidifier aims for in %.</param>
+/// <param name="NobodyHome">Whether everyone is away.</param>
 public sealed record WindowConditions(
     double? OutdoorTemperature,
     double? OutdoorHumidity,
@@ -42,7 +46,8 @@ public sealed record WindowConditions(
     bool IsDark,
     double? IndoorTemperature,
     double? IndoorHumidity,
-    double? TargetHumidity);
+    double? TargetHumidity,
+    bool NobodyHome = false);
 
 /// <summary>
 /// The advice about opening the windows.
@@ -68,6 +73,7 @@ public sealed record WindowAdviceResult(
         WindowVerdict.VentilateShort => "kort",
         WindowVerdict.LittleUse => "weinig_nut",
         WindowVerdict.KeepClosed => "dicht",
+        WindowVerdict.NobodyHome => "weg",
         _ => "onbekend"
     };
 }
@@ -121,14 +127,15 @@ public static class WindowAdvice
         216.7 * (relativeHumidity / 100 * 6.112 * Math.Exp(17.62 * temperature / (243.12 + temperature))) / (273.15 + temperature);
 
     /// <summary>
-    /// The reasons to keep the windows closed, whatever the humidity: a weather warning, rain, strong gusts and the dark. The advice is
-    /// built on this list and the messages about an open window too, so the two can never disagree.
+    /// The reasons to keep the windows closed, whatever the humidity: nobody home, a weather warning, rain, strong gusts and the dark. The
+    /// advice is built on this list and the messages about an open window too, so the two can never disagree.
     /// </summary>
     /// <param name="c">The weather and the air in the house.</param>
     /// <returns>The reasons, none when the windows may be opened.</returns>
     public static IReadOnlyList<WindowRisk> Risks(WindowConditions c)
     {
         var risks = new List<WindowRisk>();
+        if (c.NobodyHome) risks.Add(new WindowRisk("weg", "Er is niemand thuis"));
         if (c.WarningActive) risks.Add(new WindowRisk("waarschuwing", "Er is een weerwaarschuwing"));
         if (c.RainExpected) risks.Add(new WindowRisk("regen", "Er wordt regen verwacht"));
         if (c.GustSpeed is >= GustLimit and { } gust) risks.Add(new WindowRisk("wind", $"Windstoten tot {Math.Round(gust)} km/u"));
@@ -151,6 +158,12 @@ public static class WindowAdvice
     /// <returns>The advice with the reasons.</returns>
     public static WindowAdviceResult Advise(WindowConditions c)
     {
+        // Nobody home: no use airing, whatever the weather
+        if (c.NobodyHome)
+        {
+            return new WindowAdviceResult(WindowVerdict.NobodyHome, "Niemand thuis", ["Er is niemand thuis: luchten heeft nu geen zin"], null, null, null);
+        }
+
         if (c.OutdoorTemperature is null && c.OutdoorHumidity is null)
             return new WindowAdviceResult(WindowVerdict.Unknown, "Onbekend", ["Er zijn geen weergegevens"], null, null, null);
 
