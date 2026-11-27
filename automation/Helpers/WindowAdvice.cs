@@ -73,6 +73,13 @@ public sealed record WindowAdviceResult(
 }
 
 /// <summary>
+/// A reason to keep the windows closed: the advice names it, and an open window that runs into it gets a message.
+/// </summary>
+/// <param name="Kind">What kind of reason it is, so a message is sent once per kind.</param>
+/// <param name="Reason">The reason as a sentence.</param>
+public sealed record WindowRisk(string Kind, string Reason);
+
+/// <summary>
 /// Whether the windows can be opened, from the weather, the dark and the humidity inside and outside.
 /// </summary>
 /// <remarks>
@@ -87,7 +94,7 @@ public static class WindowAdvice
     /// <summary>From these gusts (km/h) the windows are better closed.</summary>
     public const double GustLimit = 50;
 
-    /// <summary>From this temperature outside the bugs are active: in the dark the windows are better closed.</summary>
+    /// <summary>From this temperature outside the bugs are active: the reason in the dark then names them.</summary>
     public const double BugTemperature = 10;
 
     /// <summary>At or below this temperature outside only a short airing makes sense.</summary>
@@ -114,6 +121,30 @@ public static class WindowAdvice
         216.7 * (relativeHumidity / 100 * 6.112 * Math.Exp(17.62 * temperature / (243.12 + temperature))) / (273.15 + temperature);
 
     /// <summary>
+    /// The reasons to keep the windows closed, whatever the humidity: a weather warning, rain, strong gusts and the dark. The advice is
+    /// built on this list and the messages about an open window too, so the two can never disagree.
+    /// </summary>
+    /// <param name="c">The weather and the air in the house.</param>
+    /// <returns>The reasons, none when the windows may be opened.</returns>
+    public static IReadOnlyList<WindowRisk> Risks(WindowConditions c)
+    {
+        var risks = new List<WindowRisk>();
+        if (c.WarningActive) risks.Add(new WindowRisk("waarschuwing", "Er is een weerwaarschuwing"));
+        if (c.RainExpected) risks.Add(new WindowRisk("regen", "Er wordt regen verwacht"));
+        if (c.GustSpeed is >= GustLimit and { } gust) risks.Add(new WindowRisk("wind", $"Windstoten tot {Math.Round(gust)} km/u"));
+
+        // The dark counts at any temperature: bugs when it is warm, and otherwise it is simply not the time to leave a window open
+        if (c.IsDark)
+        {
+            risks.Add(new WindowRisk("donker", c.OutdoorTemperature is >= BugTemperature and { } warm
+                ? $"Het is donker en {Math.Round(warm)}° buiten: dan komen er beestjes binnen"
+                : "Het is donker: dan blijven de ramen liever dicht"));
+        }
+
+        return risks;
+    }
+
+    /// <summary>
     /// Gives the advice.
     /// </summary>
     /// <param name="c">The weather and the air in the house.</param>
@@ -126,13 +157,8 @@ public static class WindowAdvice
         double? outside = c.OutdoorTemperature is { } ot && c.OutdoorHumidity is { } oh ? AbsoluteHumidity(ot, oh) : null;
         double? inside = c.IndoorTemperature is { } it && c.IndoorHumidity is { } ih ? AbsoluteHumidity(it, ih) : null;
 
-        // Better closed: the weather, and the bugs in the dark (a reason of its own: it does not depend on the humidity)
-        var closed = new List<string>();
-        if (c.WarningActive) closed.Add("Er is een weerwaarschuwing");
-        if (c.RainExpected) closed.Add("Er wordt regen verwacht");
-        if (c.GustSpeed is >= GustLimit and { } gust) closed.Add($"Windstoten tot {Math.Round(gust)} km/u");
-        if (c.IsDark && c.OutdoorTemperature is >= BugTemperature and { } warm)
-            closed.Add($"Het is donker en {Math.Round(warm)}° buiten: dan komen er beestjes binnen");
+        // Better closed: the weather and the dark (reasons of their own: they do not depend on the humidity)
+        var closed = Risks(c).Select(r => r.Reason).ToList();
 
         // No use: the air outside does not dry the house
         var littleUse = new List<string>();

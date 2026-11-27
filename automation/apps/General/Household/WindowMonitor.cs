@@ -17,7 +17,8 @@ namespace Automation.apps.General.Household;
 /// Published for the dashboard: <c>sensor.raam_advies</c> (the advice of <see cref="WindowAdvice"/> with its reasons),
 /// <c>sensor.raam_open_aantal</c> (the open windows and since when) and <c>sensor.raam_open_vandaag_minuten</c> (today's minutes
 /// open, per window, with the longest opening and the last days). The phone gets a message once per opening for each risk: rain, wind or a
-/// warning, the dark with bugs, and a window that has been open too long.
+/// warning, the dark, and a window that has been open too long. The risks are the reasons the advice gives to keep the windows closed
+/// (<see cref="WindowAdvice.Risks"/>).
 /// </remarks>
 [NetDaemonApp(Id = nameof(WindowMonitor))]
 public class WindowMonitor : BaseApp
@@ -252,11 +253,9 @@ public class WindowMonitor : BaseApp
         {
             var openFor = now - since;
             var minutes = Math.Round(openFor.TotalMinutes);
-            var risks = new List<(string Kind, string Text)>();
-            if (c.WarningActive) risks.Add(("waarschuwing", "er is een weerwaarschuwing"));
-            if (c.RainExpected) risks.Add(("regen", "er wordt regen verwacht"));
-            if (c.GustSpeed is >= WindowAdvice.GustLimit and { } gust) risks.Add(("wind", $"het waait hard (windstoten tot {Math.Round(gust)} km/u)"));
-            if (c.IsDark && c.OutdoorTemperature is >= WindowAdvice.BugTemperature) risks.Add(("donker", "het is donker en warm genoeg voor beestjes"));
+
+            // The reasons the advice gives to keep the windows closed, and a window that has been open too long
+            var risks = WindowAdvice.Risks(c).Select(r => (r.Kind, Text: char.ToLowerInvariant(r.Reason[0]) + r.Reason[1..])).ToList();
             if (openFor >= (cold ? LongOpenCold : LongOpen))
                 risks.Add(("lang", cold ? $"het staat al {minutes} minuten open en het is koud buiten" : $"het staat al {minutes} minuten open"));
 

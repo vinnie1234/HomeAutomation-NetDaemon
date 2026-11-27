@@ -339,4 +339,33 @@ public class WindowMonitorTests : IDisposable
 
         VerifyMessages(1);
     }
+
+    [Fact]
+    public void InTheDarkAndCold_AnOpenWindowWarnsOnce()
+    {
+        Weather(temperature: "-3", humidity: "80");
+        Set("sun.sun", "below_horizon");
+        Start(Utc(26, 22));
+        Open("woonkamer_tv", Utc(26, 22));
+
+        // The clock looks again every minute: still one message
+        Advance(TimeSpan.FromMinutes(10));
+
+        VerifyMessages(1);
+    }
+
+    [Fact]
+    public void AtNight_TheAdviceIsToKeepTheWindowsClosed()
+    {
+        // The night of 26 to 27 November: -3° and 80% outside, dark, and the air outside is far drier than inside
+        Weather(temperature: "-3", humidity: "80");
+        Set("sun.sun", "below_horizon");
+        Start(Utc(26, 23));
+
+        var (state, attributes) = Last(WindowMonitor.AdviceSensor);
+
+        state.Should().Be("Liever dicht");
+        attributes.GetProperty("sleutel").GetString().Should().Be("dicht");
+        attributes.GetProperty("redenen").EnumerateArray().Select(r => r.GetString()).Should().Contain(r => r!.Contains("Het is donker"));
+    }
 }

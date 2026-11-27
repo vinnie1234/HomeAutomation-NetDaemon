@@ -113,10 +113,12 @@ een keer is gestart.
   de twee ramen in de woonkamer (bij de tv en bij de tafel) en het raam in de slaapkamer druk je als het raam open gaat en (met bevestiging) als het dicht is. De pop-up toont het advies met
   de redenen (buiten en binnen, vocht in g/m³, wind, regen, donker), per raam sinds wanneer het open staat, en hoe lang de ramen vandaag en de
   laatste dagen open stonden. Staat een raam open, dan is er één melding op Home voor alle open ramen (tik opent de pop-up met alle ramen), een bolletje bij Huis en een
-  regel in de samenvatting van Huis; NetDaemon stuurt een telefoonmelding bij regen, harde wind, donker en warm (beestjes) of als het te lang open
-  staat. Het advies: buiten 90% vochtig of meer of niet droger dan binnen is "Weinig nut" (laat de ontvochtiger werken); regen, een
-  waarschuwing, windstoten vanaf 50 km/u, of donker en 10 graden of warmer is "Liever dicht"; anders "Luchten kan", en bij 5 graden of kouder
-  "Kort luchten" (10 minuten). De grenzen staan in `automation/Helpers/WindowAdvice.cs`, de app in `automation/apps/General/Household/WindowMonitor.cs`.
+  regel in de samenvatting van Huis; NetDaemon stuurt een telefoonmelding bij regen, een waarschuwing, harde wind, donker of als het te lang open
+  staat. Het advies: regen, een waarschuwing, windstoten vanaf 50 km/u of donker (zon onder de horizon, bij elke temperatuur: bij 10 graden of
+  warmer staat erbij dat er beestjes binnenkomen) is "Liever dicht", en dat gaat voor de rest; buiten 90% vochtig of meer of niet droger dan
+  binnen is "Weinig nut" (laat de ontvochtiger werken); anders "Luchten kan", en bij 5 graden of kouder "Kort luchten" (10 minuten). De redenen om
+  dicht te houden staan op één plek (`WindowAdvice.Risks`), het advies en de telefoonmeldingen gebruiken dezelfde lijst. De grenzen staan in
+  `automation/Helpers/WindowAdvice.cs`, de app in `automation/apps/General/Household/WindowMonitor.cs`.
 - Git (pagina Vincent, onder "Waar is..."): per GitHub-repository de open issues en pull requests, de samengevoegde pull requests, sterren, forks, kijkers,
   de laatste release en de laatste commit, met bovenaan de totalen. Groen als er niets openstaat, oranje bij open issues, paars bij open pull requests;
   elk getal is een link naar die lijst op GitHub. Staat er in een repository iets open, dan is er een melding op Home (alleen voor Vincent; tik opent dit

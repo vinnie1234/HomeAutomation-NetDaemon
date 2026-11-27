@@ -140,10 +140,52 @@ public class WindowAdviceTests
     }
 
     [Fact]
-    public void InTheDarkButCold_ThereAreNoBugs()
+    public void InTheDarkButCold_TheWindowsAreStillBetterClosed_WithoutTalkingAboutBugs()
     {
-        WindowAdvice.Advise(Mild(outdoorTemperature: WindowAdvice.BugTemperature - 1, outdoorHumidity: 60, dark: true)).Verdict
-            .Should().Be(WindowVerdict.Ventilate);
+        var advice = WindowAdvice.Advise(Mild(outdoorTemperature: WindowAdvice.BugTemperature - 1, outdoorHumidity: 60, dark: true));
+
+        advice.Verdict.Should().Be(WindowVerdict.KeepClosed);
+        advice.Reasons.Should().Contain(r => r.Contains("Het is donker")).And.NotContain(r => r.Contains("beestjes"));
+    }
+
+    [Theory]
+    [InlineData(-6, 80)]
+    [InlineData(-2, 78)]
+    [InlineData(2, 70)]
+    public void AtNightInTheWinter_NeverAdviseToAir_EvenWhenTheAirOutsideIsMuchDrier(double temperature, double humidity)
+    {
+        // The night of 26 to 27 November: -6° and 80% outside is 2,9 g/m³ against 8 to 12 inside, and it was dark all night
+        var advice = WindowAdvice.Advise(Mild(outdoorTemperature: temperature, outdoorHumidity: humidity, dark: true));
+
+        advice.Verdict.Should().Be(WindowVerdict.KeepClosed);
+        advice.Title.Should().Be("Liever dicht");
+        advice.Minutes.Should().BeNull();
+    }
+
+    [Fact]
+    public void InTheDark_TheOtherReasonsStayInTheAdvice()
+    {
+        var advice = WindowAdvice.Advise(Mild(outdoorTemperature: 4, outdoorHumidity: 95, dark: true, rain: true));
+
+        advice.Verdict.Should().Be(WindowVerdict.KeepClosed);
+        advice.Reasons.Should().Contain("Er wordt regen verwacht").And.Contain(r => r.Contains("Het is donker")).And.Contain(r => r.Contains("95% vochtig"));
+    }
+
+    [Fact]
+    public void TheRisks_AreTheReasonsOfTheAdvice()
+    {
+        var conditions = Mild(outdoorTemperature: 14, gust: 60, rain: true, warning: true, dark: true);
+
+        var risks = WindowAdvice.Risks(conditions);
+
+        risks.Select(r => r.Kind).Should().Equal("waarschuwing", "regen", "wind", "donker");
+        WindowAdvice.Advise(conditions).Reasons.Should().Contain(risks.Select(r => r.Reason));
+    }
+
+    [Fact]
+    public void WithoutRisks_ThereAreNoReasonsToKeepTheWindowsClosed()
+    {
+        WindowAdvice.Risks(Mild()).Should().BeEmpty();
     }
 
     [Fact]
