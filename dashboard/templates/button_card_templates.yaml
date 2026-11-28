@@ -317,7 +317,7 @@ price_history:
     chart: |
       [[[
         // De module definieert het element; tot hij geladen is staat er een lege plek
-        if (!window.huisPrijsHistorie) window.huisPrijsHistorie = import('/local/huis/prijs-historie.js?v=1').catch(() => null);
+        if (!window.huisPrijsHistorie) window.huisPrijsHistorie = import('/local/huis/prijs-historie.js?v=4').catch(() => null);
         return variables.full ? '<huis-prijs-historie period="week"></huis-prijs-historie>' : '<huis-prijs-historie compact></huis-prijs-historie>';
       ]]]
     hint: |

@@ -110,7 +110,8 @@ export function summarize(points) {
 }
 
 const STYLE = `
-  :host { display: block; color: var(--primary-text-color, #e8ecf5); font-family: inherit; }
+  /* pointer-events: een button-card zonder eigen tik-actie (de pop-up) is 'disabled' en zet klikken uit voor alles erin; de knoppen moeten werken */
+  :host { display: block; pointer-events: auto; color: var(--primary-text-color, #e8ecf5); font-family: inherit; }
   * { box-sizing: border-box; }
   .wrap { display: flex; flex-direction: column; gap: 10px; text-align: left; }
   .bar { display: flex; flex-direction: column; gap: 10px; }
@@ -132,7 +133,7 @@ const STYLE = `
   .stat { flex: 1 1 90px; min-width: 0; padding: 9px 10px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); }
   .stat .label { font-size: 11px; opacity: 0.65; }
   .stat .value { font-size: 19px; font-weight: 700; line-height: 1.2; }
-  .stat .sub { font-size: 11px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .sub { font-size: 11px; opacity: 0.7; }
   .unit { font-size: 11px; opacity: 0.65; }
 `;
 
@@ -374,7 +375,7 @@ class HuisPrijsHistorie extends HTMLElement {
     let change = '';
     if (this._previous && this._previous.average > 0) {
       const percent = Math.round((summary.average / this._previous.average - 1) * 100);
-      const word = { dag: 'gisteren', week: 'de week ervoor', maand: 'de maand ervoor' }[period];
+      const word = { dag: 'vorige dag', week: 'vorige week', maand: 'vorige maand' }[period];
       change = `${percent > 0 ? '+' : ''}${percent}% t.o.v. ${word}`;
     }
     const color = this._previous && summary.average > this._previous.average ? RED : GREEN;
