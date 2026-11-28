@@ -109,8 +109,10 @@ een keer is gestart.
   (aan of uit, doel, stand Continu, Auto of Slaap, snelheid, timer, ionisator en kinderslot). Op Home staat een chip zolang hij aan staat.
   Is de tank vol of meldt hij een storing, dan staat er een melding op Home, een bolletje bij Huis en een regel in de samenvatting van Huis.
   De entiteiten heten `*.luchtontvochtiger*` (het apparaat komt uit de integratie xtend_tuya). Gaat Vincent slapen, dan zet NetDaemon (SleepManager) hem
-  op de stand Slaap als hij aan staat en onthoudt de stand die hij had; zijn Vincent en Carleen allebei weer wakker (beide slaapschakelaars uit), dan gaat
-  hij terug naar die stand. Een ontvochtiger die uit staat, al op Slaap stond of intussen op een andere stand is gezet, blijft zoals hij is.
+  op de stand Slaap als hij aan staat en onthoudt de stand en het doel (de luchtvochtigheid waar hij naartoe werkt) die hij had; zijn Vincent en Carleen
+  allebei weer wakker (beide slaapschakelaars uit), dan gaat hij terug naar die stand. Het doel blijft zoals het was: het apparaat zet het zelf op 60%
+  zodra het op Slaap gaat, dus NetDaemon zet het een paar seconden later terug (en na het terugzetten van de stand nog een keer). Een ontvochtiger die uit
+  staat, al op Slaap stond of intussen op een andere stand is gezet, blijft zoals hij is.
 - Ramen (bij Huis, onder Luchtontvochtiger): één kaart "Ramen" met het advies, tik opent de pop-up. Er zijn geen raamsensoren: bij
   de twee ramen in de woonkamer (bij de tv en bij de tafel) en het raam in de slaapkamer druk je als het raam open gaat en (met bevestiging) als het dicht is. De pop-up toont het advies met
   de redenen (buiten en binnen, vocht in g/m³, wind, regen, donker), per raam sinds wanneer het open staat, en hoe lang de ramen vandaag en de

@@ -3,6 +3,7 @@ using Automation.apps.General.Presence;
 using Automation.Helpers;
 using Automation.Extensions;
 using Automation.Interfaces;
+using Automation.Models.Ventilation;
 using FluentAssertions;
 using NetDaemon.HassModel.Entities;
 using NSubstitute;
@@ -147,35 +148,47 @@ public class SleepManagerTests
         ctx.VerifyCallService("media_player", "turn_off", "tv");
     }
 
-    /// <summary>Storage that really keeps what the app saves (the dehumidifier remembers its mode there), and in which the PetSnowy was cleaned today.</summary>
+    /// <summary>Storage that really keeps what the app saves (the dehumidifier remembers its mode and target there), and in which the PetSnowy was cleaned today.</summary>
     private static IDataRepository RememberingStorage(AppTestContext ctx)
     {
-        var kept = new Dictionary<string, string>();
+        var kept = new Dictionary<string, DehumidifierBeforeSleep>();
         var storage = StorageWithPetSnowyCleanedToday(ctx);
-        storage.When(s => s.Save(Arg.Any<string>(), Arg.Any<string>())).Do(call => kept[call.ArgAt<string>(0)] = call.ArgAt<string>(1));
-        storage.Get<string>("DehumidifierModeBeforeSleep").Returns(_ => kept.GetValueOrDefault("DehumidifierModeBeforeSleep", ""));
+        storage.When(s => s.Save(Arg.Any<string>(), Arg.Any<DehumidifierBeforeSleep>()))
+            .Do(call => kept[call.ArgAt<string>(0)] = call.ArgAt<DehumidifierBeforeSleep>(1));
+        storage.Get<DehumidifierBeforeSleep>("DehumidifierModeBeforeSleep").Returns(_ => kept.GetValueOrDefault("DehumidifierModeBeforeSleep"));
         return storage;
     }
 
-    private static void DehumidifierIs(AppTestContext ctx, string state, string? mode) =>
+    /// <summary>The dehumidifier as Home Assistant reports it; a target of null leaves the attribute out (not known).</summary>
+    private static void DehumidifierIs(AppTestContext ctx, string state, string? mode, double? humidity = 35) =>
         ctx.HaContext.GetState("humidifier.luchtontvochtiger").Returns(new EntityState
         {
-            EntityId = "humidifier.luchtontvochtiger", State = state, AttributesJson = JsonSerializer.SerializeToElement(new { mode })
+            EntityId = "humidifier.luchtontvochtiger",
+            State = state,
+            AttributesJson = humidity is { } target
+                ? JsonSerializer.SerializeToElement(new { mode, humidity = target })
+                : JsonSerializer.SerializeToElement(new { mode })
         });
 
-    private static string[] ModesSet(AppTestContext ctx) => ctx.HaContext.ReceivedCalls()
-        .Where(c => c.GetMethodInfo().Name == "CallService" && (string?)c.GetArguments()[1] == "set_mode")
+    private static string[] CallsOf(AppTestContext ctx, string service) => ctx.HaContext.ReceivedCalls()
+        .Where(c => c.GetMethodInfo().Name == "CallService" && (string?)c.GetArguments()[1] == service)
         .Select(c => JsonSerializer.Serialize(c.GetArguments()[3]))
         .ToArray();
 
+    private static string[] ModesSet(AppTestContext ctx) => CallsOf(ctx, "set_mode");
+
+    private static string[] HumiditiesSet(AppTestContext ctx) => CallsOf(ctx, "set_humidity");
+
+    private static void Wait(AppTestContext ctx, int seconds) => ctx.AdvanceTimeBy(TimeSpan.FromSeconds(seconds).Ticks);
+
     /// <summary>Goes to sleep with the dehumidifier on the given mode (which then is on sleep mode), as Vincent and Carleen do.</summary>
-    private static void GoToSleep(AppTestContext ctx, string modeBefore)
+    private static void GoToSleep(AppTestContext ctx, string modeBefore, double targetBefore = 35)
     {
-        DehumidifierIs(ctx, "on", modeBefore);
+        DehumidifierIs(ctx, "on", modeBefore, targetBefore);
         ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
         ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
         ctx.HaContextMock.ProcessPendingOperations();
-        DehumidifierIs(ctx, "on", "Sleep");
+        DehumidifierIs(ctx, "on", "Sleep", targetBefore);
     }
 
     [Theory]
@@ -294,6 +307,98 @@ public class SleepManagerTests
         ctx.HaContextMock.ProcessPendingOperations();
 
         ModesSet(ctx).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OnSleepMode_TheTargetHumidityStaysWhereItWas_AlsoWhenTheDeviceSetsItsOwn()
+    {
+        // The night of 27 to 28 November: the target was 35%, the sleep mode of the device set it to 60%
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto", targetBefore: 35);
+        Wait(ctx, 1);
+        HumiditiesSet(ctx).Should().BeEmpty("the device has not reported its own target yet");
+
+        DehumidifierIs(ctx, "on", "Sleep", humidity: 60);
+        Wait(ctx, 6);
+
+        HumiditiesSet(ctx).Should().Equal("{\"humidity\":35}");
+    }
+
+    [Fact]
+    public void WhenTheDeviceKeepsTheTarget_NothingIsSet()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto", targetBefore: 35);
+
+        Wait(ctx, 90);
+
+        HumiditiesSet(ctx).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void WhenTheDeviceReportsItsTargetLate_ItIsSetBackAtTheLaterLook()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto", targetBefore: 35);
+        Wait(ctx, 10);
+
+        DehumidifierIs(ctx, "on", "Sleep", humidity: 60);
+        Wait(ctx, 15);
+
+        HumiditiesSet(ctx).Should().Equal("{\"humidity\":35}");
+    }
+
+    [Fact]
+    public void InTheMorning_TheTargetHumidityIsSetBackToo_WhenTheDeviceChangedItWithTheMode()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto", targetBefore: 35);
+        Wait(ctx, 90);
+        HumiditiesSet(ctx).Should().BeEmpty("the night went well");
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ModesSet(ctx).Last().Should().Be("{\"mode\":\"Auto\"}");
+
+        // The device went to Auto and kept the 60% of the night
+        DehumidifierIs(ctx, "on", "Auto", humidity: 60);
+        Wait(ctx, 6);
+
+        HumiditiesSet(ctx).Should().Equal("{\"humidity\":35}");
+    }
+
+    [Fact]
+    public void WhenTheTargetIsNotKnown_NoTargetIsSet()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        DehumidifierIs(ctx, "on", "Auto", humidity: null);
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        DehumidifierIs(ctx, "on", "Sleep", humidity: 60);
+        Wait(ctx, 90);
+
+        HumiditiesSet(ctx).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void WhenItWasTurnedOffMeanwhile_TheTargetIsNotTouched()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto", targetBefore: 35);
+
+        DehumidifierIs(ctx, "off", "Sleep", humidity: 60);
+        Wait(ctx, 90);
+
+        HumiditiesSet(ctx).Should().BeEmpty();
     }
 
     [Fact]

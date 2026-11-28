@@ -3,6 +3,7 @@ using System.Text.Json;
 using Automation.Configuration;
 using Automation.Core;
 using Automation.Helpers;
+using Automation.Models.Ventilation;
 using Microsoft.Extensions.Options;
 
 namespace Automation.apps.General.Presence;
@@ -29,8 +30,14 @@ public class SleepManager : BaseApp
     /// <summary>The mode the dehumidifier goes back to when its previous mode is not known.</summary>
     public const string DehumidifierDefaultMode = "Auto";
 
-    /// <summary>Where the mode the dehumidifier had before the night is kept (empty: the app did not change it), so it survives a restart.</summary>
+    /// <summary>Where the mode and the target humidity the dehumidifier had before the night are kept (so they survive a restart).</summary>
     private const string DehumidifierModeBeforeSleepKey = "DehumidifierModeBeforeSleep";
+
+    /// <summary>
+    /// How long after a change of mode the target humidity is checked: the device sets its own target when its mode changes (the sleep mode
+    /// goes to 60%), and reports that a few seconds later.
+    /// </summary>
+    private static readonly TimeSpan[] DehumidifierTargetChecks = [TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(60)];
 
     private readonly IDataRepository _storage;
 
@@ -169,9 +176,9 @@ public class SleepManager : BaseApp
     }
 
     /// <summary>
-    /// Puts the dehumidifier on its sleep mode (quiet) when it is on and not on that mode yet, and remembers the mode it had so it goes back
-    /// to it in the morning. One that is off stays off: someone turned it off. One that is on sleep mode already was set so by someone: it
-    /// is left alone, also in the morning.
+    /// Puts the dehumidifier on its sleep mode (quiet) when it is on and not on that mode yet, and remembers its mode and target humidity so
+    /// both go back in the morning. The target humidity is kept as it was: the device sets its own on the sleep mode (60%). One that is off
+    /// stays off: someone turned it off. One that is on sleep mode already was set so by someone: it is left alone, also in the morning.
     /// </summary>
     private void DehumidifierToSleepMode()
     {
@@ -181,34 +188,68 @@ public class SleepManager : BaseApp
         var mode = DehumidifierMode(state);
         if (mode == DehumidifierSleepMode)
         {
-            _storage.Save(DehumidifierModeBeforeSleepKey, "");
+            _storage.Save(DehumidifierModeBeforeSleepKey, new DehumidifierBeforeSleep());
             return;
         }
 
-        _storage.Save(DehumidifierModeBeforeSleepKey, mode ?? DehumidifierDefaultMode);
+        var target = DehumidifierTarget(state);
+        _storage.Save(DehumidifierModeBeforeSleepKey, new DehumidifierBeforeSleep { Mode = mode ?? DehumidifierDefaultMode, Humidity = target });
         HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = DehumidifierSleepMode });
+        KeepDehumidifierTarget(target);
     }
 
     /// <summary>
-    /// Puts the dehumidifier back on the mode it had before the night, once Vincent and Carleen are both awake (the one who wakes up last
-    /// does it). Only what the app changed is changed back: not a dehumidifier that is off, and not one someone put on another mode meanwhile.
+    /// Puts the dehumidifier back on the mode and the target humidity it had before the night, once Vincent and Carleen are both awake (the
+    /// one who wakes up last does it). Only what the app changed is changed back: not a dehumidifier that is off, and not one someone put on
+    /// another mode meanwhile.
     /// </summary>
     private void DehumidifierBackToNormalWhenEveryoneIsAwake()
     {
         if (Entities.InputBoolean.Sleepingvincent.IsOn() || Entities.InputBoolean.Sleepingcarleen.IsOn()) return;
 
-        var before = _storage.Get<string>(DehumidifierModeBeforeSleepKey);
-        if (string.IsNullOrEmpty(before)) return;
+        var before = _storage.Get<DehumidifierBeforeSleep>(DehumidifierModeBeforeSleepKey);
+        if (string.IsNullOrEmpty(before?.Mode)) return;
 
-        _storage.Save(DehumidifierModeBeforeSleepKey, "");
+        _storage.Save(DehumidifierModeBeforeSleepKey, new DehumidifierBeforeSleep());
         var state = HaContext.GetState(Dehumidifier);
         if (state?.State != "on" || DehumidifierMode(state) != DehumidifierSleepMode) return;
 
-        HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = before });
+        HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = before.Mode });
+        KeepDehumidifierTarget(before.Humidity);
+    }
+
+    /// <summary>
+    /// Sets the target humidity back to the given value when the device changed it after a change of mode. Looked at a few times, because the
+    /// device reports its own change late; a target that is right already is left alone.
+    /// </summary>
+    private void KeepDehumidifierTarget(double? target)
+    {
+        if (target is not { } wanted) return;
+
+        foreach (var delay in DehumidifierTargetChecks)
+        {
+            Scheduler.Schedule(delay, () =>
+            {
+                try
+                {
+                    var state = HaContext.GetState(Dehumidifier);
+                    if (state?.State != "on" || DehumidifierTarget(state) is not { } current || Math.Abs(current - wanted) < 0.5) return;
+
+                    HaContext.CallService("humidifier", "set_humidity", ServiceTarget.FromEntity(Dehumidifier), new { humidity = wanted });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error setting the target humidity of the dehumidifier back");
+                }
+            });
+        }
     }
 
     private static string? DehumidifierMode(EntityState state) =>
         state.AttributesJson is { ValueKind: JsonValueKind.Object } a && a.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
+
+    private static double? DehumidifierTarget(EntityState state) =>
+        state.AttributesJson is { ValueKind: JsonValueKind.Object } a && a.TryGetProperty("humidity", out var h) && h.ValueKind == JsonValueKind.Number ? h.GetDouble() : null;
 
     /// <summary>
     /// Changes relevant house states when sleeping.
