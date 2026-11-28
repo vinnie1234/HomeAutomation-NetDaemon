@@ -1,10 +1,10 @@
-// De stroomprijs in een grafiek, met de geschiedenis erachter: per dag, week of maand, en terug in de tijd.
+// De stroomprijs in een grafiek, met de geschiedenis erachter: per dag, week, maand of jaar, en terug in de tijd.
 //
 // Het element <huis-prijs-historie> haalt de uurprijzen (langetermijnstatistieken van de prijssensor) zelf op en tekent ze als lijn.
 //   entity    de sensor met de prijs (standaard sensor.anwb_electricity_all_in_price_current)
-//   period    dag, week of maand (standaard week)
+//   period    dag, week, maand of jaar (standaard week)
 //   compact   alleen de grafiek van de laatste 7 dagen, zonder knoppen; tik gaat naar de kaart zelf (button-card)
-// Volledig: Dag | Week | Maand, vorige en volgende periode, "Nu", aanwijzen of aantikken toont de prijs op dat uur, en daaronder het
+// Volledig: Dag | Week | Maand | Jaar, vorige en volgende periode, "Nu", aanwijzen of aantikken toont de prijs op dat uur, en daaronder het
 // gemiddelde, de laagste en de hoogste prijs van de periode met de verandering ten opzichte van de vorige.
 //
 // Gebruik (zie de template price_history in templates/button_card_templates.yaml):
@@ -14,7 +14,7 @@
 const BLUE = '#5b9dff';
 const GREEN = '#4ade80';
 const RED = '#ff6b6b';
-const PERIODS = [['dag', 'Dag'], ['week', 'Week'], ['maand', 'Maand']];
+const PERIODS = [['dag', 'Dag'], ['week', 'Week'], ['maand', 'Maand'], ['jaar', 'Jaar']];
 const DEFAULT_ENTITY = 'sensor.anwb_electricity_all_in_price_current';
 const HOUR = 3600000;
 // Tussen twee uurwaarden mag hooguit dit zitten, anders is er een gat in de lijn
@@ -26,10 +26,12 @@ const addDays = (date, days) => { const d = new Date(date); d.setDate(d.getDate(
 const cap = text => text.charAt(0).toUpperCase() + text.slice(1);
 const euro = value => value.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Een maand en een jaar tonen per dag het gemiddelde met de laagste en de hoogste prijs van die dag (een dag of week: de uurprijzen zelf)
+const isDaily = period => period === 'maand' || period === 'jaar';
 const toMs = value => typeof value === 'number' ? (value > 1e11 ? value : value * 1000) : Date.parse(value);
 
 /**
- * Het venster van een periode. Dag: de kalenderdag. Week: de laatste 7 dagen tot en met vandaag. Maand: de kalendermaand.
+ * Het venster van een periode. Dag: de kalenderdag. Week: de laatste 7 dagen tot en met vandaag. Maand: de kalendermaand. Jaar: het kalenderjaar.
  * offset 0 is nu, 1 is de vorige periode, enzovoort.
  */
 export function windowFor(period, offset, now = new Date()) {
@@ -40,6 +42,10 @@ export function windowFor(period, offset, now = new Date()) {
   if (period === 'week') {
     const end = addDays(startOfDay(now), 1 - 7 * offset);
     return { start: addDays(end, -7), end };
+  }
+  if (period === 'jaar') {
+    const start = new Date(now.getFullYear() - offset, 0, 1);
+    return { start, end: new Date(start.getFullYear() + 1, 0, 1) };
   }
   const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
   return { start, end: new Date(start.getFullYear(), start.getMonth() + 1, 1) };
@@ -56,6 +62,7 @@ export function windowTitle(period, offset, win) {
     const range = `${format(win.start, { day: 'numeric', month: 'short' })} – ${format(addDays(win.end, -1), { day: 'numeric', month: 'short', year: 'numeric' })}`;
     return offset === 0 ? `Laatste 7 dagen · ${range}` : range;
   }
+  if (period === 'jaar') return String(win.start.getFullYear());
   return cap(format(win.start, { month: 'long', year: 'numeric' }));
 }
 
@@ -82,6 +89,12 @@ export function xTicks(period, win) {
       const day = addDays(win.start, i);
       ticks.push({ t: day.getTime(), text: '', line: true });
       ticks.push({ t: addDays(day, 0).getTime() + 12 * HOUR, text: day.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }), line: false, anchor: 'middle' });
+    }
+  } else if (period === 'jaar') {
+    for (let m = 0; m < 12; m++) {
+      const first = new Date(win.start.getFullYear(), m, 1);
+      ticks.push({ t: first.getTime(), text: '', line: true });
+      ticks.push({ t: new Date(win.start.getFullYear(), m, 15).getTime(), text: first.toLocaleDateString('nl-NL', { month: 'short' }).replace('.', ''), line: false, anchor: 'middle' });
     }
   } else {
     const days = Math.round((win.end - win.start) / (24 * HOUR));
@@ -216,9 +229,9 @@ class HuisPrijsHistorie extends HTMLElement {
     });
   }
 
-  // Een dag of een week in uurprijzen; een maand per dag (het gemiddelde met de laagste en de hoogste prijs van die dag)
+  // Een dag of een week in uurprijzen; een maand of een jaar per dag (het gemiddelde met de laagste en de hoogste prijs van die dag)
   async _statistics(win, period) {
-    const perDay = period === 'maand';
+    const perDay = isDaily(period);
     const key = `${period}-${win.start.getTime()}-${win.end.getTime()}`;
     const cached = this._cache.get(key);
     if (cached && Date.now() - cached.at < REFRESH) return cached.points;
@@ -266,7 +279,7 @@ class HuisPrijsHistorie extends HTMLElement {
       this._win = win;
       this._shown = { period, offset };
       this._points = points;
-      this._future = offset === 0 && period !== 'maand' ? this._futurePoints(win, points.length ? points[points.length - 1].t : win.start.getTime() - 1) : [];
+      this._future = offset === 0 && !isDaily(period) ? this._futurePoints(win, points.length ? points[points.length - 1].t : win.start.getTime() - 1) : [];
       this._previous = previous ? summarize(previous) : null;
       this._state = points.length || this._future.length ? 'ready' : 'empty';
     } catch (error) {
@@ -308,7 +321,7 @@ class HuisPrijsHistorie extends HTMLElement {
       ${tick.text ? `<text x="${x(tick.t)}" y="${height - 6}" text-anchor="${tick.anchor ?? 'middle'}" font-size="11" fill="rgba(255,255,255,0.7)">${esc(tick.text)}</text>` : ''}`).join('');
 
     // De lijn in stukken: een gat van meer dan een uur of twee (bij dagen: anderhalve dag) is een gat in de gegevens
-    const gap = period === 'maand' ? 36 * HOUR : GAP;
+    const gap = isDaily(period) ? 36 * HOUR : GAP;
     const segments = [];
     for (const p of this._points) {
       const last = segments[segments.length - 1];
@@ -316,10 +329,10 @@ class HuisPrijsHistorie extends HTMLElement {
     }
     const line = seg => seg.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)} ${y(p.v).toFixed(1)}`).join('');
     // Uurprijzen: een vlak onder de lijn. Dagen: een band van de laagste tot de hoogste prijs van die dag, met het gemiddelde als lijn
-    const area = seg => period === 'maand'
+    const area = seg => isDaily(period)
       ? `${seg.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)} ${y(p.hi).toFixed(1)}`).join('')}${[...seg].reverse().map(p => `L${x(p.t).toFixed(1)} ${y(p.lo).toFixed(1)}`).join('')}Z`
       : `${line(seg)} L${x(seg[seg.length - 1].t).toFixed(1)} ${bottom} L${x(seg[0].t).toFixed(1)} ${bottom}Z`;
-    const lines = segments.map(seg => `<path d="${area(seg)}" fill="${period === 'maand' ? 'rgba(91,157,255,0.2)' : 'url(#fill)'}"/>
+    const lines = segments.map(seg => `<path d="${area(seg)}" fill="${isDaily(period) ? 'rgba(91,157,255,0.2)' : 'url(#fill)'}"/>
       <path d="${line(seg)}" fill="none" stroke="${BLUE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${seg.length === 1 ? `<circle cx="${x(seg[0].t)}" cy="${y(seg[0].v)}" r="2.5" fill="${BLUE}"/>` : ''}`).join('');
     const lastPoint = this._points[this._points.length - 1];
@@ -332,7 +345,7 @@ class HuisPrijsHistorie extends HTMLElement {
     const marks = summary && !this.compact ? [[summary.low, GREEN], [summary.high, RED]].map(([p, color]) =>
       `<circle cx="${x(p.t)}" cy="${y(p.v)}" r="4" fill="${color}" stroke="#0b1020" stroke-width="1.5"/>`).join('') : '';
     const now = Date.now();
-    const nowLine = now > t0 && now < t1 && period !== 'maand'
+    const nowLine = now > t0 && now < t1 && !isDaily(period)
       ? `<line x1="${x(now)}" x2="${x(now)}" y1="${margin.top}" y2="${bottom}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="2 3"/>` : '';
 
     this._chart.setAttribute('aria-label', summary
@@ -375,7 +388,7 @@ class HuisPrijsHistorie extends HTMLElement {
     let change = '';
     if (this._previous && this._previous.average > 0) {
       const percent = Math.round((summary.average / this._previous.average - 1) * 100);
-      const word = { dag: 'vorige dag', week: 'vorige week', maand: 'vorige maand' }[period];
+      const word = { dag: 'vorige dag', week: 'vorige week', maand: 'vorige maand', jaar: 'vorig jaar' }[period];
       change = `${percent > 0 ? '+' : ''}${percent}% t.o.v. ${word}`;
     }
     const color = this._previous && summary.average > this._previous.average ? RED : GREEN;

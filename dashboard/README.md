@@ -124,12 +124,13 @@ een keer is gestart.
   binnen is "Weinig nut" (laat de ontvochtiger werken); anders "Luchten kan", en bij 5 graden of kouder "Kort luchten" (10 minuten). De redenen om
   dicht te houden staan op één plek (`WindowAdvice.Risks`), het advies en de telefoonmeldingen gebruiken dezelfde lijst. De grenzen staan in
   `automation/Helpers/WindowAdvice.cs`, de app in `automation/apps/General/Household/WindowMonitor.cs`.
-- Stroomprijs (Energie → Prijs, onder Historie): de grafiek van de laatste 7 dagen. Tik erop voor de pop-up met Dag, Week of Maand, de pijlen om
+- Stroomprijs (Energie → Prijs, onder Historie): de grafiek van de laatste 7 dagen. Tik erop voor de pop-up met Dag, Week, Maand of Jaar, de pijlen om
   terug (en weer vooruit) te gaan in de tijd, "Terug naar nu", en aanwijzen of aantikken van de grafiek voor de prijs op dat uur. Eronder staan het
   gemiddelde, de laagste en de hoogste prijs van de periode (met de verandering ten opzichte van de vorige) en bij Dag de prijzen van de komende uren
-  als stippellijn. Een maand toont per dag het gemiddelde met de laagste en de hoogste prijs als band. De prijzen komen uit de langetermijn-
-  statistieken van `sensor.anwb_electricity_all_in_price_current`; het element `huis-prijs-historie` staat in `www/prijs-historie.js` (kopieer het naar
-  `/config/www/huis/`; het wordt door de kaart zelf geladen, `?v=` in de template `price_history` ophogen na een wijziging).
+  als stippellijn. Een maand en een jaar (het kalenderjaar) tonen per dag het gemiddelde met de laagste en de hoogste prijs als band. De prijzen komen uit de
+  langetermijnstatistieken van `sensor.anwb_electricity_all_in_price_current`, dus een jaar toont alleen wat Home Assistant sinds het begin heeft bewaard; het
+  element `huis-prijs-historie` staat in `www/prijs-historie.js` (kopieer het naar `/config/www/huis/`; het wordt door de kaart zelf geladen, `?v=` in de
+  template `price_history` ophogen na een wijziging).
 - Git (pagina Vincent, onder "Waar is..."): per GitHub-repository de open issues en pull requests, de samengevoegde pull requests, sterren, forks, kijkers,
   de laatste release en de laatste commit, met bovenaan de totalen. Groen als er niets openstaat, oranje bij open issues, paars bij open pull requests;
   elk getal is een link naar die lijst op GitHub. Staat er in een repository iets open, dan is er een melding op Home (alleen voor Vincent; tik opent dit

@@ -304,7 +304,7 @@ price:
 
 # De stroomprijs als grafiek met de geschiedenis erachter (www/prijs-historie.js, het element huis-prijs-historie, haalt de uurprijzen zelf op).
 # Standaard: de laatste 7 dagen, met de tik-actie van de kaart zelf (de pagina Prijs opent er de pop-up #prijs-historie mee).
-# variables.full: true is de grafiek met Dag, Week en Maand, vorige en volgende periode, aanwijzen voor de prijs en de gemiddelde, laagste en
+# variables.full: true is de grafiek met Dag, Week, Maand en Jaar, vorige en volgende periode, aanwijzen voor de prijs en de gemiddelde, laagste en
 # hoogste prijs eronder (in de pop-up).
 price_history:
   template: glass
@@ -317,7 +317,7 @@ price_history:
     chart: |
       [[[
         // De module definieert het element; tot hij geladen is staat er een lege plek
-        if (!window.huisPrijsHistorie) window.huisPrijsHistorie = import('/local/huis/prijs-historie.js?v=4').catch(() => null);
+        if (!window.huisPrijsHistorie) window.huisPrijsHistorie = import('/local/huis/prijs-historie.js?v=5').catch(() => null);
         return variables.full ? '<huis-prijs-historie period="week"></huis-prijs-historie>' : '<huis-prijs-historie compact></huis-prijs-historie>';
       ]]]
     hint: |
