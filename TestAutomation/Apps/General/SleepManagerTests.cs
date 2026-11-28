@@ -147,6 +147,174 @@ public class SleepManagerTests
         ctx.VerifyCallService("media_player", "turn_off", "tv");
     }
 
+    /// <summary>Storage that really keeps what the app saves (the dehumidifier remembers its mode there), and in which the PetSnowy was cleaned today.</summary>
+    private static IDataRepository RememberingStorage(AppTestContext ctx)
+    {
+        var kept = new Dictionary<string, string>();
+        var storage = StorageWithPetSnowyCleanedToday(ctx);
+        storage.When(s => s.Save(Arg.Any<string>(), Arg.Any<string>())).Do(call => kept[call.ArgAt<string>(0)] = call.ArgAt<string>(1));
+        storage.Get<string>("DehumidifierModeBeforeSleep").Returns(_ => kept.GetValueOrDefault("DehumidifierModeBeforeSleep", ""));
+        return storage;
+    }
+
+    private static void DehumidifierIs(AppTestContext ctx, string state, string? mode) =>
+        ctx.HaContext.GetState("humidifier.luchtontvochtiger").Returns(new EntityState
+        {
+            EntityId = "humidifier.luchtontvochtiger", State = state, AttributesJson = JsonSerializer.SerializeToElement(new { mode })
+        });
+
+    private static string[] ModesSet(AppTestContext ctx) => ctx.HaContext.ReceivedCalls()
+        .Where(c => c.GetMethodInfo().Name == "CallService" && (string?)c.GetArguments()[1] == "set_mode")
+        .Select(c => JsonSerializer.Serialize(c.GetArguments()[3]))
+        .ToArray();
+
+    /// <summary>Goes to sleep with the dehumidifier on the given mode (which then is on sleep mode), as Vincent and Carleen do.</summary>
+    private static void GoToSleep(AppTestContext ctx, string modeBefore)
+    {
+        DehumidifierIs(ctx, "on", modeBefore);
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        DehumidifierIs(ctx, "on", "Sleep");
+    }
+
+    [Theory]
+    [InlineData("Continuities")]
+    [InlineData("Auto")]
+    public void WhenBothAreAwake_TheDehumidifierGoesBackToTheModeItHadBeforeTheNight(string modeBefore)
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, modeBefore);
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Should().Equal("{\"mode\":\"Sleep\"}", $"{{\"mode\":\"{modeBefore}\"}}");
+    }
+
+    [Fact]
+    public void WhileOneOfThemSleeps_TheDehumidifierStaysOnSleepMode_UntilTheLastOneIsAwake()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto");
+
+        // Vincent is up, Carleen sleeps on
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ModesSet(ctx).Should().ContainSingle("only the sleep mode so far");
+
+        // Carleen wakes up: now both are awake
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ModesSet(ctx).Should().Equal("{\"mode\":\"Sleep\"}", "{\"mode\":\"Auto\"}");
+    }
+
+    [Fact]
+    public void WhenCarleenWakesFirstAndVincentLast_TheDehumidifierGoesBackWhenVincentWakes()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Continuities");
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ModesSet(ctx).Should().ContainSingle();
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        ModesSet(ctx).Last().Should().Be("{\"mode\":\"Continuities\"}");
+    }
+
+    [Fact]
+    public void WhenCarleenIsAway_VincentWakingUpIsEnough()
+    {
+        var ctx = SetupContext();
+        ctx.HaContext.GetState("input_boolean.awaycarleen").Returns(new EntityState { State = "on" });
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        DehumidifierIs(ctx, "on", "Auto");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        DehumidifierIs(ctx, "on", "Sleep");
+
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Last().Should().Be("{\"mode\":\"Auto\"}");
+    }
+
+    [Fact]
+    public void WhenTheModeIsNotKnown_TheDehumidifierGoesBackToAuto()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        ctx.HaContext.GetState("humidifier.luchtontvochtiger").Returns(new EntityState { EntityId = "humidifier.luchtontvochtiger", State = "on" });
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
+        ctx.HaContextMock.ProcessPendingOperations();
+        DehumidifierIs(ctx, "on", "Sleep");
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Last().Should().Be($"{{\"mode\":\"{SleepManager.DehumidifierDefaultMode}\"}}");
+    }
+
+    [Theory]
+    [InlineData("off", "Sleep")]
+    [InlineData("on", "Continuities")]
+    public void InTheMorning_TheDehumidifierIsLeftAlone_WhenItWasTurnedOffOrPutOnAnotherModeMeanwhile(string state, string mode)
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto");
+        DehumidifierIs(ctx, state, mode);
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Should().ContainSingle("only the sleep mode of the evening");
+    }
+
+    [Fact]
+    public void ADehumidifierThatSomeoneSetToSleepModeHimself_IsNotChangedInTheMorning()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        DehumidifierIs(ctx, "on", "Sleep");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
+
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TheModeIsGivenBackOnlyOnce()
+    {
+        var ctx = SetupContext();
+        ctx.InitApp<SleepManager>(RememberingStorage(ctx));
+        GoToSleep(ctx, "Auto");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.ChangeStateFor("input_boolean.sleepingvincent").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+        DehumidifierIs(ctx, "on", "Sleep");
+
+        // Later that morning someone wakes up again (the sleeping switch toggles): nothing is remembered any more
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("off").ToState("on");
+        ctx.ChangeStateFor("input_boolean.sleepingcarleen").FromState("on").ToState("off");
+        ctx.HaContextMock.ProcessPendingOperations();
+
+        ModesSet(ctx).Should().Equal("{\"mode\":\"Sleep\"}", "{\"mode\":\"Auto\"}");
+    }
+
     [Fact]
     public void VincentSleeping_DoesNotMoveTheRollerblind_ForNow()
     {

@@ -313,16 +313,20 @@
 
   // Wedstrijden van vandaag (die nog moeten beginnen) en morgen waar het weer reden is om af te keuren: voor de melding "let op, misschien afgelastingen"
   // (senioren; de jeugd tot en met O18 telt niet mee). Geeft null als er niets te melden is.
+  // "Morgen" telt pas vanaf 06:00 (MORGEN_VANAF): wie na middernacht nog op is, zit nog in de dag ervoor, en leest "morgen" dan als de dag die
+  // net begonnen is. De wedstrijden van de kalenderdag erna volgen dus pas 's ochtends.
+  const MORGEN_VANAF = 6;
   const risico = (states, nu = new Date()) => {
     const verwachting = (states['sensor.weer_verwachting_hockey']?.attributes.forecast?.length ? states['sensor.weer_verwachting_hockey'] : states['sensor.weer_verwachting_per_uur'])?.attributes.forecast ?? [];
     if (!verwachting.length) return null;
     const ctx = omstandigheden(states), sleutel = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     const vandaag = sleutel(nu), morgen = vandaag + 86400000;
+    const dagen = nu.getHours() >= MORGEN_VANAF ? ['vandaag', 'morgen'] : ['vandaag'];
     const kandidaten = (states['sensor.union_thuiswedstrijden']?.attributes.matches ?? [])
       .filter(m => m.start && !m.cancelled && !isJeugd(m)).map(m => ({ m, start: new Date(m.start) }))
       .filter(x => x.start > nu && [vandaag, morgen].includes(sleutel(x.start)))
       .map(x => ({ ...x, dag: sleutel(x.start) === vandaag ? 'vandaag' : 'morgen', g: moment(x.start, null, verwachting, ctx) })).filter(x => x.g);
-    for (const dag of ['vandaag', 'morgen']) {
+    for (const dag of dagen) {
       const rij = kandidaten.filter(x => x.dag === dag), kans = rij.filter(x => x.g.niveau > 0);
       if (!kans.length) continue;
       const hard = kans.filter(x => x.g.niveau === 2).length;

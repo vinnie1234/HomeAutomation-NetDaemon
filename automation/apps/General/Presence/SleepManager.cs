@@ -26,6 +26,12 @@ public class SleepManager : BaseApp
     /// <summary>The mode of the dehumidifier for the night (the modes are Continuities, Auto and Sleep).</summary>
     public const string DehumidifierSleepMode = "Sleep";
 
+    /// <summary>The mode the dehumidifier goes back to when its previous mode is not known.</summary>
+    public const string DehumidifierDefaultMode = "Auto";
+
+    /// <summary>Where the mode the dehumidifier had before the night is kept (empty: the app did not change it), so it survives a restart.</summary>
+    private const string DehumidifierModeBeforeSleepKey = "DehumidifierModeBeforeSleep";
+
     private readonly IDataRepository _storage;
 
     /// <summary>
@@ -79,6 +85,7 @@ public class SleepManager : BaseApp
                 Entities.Light.Bureau.TurnOn();
 
             SendBatteryWarning();
+            DehumidifierBackToNormalWhenEveryoneIsAwake();
         } catch (Exception ex) {
             Logger.LogError(ex, "Error in the wake-up routine");
             TestExceptionCatcher.CaughtException = ex;
@@ -105,6 +112,15 @@ public class SleepManager : BaseApp
     /// </summary>
     private void CarleenWokeUp()
     {
+        try
+        {
+            DehumidifierBackToNormalWhenEveryoneIsAwake();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error putting the dehumidifier back to normal");
+        }
+
         if (!Carleen.IsHome) return;
         if (!Vincent.IsSleeping)
             OpenRollerblind();
@@ -153,18 +169,46 @@ public class SleepManager : BaseApp
     }
 
     /// <summary>
-    /// Puts the dehumidifier on its sleep mode (quiet) when it is on and not on that mode yet. One that is off stays off: someone turned it off.
+    /// Puts the dehumidifier on its sleep mode (quiet) when it is on and not on that mode yet, and remembers the mode it had so it goes back
+    /// to it in the morning. One that is off stays off: someone turned it off. One that is on sleep mode already was set so by someone: it
+    /// is left alone, also in the morning.
     /// </summary>
     private void DehumidifierToSleepMode()
     {
         var state = HaContext.GetState(Dehumidifier);
         if (state?.State != "on") return;
 
-        var mode = state.AttributesJson is { ValueKind: JsonValueKind.Object } a && a.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
-        if (mode == DehumidifierSleepMode) return;
+        var mode = DehumidifierMode(state);
+        if (mode == DehumidifierSleepMode)
+        {
+            _storage.Save(DehumidifierModeBeforeSleepKey, "");
+            return;
+        }
 
+        _storage.Save(DehumidifierModeBeforeSleepKey, mode ?? DehumidifierDefaultMode);
         HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = DehumidifierSleepMode });
     }
+
+    /// <summary>
+    /// Puts the dehumidifier back on the mode it had before the night, once Vincent and Carleen are both awake (the one who wakes up last
+    /// does it). Only what the app changed is changed back: not a dehumidifier that is off, and not one someone put on another mode meanwhile.
+    /// </summary>
+    private void DehumidifierBackToNormalWhenEveryoneIsAwake()
+    {
+        if (Entities.InputBoolean.Sleepingvincent.IsOn() || Entities.InputBoolean.Sleepingcarleen.IsOn()) return;
+
+        var before = _storage.Get<string>(DehumidifierModeBeforeSleepKey);
+        if (string.IsNullOrEmpty(before)) return;
+
+        _storage.Save(DehumidifierModeBeforeSleepKey, "");
+        var state = HaContext.GetState(Dehumidifier);
+        if (state?.State != "on" || DehumidifierMode(state) != DehumidifierSleepMode) return;
+
+        HaContext.CallService("humidifier", "set_mode", ServiceTarget.FromEntity(Dehumidifier), new { mode = before });
+    }
+
+    private static string? DehumidifierMode(EntityState state) =>
+        state.AttributesJson is { ValueKind: JsonValueKind.Object } a && a.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
 
     /// <summary>
     /// Changes relevant house states when sleeping.

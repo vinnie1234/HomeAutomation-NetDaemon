@@ -696,7 +696,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=17').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             return window.huisHockey.risico(states)?.titel ?? '';
@@ -730,7 +730,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=17').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             const w = window.huisHockey.winst(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' });
@@ -770,7 +770,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=17').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             return window.huisHockey.melding(states, { persoon: 'carleen', naam: 'Carleen', proef: states['input_select.weerkaart_scenario']?.state === 'Hockey' })?.titel ?? '';
@@ -814,7 +814,7 @@ sections:
           [[[
             const kaart = this;
             if (!window.huisHockey) {
-              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=16').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
+              if (!window.huisHockeyLaden) window.huisHockeyLaden = import('/local/huis/hockey.js?v=17').then(() => kaart?.requestUpdate?.()).catch(() => { window.huisHockeyLaden = null; });
               return '';
             }
             return window.huisHockey.afgelastMelding(states, { persoon: 'carleen', naam: 'Carleen' })?.titel ?? '';
